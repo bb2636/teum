@@ -1,0 +1,21 @@
+{
+  "name": "teum",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter web dev & pnpm --filter server dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:server": "pnpm --filter server dev",
+    "build": "pnpm --filter web build && pnpm --filter server build",
+    "typecheck": "pnpm --filter web typecheck && pnpm --filter server typecheck",
+    "lint": "pnpm --filter web lint && pnpm --filter server lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

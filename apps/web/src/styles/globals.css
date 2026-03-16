@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 45 20% 96%; /* 따뜻한 베이지 */
+    --foreground: 30 10% 20%;
+    
+    --card: 45 25% 98%;
+    --card-foreground: 30 10% 20%;
+    
+    --popover: 45 25% 98%;
+    --popover-foreground: 30 10% 20%;
+    
+    --primary: 30 25% 45%; /* 따뜻한 브라운 */
+    --primary-foreground: 45 20% 96%;
+    
+    --secondary: 45 15% 90%;
+    --secondary-foreground: 30 10% 20%;
+    
+    --muted: 45 10% 92%;
+    --muted-foreground: 30 8% 40%;
+    
+    --accent: 30 20% 50%;
+    --accent-foreground: 45 20% 96%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 45 15% 85%;
+    --input: 45 15% 85%;
+    --ring: 30 25% 45%;
+    
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Safe area for mobile devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* 모바일 우선 반응형 */
+@media (min-width: 768px) {
+  body {
+    @apply flex items-center justify-center min-h-screen;
+  }
+  #root {
+    @apply w-full max-w-md mx-auto shadow-lg;
+  }
+}
+
+/* Slide up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* ContentEditable placeholder */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #9CA3AF;
+  pointer-events: none;
+}
+
+/* Hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

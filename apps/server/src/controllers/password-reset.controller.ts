@@ -1,0 +1,47 @@
+import { Request, Response, NextFunction } from 'express';
+import { passwordResetService } from '../services/password-reset.service';
+import { requestPasswordResetSchema, resetPasswordSchema } from '../validations/password-reset';
+
+export class PasswordResetController {
+  async requestPasswordReset(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = requestPasswordResetSchema.parse(req.body);
+      const result = await passwordResetService.requestPasswordReset(input.email);
+
+      // Always return success (don't reveal if user exists)
+      // In development, include token for testing
+      res.json({
+        success: true,
+        message: '비밀번호 재설정 이메일이 발송되었습니다',
+        ...(result.token && { token: result.token, resetLink: result.resetLink }),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = resetPasswordSchema.parse(req.body);
+      await passwordResetService.resetPassword(input.token, input.password);
+
+      res.json({
+        success: true,
+        message: '비밀번호가 성공적으로 변경되었습니다',
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Invalid or expired')) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_TOKEN',
+            message: '유효하지 않거나 만료된 토큰입니다',
+          },
+        });
+      }
+      next(error);
+    }
+  }
+}
+
+export const passwordResetController = new PasswordResetController();

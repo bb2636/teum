@@ -1,0 +1,59 @@
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '../config/logger';
+
+export interface ApiError extends Error {
+  statusCode?: number;
+  code?: string;
+}
+
+export function errorHandler(
+  err: ApiError | Error,
+  req: Request,
+  res: Response,
+  _next: NextFunction
+): Response | void {
+  // Log error details
+  const errorDetails = {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    name: err.name,
+  };
+  
+  console.error('Error Handler:', errorDetails);
+  
+  try {
+    logger.error('Error:', errorDetails);
+  } catch (logError) {
+    console.error('Failed to log error:', logError);
+  }
+
+  // Ensure response hasn't been sent
+  if (res.headersSent) {
+    return;
+  }
+
+  // Handle Zod validation errors
+  if (err.name === 'ZodError') {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: (err as any).errors,
+      },
+    });
+  }
+
+  const statusCode = (err as ApiError).statusCode || 500;
+  const code = (err as ApiError).code || 'INTERNAL_SERVER_ERROR';
+
+  return res.status(statusCode).json({
+    success: false,
+    error: {
+      code,
+      message: err.message || 'Internal server error',
+    },
+  });
+}

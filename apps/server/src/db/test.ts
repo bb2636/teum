@@ -1,6 +1,7 @@
 import { db } from './index';
 import * as schema from './schema';
 import * as dotenv from 'dotenv';
+import { and, eq, isNull } from 'drizzle-orm';
 
 dotenv.config();
 
@@ -38,16 +39,15 @@ async function testDatabase() {
       console.log(`   - ${folder.name} (Default: ${folder.isDefault})`);
     });
 
-    // Test 4: Get question sets
-    console.log('\nTest 4: Fetching question sets...');
-    const questionSets = await db.query.diaryQuestionSets.findMany({
-      with: {
-        questions: true,
-      },
+    // Test 4: Get questions (new question system)
+    console.log('\nTest 4: Fetching questions...');
+    const questions = await db.query.questions.findMany({
+      where: (questions, { eq, isNull }) => and(eq(questions.isActive, true), isNull(questions.deletedAt)),
+      orderBy: (questions, { asc }) => [asc(questions.order)],
     });
-    console.log(`✅ Found ${questionSets.length} question sets`);
-    questionSets.forEach((set) => {
-      console.log(`   - ${set.name} (${set.questions.length} questions)`);
+    console.log(`✅ Found ${questions.length} active questions`);
+    questions.slice(0, 5).forEach((q) => {
+      console.log(`   - ${q.question} (Order: ${q.order})`);
     });
 
     // Test 5: Test transaction (insert and rollback)
@@ -84,8 +84,7 @@ async function testDatabase() {
     console.log('\n📊 Database Summary:');
     console.log(`   - Users: ${userCount.length}`);
     console.log(`   - Folders: ${folders.length}`);
-    console.log(`   - Question Sets: ${questionSets.length}`);
-    console.log(`   - Total Questions: ${questionSets.reduce((sum, set) => sum + set.questions.length, 0)}`);
+    console.log(`   - Active Questions: ${questions.length}`);
 
     process.exit(0);
   } catch (error) {

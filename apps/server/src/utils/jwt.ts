@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
+import { logger } from '../config/logger';
 
 dotenv.config();
 
@@ -15,13 +16,13 @@ export interface JWTPayload {
 export function generateAccessToken(payload: JWTPayload): string {
   try {
     if (!JWT_SECRET || JWT_SECRET === 'your-secret-key-change-in-production') {
-      console.warn('WARNING: Using default JWT_SECRET. Set JWT_SECRET in environment variables for production.');
+      logger.warn('WARNING: Using default JWT_SECRET. Set JWT_SECRET in environment variables for production.');
     }
     return jwt.sign(payload, JWT_SECRET, {
       expiresIn: '15m', // 15 minutes
     });
   } catch (error) {
-    console.error('Error generating access token:', error);
+    logger.error('Error generating access token:', error);
     throw new Error('Failed to generate access token');
   }
 }
@@ -29,13 +30,13 @@ export function generateAccessToken(payload: JWTPayload): string {
 export function generateRefreshToken(payload: JWTPayload): string {
   try {
     if (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET === 'your-refresh-secret-key-change-in-production') {
-      console.warn('WARNING: Using default JWT_REFRESH_SECRET. Set JWT_REFRESH_SECRET in environment variables for production.');
+      logger.warn('WARNING: Using default JWT_REFRESH_SECRET. Set JWT_REFRESH_SECRET in environment variables for production.');
     }
     return jwt.sign(payload, JWT_REFRESH_SECRET, {
       expiresIn: '7d', // 7 days
     });
   } catch (error) {
-    console.error('Error generating refresh token:', error);
+    logger.error('Error generating refresh token:', error);
     throw new Error('Failed to generate refresh token');
   }
 }

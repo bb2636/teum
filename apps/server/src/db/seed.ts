@@ -134,43 +134,37 @@ async function seed() {
       console.log('Default folder created for test user');
     }
 
-    // Check if question set exists
-    let questionSet = await db.query.diaryQuestionSets.findFirst({
-      where: (sets, { eq }) => eq(sets.name, 'Daily Reflection'),
-    });
+    // Create sample questions (new question system)
+    const sampleQuestions = [
+      '오늘 하루는 어땠나요?',
+      '가장 기억에 남는 순간은?',
+      '내일은 어떤 하루가 되길 바라나요?',
+      '오늘 감사한 일은 무엇인가요?',
+      '오늘 느낀 감정은 무엇인가요?',
+      '오늘 배운 점이 있다면?',
+      '내일의 목표는 무엇인가요?',
+    ];
 
-    if (!questionSet) {
-      // Create sample question set
-      [questionSet] = await db
-        .insert(schema.diaryQuestionSets)
-        .values({
-          name: 'Daily Reflection',
-          description: 'Daily reflection questions',
+    for (let i = 0; i < sampleQuestions.length; i++) {
+      const existingQuestion = await db.query.questions.findFirst({
+        where: (questions, { eq }) => eq(questions.question, sampleQuestions[i]),
+      });
+
+      if (!existingQuestion) {
+        await db.insert(schema.questions).values({
+          question: sampleQuestions[i],
           isActive: true,
-        })
-        .returning();
-      console.log('Question set created');
-
-      // Create sample questions
-      await db.insert(schema.diaryQuestions).values([
-        {
-          questionSetId: questionSet.id,
-          question: '오늘 하루는 어땠나요?',
-          order: 1,
-        },
-        {
-          questionSetId: questionSet.id,
-          question: '가장 기억에 남는 순간은?',
-          order: 2,
-        },
-        {
-          questionSetId: questionSet.id,
-          question: '내일은 어떤 하루가 되길 바라나요?',
-          order: 3,
-        },
-      ]);
-      console.log('Sample questions created');
+          order: i + 1,
+        });
+      } else {
+        // Update order if exists
+        await db
+          .update(schema.questions)
+          .set({ order: i + 1, isActive: true })
+          .where(eq(schema.questions.id, existingQuestion.id));
+      }
     }
+    console.log('Sample questions created/updated');
 
     console.log('\nSeed completed successfully!');
     console.log('Admin credentials: admin@teum.com / admin1234');

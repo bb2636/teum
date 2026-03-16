@@ -74,6 +74,29 @@ pnpm --filter server db:migrate
 - 인덱스는 `IF NOT EXISTS`를 사용하므로 중복 실행해도 안전합니다
 - 대용량 테이블의 경우 인덱스 생성에 시간이 걸릴 수 있습니다
 
+## 추가 성능 인덱스 마이그레이션
+
+`0008_add_additional_indexes.sql` 파일은 추가 쿼리 성능 향상을 위한 인덱스를 추가합니다.
+
+**포함된 인덱스:**
+- `folders`: userId와 isDefault 복합 인덱스, userId 인덱스
+- `diary_images`: diaryId와 order 복합 인덱스
+- `diary_answers`: diaryId 인덱스
+- `questions`: order와 isActive 복합 인덱스
+- `user_profiles`: userId 인덱스
+- `ai_feedback`: diaryId와 createdAt 복합 인덱스, userId 인덱스
+- `terms`: type과 deletedAt 복합 인덱스
+
+**실행 방법:**
+```bash
+# 수동 SQL 마이그레이션 실행
+pnpm --filter server tsx src/db/run-sql-migration.ts drizzle/0008_add_additional_indexes.sql
+```
+
+**주의사항:**
+- 이 인덱스들은 선택사항이지만, 대량의 데이터가 있는 경우 성능 향상에 도움이 됩니다
+- 인덱스는 `IF NOT EXISTS`를 사용하므로 중복 실행해도 안전합니다
+
 ## 마이그레이션 실행 후 확인
 
 ```bash

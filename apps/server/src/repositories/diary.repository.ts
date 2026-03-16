@@ -1,95 +1,68 @@
 import { eq, and, isNull, gte, lte, desc } from 'drizzle-orm';
 import { db } from '../db';
-import { diaries, diaryImages, diaryAnswers, diaryQuestions } from '../db/schema';
+import { diaries, diaryImages, diaryAnswers } from '../db/schema';
 
 export class DiaryRepository {
   async findAll() {
-    const results = await db
-      .select()
-      .from(diaries)
-      .where(isNull(diaries.deletedAt))
-      .orderBy(desc(diaries.date));
+    // Optimized: Use single query with relations instead of N+1 queries
+    const results = await db.query.diaries.findMany({
+      where: (diaries, { isNull }) => isNull(diaries.deletedAt),
+      orderBy: (diaries, { desc }) => [desc(diaries.date)],
+      with: {
+        images: {
+          orderBy: (images, { asc }) => [asc(images.order)],
+        },
+        answers: {
+          with: {
+            question: true, // May be null if question is from questions table
+          },
+        },
+        aiFeedback: {
+          orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
+          limit: 1,
+        },
+        user: {
+          with: {
+            profile: true,
+          },
+        },
+        folder: true,
+      },
+      limit: 100, // Limit for admin view to prevent excessive data loading
+    });
 
-    // Load relations for each diary
-    const diariesWithRelations = await Promise.all(
-      results.map(async (diary) => {
-        try {
-          const fullDiary = await db.query.diaries.findFirst({
-            where: (diaries, { eq }) => eq(diaries.id, diary.id),
-            with: {
-              images: {
-                orderBy: (images, { asc }) => [asc(images.order)],
-              },
-              answers: {
-                with: {
-                  question: true, // May be null if question is from questions table
-                },
-              },
-              aiFeedback: {
-                orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
-                limit: 1,
-              },
-              user: {
-                with: {
-                  profile: true,
-                },
-              },
-              folder: true,
-            },
-          });
-          return fullDiary || diary;
-        } catch (error) {
-          // If relation fails (e.g., question from questions table), return diary without answers
-          console.error(`Error loading diary ${diary.id} relations:`, error);
-          return diary;
-        }
-      })
-    );
-
-    return diariesWithRelations.filter((d) => d !== null);
+    return results;
   }
 
   async findByUserId(userId: string, folderId?: string) {
-    const conditions = [
-      eq(diaries.userId, userId),
-      isNull(diaries.deletedAt),
-    ];
-
-    if (folderId) {
-      conditions.push(eq(diaries.folderId, folderId));
-    }
-
-    const results = await db
-      .select()
-      .from(diaries)
-      .where(and(...conditions))
-      .orderBy(desc(diaries.date));
-
-    // Load relations for each diary
-    const diariesWithRelations = await Promise.all(
-      results.map(async (diary) => {
-        const fullDiary = await db.query.diaries.findFirst({
-          where: (diaries, { eq }) => eq(diaries.id, diary.id),
+    // Optimized: Use single query with relations instead of N+1 queries
+    return db.query.diaries.findMany({
+      where: (diaries, { eq, isNull, and: andFn }) => {
+        const conditions = [
+          eq(diaries.userId, userId),
+          isNull(diaries.deletedAt),
+        ];
+        if (folderId) {
+          conditions.push(eq(diaries.folderId, folderId));
+        }
+        return andFn(...conditions);
+      },
+      orderBy: (diaries, { desc }) => [desc(diaries.date)],
+      with: {
+        images: {
+          orderBy: (images, { asc }) => [asc(images.order)],
+        },
+        answers: {
           with: {
-            images: {
-              orderBy: (images, { asc }) => [asc(images.order)],
-            },
-            answers: {
-              with: {
-                question: true,
-              },
-            },
-            aiFeedback: {
-              orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
-              limit: 1,
-            },
+            question: true,
           },
-        });
-        return fullDiary || diary;
-      })
-    );
-
-    return diariesWithRelations.filter((d) => d !== null);
+        },
+        aiFeedback: {
+          orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
+          limit: 1,
+        },
+      },
+    });
   }
 
   async findByDateRange(userId: string, startDate: Date, endDate: Date) {

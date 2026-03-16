@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { termsService } from '../services/terms.service';
+import { logger } from '../config/logger';
 import { z } from 'zod';
 
 const updateTermsSchema = z.object({
@@ -100,7 +101,7 @@ export class TermsController {
         },
       });
     } catch (error) {
-      console.error('Error fetching service terms:', error);
+      logger.error('Error fetching service terms:', error);
       // Return default instead of throwing error
       res.json({
         success: true,
@@ -147,7 +148,7 @@ export class TermsController {
         },
       });
     } catch (error) {
-      console.error('Error fetching privacy policy:', error);
+      logger.error('Error fetching privacy policy:', error);
       // Return default instead of throwing error
       res.json({
         success: true,

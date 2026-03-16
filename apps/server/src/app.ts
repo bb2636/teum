@@ -3,6 +3,10 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/error-handler';
 import { setCacheHeaders } from './middleware/cache-headers';
+import { performanceMiddleware } from './middleware/performance';
+import { performanceMonitor } from './utils/performance-monitor';
+import { authenticate } from './middleware/auth';
+import { requireRole } from './middleware/auth';
 
 export const app: Express = express();
 
@@ -15,10 +19,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(setCacheHeaders);
+app.use(performanceMiddleware);
 
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Performance metrics endpoint (admin only)
+app.get('/api/admin/performance', authenticate, requireRole(['admin']), (_req, res) => {
+  const queryStats = performanceMonitor.getQueryStats();
+  const endpointStats = performanceMonitor.getEndpointStats();
+  
+  res.json({
+    success: true,
+    data: {
+      queries: queryStats,
+      endpoints: endpointStats,
+    },
+  });
 });
 
 // Root path

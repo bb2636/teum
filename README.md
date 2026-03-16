@@ -365,8 +365,8 @@ pnpm --filter server db:seed
 ### 시드 데이터
 
 시드 스크립트는 다음 테스트 계정을 생성합니다:
-- **Admin**: `admin@teum.com` / `admin123!`
-- **Test User**: `test@teum.com` / `test123!`
+- **Admin**: `admin@teum.com` / `admin1234`
+- **Test User**: `test@test.com` / `test1234`
 
 ### 마이그레이션 파일
 

@@ -48,6 +48,11 @@ export class QuestionService {
     logger.info('Recording question usage', { userId, questionId, diaryId });
     return questionRepository.recordQuestionUsage(userId, questionId, diaryId);
   }
+
+  async updateQuestionOrder(questionIds: string[]) {
+    logger.info('Updating question order', { questionIds });
+    return questionRepository.updateOrder(questionIds);
+  }
 }
 
 export const questionService = new QuestionService();

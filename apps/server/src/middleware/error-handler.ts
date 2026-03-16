@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../config/logger';
+import { ZodError } from 'zod';
 
 export interface ApiError extends Error {
   statusCode?: number;
@@ -35,13 +36,13 @@ export function errorHandler(
   }
 
   // Handle Zod validation errors
-  if (err.name === 'ZodError') {
+  if (err instanceof ZodError) {
     return res.status(400).json({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Validation failed',
-        details: (err as any).errors,
+        details: err.errors,
       },
     });
   }

@@ -45,7 +45,6 @@ import paymentRoutes from './routes/payment.routes';
 import supportRoutes from './routes/support.routes';
 import termsRoutes from './routes/terms.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
-import questionSetRoutes from './routes/question-set.routes';
 import questionRoutes from './routes/question.routes';
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -58,7 +57,6 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/terms', termsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
-app.use('/api/question-sets', questionSetRoutes);
 app.use('/api/questions', questionRoutes);
 
 // 404 handler for API routes

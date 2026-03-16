@@ -7,6 +7,7 @@ import {
   phoneVerificationConfirmSchema,
 } from '../validations/auth';
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
+import { logger } from '../config/logger';
 
 export class AuthController {
   async signup(req: Request, res: Response, next: NextFunction) {
@@ -45,15 +46,15 @@ export class AuthController {
 
   async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      console.log('Login attempt:', { email: req.body.email });
+      logger.debug('Login attempt', { email: req.body.email });
       
       // Validate input
       const input = loginSchema.parse(req.body);
-      console.log('Input validated');
+      logger.debug('Input validated');
 
       // Login
       const result = await authService.login(input);
-      console.log('Login successful:', { userId: result.user.id });
+      logger.info('Login successful', { userId: result.user.id, email: result.user.email });
 
       // Set httpOnly cookies
       res.cookie('accessToken', result.accessToken, {
@@ -77,25 +78,33 @@ export class AuthController {
         },
       });
     } catch (error) {
-      console.error('Login error:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
+      logger.error('Login error', {
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         name: error instanceof Error ? error.name : undefined,
       });
       
       // Handle authentication errors with 401 status
-      if (error instanceof Error && (
-        error.message.includes('Invalid email or password') ||
-        error.message.includes('이메일 또는 비밀번호')
-      )) {
-        return res.status(401).json({
-          success: false,
-          error: {
-            code: 'INVALID_CREDENTIALS',
-            message: '이메일 또는 비밀번호가 올바르지 않습니다.',
-          },
-        });
+      if (error instanceof Error) {
+        if (error.message.includes('계정이 정지되었습니다')) {
+          return res.status(403).json({
+            success: false,
+            error: {
+              code: 'ACCOUNT_SUSPENDED',
+              message: '계정이 정지되었습니다. 관리자에게 문의하세요.',
+            },
+          });
+        }
+        if (error.message.includes('Invalid email or password') ||
+            error.message.includes('이메일 또는 비밀번호')) {
+          return res.status(401).json({
+            success: false,
+            error: {
+              code: 'INVALID_CREDENTIALS',
+              message: '이메일 또는 비밀번호가 올바르지 않습니다.',
+            },
+          });
+        }
       }
       next(error);
     }

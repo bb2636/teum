@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { userRepository } from '../repositories/user.repository';
 import { userService } from '../services/user.service';
 import { authenticate } from '../middleware/auth';
-import { eq, isNull } from 'drizzle-orm';
-import { users } from '../db/schema';
+import { eq, isNull, and } from 'drizzle-orm';
+import { users, subscriptions } from '../db/schema';
 import { updateProfileSchema } from '../validations/user';
+import { db } from '../db';
 
 export class UserController {
   async getMe(req: Request, res: Response, next: NextFunction) {
@@ -143,6 +144,184 @@ export class UserController {
       res.json({
         success: true,
         data: { profile },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        });
+      }
+
+      const allUsers = await userRepository.findAllWithProfiles();
+      
+      // 각 사용자의 활성 구독 정보 가져오기
+      const usersWithSubscriptions = await Promise.all(
+        allUsers.map(async (user) => {
+          const activeSubscription = await db.query.subscriptions.findFirst({
+            where: (subs, { eq, and }) => and(
+              eq(subs.userId, user.id),
+              eq(subs.status, 'active')
+            ),
+          });
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            createdAt: user.createdAt,
+            deletedAt: user.deletedAt,
+            profile: user.profile,
+            hasActiveSubscription: !!activeSubscription,
+            isActive: user.isActive ?? true,
+          };
+        })
+      );
+      
+      res.json({
+        success: true,
+        data: { users: usersWithSubscriptions },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getUserPayments(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        });
+      }
+
+      const { userId } = req.params;
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'userId is required' },
+        });
+      }
+
+      const { paymentService } = await import('../services/payment.service');
+      const payments = await paymentService.getPayments(userId);
+      
+      res.json({
+        success: true,
+        data: { payments },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        });
+      }
+
+      const { userId } = req.params;
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'userId is required' },
+        });
+      }
+
+      // Check if user exists
+      const user = await userRepository.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        });
+      }
+
+      // Prevent deleting admin users
+      if (user.role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Cannot delete admin users' },
+        });
+      }
+
+      // Soft delete user
+      await userRepository.softDeleteUser(userId);
+
+      res.json({
+        success: true,
+        message: 'User deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateUserStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        });
+      }
+
+      const { userId } = req.params;
+      const { isActive } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'userId is required' },
+        });
+      }
+
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'isActive must be a boolean' },
+        });
+      }
+
+      // Check if user exists
+      const user = await userRepository.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        });
+      }
+
+      // Prevent changing admin user status
+      if (user.role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Cannot change admin user status' },
+        });
+      }
+
+      // Update user status
+      const updated = await userService.updateUserStatus(userId, isActive);
+
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: updated.id,
+            email: updated.email,
+            isActive: updated.isActive,
+          },
+        },
       });
     } catch (error) {
       next(error);

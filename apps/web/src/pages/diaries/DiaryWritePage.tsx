@@ -51,6 +51,7 @@ export function DiaryWritePage() {
   const [selectedTextStyle, setSelectedTextStyle] = useState<TextStyle>('body');
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
   const [textColor, setTextColor] = useState('#4A2C1A');
+  const [fontSize, setFontSize] = useState(16); // Default font size in px
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,8 +121,22 @@ export function DiaryWritePage() {
     }
   };
 
-  // Format text functions
+  // Format text functions - only applies to selected text
   const applyFormat = (format: FormatType) => {
+    const selection = window.getSelection();
+    
+    if (!selection || selection.rangeCount === 0) {
+      // No selection, don't apply format
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    
+    // If collapsed selection (no text selected), don't apply
+    if (range.collapsed && (format === 'bold' || format === 'italic' || format === 'underline' || format === 'strikethrough')) {
+      return;
+    }
+
     if (format === 'bold') {
       document.execCommand('bold', false);
     } else if (format === 'italic') {
@@ -142,20 +157,19 @@ export function DiaryWritePage() {
   const applyTextStyle = (style: TextStyle) => {
     setSelectedTextStyle(style);
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    if (!selection || selection.rangeCount === 0) {
+      // If no selection, apply to current cursor position (next text)
+      return;
+    }
 
     const range = selection.getRangeAt(0);
-    const element = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-      ? range.commonAncestorContainer.parentElement
-      : range.commonAncestorContainer as Element;
+    
+    // If collapsed selection (no text selected), don't apply
+    if (range.collapsed) {
+      return;
+    }
 
-    if (!element) return;
-
-    // Remove existing style classes
-    const styleClasses = ['text-style-title', 'text-style-header', 'text-style-subheader', 'text-style-body', 'text-style-mono'];
-    element.classList.remove(...styleClasses);
-
-    // Apply new style class and font size
+    // Apply style to selected text only
     const styleConfig: Record<TextStyle, { tag: string; fontSize: string; className: string }> = {
       title: { tag: 'h1', fontSize: '24px', className: 'text-style-title' },
       header: { tag: 'h2', fontSize: '20px', className: 'text-style-header' },
@@ -165,17 +179,119 @@ export function DiaryWritePage() {
     };
 
     const config = styleConfig[style];
-    element.classList.add(config.className);
-    (element as HTMLElement).style.fontSize = config.fontSize;
     
-    // Use formatBlock for block-level formatting
-    document.execCommand('formatBlock', false, config.tag);
+    // Wrap selected text in a span with the style
+    const span = document.createElement('span');
+    span.className = config.className;
+    span.style.fontSize = config.fontSize;
+    
+    try {
+      range.surroundContents(span);
+    } catch (e) {
+      // If surroundContents fails, use formatBlock
+      document.execCommand('formatBlock', false, config.tag);
+    }
+    
+    handleContentChange();
+  };
+
+  const applyFontSize = (size: number) => {
+    setFontSize(size);
+    const selection = window.getSelection();
+    
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      
+      // If text is selected, apply font size to selected text only
+      if (!range.collapsed) {
+        // Apply font size to selected text
+        document.execCommand('fontSize', false, '7'); // Create a font tag
+        // Find the font tag and replace with span
+        const fontElements = contentEditableRef.current?.querySelectorAll('font[size="7"]');
+        if (fontElements) {
+          fontElements.forEach((font) => {
+            const span = document.createElement('span');
+            span.style.fontSize = `${size}px`;
+            span.innerHTML = font.innerHTML;
+            font.parentNode?.replaceChild(span, font);
+          });
+        }
+      } else {
+        // If no selection, set font size for future text input only
+        const span = document.createElement('span');
+        span.style.fontSize = `${size}px`;
+        span.innerHTML = '\u200B'; // Zero-width space
+        
+        try {
+          range.insertNode(span);
+          range.setStartAfter(span);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch (e) {
+          // If insert fails, use execCommand
+          document.execCommand('fontSize', false, '7');
+          const fontElements = contentEditableRef.current?.querySelectorAll('font[size="7"]');
+          if (fontElements && fontElements.length > 0) {
+            const lastFont = fontElements[fontElements.length - 1];
+            const span = document.createElement('span');
+            span.style.fontSize = `${size}px`;
+            span.innerHTML = lastFont.innerHTML;
+            lastFont.parentNode?.replaceChild(span, lastFont);
+          }
+        }
+      }
+    } else {
+      // No selection, set font size for future text only
+      document.execCommand('fontSize', false, '7');
+      const fontElements = contentEditableRef.current?.querySelectorAll('font[size="7"]');
+      if (fontElements && fontElements.length > 0) {
+        const lastFont = fontElements[fontElements.length - 1];
+        const span = document.createElement('span');
+        span.style.fontSize = `${size}px`;
+        span.innerHTML = lastFont.innerHTML;
+        lastFont.parentNode?.replaceChild(span, lastFont);
+      }
+    }
+    
     handleContentChange();
   };
 
   const applyTextColor = (color: string) => {
     setTextColor(color);
-    document.execCommand('foreColor', false, color);
+    const selection = window.getSelection();
+    
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      
+      // If text is selected, apply color to selected text only
+      if (!range.collapsed) {
+        // Apply color to selected text
+        document.execCommand('foreColor', false, color);
+      } else {
+        // If no selection, set color for future text input only
+        // Create a zero-width span with the color for next input
+        const span = document.createElement('span');
+        span.style.color = color;
+        span.innerHTML = '\u200B'; // Zero-width space to maintain cursor position
+        
+        try {
+          range.insertNode(span);
+          // Move cursor after the span
+          range.setStartAfter(span);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch (e) {
+          // If insert fails, use execCommand which applies to next input
+          document.execCommand('foreColor', false, color);
+        }
+      }
+    } else {
+      // No selection, set color for future text only
+      document.execCommand('foreColor', false, color);
+    }
+    
     setShowColorPicker(false);
     handleContentChange();
   };
@@ -350,11 +466,13 @@ export function DiaryWritePage() {
                 onInput={handleContentChange}
                 onBlur={updateActiveFormats}
                 onFocus={updateActiveFormats}
+                onSelect={updateActiveFormats}
                 data-placeholder="글쓰기 시작..."
                 className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono"
                 style={{ 
-                  color: textColor,
+                  color: '#4A2C1A', // Default color, individual spans will have their own colors
                   lineHeight: '1.5em',
+                  fontSize: '16px', // Default font size, individual elements will have their own sizes
                 }}
               />
             </div>
@@ -403,9 +521,11 @@ export function DiaryWritePage() {
               onStyleSelect={applyTextStyle}
               onFormatToggle={handleFormatToggle}
               onColorSelect={() => setShowColorPicker(true)}
+              onFontSizeChange={applyFontSize}
               selectedStyle={selectedTextStyle}
               activeFormats={activeFormats}
               textColor={textColor}
+              fontSize={fontSize}
             />
           )}
 

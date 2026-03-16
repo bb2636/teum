@@ -137,6 +137,29 @@ export class QuestionController {
       next(error);
     }
   }
+
+  // Admin: Update question order
+  async updateQuestionOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { questionIds } = req.body;
+      
+      if (!Array.isArray(questionIds) || questionIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'questionIds array is required' },
+        });
+      }
+
+      const questions = await questionService.updateQuestionOrder(questionIds);
+
+      res.json({
+        success: true,
+        data: { questions },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const questionController = new QuestionController();

@@ -12,6 +12,15 @@ export interface SupportInquiry {
   answeredBy?: string;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    profile?: {
+      nickname?: string;
+      name?: string;
+      profileImageUrl?: string;
+    } | null;
+  } | null;
 }
 
 export interface CreateInquiryInput {
@@ -65,5 +74,54 @@ export function useSupportInquiry(id: string) {
       return response.data.inquiry;
     },
     enabled: !!id,
+  });
+}
+
+// Admin: Get all inquiries
+export function useAllSupportInquiries() {
+  return useQuery<SupportInquiry[]>({
+    queryKey: ['support', 'admin', 'all'],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: { inquiries: SupportInquiry[] } }>(
+        '/support/admin/all'
+      );
+      return response.data.inquiries;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Admin: Get inquiry by ID
+export function useAdminSupportInquiry(id: string) {
+  return useQuery<SupportInquiry>({
+    queryKey: ['support', 'admin', 'inquiry', id],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: { inquiry: SupportInquiry } }>(
+        `/support/admin/${id}`
+      );
+      return response.data.inquiry;
+    },
+    enabled: !!id,
+  });
+}
+
+// Admin: Update inquiry answer
+export function useUpdateInquiryAnswer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, answer }: { id: string; answer: string }) => {
+      const response = await apiRequest<{ data: { inquiry: SupportInquiry } }>(
+        `/support/admin/${id}/answer`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ answer }),
+        }
+      );
+      return response.data.inquiry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support'] });
+    },
   });
 }

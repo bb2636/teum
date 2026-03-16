@@ -3,6 +3,7 @@ import { phoneVerificationRepository } from '../repositories/phone-verification.
 import { termsConsentRepository } from '../repositories/terms-consent.repository';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
+import { logger } from '../config/logger';
 import {
   SignupInput,
   LoginInput,
@@ -80,29 +81,41 @@ export class AuthService {
 
   async login(input: LoginInput) {
     try {
-      console.log('AuthService.login - Finding user:', input.email);
+      logger.debug('AuthService.login - Finding user', { email: input.email });
       
       // Find user
       const user = await userRepository.findByEmail(input.email);
-      console.log('User found:', user ? { id: user.id, email: user.email, hasPassword: !!user.passwordHash } : 'null');
+      logger.debug('User found', { 
+        found: !!user, 
+        userId: user?.id, 
+        email: user?.email, 
+        hasPassword: !!user?.passwordHash, 
+        isActive: user?.isActive 
+      });
       
       if (!user || !user.passwordHash) {
-        console.log('User not found or no password hash');
+        logger.warn('Login attempt failed: user not found or no password hash', { email: input.email });
         throw new Error('Invalid email or password');
       }
 
+      // Check if user is active
+      if (user.isActive === false) {
+        logger.warn('Login attempt failed: account suspended', { userId: user.id, email: user.email });
+        throw new Error('계정이 정지되었습니다. 관리자에게 문의하세요.');
+      }
+
       // Verify password
-      console.log('Comparing password...');
+      logger.debug('Comparing password');
       const isValid = await comparePassword(input.password, user.passwordHash);
-      console.log('Password comparison result:', isValid);
+      logger.debug('Password comparison result', { isValid });
       
       if (!isValid) {
-        console.log('Password mismatch');
+        logger.warn('Login attempt failed: password mismatch', { email: input.email });
         throw new Error('Invalid email or password');
       }
 
       // Generate tokens
-      console.log('Generating tokens...');
+      logger.debug('Generating tokens');
       const payload: JWTPayload = {
         userId: user.id,
         email: user.email,
@@ -115,9 +128,9 @@ export class AuthService {
       try {
         accessToken = generateAccessToken(payload);
         refreshToken = generateRefreshToken(payload);
-        console.log('Tokens generated successfully');
+        logger.debug('Tokens generated successfully', { userId: user.id });
       } catch (tokenError) {
-        console.error('Token generation error:', tokenError);
+        logger.error('Token generation error', { error: tokenError, userId: user.id });
         throw new Error('Failed to generate authentication tokens');
       }
 
@@ -140,11 +153,10 @@ export class AuthService {
         throw error;
       }
       // Log unexpected errors
-      console.error('Login error in AuthService:', error);
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
+      logger.error('Login error in AuthService', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       // Re-throw the original error with more context
       if (error instanceof Error) {
         throw error;
@@ -172,13 +184,12 @@ export class AuthService {
     });
 
     // TODO: Send SMS (mock for now)
-    // In development, log to console and return code in response
-    console.log(`\n========================================`);
-    console.log(`📱 휴대폰 인증번호 발송`);
-    console.log(`전화번호: ${input.phone}`);
-    console.log(`인증번호: ${code}`);
-    console.log(`만료시간: ${expiresAt.toLocaleString('ko-KR')}`);
-    console.log(`========================================\n`);
+    // In development, log to logger and return code in response
+    logger.info('Phone verification code generated', {
+      phone: input.phone,
+      code,
+      expiresAt: expiresAt.toISOString(),
+    });
 
     return {
       message: 'Verification code sent',

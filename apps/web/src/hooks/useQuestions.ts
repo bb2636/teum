@@ -86,3 +86,21 @@ export function useDeleteQuestion() {
     },
   });
 }
+
+// Admin: Update question order
+export function useUpdateQuestionOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (questionIds: string[]) => {
+      const response = await apiRequest<{ data: { questions: Question[] } }>('/questions/order', {
+        method: 'PUT',
+        body: JSON.stringify({ questionIds }),
+      });
+      return response.data.questions;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
+}

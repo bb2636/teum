@@ -3,7 +3,7 @@ import { BottomTabBar } from '../components/navigation/BottomTabBar';
 import { useLocation } from 'react-router-dom';
 
 const AUTH_ROUTES = ['/splash', '/login', '/signup', '/forgot-password'];
-const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new'];
+const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin'];
 
 interface LayoutProps {
   children: ReactNode;

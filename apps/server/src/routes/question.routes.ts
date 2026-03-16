@@ -43,5 +43,11 @@ router.delete(
   requireRole(['admin']),
   questionController.deleteQuestion.bind(questionController)
 );
+router.put(
+  '/order',
+  authenticate,
+  requireRole(['admin']),
+  questionController.updateQuestionOrder.bind(questionController)
+);
 
 export default router;

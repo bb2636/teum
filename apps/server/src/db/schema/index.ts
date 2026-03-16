@@ -10,3 +10,4 @@ export * from './subscriptions';
 export * from './support';
 export * from './password-reset';
 export * from './questions';
+export * from './terms';

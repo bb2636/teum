@@ -94,12 +94,22 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    let error: any;
+    interface ErrorResponse {
+      success: false;
+      error?: {
+        code?: string;
+        message?: string;
+        details?: unknown;
+      };
+      message?: string;
+    }
+
+    let error: ErrorResponse;
     const contentType = response.headers.get('content-type');
     
     try {
       if (contentType && contentType.includes('application/json')) {
-        error = await response.json();
+        error = await response.json() as ErrorResponse;
       } else {
         const text = await response.text();
         error = {
@@ -120,9 +130,9 @@ export async function apiRequest<T>(
     }
     
     const errorMessage = error.error?.message || error.message || `Request failed with status ${response.status}`;
-    const apiError = new Error(errorMessage);
-    (apiError as any).status = response.status;
-    (apiError as any).code = error.error?.code;
+    const apiError = new Error(errorMessage) as Error & { status?: number; code?: string };
+    apiError.status = response.status;
+    apiError.code = error.error?.code;
     throw apiError;
   }
 

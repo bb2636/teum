@@ -1,0 +1,277 @@
+import { useState, useEffect, useRef } from 'react';
+import { useServiceTerms, usePrivacyPolicy, useUpdateServiceTerms, useUpdatePrivacyPolicy } from '@/hooks/useTerms';
+import { FileText, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+
+type TermsType = 'service' | 'privacy';
+
+export function TermsManagementTab() {
+  const [selectedType, setSelectedType] = useState<TermsType>('service');
+  const [content, setContent] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isFirstSave, setIsFirstSave] = useState(false);
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastContentRef = useRef('');
+
+  const serviceTerms = useServiceTerms();
+  const privacyPolicy = usePrivacyPolicy();
+  const updateServiceTerms = useUpdateServiceTerms();
+  const updatePrivacyPolicy = useUpdatePrivacyPolicy();
+
+  const currentTerms = selectedType === 'service' ? serviceTerms : privacyPolicy;
+  const updateMutation = selectedType === 'service' ? updateServiceTerms : updatePrivacyPolicy;
+
+  // Load content when terms data changes or type changes
+  useEffect(() => {
+    if (currentTerms.data) {
+      setContent(currentTerms.data.content || '');
+      lastContentRef.current = currentTerms.data.content || '';
+      setHasChanges(false);
+      setIsFirstSave(!currentTerms.data.updatedAt);
+    }
+  }, [currentTerms.data, selectedType]);
+
+  // Auto-save after 10 seconds of no typing
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+
+    if (content.trim() && content !== lastContentRef.current) {
+      autoSaveTimer.current = setTimeout(async () => {
+        try {
+          await updateMutation.mutateAsync({ content, autoSave: true });
+          setLastAutoSave(new Date());
+          lastContentRef.current = content;
+          setHasChanges(false);
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        }
+      }, 10000); // 10 seconds
+    }
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [content, updateMutation]);
+
+  const handleContentChange = (value: string) => {
+    setContent(value);
+    setHasChanges(value !== lastContentRef.current);
+  };
+
+  const handleSave = () => {
+    if (!content.trim()) return;
+    setShowSaveModal(true);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!content.trim()) return;
+    
+    try {
+      await updateMutation.mutateAsync({ content, autoSave: false });
+      setShowSaveModal(false);
+      setShowSuccessModal(true);
+      lastContentRef.current = content;
+      setHasChanges(false);
+      setIsFirstSave(false);
+      // Refresh to get updated version
+      if (selectedType === 'service') {
+        serviceTerms.refetch();
+      } else {
+        privacyPolicy.refetch();
+      }
+    } catch (error) {
+      console.error('Failed to save terms:', error);
+      alert('약관 저장에 실패했습니다.');
+    }
+  };
+
+  const handleCloseSaveModal = () => {
+    setShowSaveModal(false);
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+  };
+
+  const getTermsTitle = (type: TermsType) => {
+    return type === 'service' ? '서비스 이용약관' : '개인정보 처리방침';
+  };
+
+  const getTermsIcon = () => {
+    return <FileText className="w-5 h-5" />;
+  };
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-[#4A2C1A] mb-2">약관 관리</h2>
+        <p className="text-sm text-gray-600">서비스 이용약관 및 개인정보 처리방침을 관리합니다.</p>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Left Navigation */}
+        <div className="w-64 flex-shrink-0 space-y-3">
+          {/* Service Terms Card */}
+          <button
+            onClick={() => setSelectedType('service')}
+            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+              selectedType === 'service'
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`${selectedType === 'service' ? 'text-purple-600' : 'text-gray-400'}`}>
+                {getTermsIcon()}
+              </div>
+              <h3 className="font-semibold text-[#4A2C1A]">서비스 이용약관</h3>
+            </div>
+            {serviceTerms.data?.updatedAt && (
+              <p className="text-xs text-gray-500 mt-2">
+                최종 수정: {format(new Date(serviceTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
+              </p>
+            )}
+          </button>
+
+          {/* Privacy Policy Card */}
+          <button
+            onClick={() => setSelectedType('privacy')}
+            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+              selectedType === 'privacy'
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`${selectedType === 'privacy' ? 'text-purple-600' : 'text-gray-400'}`}>
+                {getTermsIcon()}
+              </div>
+              <h3 className="font-semibold text-[#4A2C1A]">개인정보 처리방침</h3>
+            </div>
+            {privacyPolicy.data?.updatedAt && (
+              <p className="text-xs text-gray-500 mt-2">
+                최종 수정: {format(new Date(privacyPolicy.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
+              </p>
+            )}
+          </button>
+        </div>
+
+        {/* Right Content Area */}
+        <div className="flex-1 bg-white rounded-lg border border-gray-200 p-6">
+          {currentTerms.isLoading ? (
+            <div className="text-center py-12 text-gray-500">로딩 중...</div>
+          ) : (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-[#4A2C1A]">
+                    {getTermsTitle(selectedType)} {currentTerms.data?.version ? `v${currentTerms.data.version}` : 'v1.0'}
+                  </h3>
+                  {currentTerms.data?.updatedAt && (
+                    <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span>저장됨: {format(new Date(currentTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}</span>
+                    </div>
+                  )}
+                  {lastAutoSave && (
+                    <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                      <span className="text-xs">(자동 저장: {format(lastAutoSave, 'HH:mm:ss', { locale: ko })})</span>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={handleSave}
+                  disabled={!content.trim() || !hasChanges || updateMutation.isPending}
+                  className={`${
+                    content.trim() && hasChanges && !updateMutation.isPending
+                      ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2215]'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  저장하기
+                </Button>
+              </div>
+
+              {/* Content Editor */}
+              <textarea
+                value={content}
+                onChange={(e) => handleContentChange(e.target.value)}
+                placeholder="약관 내용을 입력하세요"
+                className="w-full h-[600px] px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] focus:border-transparent font-mono text-sm"
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Save Confirmation Modal */}
+      {showSaveModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSaveModal} />
+          <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
+            <div
+              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">
+                변경사항을 저장하시겠습니까?
+              </p>
+              <div className="flex items-center justify-end gap-3">
+                <Button
+                  onClick={handleCloseSaveModal}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handleConfirmSave}
+                  disabled={updateMutation.isPending}
+                  className="bg-purple-600 text-white hover:bg-purple-700"
+                >
+                  {updateMutation.isPending ? '저장 중...' : '저장'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSuccessModal} />
+          <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
+            <div
+              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">
+                {isFirstSave ? '약관이 저장되었습니다' : '약관이 수정되었습니다'}
+              </p>
+              <div className="flex items-center justify-center">
+                <Button
+                  onClick={handleCloseSuccessModal}
+                  className="bg-purple-600 text-white hover:bg-purple-700"
+                >
+                  완료
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

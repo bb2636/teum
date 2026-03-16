@@ -56,12 +56,28 @@
 
 /* 모바일 우선 반응형 */
 @media (min-width: 768px) {
-  body {
+  body:not(.admin-page) {
     @apply flex items-center justify-center min-h-screen;
   }
-  #root {
+  #root:not(.admin-page) {
     @apply w-full max-w-md mx-auto shadow-lg;
   }
+}
+
+/* Admin page - full width web layout */
+body.admin-page {
+  display: block !important;
+  flex: none !important;
+  align-items: unset !important;
+  justify-content: unset !important;
+  min-height: 100vh !important;
+}
+
+#root.admin-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-shadow: none !important;
 }
 
 /* Slide up animation */
@@ -76,6 +92,20 @@
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+/* Slide in from right animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
 }
 
 /* ContentEditable placeholder */

@@ -20,7 +20,6 @@ export const createDiarySchema = z.object({
   title: z.string().max(200).optional(),
   content: z.string().optional(),
   textStyle: z.string().optional(), // JSON string
-  questionSetId: z.string().uuid().optional(),
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   imageUrls: z.array(z.string().url()).optional(),
   answers: z.array(

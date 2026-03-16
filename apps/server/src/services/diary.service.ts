@@ -1,12 +1,16 @@
 import { diaryRepository } from '../repositories/diary.repository';
 import { folderRepository } from '../repositories/folder.repository';
-import { questionSetRepository } from '../repositories/question-set.repository';
 import { questionService } from './question.service';
 import { encouragementService } from './ai/encouragement.service';
+import { logger } from '../config/logger';
 
 export class DiaryService {
   async getDiaries(userId: string, folderId?: string) {
     return diaryRepository.findByUserId(userId, folderId);
+  }
+
+  async getAllDiaries() {
+    return diaryRepository.findAll();
   }
 
   async getDiary(id: string, userId: string) {
@@ -27,7 +31,6 @@ export class DiaryService {
     title?: string;
     content?: string;
     textStyle?: string;
-    questionSetId?: string;
     date: string;
     imageUrls?: string[];
     answers?: Array<{ questionId: string; answer: string }>;
@@ -59,7 +62,6 @@ export class DiaryService {
       title: data.title,
       content: data.content,
       textStyle: data.textStyle,
-      questionSetId: data.questionSetId,
       date,
     });
 
@@ -71,14 +73,6 @@ export class DiaryService {
     // Create answers if question-based
     let questionAnswers: Array<{ question: string; answer: string }> = [];
     if (data.type === 'question_based' && data.answers && data.answers.length > 0) {
-      // Validate question set
-      if (data.questionSetId) {
-        const questionSet = await questionSetRepository.findById(data.questionSetId);
-        if (!questionSet) {
-          throw new Error('Question set not found');
-        }
-      }
-
       await diaryRepository.createAnswers(diary.id, data.answers);
       
       // Record question usage for new question system
@@ -111,7 +105,7 @@ export class DiaryService {
       })
       .catch((error) => {
         // Log but don't throw - diary creation should succeed even if AI fails
-        console.error('Failed to generate encouragement (non-blocking)', error);
+        logger.error('Failed to generate encouragement (non-blocking)', { error, diaryId: diary.id });
       });
 
     return fullDiary;
@@ -174,7 +168,7 @@ export class DiaryService {
           type: updatedDiary.type,
         })
         .catch((error) => {
-          console.error('Failed to regenerate encouragement (non-blocking)', error);
+          logger.error('Failed to regenerate encouragement (non-blocking)', { error, diaryId: id });
         });
     }
 

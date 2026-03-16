@@ -170,6 +170,28 @@ export class UserRepository {
       })
       .where(eq(users.id, userId));
   }
+
+  async updateUserStatus(userId: string, isActive: boolean) {
+    const [updated] = await db
+      .update(users)
+      .set({
+        isActive,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async findAllWithProfiles() {
+    return await db.query.users.findMany({
+      where: (users, { isNull }) => isNull(users.deletedAt),
+      with: {
+        profile: true,
+      },
+      orderBy: (users, { desc }) => [desc(users.createdAt)],
+    });
+  }
 }
 
 export const userRepository = new UserRepository();

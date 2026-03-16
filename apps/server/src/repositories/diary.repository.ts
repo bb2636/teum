@@ -3,6 +3,52 @@ import { db } from '../db';
 import { diaries, diaryImages, diaryAnswers, diaryQuestions } from '../db/schema';
 
 export class DiaryRepository {
+  async findAll() {
+    const results = await db
+      .select()
+      .from(diaries)
+      .where(isNull(diaries.deletedAt))
+      .orderBy(desc(diaries.date));
+
+    // Load relations for each diary
+    const diariesWithRelations = await Promise.all(
+      results.map(async (diary) => {
+        try {
+          const fullDiary = await db.query.diaries.findFirst({
+            where: (diaries, { eq }) => eq(diaries.id, diary.id),
+            with: {
+              images: {
+                orderBy: (images, { asc }) => [asc(images.order)],
+              },
+              answers: {
+                with: {
+                  question: true, // May be null if question is from questions table
+                },
+              },
+              aiFeedback: {
+                orderBy: (feedback, { desc }) => [desc(feedback.createdAt)],
+                limit: 1,
+              },
+              user: {
+                with: {
+                  profile: true,
+                },
+              },
+              folder: true,
+            },
+          });
+          return fullDiary || diary;
+        } catch (error) {
+          // If relation fails (e.g., question from questions table), return diary without answers
+          console.error(`Error loading diary ${diary.id} relations:`, error);
+          return diary;
+        }
+      })
+    );
+
+    return diariesWithRelations.filter((d) => d !== null);
+  }
+
   async findByUserId(userId: string, folderId?: string) {
     const conditions = [
       eq(diaries.userId, userId),
@@ -87,7 +133,6 @@ export class DiaryRepository {
     title?: string;
     content?: string;
     textStyle?: string;
-    questionSetId?: string;
     date: Date;
   }) {
     const [diary] = await db
@@ -99,7 +144,6 @@ export class DiaryRepository {
         title: data.title,
         content: data.content,
         textStyle: data.textStyle,
-        questionSetId: data.questionSetId,
         date: data.date,
       })
       .returning();

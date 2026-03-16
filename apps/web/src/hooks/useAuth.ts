@@ -25,10 +25,15 @@ export function useLogin() {
       });
       return response.data.user;
     },
-    onSuccess: () => {
+    onSuccess: (user) => {
       // Clear all cache on login
       queryClient.clear();
-      navigate('/home');
+      // 관리자면 관리자 페이지로, 일반 사용자면 홈으로
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/home');
+      }
     },
   });
 }

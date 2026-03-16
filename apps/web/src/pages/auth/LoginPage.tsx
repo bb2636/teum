@@ -49,10 +49,6 @@ export function LoginPage() {
           : '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
         setError(errorMessage);
       },
-      onSuccess: () => {
-        // Success is handled by useLogin hook (navigate to /home)
-        console.log('Login successful');
-      },
     });
   };
 

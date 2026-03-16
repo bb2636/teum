@@ -1,4 +1,4 @@
-import { eq, and, isNull, notInArray, sql, desc, gte } from 'drizzle-orm';
+import { eq, and, isNull, notInArray, sql, desc, gte, asc } from 'drizzle-orm';
 import { db } from '../db';
 import { questions, userQuestionHistory } from '../db/schema';
 
@@ -8,7 +8,7 @@ export class QuestionRepository {
       .select()
       .from(questions)
       .where(and(eq(questions.isActive, true), isNull(questions.deletedAt)))
-      .orderBy(desc(questions.createdAt));
+      .orderBy(asc(questions.order), desc(questions.createdAt));
   }
 
   async findById(id: string) {
@@ -20,18 +20,28 @@ export class QuestionRepository {
     return question;
   }
 
-  async create(data: { question: string; isActive?: boolean }) {
+  async create(data: { question: string; isActive?: boolean; order?: number }) {
+    // Get max order value
+    const maxOrderResult = await db
+      .select({ maxOrder: sql<number>`COALESCE(MAX(${questions.order}), 0)` })
+      .from(questions)
+      .where(isNull(questions.deletedAt));
+    
+    const maxOrder = maxOrderResult[0]?.maxOrder ?? 0;
+    const newOrder = data.order ?? maxOrder + 1;
+
     const [question] = await db
       .insert(questions)
       .values({
         question: data.question,
         isActive: data.isActive ?? true,
+        order: newOrder,
       })
       .returning();
     return question;
   }
 
-  async update(id: string, data: { question?: string; isActive?: boolean }) {
+  async update(id: string, data: { question?: string; isActive?: boolean; order?: number }) {
     const [question] = await db
       .update(questions)
       .set({
@@ -41,6 +51,21 @@ export class QuestionRepository {
       .where(eq(questions.id, id))
       .returning();
     return question;
+  }
+
+  async updateOrder(questionIds: string[]) {
+    // Update order for all questions in the provided order
+    const updates = questionIds.map((id, index) =>
+      db
+        .update(questions)
+        .set({ order: index + 1, updatedAt: new Date() })
+        .where(eq(questions.id, id))
+    );
+    
+    await Promise.all(updates);
+    
+    // Return all active questions in updated order
+    return this.findAllActive();
   }
 
   async delete(id: string) {
@@ -73,7 +98,7 @@ export class QuestionRepository {
 
     const excludedQuestionIds = recentQuestions.map((r) => r.questionId);
 
-    // Get all active questions excluding recent ones
+    // Get all active questions excluding recent ones, ordered by order field
     const conditions = [eq(questions.isActive, true), isNull(questions.deletedAt)];
     
     // If there are excluded questions, filter them out
@@ -84,7 +109,8 @@ export class QuestionRepository {
     const allQuestions = await db
       .select()
       .from(questions)
-      .where(and(...conditions));
+      .where(and(...conditions))
+      .orderBy(asc(questions.order));
 
     // If we don't have enough questions after filtering, use all active questions
     const availableQuestions =
@@ -93,11 +119,11 @@ export class QuestionRepository {
             .select()
             .from(questions)
             .where(and(eq(questions.isActive, true), isNull(questions.deletedAt)))
+            .orderBy(asc(questions.order))
         : allQuestions;
 
-    // Shuffle and return requested count
-    const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    // Return first 'count' questions in order (no shuffling - use order field)
+    return availableQuestions.slice(0, count);
   }
 
   /**

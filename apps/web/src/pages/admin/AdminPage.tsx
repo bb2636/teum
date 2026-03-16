@@ -1,24 +1,85 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMe } from '@/hooks/useProfile';
-import { useQuestions, useCreateQuestion, useUpdateQuestion, useDeleteQuestion } from '@/hooks/useQuestions';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Edit2, Plus, Check, X } from 'lucide-react';
+import { useAllUsers, useUserPayments, useDeleteUser, useUpdateUserStatus, useAllDiaries, AdminDiary, AdminUser } from '@/hooks/useAdmin';
+import { useLogout } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import { Search, User, X, ChevronDown, ArrowLeft, Trash2, Calendar } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import { QuestionsManagementTab } from './QuestionsManagementTab';
+import { SupportManagementTab } from './SupportManagementTab';
+import { TermsManagementTab } from './TermsManagementTab';
+
+type AdminTab = 'users' | 'diaries' | 'questions' | 'support' | 'terms';
+type DiaryFilter = 'all' | 'free' | 'question';
 
 export function AdminPage() {
   const { data: user, isLoading: userLoading } = useMe();
-  const { data: questions = [], isLoading: questionsLoading } = useQuestions();
-  const createQuestion = useCreateQuestion();
-  const updateQuestion = useUpdateQuestion();
-  const deleteQuestion = useDeleteQuestion();
+  const { data: users = [], isLoading: usersLoading } = useAllUsers();
+  const { data: diaries = [], isLoading: diariesLoading } = useAllDiaries();
+  const logout = useLogout();
+  const deleteUserMutation = useDeleteUser();
+  const updateUserStatusMutation = useUpdateUserStatus();
+  const [activeTab, setActiveTab] = useState<AdminTab>('users');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userDetailTab, setUserDetailTab] = useState<'profile' | 'subscription'>('profile');
+  const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
+  const [deleteStatus, setDeleteStatus] = useState<'confirm' | 'loading' | 'completed'>('confirm');
+  const [diaryFilter, setDiaryFilter] = useState<DiaryFilter>('all');
+  const [selectedDiary, setSelectedDiary] = useState<AdminDiary | null>(null);
+  
+  // All hooks must be called before any early returns
+  const { data: userPayments = [] } = useUserPayments(selectedUserId);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
-  const [newQuestion, setNewQuestion] = useState('');
-  const [isActive, setIsActive] = useState(true);
+  // Add admin-page class to body and root to prevent mobile styles
+  useEffect(() => {
+    const body = document.body;
+    const root = document.getElementById('root');
+    
+    body.classList.add('admin-page');
+    if (root) {
+      root.classList.add('admin-page');
+    }
+    
+    // Override any mobile styles
+    body.style.display = 'block';
+    body.style.flex = 'none';
+    body.style.alignItems = 'unset';
+    body.style.justifyContent = 'unset';
+    body.style.minHeight = '100vh';
+    
+    if (root) {
+      root.style.width = '100%';
+      root.style.maxWidth = '100%';
+      root.style.margin = '0';
+      root.style.boxShadow = 'none';
+    }
+    
+    return () => {
+      body.classList.remove('admin-page');
+      if (root) {
+        root.classList.remove('admin-page');
+      }
+      body.style.display = '';
+      body.style.flex = '';
+      body.style.alignItems = '';
+      body.style.justifyContent = '';
+      body.style.minHeight = '';
+      if (root) {
+        root.style.width = '';
+        root.style.maxWidth = '';
+        root.style.margin = '';
+        root.style.boxShadow = '';
+      }
+    };
+  }, []);
 
   // Check if user is admin
   if (userLoading) {
@@ -26,201 +87,837 @@ export function AdminPage() {
   }
 
   if (!user || user.role !== 'admin') {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  const handleCreate = async () => {
-    if (!newQuestion.trim()) return;
+  // Filter users: exclude admins and apply search query
+  const filteredUsers = users.filter((u) => {
+    // Exclude admin users
+    if (u.role === 'admin') return false;
     
-    await createQuestion.mutateAsync({
-      question: newQuestion.trim(),
-      isActive,
-    });
-    setNewQuestion('');
-    setIsActive(true);
+    // Apply search query
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      u.email.toLowerCase().includes(query) ||
+      u.profile?.nickname?.toLowerCase().includes(query) ||
+      u.profile?.name?.toLowerCase().includes(query)
+    );
+  });
+
+  // Get selected user
+  const selectedUser = selectedUserId ? filteredUsers.find(u => u.id === selectedUserId) : null;
+
+  // Filter diaries
+  const filteredDiaries = diaries.filter((diary) => {
+    if (diaryFilter === 'all') return true;
+    if (diaryFilter === 'free') return diary.type === 'free_form';
+    if (diaryFilter === 'question') return diary.type === 'question_based';
+    return true;
+  }).filter((diary) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      diary.title?.toLowerCase().includes(query) ||
+      diary.content?.toLowerCase().includes(query) ||
+      diary.user?.email.toLowerCase().includes(query) ||
+      diary.user?.profile?.nickname?.toLowerCase().includes(query) ||
+      diary.user?.profile?.name?.toLowerCase().includes(query)
+    );
+  });
+
+  const formatDate = (date: string | Date | null | undefined) => {
+    if (!date) return '-';
+    try {
+      return format(new Date(date), 'yy.MM.dd');
+    } catch {
+      return '-';
+    }
   };
 
-  const handleStartEdit = (question: { id: string; question: string; isActive: boolean }) => {
-    setEditingId(question.id);
-    setEditText(question.question);
-    setIsActive(question.isActive);
+  const formatDateOfBirth = (date: string | Date | null | undefined) => {
+    if (!date) return '-';
+    try {
+      return format(new Date(date), 'yy.MM.dd');
+    } catch {
+      return '-';
+    }
   };
 
-  const handleSaveEdit = async (id: string) => {
-    if (!editText.trim()) return;
+  const handleLogout = async () => {
+    try {
+      await logout.mutateAsync();
+      setShowLogoutModal(false);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUser) return;
     
-    await updateQuestion.mutateAsync({
-      id,
-      question: editText.trim(),
-      isActive,
-    });
-    setEditingId(null);
-    setEditText('');
+    setDeleteStatus('loading');
+    try {
+      await deleteUserMutation.mutateAsync(deleteUser.id);
+      setDeleteStatus('completed');
+    } catch (error) {
+      console.error('Delete user failed:', error);
+      setDeleteStatus('confirm');
+    }
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditText('');
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('정말 이 질문을 삭제하시겠습니까?')) return;
-    await deleteQuestion.mutateAsync(id);
+  const handleDeleteComplete = () => {
+    setDeleteUser(null);
+    setDeleteStatus('confirm');
+    setSelectedUserId(null);
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-brown-900">관리자 페이지</h1>
-        <p className="text-muted-foreground mt-2">질문 관리</p>
-      </div>
-
-      {/* Create New Question */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>새 질문 추가</CardTitle>
-          <CardDescription>사용자에게 제공할 질문을 추가하세요</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="new-question">질문 내용</Label>
-            <Input
-              id="new-question"
-              value={newQuestion}
-              onChange={(e) => setNewQuestion(e.target.value)}
-              placeholder="예: 오늘 하루는 어땠나요?"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleCreate();
-                }
-              }}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="new-active"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <Label htmlFor="new-active" className="cursor-pointer">
-              활성화
-            </Label>
-          </div>
-          <Button
-            onClick={handleCreate}
-            disabled={!newQuestion.trim() || createQuestion.isPending}
-            className="w-full"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            질문 추가
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Questions List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>질문 목록</CardTitle>
-          <CardDescription>
-            총 {questions.length}개의 질문이 등록되어 있습니다
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {questionsLoading ? (
-            <div className="text-center py-8">로딩 중...</div>
-          ) : questions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              등록된 질문이 없습니다
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {questions.map((question) => (
-                <div
-                  key={question.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  {editingId === question.id ? (
-                    <div className="flex-1 space-y-2">
-                      <Input
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        className="mb-2"
+    <div className="w-full h-screen bg-white overflow-hidden flex flex-col">
+      {/* Delete User Modal */}
+      {deleteUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            {deleteStatus === 'confirm' && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">삭제하시겠습니까?</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  삭제하면 계정과 관련 데이터가 복구되지 않습니다.
+                </p>
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    {deleteUser.profile?.profileImageUrl ? (
+                      <img
+                        src={deleteUser.profile.profileImageUrl}
+                        alt={deleteUser.profile.name || deleteUser.email}
+                        className="w-10 h-10 rounded-full object-cover"
                       />
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={isActive}
-                          onChange={(e) => setIsActive(e.target.checked)}
-                          className="w-4 h-4"
-                        />
-                        <Label className="text-sm">활성화</Label>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveEdit(question.id)}
-                          disabled={!editText.trim() || updateQuestion.isPending}
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          저장
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancelEdit}
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          취소
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
+                    ) : (
+                      <User className="w-5 h-5 text-gray-500" />
+                    )}
+                  </div>
+                  <span className="text-gray-900">{deleteUser.email}</span>
+                  {deleteUser.profile?.nickname && (
                     <>
-                      <div className="flex-1">
-                        <p className="font-medium">{question.question}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${
-                              question.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {question.isActive ? '활성' : '비활성'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            생성일: {new Date(question.createdAt).toLocaleDateString('ko-KR')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleStartEdit(question)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(question.id)}
-                          disabled={deleteQuestion.isPending}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-900">{deleteUser.profile.nickname}</span>
                     </>
                   )}
                 </div>
-              ))}
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setDeleteUser(null);
+                      setDeleteStatus('confirm');
+                    }}
+                    className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <Button
+                    onClick={handleDeleteUser}
+                    className="px-4 py-2 bg-[#8B4513] hover:bg-[#6B3410] text-white"
+                  >
+                    나가기
+                  </Button>
+                </div>
+              </>
+            )}
+            {deleteStatus === 'loading' && (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-3 h-3 rounded-full bg-[#8B4513] animate-pulse"></div>
+              </div>
+            )}
+            {deleteStatus === 'completed' && (
+              <div className="text-center py-6">
+                <p className="text-gray-900 mb-6">삭제가 완료되었습니다</p>
+                <Button
+                  onClick={handleDeleteComplete}
+                  className="px-4 py-2 text-[#8B4513] hover:text-[#6B3410] transition-colors"
+                >
+                  완료
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">로그아웃</h3>
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-gray-600 mb-6">정말 로그아웃 하시겠습니까?</p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleLogout}
+                disabled={logout.isPending}
+                className="px-4 bg-red-500 hover:bg-red-600 text-white"
+              >
+                {logout.isPending ? '로그아웃 중...' : '로그아웃'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Navigation Bar */}
+      <div className="bg-white flex-shrink-0">
+        <div className="w-full px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              {/* Admin Logo */}
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="flex-shrink-0 hover:opacity-80 transition-opacity"
+              >
+                <img
+                  src="/admin_logo.png"
+                  alt="Admin Logo"
+                  className="h-12 w-auto"
+                />
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                  activeTab === 'users'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                사용자 관리
+              </button>
+              <button
+                onClick={() => setActiveTab('diaries')}
+                className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                  activeTab === 'diaries'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                일기 관리
+              </button>
+              <button
+                onClick={() => setActiveTab('questions')}
+                className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                  activeTab === 'questions'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                질문 관리
+              </button>
+              <button
+                onClick={() => setActiveTab('support')}
+                className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                  activeTab === 'support'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                고객센터
+              </button>
+              <button
+                onClick={() => setActiveTab('terms')}
+                className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                  activeTab === 'terms'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                약관 관리
+              </button>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="검색어를 입력하세요"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto w-full px-6 py-6 relative">
+        {activeTab === 'users' && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden w-full">
+            {/* Table Header */}
+            <div className="bg-gray-50 border-b border-gray-200">
+              <div className="grid grid-cols-8 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
+                <div className="text-center">사용자 ID</div>
+                <div className="text-center">닉네임</div>
+                <div className="text-center">이름</div>
+                <div className="text-center">생년월일</div>
+                <div className="text-center">구독유무</div>
+                <div className="text-center">계정 생성일</div>
+                <div className="text-center">계정 상태</div>
+                <div className="text-center">삭제</div>
+              </div>
+            </div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-gray-200">
+              {usersLoading ? (
+                <div className="px-4 py-8 text-center text-gray-500">로딩 중...</div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="px-4 py-8 text-center text-gray-500">사용자가 없습니다.</div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="grid grid-cols-8 gap-4 px-4 py-3 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setSelectedUserId(user.id);
+                      setUserDetailTab('profile');
+                    }}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-gray-500" />
+                      </div>
+                      <span className="text-gray-900 truncate">{user.email}</span>
+                    </div>
+                    <div className="flex items-center justify-center text-gray-900">
+                      {user.profile?.nickname || '-'}
+                    </div>
+                    <div className="flex items-center justify-center text-gray-900">
+                      {user.profile?.name || '-'}
+                    </div>
+                    <div className="flex items-center justify-center text-gray-900">
+                      {formatDateOfBirth(user.profile?.dateOfBirth)}
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          user.hasActiveSubscription
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {user.hasActiveSubscription ? '구독' : '미구독'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center text-gray-900">
+                      {formatDate(user.createdAt)}
+                    </div>
+                    <div className="flex items-center justify-center relative">
+                      <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          ref={(el) => {
+                            buttonRefs.current[user.id] = el;
+                          }}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const button = buttonRefs.current[user.id];
+                            if (button) {
+                              const rect = button.getBoundingClientRect();
+                              setDropdownPosition({
+                                top: rect.bottom + 4,
+                                left: rect.left,
+                              });
+                            }
+                            setOpenDropdownId(openDropdownId === user.id ? null : user.id);
+                          }}
+                          className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <span className={user.isActive ? 'text-green-600' : 'text-red-600'}>
+                              {user.isActive ? '활성됨' : '정지됨'}
+                            </span>
+                          </span>
+                          <ChevronDown className="w-3 h-3 text-gray-500" />
+                        </Button>
+                        {openDropdownId === user.id && dropdownPosition && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => {
+                                setOpenDropdownId(null);
+                                setDropdownPosition(null);
+                              }}
+                            />
+                            <div 
+                              className="fixed bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px]"
+                              style={{
+                                top: `${dropdownPosition.top}px`,
+                                left: `${dropdownPosition.left}px`,
+                              }}
+                            >
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await updateUserStatusMutation.mutateAsync({
+                                      userId: user.id,
+                                      isActive: true,
+                                    });
+                                    setOpenDropdownId(null);
+                                    setDropdownPosition(null);
+                                  } catch (error) {
+                                    console.error('Failed to update user status:', error);
+                                    alert('사용자 상태 변경에 실패했습니다.');
+                                  }
+                                }}
+                                disabled={updateUserStatusMutation.isPending}
+                                className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 first:rounded-t-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span className="text-green-600">활성됨</span>
+                              </button>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await updateUserStatusMutation.mutateAsync({
+                                      userId: user.id,
+                                      isActive: false,
+                                    });
+                                    setOpenDropdownId(null);
+                                    setDropdownPosition(null);
+                                  } catch (error) {
+                                    console.error('Failed to update user status:', error);
+                                    alert('사용자 상태 변경에 실패했습니다.');
+                                  }
+                                }}
+                                disabled={updateUserStatusMutation.isPending}
+                                className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 last:rounded-b-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                <span className="text-red-600">정지됨</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteUser(user);
+                          setDeleteStatus('confirm');
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'diaries' && (
+          <div className="w-full">
+            {/* Filter Tabs */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-2">
+                <button
+                  onClick={() => setDiaryFilter('all')}
+                  className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                    diaryFilter === 'all'
+                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setDiaryFilter('free')}
+                  className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                    diaryFilter === 'free'
+                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  자유형식
+                </button>
+                <button
+                  onClick={() => setDiaryFilter('question')}
+                  className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                    diaryFilter === 'question'
+                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  문답형식
+                </button>
+              </div>
+              <p className="text-sm text-gray-500">
+                {diaryFilter === 'all' && `전체 ${filteredDiaries.length}개`}
+                {diaryFilter === 'free' && `자유형식 ${filteredDiaries.length}개`}
+                {diaryFilter === 'question' && `문답형식 ${filteredDiaries.length}개`}
+              </p>
+            </div>
+
+            {/* Diary Grid */}
+            {diariesLoading ? (
+              <div className="text-center py-12 text-gray-500">로딩 중...</div>
+            ) : filteredDiaries.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">일기가 없습니다.</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                {filteredDiaries.map((diary) => (
+                  <div
+                    key={diary.id}
+                    className="bg-white rounded-lg border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setSelectedDiary(diary)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs text-gray-500">
+                          {format(new Date(diary.date), 'M월 d일 (E)', { locale: ko })}
+                        </span>
+                      </div>
+                      {diary.folder && (
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                          {diary.folder.name}
+                        </span>
+                      )}
+                    </div>
+                    {diary.type === 'question_based' && diary.answers && diary.answers.length > 0 && (
+                      <div className="mb-2">
+                        <span className="text-xs text-purple-600">
+                          {diary.answers.length}개의 문답
+                        </span>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {diary.answers[0]?.question?.question || '질문'}
+                        </p>
+                      </div>
+                    )}
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">
+                      {diary.title || '제목 없음'}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-3 mb-3">
+                      {diary.type === 'question_based' && diary.answers && diary.answers.length > 0
+                        ? diary.answers[0]?.answer || diary.content || '내용 없음'
+                        : diary.content || '내용 없음'}
+                    </p>
+                    {diary.images && diary.images.length > 0 && (
+                      <div className="mb-3">
+                        <img
+                          src={diary.images[0].imageUrl}
+                          alt="Diary"
+                          className="w-full h-32 object-cover rounded"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        {diary.user?.profile?.profileImageUrl ? (
+                          <img
+                            src={diary.user.profile.profileImageUrl}
+                            alt={diary.user.profile.name || diary.user.email}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-3 h-3 text-gray-500" />
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {diary.user?.profile?.nickname || diary.user?.email || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'questions' && <QuestionsManagementTab />}
+
+        {activeTab === 'support' && <SupportManagementTab />}
+
+        {activeTab === 'terms' && <TermsManagementTab />}
+      </div>
+
+      {/* Diary Detail Modal */}
+      {selectedDiary && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 z-40"
+            onClick={() => setSelectedDiary(null)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div
+              className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                <div className="flex items-center gap-4">
+                  {selectedDiary.folder && (
+                    <span className="text-sm text-gray-600">{selectedDiary.folder.name}</span>
+                  )}
+                  <span className="text-sm text-gray-600">
+                    {format(new Date(selectedDiary.date), 'M월 d일 (E)', { locale: ko })}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedDiary(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                {/* User Info */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    {selectedDiary.user?.profile?.profileImageUrl ? (
+                      <img
+                        src={selectedDiary.user.profile.profileImageUrl}
+                        alt={selectedDiary.user.profile.name || selectedDiary.user.email}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-500" />
+                    )}
+                  </div>
+                  <span className="text-gray-900 font-medium">
+                    {selectedDiary.user?.profile?.nickname || selectedDiary.user?.email || 'Unknown'}
+                  </span>
+                </div>
+
+                {/* Title */}
+                {selectedDiary.title && (
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">{selectedDiary.title}</h2>
+                )}
+
+                {/* Question-based Diary */}
+                {selectedDiary.type === 'question_based' && selectedDiary.answers && selectedDiary.answers.length > 0 && (
+                  <div className="space-y-6 mb-6">
+                    {selectedDiary.answers.map((answer, index) => (
+                      <div key={answer.id} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          {answer.question?.question || `질문 ${index + 1}`}
+                        </h3>
+                        <p className="text-gray-700 whitespace-pre-wrap">{answer.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Free-form Diary */}
+                {selectedDiary.type === 'free_form' && selectedDiary.content && (
+                  <div className="mb-6">
+                    <p className="text-gray-700 whitespace-pre-wrap">{selectedDiary.content}</p>
+                  </div>
+                )}
+
+                {/* Images */}
+                {selectedDiary.images && selectedDiary.images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-4">
+                    {selectedDiary.images.map((image) => (
+                      <img
+                        key={image.id}
+                        src={image.imageUrl}
+                        alt="Diary"
+                        className="w-full h-48 object-cover rounded"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* User Detail Panel - Slides in from right */}
+      {selectedUser && (
+        <>
+          {/* Overlay Background */}
+          <div
+            className="fixed inset-0 bg-black/30 z-40"
+            onClick={() => setSelectedUserId(null)}
+          />
+          
+          {/* Detail Panel */}
+          <div className="fixed right-0 top-0 h-full w-[500px] bg-white shadow-2xl z-50 overflow-y-auto animate-slide-in-right">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4 z-10">
+              <button
+                onClick={() => setSelectedUserId(null)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>목록으로</span>
+              </button>
+            </div>
+
+            {/* User Profile Header */}
+            <div className="px-6 py-6 border-b border-gray-200">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                  {selectedUser.profile?.profileImageUrl ? (
+                    <img
+                      src={selectedUser.profile.profileImageUrl}
+                      alt={selectedUser.profile.name || selectedUser.email}
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-8 h-8 text-gray-500" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {selectedUser.profile?.name || selectedUser.email}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => setUserDetailTab('profile')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    userDetailTab === 'profile'
+                      ? 'bg-gray-200 text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  프로필
+                </button>
+                <button
+                  onClick={() => setUserDetailTab('subscription')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    userDetailTab === 'subscription'
+                      ? 'bg-gray-200 text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  구독 이력
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-6">
+              {userDetailTab === 'profile' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">메일 주소</label>
+                    <p className="mt-1 text-gray-900">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">이름</label>
+                    <p className="mt-1 text-gray-900">{selectedUser.profile?.name || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">닉네임</label>
+                    <p className="mt-1 text-gray-900">{selectedUser.profile?.nickname || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">생년월일</label>
+                    <p className="mt-1 text-gray-900">{formatDateOfBirth(selectedUser.profile?.dateOfBirth)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">생성일</label>
+                    <p className="mt-1 text-gray-900">{formatDate(selectedUser.createdAt)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">구독유무</label>
+                    <p className="mt-1">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          selectedUser.hasActiveSubscription
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {selectedUser.hasActiveSubscription ? '구독' : '미구독'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {userDetailTab === 'subscription' && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">구독 상세 내역</h3>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 border-b border-gray-200">
+                      <div className="grid grid-cols-4 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
+                        <div className="text-center">결제일</div>
+                        <div className="text-center">상품명</div>
+                        <div className="text-center">결제금액</div>
+                        <div className="text-center">상세보기</div>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-gray-200">
+                      {userPayments.length === 0 ? (
+                        <div className="px-4 py-8 text-sm text-center text-gray-500">
+                          구독 이력이 없습니다.
+                        </div>
+                      ) : (
+                        userPayments.map((payment) => {
+                          const isExpired = payment.status === 'completed' && payment.paidAt 
+                            ? new Date(payment.paidAt) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                            : payment.status !== 'completed';
+                          
+                          return (
+                            <div key={payment.id} className="grid grid-cols-4 gap-4 px-4 py-3 text-sm">
+                              <div className="text-center text-gray-900">
+                                {formatDate(payment.paidAt || payment.createdAt)}
+                              </div>
+                              <div className="text-center text-gray-900">Monthly Plan</div>
+                              <div className="text-center text-gray-900">
+                                {parseFloat(payment.amount).toLocaleString('ko-KR')}원
+                              </div>
+                              <div className="text-center">
+                                <span
+                                  className={`px-3 py-1 rounded text-xs ${
+                                    payment.status === 'completed' && !isExpired
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}
+                                >
+                                  {payment.status === 'completed' && !isExpired ? '결제완료' : '만료됨'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

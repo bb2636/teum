@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { diaryService } from '../services/diary.service';
-import { questionSetRepository } from '../repositories/question-set.repository';
 import {
   createDiarySchema,
   updateDiarySchema,
@@ -137,12 +136,19 @@ export class DiaryController {
     }
   }
 
-  async getQuestionSets(req: Request, res: Response, next: NextFunction) {
+  async getAllDiaries(req: Request, res: Response, next: NextFunction) {
     try {
-      const questionSets = await questionSetRepository.findActive();
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        });
+      }
+
+      const diaries = await diaryService.getAllDiaries();
       res.json({
         success: true,
-        data: { questionSets },
+        data: { diaries },
       });
     } catch (error) {
       next(error);

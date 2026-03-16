@@ -8,9 +8,11 @@ interface FormatMenuProps {
   onStyleSelect: (style: TextStyle) => void;
   onFormatToggle: (format: FormatType) => void;
   onColorSelect: () => void;
+  onFontSizeChange?: (size: number) => void;
   selectedStyle?: TextStyle;
   activeFormats: Set<FormatType>;
   textColor?: string;
+  fontSize?: number;
 }
 
 export function FormatMenu({
@@ -18,9 +20,11 @@ export function FormatMenu({
   onStyleSelect,
   onFormatToggle,
   onColorSelect,
+  onFontSizeChange,
   selectedStyle,
   activeFormats,
   textColor = '#4A2C1A',
+  fontSize = 16,
 }: FormatMenuProps) {
   const textStyles: { value: TextStyle; label: string; fontSize: string }[] = [
     { value: 'title', label: '제목', fontSize: 'text-2xl' },
@@ -45,6 +49,38 @@ export function FormatMenu({
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Font Size Control */}
+          {onFontSizeChange && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[#4A2C1A]">글씨 크기</label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => onFontSizeChange(Math.max(10, fontSize - 2))}
+                  className="w-8 h-8 rounded-lg bg-gray-300 text-[#4A2C1A] font-bold hover:bg-gray-400"
+                >
+                  -
+                </button>
+                <span className="text-sm font-medium text-[#4A2C1A] min-w-[3rem] text-center">
+                  {fontSize}px
+                </span>
+                <button
+                  onClick={() => onFontSizeChange(Math.min(48, fontSize + 2))}
+                  className="w-8 h-8 rounded-lg bg-gray-300 text-[#4A2C1A] font-bold hover:bg-gray-400"
+                >
+                  +
+                </button>
+                <input
+                  type="range"
+                  min="10"
+                  max="48"
+                  value={fontSize}
+                  onChange={(e) => onFontSizeChange(Number(e.target.value))}
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Text Styles - Horizontal Scroll */}
           <div className="overflow-x-auto scrollbar-hide">
             <div className="flex gap-1 min-w-max items-center">

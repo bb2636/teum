@@ -34,6 +34,12 @@ export class UserService {
 
     return profile;
   }
+
+  async updateUserStatus(userId: string, isActive: boolean) {
+    logger.info('Updating user status', { userId, isActive });
+    const user = await userRepository.updateUserStatus(userId, isActive);
+    return user;
+  }
 }
 
 export const userService = new UserService();

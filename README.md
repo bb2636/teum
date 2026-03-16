@@ -133,6 +133,7 @@ GET    /api/questions/:id      # 특정 질문 조회
 POST   /api/questions          # 질문 생성
 PUT    /api/questions/:id      # 질문 수정
 DELETE /api/questions/:id     # 질문 삭제
+PUT    /api/questions/order    # 질문 순서 변경
 ```
 
 **특징:**
@@ -140,6 +141,8 @@ DELETE /api/questions/:id     # 질문 삭제
 - 사용자별 질문 사용 이력 추적 (`user_question_history`)
 - 중복 방지: 최근 7일간 사용한 질문 제외
 - 관리자 권한 필요 (질문 생성/수정/삭제)
+- 질문 순서 변경 지원 (드래그 앤 드롭, 길게 누르기)
+- 순서대로 상위 3개 질문이 사용자에게 표시됨
 
 ## 이미지 업로드
 
@@ -224,6 +227,31 @@ GET  /api/terms/service         # 서비스 이용약관
 GET  /api/terms/privacy         # 개인정보 처리방침
 ```
 
+## 약관 관리
+
+관리자가 서비스 이용약관과 개인정보 처리방침을 관리할 수 있습니다.
+
+**기능:**
+- 서비스 이용약관/개인정보 처리방침 분리 관리
+- 버전 관리 (v1.0, v1.1 등)
+- 수동 저장 시 버전 증가
+- 자동 저장 (10초 후 마지막 입력 기준, 버전 변경 없음)
+- 최종 수정일 표시
+
+**API 엔드포인트 (관리자):**
+```
+GET /api/terms/admin/service    # 서비스 이용약관 조회
+GET /api/terms/admin/privacy    # 개인정보 처리방침 조회
+PUT /api/terms/admin/service    # 서비스 이용약관 수정
+PUT /api/terms/admin/privacy    # 개인정보 처리방침 수정
+```
+
+**특징:**
+- 약관 타입별 독립적인 버전 관리
+- 수동 저장 시 버전 자동 증가 (v1.0 → v1.1)
+- 자동 저장은 버전 변경 없이 내용만 업데이트
+- 저장 시간 및 버전 정보 표시
+
 ## API 엔드포인트 목록
 
 ### 인증
@@ -238,6 +266,10 @@ GET  /api/terms/privacy         # 개인정보 처리방침
 - `PUT /api/users/profile` - 프로필 수정
 - `DELETE /api/users/account` - 계정 삭제
 - `GET /api/users/check-nickname` - 닉네임 중복 확인
+- `GET /api/users/all` - 모든 사용자 조회 (관리자)
+- `GET /api/users/:userId/payments` - 사용자 결제 내역 (관리자)
+- `GET /api/users/:userId/subscriptions` - 사용자 구독 내역 (관리자)
+- `DELETE /api/users/:userId` - 사용자 삭제 (관리자)
 
 ### 일기
 - `GET /api/diaries` - 일기 목록
@@ -246,6 +278,7 @@ GET  /api/terms/privacy         # 개인정보 처리방침
 - `PATCH /api/diaries/:id` - 일기 수정
 - `DELETE /api/diaries/:id` - 일기 삭제
 - `GET /api/diaries/calendar` - 캘린더 일기 조회
+- `GET /api/diaries/all` - 모든 일기 조회 (관리자)
 
 ### 폴더
 - `GET /api/folders` - 폴더 목록
@@ -260,6 +293,7 @@ GET  /api/terms/privacy         # 개인정보 처리방침
 - `POST /api/questions` - 질문 생성 (관리자)
 - `PUT /api/questions/:id` - 질문 수정 (관리자)
 - `DELETE /api/questions/:id` - 질문 삭제 (관리자)
+- `PUT /api/questions/order` - 질문 순서 변경 (관리자)
 
 ### 업로드
 - `POST /api/upload/image` - 이미지 업로드
@@ -275,13 +309,20 @@ GET  /api/terms/privacy         # 개인정보 처리방침
 - `GET /api/payments/subscriptions` - 구독 내역
 
 ### 고객지원
-- `POST /api/support` - 문의 작성
-- `GET /api/support` - 문의 목록
-- `GET /api/support/:id` - 문의 상세
+- `POST /api/support` - 문의 작성 (사용자)
+- `GET /api/support` - 문의 목록 (사용자)
+- `GET /api/support/:id` - 문의 상세 (사용자)
+- `GET /api/support/admin/all` - 모든 문의 목록 (관리자)
+- `GET /api/support/admin/:id` - 문의 상세 (관리자)
+- `PUT /api/support/admin/:id/answer` - 문의 답변 등록 (관리자)
 
 ### 약관
-- `GET /api/terms/service` - 서비스 이용약관
-- `GET /api/terms/privacy` - 개인정보 처리방침
+- `GET /api/terms/service` - 서비스 이용약관 (공개)
+- `GET /api/terms/privacy` - 개인정보 처리방침 (공개)
+- `GET /api/terms/admin/service` - 서비스 이용약관 조회 (관리자)
+- `GET /api/terms/admin/privacy` - 개인정보 처리방침 조회 (관리자)
+- `PUT /api/terms/admin/service` - 서비스 이용약관 수정 (관리자)
+- `PUT /api/terms/admin/privacy` - 개인정보 처리방침 수정 (관리자)
 
 ### 비밀번호 재설정
 - `POST /api/password-reset/request` - 재설정 요청
@@ -376,6 +417,8 @@ pnpm --filter server db:seed
 - `0002_create_password_reset_tokens.sql` - 비밀번호 재설정 토큰 테이블
 - `0003_create_questions_and_history.sql` - 질문 및 사용 이력 테이블
 - `0004_add_performance_indexes.sql` - 성능 최적화 인덱스 추가
+- `0005_add_question_order.sql` - 질문 순서 컬럼 추가
+- `0006_create_terms.sql` - 약관 관리 테이블
 
 **성능 인덱스:**
 - 사용자, 일기, 음악 작업, 질문 이력, 고객지원, 결제 등 주요 쿼리 필드에 인덱스 추가
@@ -417,9 +460,28 @@ pnpm --filter server db:seed
 - ✅ 스크롤/줌 방지 (모바일 최적화)
 
 ### 관리자 기능
-- ✅ 질문 관리 (생성, 수정, 삭제)
+- ✅ 질문 관리
+  - 질문 생성, 수정, 삭제
+  - 질문 순서 변경 (드래그 앤 드롭, 길게 누르기)
+  - 순서대로 상위 3개 질문이 사용자에게 표시
 - ✅ 사용자 관리
-- ✅ 고객지원 답변
+  - 전체 사용자 목록 조회
+  - 사용자 상세 정보 (프로필, 결제 내역, 구독 내역)
+  - 사용자 상태 변경 (활성화/정지)
+  - 사용자 삭제 (소프트 삭제)
+- ✅ 일기 관리
+  - 전체 일기 목록 조회
+  - 일기 타입별 필터링 (전체, 자유형식, 문답형식)
+  - 일기 상세 조회
+- ✅ 고객센터 관리
+  - 문의 목록 조회 (전체, 답변 대기, 답변 완료)
+  - 문의 상세 조회
+  - 문의 답변 등록 (자동 상태 변경)
+- ✅ 약관 관리
+  - 서비스 이용약관 관리
+  - 개인정보 처리방침 관리
+  - 버전 관리 (수동 저장 시 버전 증가)
+  - 자동 저장 (10초 후 자동 저장, 버전 변경 없음)
 
 ### 결제 기능
 - ✅ Nice Payments 연동
@@ -454,6 +516,36 @@ pnpm --filter server test:coverage
 
 ## 최근 업데이트
 
+### 관리자 기능 개선 (2024)
+- **질문 관리 탭**
+  - 질문 목록 조회 (순서, 내용, 생성일)
+  - 질문 생성/수정/삭제 (팝업 모달)
+  - 질문 순서 변경 (드래그 앤 드롭, 길게 누르기 활성화)
+  - 순서대로 상위 3개 질문이 사용자에게 표시
+- **고객센터 탭**
+  - 문의 목록 필터링 (전체, 답변 대기, 답변 완료)
+  - 문의 상세 조회 (팝업 모달)
+  - 관리자 답변 등록
+  - 답변 등록 시 자동으로 상태 변경 (답변 완료)
+  - 답변 전송 확인 및 완료 알림 팝업
+- **약관 관리 탭**
+  - 서비스 이용약관/개인정보 처리방침 분리 관리
+  - 약관 타입별 카드 선택 (활성 상태 강조)
+  - 최종 수정일 표시
+  - 버전 관리 (v1.0, v1.1 등)
+  - 수동 저장 시 버전 증가
+  - 자동 저장 기능 (10초 후 마지막 입력 기준)
+  - 자동 저장 시 버전 변경 없음, 저장 시간만 업데이트
+- **사용자 관리 개선**
+  - 사용자 목록에서 관리자 계정 필터링
+  - 사용자 행 클릭 시 상세 정보 표시
+  - 계정 상태 드롭다운 (활성됨/정지됨)
+  - 사용자 삭제 확인 팝업 (이메일 표시)
+- **일기 관리**
+  - 일기 타입별 필터링 (전체, 자유형식, 문답형식)
+  - 일기 카드 그리드 레이아웃
+  - 일기 상세 조회 (팝업 모달)
+
 ### UI/UX 개선 (2024)
 - 스플래시 화면 구현
 - 로그인/회원가입 페이지 UI 개선 (버튼 상태별 스타일, 유효성 검사 에러 표시)
@@ -463,9 +555,12 @@ pnpm --filter server test:coverage
   - 포맷 메뉴 (슬라이드업 애니메이션)
   - 색상 선택기 (70색 팔레트, 자연스러운 그라데이션)
   - 텍스트 스타일 및 포맷 옵션
+  - 선택한 텍스트에만 포맷 적용 (한글 문서 스타일)
+  - 폰트 크기 조절 (10px-48px)
 - 하단 탭 바 구현 (활성 탭 강조, 프로필 이미지 표시)
 - Pretendard 폰트 적용
 - 모바일 반응형 최적화 (스크롤/줌 방지)
+- 관리자 페이지 웹 레이아웃 (모바일 스타일 제거)
 
 ### 성능 최적화
 - 데이터베이스 인덱스 추가 (주요 쿼리 필드)

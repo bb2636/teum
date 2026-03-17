@@ -22,4 +22,9 @@ export class MemoryStorageAdapter implements StorageAdapter {
   getUrl(path: string): string {
     return `/storage/${path}`;
   }
+
+  async get(path: string): Promise<{ buffer: Buffer; mimetype: string } | null> {
+    const entry = storage.get(path);
+    return entry ?? null;
+  }
 }

@@ -1,5 +1,13 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+/** 업로드 이미지 URL을 API 서빙 경로로 변환 (/storage/... → /api/storage/...) */
+export function getStorageImageSrc(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const base = import.meta.env.VITE_API_URL || '/api';
+  return `${base}/storage/${url.replace(/^\/storage\/?/, '')}`;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

@@ -239,24 +239,24 @@ export function SupportInquiryDetailModal({
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowConfirmModal(false)} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto"
+              className="bg-[#F5F5F0] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 pointer-events-auto flex flex-col items-center text-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">
+              <p className="text-base font-medium text-gray-900 mb-8">
                 답변을 보내시겠습니까?
               </p>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center justify-center gap-4">
                 <Button
                   onClick={() => setShowConfirmModal(false)}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  variant="ghost"
+                  className="text-gray-900 hover:bg-transparent hover:text-gray-700"
                 >
                   취소
                 </Button>
                 <Button
                   onClick={handleConfirmSend}
                   disabled={updateAnswer.isPending}
-                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2215]"
+                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2215] rounded-xl px-6"
                 >
                   {updateAnswer.isPending ? '전송 중...' : '수정'}
                 </Button>
@@ -272,20 +272,19 @@ export function SupportInquiryDetailModal({
           <div className="fixed inset-0 bg-black/50 z-50" onClick={handleSuccessClose} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto"
+              className="bg-[#F5F5F0] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 pointer-events-auto flex flex-col items-center text-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">
+              <p className="text-base font-medium text-gray-900 mb-8">
                 답변이 등록되었습니다
               </p>
-              <div className="flex items-center justify-center">
-                <Button
-                  onClick={handleSuccessClose}
-                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2215]"
-                >
-                  완료
-                </Button>
-              </div>
+              <Button
+                onClick={handleSuccessClose}
+                variant="ghost"
+                className="text-gray-900 hover:bg-transparent hover:text-gray-700"
+              >
+                완료
+              </Button>
             </div>
           </div>
         </>

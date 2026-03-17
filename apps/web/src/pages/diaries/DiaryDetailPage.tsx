@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiary, useDeleteDiary } from '@/hooks/useDiaries';
+import { getStorageImageSrc } from '@/lib/api';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useState } from 'react';
@@ -100,7 +101,7 @@ export function DiaryDetailPage() {
               {diary.images.map((img) => (
                 <img
                   key={img.id}
-                  src={img.imageUrl}
+                  src={getStorageImageSrc(img.imageUrl)}
                   alt=""
                   className="w-full h-48 rounded-lg object-cover"
                 />
@@ -130,19 +131,17 @@ export function DiaryDetailPage() {
               ))}
             </div>
           )}
-
-          {/* AI Feedback */}
-          {(diary.aiMessage || diary.aiFeedback?.outputText) && (
-            <div className="pt-4 border-t">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-sm font-medium text-blue-900 mb-1">AI 응원 메시지</p>
-                <p className="text-sm text-blue-800">
-                  {diary.aiMessage || diary.aiFeedback?.outputText}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* AI 응원 메시지 - 맨 밑 별도 섹션 */}
+        {(diary.aiMessage || diary.aiFeedback?.outputText) && (
+          <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300">
+            <p className="text-sm font-semibold text-amber-800 mb-2">응원 메시지</p>
+            <p className="text-base text-brown-800 leading-relaxed">
+              {diary.aiMessage || diary.aiFeedback?.outputText}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

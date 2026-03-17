@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,7 @@ export function HomePage() {
   const { data: diaries = [], isLoading: diariesLoading } = useDiaries(selectedFolderId);
   const createFolder = useCreateFolder();
 
-  // Set first folder as selected when folders load
-  useEffect(() => {
-    if (folders.length > 0 && !selectedFolderId) {
-      setSelectedFolderId(folders[0].id);
-    }
-  }, [folders, selectedFolderId]);
+  // 기본은 전체(undefined), 폴더 로드 시에도 전체 유지
 
   const handleAddFolder = async () => {
     const folderName = prompt('폴더 이름을 입력해주세요');
@@ -64,8 +59,21 @@ export function HomePage() {
           <h1 className="text-xl font-semibold text-gray-800">일기</h1>
         </div>
 
-        {/* Folder Tabs */}
+        {/* Folder Tabs - 전체 + 폴더 목록 */}
         <div className="flex items-center gap-4 px-4 py-3 overflow-x-auto scrollbar-hide">
+          <button
+            onClick={() => handleFolderClick(undefined)}
+            className="relative pb-1 flex-shrink-0"
+          >
+            <span className={`text-sm font-medium ${
+              selectedFolderId === undefined ? 'text-[#4A2C1A]' : 'text-gray-600'
+            }`}>
+              전체
+            </span>
+            {selectedFolderId === undefined && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A2C1A]"></span>
+            )}
+          </button>
           {!foldersLoading && folders.map((folder) => (
             <button
               key={folder.id}
@@ -75,7 +83,7 @@ export function HomePage() {
               <span className={`text-sm font-medium ${
                 selectedFolderId === folder.id ? 'text-[#4A2C1A]' : 'text-gray-600'
               }`}>
-                {folder.name.toLowerCase() === 'all' ? '전체' : folder.name}
+                {folder.name}
               </span>
               {selectedFolderId === folder.id && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A2C1A]"></span>
@@ -120,9 +128,9 @@ export function HomePage() {
               </p>
             </div>
 
-            {/* Learn More Link */}
+            {/* Learn More Link - 캘린더 탭으로 이동 */}
             <Link
-              to="/music"
+              to="/calendar"
               className="text-sm text-[#4A2C1A] underline underline-offset-2"
             >
               자세히보기

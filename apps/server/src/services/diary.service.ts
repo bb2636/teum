@@ -1,5 +1,6 @@
 import { diaryRepository } from '../repositories/diary.repository';
 import { folderRepository } from '../repositories/folder.repository';
+import { questionRepository } from '../repositories/question.repository';
 import { questionService } from './question.service';
 import { encouragementService } from './ai/encouragement.service';
 import { logger } from '../config/logger';
@@ -74,18 +75,20 @@ export class DiaryService {
     let questionAnswers: Array<{ question: string; answer: string }> = [];
     if (data.type === 'question_based' && data.answers && data.answers.length > 0) {
       await diaryRepository.createAnswers(diary.id, data.answers);
-      
+
       // Record question usage for new question system
       for (const answer of data.answers) {
         await questionService.recordQuestionUsage(userId, answer.questionId, diary.id);
       }
-      
-      // Load questions for encouragement generation
-      const createdAnswers = await diaryRepository.findAnswersByDiaryId(diary.id);
-      questionAnswers = createdAnswers.map((a) => ({
-        question: a.question?.question || '',
-        answer: a.answer,
-      }));
+
+      // Build questionAnswers for AI encouragement: fetch question text from questions table
+      // (diary_answers.questionId references questions table for new system, not diary_questions)
+      questionAnswers = await Promise.all(
+        data.answers.map(async ({ questionId, answer }) => {
+          const q = await questionRepository.findById(questionId);
+          return { question: q?.question ?? '', answer };
+        })
+      );
     }
 
     // Return diary with relations

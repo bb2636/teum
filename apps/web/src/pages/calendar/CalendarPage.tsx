@@ -1,11 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { getStorageImageSrc } from '@/lib/api';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
+import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { MonthPickerModal } from './MonthPickerModal';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths, subMonths, getDate } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Diary } from '@/hooks/useDiaries';
+
+/** 일기에서 목록에 쓸 "첫 줄" 텍스트 추출 */
+function getFirstLine(diary: Diary): string {
+  if (diary.title?.trim()) return diary.title.trim();
+  if (diary.type === 'question_based' && diary.answers?.length) {
+    const first = diary.answers[0].answer?.trim();
+    if (first) return first.split('\n')[0].trim() || first;
+  }
+  if (diary.content?.trim()) return diary.content.trim().split('\n')[0].trim();
+  return '내용 없음';
+}
 
 interface DiarySlideProps {
   date: Date;
@@ -14,59 +27,73 @@ interface DiarySlideProps {
 }
 
 function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
+  const dateLabel = `${format(date, 'M월 d일', { locale: ko })} (${format(date, 'E', { locale: ko })})`;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[80vh] overflow-y-auto animate-slide-up"
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        {/* 드래그 핸들 */}
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden />
+        </div>
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-10">
           <h2 className="text-lg font-semibold text-[#4A2C1A]">
-            {format(date, 'M월 d일', { locale: ko })} {format(date, 'E', { locale: ko })}
+            {dateLabel}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 p-1"
+            aria-label="닫기"
+          >
             ✕
           </button>
         </div>
-        <div className="px-4 py-4 space-y-4">
-          {diaries.map((diary) => (
-            <div
-              key={diary.id}
-              className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-gray-500">
-                  {diary.folder?.name || '폴더 이름'}
-                </span>
-                {diary.type === 'question_based' && (
-                  <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                    질문기록
+        <div className="px-4 py-4 space-y-4 pb-safe">
+          {diaries.map((diary) => {
+            const firstLine = getFirstLine(diary);
+            const diaryDate = diary.date ? format(new Date(diary.date), 'M월 d일 (E)', { locale: ko }) : dateLabel;
+            return (
+              <Link
+                key={diary.id}
+                to={`/diaries/${diary.id}`}
+                onClick={onClose}
+                className="block bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-shadow"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-gray-500">
+                    {diary.folder?.name || '폴더 이름'}
                   </span>
-                )}
-                <button className="ml-auto text-gray-400 hover:text-gray-600">
-                  ⋯
-                </button>
-              </div>
-              {diary.title && (
-                <h3 className="font-semibold text-[#4A2C1A] mb-2">{diary.title}</h3>
-              )}
-              {diary.content && (
-                <p className="text-sm text-gray-700 mb-3">{diary.content}</p>
-              )}
-              {diary.images && diary.images.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto">
-                  {diary.images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img.imageUrl}
-                      alt={`${diary.title || '일기'} 이미지 ${idx + 1}`}
-                      className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                    />
-                  ))}
+                  {diary.type === 'question_based' && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      질문기록
+                    </span>
+                  )}
+                  <span className="ml-auto text-gray-400">⋯</span>
                 </div>
-              )}
-            </div>
-          ))}
+                <p className="text-sm text-[#4A2C1A] font-medium mb-1">{diaryDate}</p>
+                <p className="text-sm text-gray-700 line-clamp-2">{firstLine}</p>
+                {diary.images && diary.images.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto mt-3">
+                    {diary.images.slice(0, 4).map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={getStorageImageSrc(img.imageUrl)}
+                        alt=""
+                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                      />
+                    ))}
+                    {diary.images.length > 4 && (
+                      <span className="flex items-center text-gray-400 text-sm">+{diary.images.length - 4}</span>
+                    )}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -112,6 +139,7 @@ function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
 
 export function CalendarPage() {
   const navigate = useNavigate();
+  const { setHideTabBar } = useHideTabBar();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
@@ -119,6 +147,12 @@ export function CalendarPage() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  // 일기 목록 슬라이드 열릴 때 하단바 숨기기
+  useEffect(() => {
+    setHideTabBar(selectedDate !== null);
+    return () => setHideTabBar(false);
+  }, [selectedDate, setHideTabBar]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;

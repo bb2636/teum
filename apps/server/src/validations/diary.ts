@@ -21,7 +21,8 @@ export const createDiarySchema = z.object({
   content: z.string().optional(),
   textStyle: z.string().optional(), // JSON string
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-  imageUrls: z.array(z.string().url()).optional(),
+  // 업로드가 상대 경로(/storage/...) 또는 절대 URL 반환 가능
+  imageUrls: z.array(z.string().min(1)).optional(),
   answers: z.array(
     z.object({
       questionId: z.string().uuid(),
@@ -36,7 +37,7 @@ export const updateDiarySchema = z.object({
   content: z.string().optional(),
   textStyle: z.string().optional(),
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-  imageUrls: z.array(z.string().url()).optional(),
+  imageUrls: z.array(z.string().min(1)).optional(),
 });
 
 // Calendar query

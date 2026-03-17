@@ -2,6 +2,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
+import { getStorageImageSrc } from '@/lib/api';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -78,7 +79,7 @@ export function DiaryListPage() {
                         {diary.images.slice(0, 3).map((img) => (
                           <img
                             key={img.id}
-                            src={img.imageUrl}
+                            src={getStorageImageSrc(img.imageUrl)}
                             alt=""
                             className="w-16 h-16 rounded object-cover"
                           />

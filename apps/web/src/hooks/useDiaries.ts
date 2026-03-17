@@ -153,14 +153,15 @@ export function useCreateDiary() {
       }
     },
     onSuccess: (newDiary) => {
-      // Replace temp diary with real one
-      queryClient.setQueryData<Diary[]>(['diaries', newDiary.folderId || '전체'], (old) => {
-        if (!old) return [newDiary];
-        // Remove temp diary and add real one
-        return [newDiary, ...old.filter((d) => !d.id.startsWith('temp-'))];
-      });
+      const updateList = (key: string) => {
+        queryClient.setQueryData<Diary[]>(['diaries', key], (old) => {
+          if (!old) return [newDiary];
+          return [newDiary, ...old.filter((d) => !d.id.startsWith('temp-'))];
+        });
+      };
+      updateList(newDiary.folderId || '전체');
+      if (newDiary.folderId) updateList('전체');
 
-      // Invalidate to refetch in background (gets any other updates)
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
     },

@@ -7,6 +7,7 @@ import { performanceMiddleware } from './middleware/performance';
 import { performanceMonitor } from './utils/performance-monitor';
 import { authenticate } from './middleware/auth';
 import { requireRole } from './middleware/auth';
+import { adapter } from './storage';
 
 export const app: Express = express();
 
@@ -77,6 +78,21 @@ app.use('/api/support', supportRoutes);
 app.use('/api/terms', termsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/questions', questionRoutes);
+
+// Serve uploaded images (memory adapter: /storage/uploads/... → GET /api/storage/uploads/...)
+app.get(/^\/api\/storage\/(.+)$/, async (req, res) => {
+  const path = (req.params as Record<string, string>)[0];
+  if (!path) return res.status(404).json({ success: false, error: { message: 'Not found' } });
+  if (!adapter.get) return res.status(404).json({ success: false, error: { message: 'Storage not serveable' } });
+  try {
+    const file = await adapter.get(path);
+    if (!file) return res.status(404).json({ success: false, error: { message: 'File not found' } });
+    res.setHeader('Content-Type', file.mimetype);
+    res.send(file.buffer);
+  } catch {
+    res.status(404).json({ success: false, error: { message: 'Not found' } });
+  }
+});
 
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {

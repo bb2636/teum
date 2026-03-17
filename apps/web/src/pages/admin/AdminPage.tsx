@@ -11,6 +11,7 @@ import { ko } from 'date-fns/locale';
 import { QuestionsManagementTab } from './QuestionsManagementTab';
 import { SupportManagementTab } from './SupportManagementTab';
 import { TermsManagementTab } from './TermsManagementTab';
+import { getStorageImageSrc } from '@/lib/api';
 
 type AdminTab = 'users' | 'diaries' | 'questions' | 'support' | 'terms';
 type DiaryFilter = 'all' | 'free' | 'question';
@@ -625,7 +626,7 @@ export function AdminPage() {
                     {diary.images && diary.images.length > 0 && (
                       <div className="mb-3">
                         <img
-                          src={diary.images[0].imageUrl}
+                          src={getStorageImageSrc(diary.images[0].imageUrl)}
                           alt="Diary"
                           className="w-full h-32 object-cover rounded"
                         />
@@ -743,7 +744,7 @@ export function AdminPage() {
                     {selectedDiary.images.map((image) => (
                       <img
                         key={image.id}
-                        src={image.imageUrl}
+                        src={getStorageImageSrc(image.imageUrl)}
                         alt="Diary"
                         className="w-full h-48 object-cover rounded"
                       />

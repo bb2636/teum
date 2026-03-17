@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, Type, Image as ImageIcon, ImagePlus, Camera } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
 import { useFolders, useCreateDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useRandomQuestions } from '@/hooks/useQuestions';
@@ -38,6 +37,7 @@ export function DiaryWritePage() {
   const uploadImage = useUploadImage();
   const { data: randomQuestions = [], isLoading: questionsLoading } = useRandomQuestions(3);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedDate] = useState(
@@ -51,7 +51,6 @@ export function DiaryWritePage() {
   const [selectedTextStyle, setSelectedTextStyle] = useState<TextStyle>('body');
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
   const [textColor, setTextColor] = useState('#4A2C1A');
-  const [fontSize, setFontSize] = useState(16); // Default font size in px
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +118,18 @@ export function DiaryWritePage() {
       } as React.ChangeEvent<HTMLInputElement>;
       register('content').onChange(event);
     }
+  };
+
+  // Enter 시 새 줄은 포맷 상속 없이 본문으로 시작
+  const handleContentKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    document.execCommand('insertParagraph', false);
+    // 새 블록을 본문(p)으로 고정
+    document.execCommand('formatBlock', false, 'p');
+    // 새 줄 인라인 포맷(굵게/기울임 등) 제거
+    document.execCommand('removeFormat', false);
+    handleContentChange();
   };
 
   // Format text functions - only applies to selected text
@@ -190,68 +201,6 @@ export function DiaryWritePage() {
     } catch (e) {
       // If surroundContents fails, use formatBlock
       document.execCommand('formatBlock', false, config.tag);
-    }
-    
-    handleContentChange();
-  };
-
-  const applyFontSize = (size: number) => {
-    setFontSize(size);
-    const selection = window.getSelection();
-    
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      
-      // If text is selected, apply font size to selected text only
-      if (!range.collapsed) {
-        // Apply font size to selected text
-        document.execCommand('fontSize', false, '7'); // Create a font tag
-        // Find the font tag and replace with span
-        const fontElements = contentEditableRef.current?.querySelectorAll('font[size="7"]');
-        if (fontElements) {
-          fontElements.forEach((font) => {
-            const span = document.createElement('span');
-            span.style.fontSize = `${size}px`;
-            span.innerHTML = font.innerHTML;
-            font.parentNode?.replaceChild(span, font);
-          });
-        }
-      } else {
-        // If no selection, set font size for future text input only
-        const span = document.createElement('span');
-        span.style.fontSize = `${size}px`;
-        span.innerHTML = '\u200B'; // Zero-width space
-        
-        try {
-          range.insertNode(span);
-          range.setStartAfter(span);
-          range.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        } catch (e) {
-          // If insert fails, use execCommand
-          document.execCommand('fontSize', false, '7');
-          const fontElements = contentEditableRef.current?.querySelectorAll('font[size="7"]');
-          if (fontElements && fontElements.length > 0) {
-            const lastFont = fontElements[fontElements.length - 1];
-            const span = document.createElement('span');
-            span.style.fontSize = `${size}px`;
-            span.innerHTML = lastFont.innerHTML;
-            lastFont.parentNode?.replaceChild(span, lastFont);
-          }
-        }
-      }
-    } else {
-      // No selection, set font size for future text only
-      document.execCommand('fontSize', false, '7');
-      const fontElements = contentEditableRef.current?.querySelectorAll('font[size="7"]');
-      if (fontElements && fontElements.length > 0) {
-        const lastFont = fontElements[fontElements.length - 1];
-        const span = document.createElement('span');
-        span.style.fontSize = `${size}px`;
-        span.innerHTML = lastFont.innerHTML;
-        lastFont.parentNode?.replaceChild(span, lastFont);
-      }
     }
     
     handleContentChange();
@@ -464,6 +413,7 @@ export function DiaryWritePage() {
                 ref={contentEditableRef}
                 contentEditable
                 onInput={handleContentChange}
+                onKeyDown={handleContentKeyDown}
                 onBlur={updateActiveFormats}
                 onFocus={updateActiveFormats}
                 onSelect={updateActiveFormats}
@@ -476,6 +426,20 @@ export function DiaryWritePage() {
                 }}
               />
             </div>
+
+            {/* 선택한 이미지 미리보기 */}
+            {selectedImages.length > 0 && (
+              <div className="mx-4 mb-2 flex gap-2 overflow-x-auto pb-2">
+                {selectedImages.map((url, i) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt={`미리보기 ${i + 1}`}
+                    className="h-20 w-20 flex-shrink-0 rounded-lg object-cover border border-gray-200"
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Toolbar */}
             <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-center gap-6">
@@ -521,11 +485,9 @@ export function DiaryWritePage() {
               onStyleSelect={applyTextStyle}
               onFormatToggle={handleFormatToggle}
               onColorSelect={() => setShowColorPicker(true)}
-              onFontSizeChange={applyFontSize}
               selectedStyle={selectedTextStyle}
               activeFormats={activeFormats}
               textColor={textColor}
-              fontSize={fontSize}
             />
           )}
 
@@ -560,75 +522,125 @@ export function DiaryWritePage() {
     );
   }
 
-  // Question-based Diary - 3 question inputs
+  // Question-based Diary - 2번 이미지 스타일
   return (
-    <div className="min-h-screen bg-[#F5F5F0] pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
-      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-          <button onClick={handleBackClick} className="p-2">
+    <div className="min-h-screen bg-[#F5F5F0] pb-24 overflow-hidden relative" style={{ touchAction: 'none' }}>
+      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
+        {/* Header - 2번: 원형 뒤로가기, 중앙 날짜, 체크 저장 */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white">
+          <button
+            onClick={handleBackClick}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
-          <h1 className="text-base font-medium text-[#4A2C1A]">{formattedDate}</h1>
+          <h1 className="text-lg font-medium text-[#4A2C1A]">{formattedDate}</h1>
           <button
             onClick={handleSaveClick}
             disabled={uploading || createDiary.isPending}
-            className="p-2"
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
           >
             <Check className="w-5 h-5 text-[#4A2C1A]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex-1 px-4 py-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+          {/* 질문 영역 - 목록/확장 뷰 전환 */}
+          <div className="flex-1 flex flex-col overflow-hidden px-4 py-5">
             {questionsLoading ? (
               <div className="text-center py-8 text-gray-500">질문을 불러오는 중...</div>
             ) : randomQuestions.length > 0 ? (
-              randomQuestions.map((question) => (
-                <div key={question.id} className="space-y-2">
-                  <Label htmlFor={`answer-${question.id}`} className="text-[#4A2C1A] font-medium">
-                    {question.question}
-                  </Label>
-                  <textarea
-                    id={`answer-${question.id}`}
-                    rows={4}
-                    value={answers[question.id] || ''}
-                    onChange={(e) =>
-                      setAnswers((prev) => ({
-                        ...prev,
-                        [question.id]: e.target.value,
-                      }))
+              // 3개 질문 카드: 클릭한 카드만 인라인으로 확장
+              <div className="space-y-4 overflow-y-auto">
+                {randomQuestions.map((question) => (
+                  <div
+                    key={question.id}
+                    className={`w-full text-left bg-white rounded-2xl shadow-sm border border-gray-100 transition-all ${
+                      expandedQuestionId === question.id ? 'p-5 flex flex-col' : 'p-4'
+                    }`}
+                    style={
+                      expandedQuestionId === question.id
+                        ? { minHeight: 'min(80vw, 420px)' }
+                        : undefined
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] bg-white text-[#4A2C1A] placeholder:text-gray-400"
-                    placeholder="글쓰기 시작..."
-                  />
-                </div>
-              ))
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedQuestionId(
+                          expandedQuestionId === question.id ? null : question.id
+                        )
+                      }
+                      className="w-full text-left"
+                    >
+                      <p className="text-[#4A2C1A] font-medium mb-1">{question.question}</p>
+                      {expandedQuestionId !== question.id && (
+                        <p className="text-gray-400 text-sm truncate">
+                          {answers[question.id]?.trim() || '글쓰기 시작...'}
+                        </p>
+                      )}
+                    </button>
+                    {expandedQuestionId === question.id && (
+                      <textarea
+                        id={`answer-${question.id}`}
+                        value={answers[question.id] || ''}
+                        onChange={(e) =>
+                          setAnswers((prev) => ({
+                            ...prev,
+                            [question.id]: e.target.value,
+                          }))
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="글쓰기 시작..."
+                        className="flex-1 w-full min-h-[200px] mt-3 bg-transparent resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             ) : (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="bg-gray-100 rounded-2xl p-6">
                 <p className="text-sm text-gray-500">사용 가능한 질문이 없습니다</p>
               </div>
             )}
           </div>
 
-          {/* Toolbar */}
-          <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-center gap-6">
-            <label className="cursor-pointer">
+          {/* 선택한 이미지 미리보기 (질문기록) */}
+          {selectedImages.length > 0 && (
+            <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
+              {selectedImages.map((url, i) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt={`미리보기 ${i + 1}`}
+                  className="h-16 w-16 flex-shrink-0 rounded-lg object-cover border border-gray-200"
+                />
+              ))}
+            </div>
+          )}
+
+          {/* 포맷 툴바 - 2번: 둥근 모서리 플로팅 스타일 */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 mx-4 bg-white rounded-full shadow-lg px-6 py-3 flex items-center justify-center gap-8">
+            <button
+              type="button"
+              onClick={() => setShowFormatMenu(true)}
+              className="cursor-pointer p-1"
+            >
               <Type className="w-6 h-6 text-gray-600" />
-              <input type="file" className="hidden" />
-            </label>
-            <label className="cursor-pointer">
+            </button>
+            <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
+              <Camera className="w-6 h-6 text-gray-600" />
+            </button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <label className="cursor-pointer p-1">
               <ImageIcon className="w-6 h-6 text-gray-600" />
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-            </label>
-            <label className="cursor-pointer">
-              <ImagePlus className="w-6 h-6 text-gray-600" />
               <input
                 type="file"
                 multiple
@@ -640,6 +652,27 @@ export function DiaryWritePage() {
           </div>
         </form>
       </div>
+
+      {/* Format Menu for question-based */}
+      {showFormatMenu && (
+        <FormatMenu
+          onClose={() => setShowFormatMenu(false)}
+          onStyleSelect={applyTextStyle}
+          onFormatToggle={handleFormatToggle}
+          onColorSelect={() => setShowColorPicker(true)}
+          selectedStyle={selectedTextStyle}
+          activeFormats={activeFormats}
+          textColor={textColor}
+        />
+      )}
+
+      {showColorPicker && (
+        <ColorPicker
+          onClose={() => setShowColorPicker(false)}
+          onColorSelect={applyTextColor}
+          selectedColor={textColor}
+        />
+      )}
 
       {/* Folder Selection Modal */}
       {showFolderModal && (

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from './providers';
+import { HideTabBarProvider } from '../contexts/HideTabBarContext';
 import { SplashPage } from '../pages/auth/SplashPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { SignupPage } from '../pages/auth/SignupPage';
@@ -102,8 +103,9 @@ export default function App() {
       <Route
         path="*"
         element={
-          <Layout>
-            <Routes>
+          <HideTabBarProvider>
+            <Layout>
+              <Routes>
               <Route path="/splash" element={<SplashPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
@@ -197,8 +199,9 @@ export default function App() {
                 }
               />
               <Route path="/" element={<Navigate to="/splash" replace />} />
-            </Routes>
-          </Layout>
+              </Routes>
+            </Layout>
+          </HideTabBarProvider>
         }
       />
     </Routes>

@@ -13,7 +13,27 @@ import { nicePayProvider } from './payment/nicepay.provider';
  */
 export class PaymentService {
   /**
+   * 결제 연동 전: PAYMENT_MOCK_SUCCESS=true 이면 NicePay 호출 없이 구독만 생성 후 성공 처리.
+   * 다음 결제일 = 구독 endDate(갱신일) 기준으로 노출 가능.
+   */
+  private isPaymentMockSuccess(): boolean {
+    return process.env.PAYMENT_MOCK_SUCCESS === 'true';
+  }
+
+  /**
+   * 활성 구독 1건 조회 (다음 결제일 등 노출용).
+   */
+  async getActiveSubscription(userId: string) {
+    const subs = await this.getSubscriptions(userId);
+    const now = new Date();
+    return subs.find(
+      (s) => s.status === 'active' && (!s.endDate || new Date(s.endDate) >= now)
+    ) ?? null;
+  }
+
+  /**
    * Process a payment using Nice Payments.
+   * PAYMENT_MOCK_SUCCESS=true 이면 실제 PG 호출 없이 결제·구독만 생성 후 성공 반환.
    */
   async processPayment(
     userId: string,
@@ -31,16 +51,13 @@ export class PaymentService {
       id: string;
       status: string;
       planName: string;
+      nextPaymentDate?: string; // ISO string, 다음 결제/갱신일
     };
     message?: string;
   }> {
-    logger.info('Processing payment with Nice Payments', { userId, input });
+    logger.info('Processing payment', { userId, input, mock: this.isPaymentMockSuccess() });
 
-    // Generate unique order ID
     const orderId = `ORDER_${Date.now()}_${userId.substring(0, 8)}`;
-
-    // Build payment method string for Nice Payments
-    // Note: This is for internal tracking, actual payment method is still the enum
     let paymentMethodStr: string = input.paymentMethod;
     if (input.paymentMethod === 'card' && input.cardCompany) {
       paymentMethodStr = `card_${input.cardCompany}`;
@@ -48,13 +65,78 @@ export class PaymentService {
       paymentMethodStr = `easy_pay_${input.easyPayProvider}`;
     }
 
-    // Call Nice Payments API
+    // 결제 연동 전: 모크 모드면 PG 호출 없이 바로 성공 처리
+    if (this.isPaymentMockSuccess()) {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      const [payment] = await db
+        .insert(payments)
+        .values({
+          userId,
+          status: 'completed',
+          amount: input.amount.toString(),
+          currency: 'KRW',
+          paymentMethod: paymentMethodStr,
+          transactionId: orderId,
+          paidAt: startDate,
+        })
+        .returning();
+
+      let subscription: { id: string; status: string; planName: string; endDate: Date | null } | null = null;
+      if (input.planName) {
+        const [newSub] = await db
+          .insert(subscriptions)
+          .values({
+            userId,
+            status: 'active',
+            planName: input.planName,
+            amount: input.amount.toString(),
+            currency: 'KRW',
+            startDate,
+            endDate,
+          })
+          .returning();
+
+        await db
+          .update(payments)
+          .set({ subscriptionId: newSub.id })
+          .where(eq(payments.id, payment.id));
+
+        subscription = newSub;
+      }
+
+      logger.info('Payment processed (mock success)', { paymentId: payment.id });
+
+      return {
+        success: true,
+        payment: {
+          id: payment.id,
+          status: payment.status,
+          amount: payment.amount,
+          paymentMethod: payment.paymentMethod,
+          transactionId: payment.transactionId,
+        },
+        subscription: subscription
+          ? {
+              id: subscription.id,
+              status: subscription.status,
+              planName: subscription.planName,
+              nextPaymentDate: subscription.endDate ? new Date(subscription.endDate).toISOString() : undefined,
+            }
+          : undefined,
+        message: '결제가 완료되었습니다.',
+      };
+    }
+
+    // 실제 PG 연동
     const nicePayResponse = await nicePayProvider.approvePayment({
       amount: input.amount,
       orderId,
       goodsName: input.planName,
-      buyerName: undefined, // Can be added from user profile
-      buyerEmail: undefined, // Can be added from user profile
+      buyerName: undefined,
+      buyerEmail: undefined,
       returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success`,
       notifyUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/payments/webhook`,
     });
@@ -66,7 +148,6 @@ export class PaymentService {
         errorMsg: nicePayResponse.errorMsg,
       });
 
-      // Create failed payment record
       const [payment] = await db
         .insert(payments)
         .values({
@@ -93,7 +174,6 @@ export class PaymentService {
       };
     }
 
-    // Create successful payment record
     const [payment] = await db
       .insert(payments)
       .values({
@@ -107,12 +187,11 @@ export class PaymentService {
       })
       .returning();
 
-    // Create subscription if this is a subscription payment
-    let subscription = null;
+    let subscription: { id: string; status: string; planName: string; endDate?: Date | null } | null = null;
     if (input.planName) {
       const startDate = new Date();
       const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1); // 1 month subscription
+      endDate.setMonth(endDate.getMonth() + 1);
 
       const [newSubscription] = await db
         .insert(subscriptions)
@@ -127,7 +206,6 @@ export class PaymentService {
         })
         .returning();
 
-      // Link payment to subscription
       await db
         .update(payments)
         .set({ subscriptionId: newSubscription.id })
@@ -155,6 +233,7 @@ export class PaymentService {
             id: subscription.id,
             status: subscription.status,
             planName: subscription.planName,
+            nextPaymentDate: subscription.endDate ? new Date(subscription.endDate).toISOString() : undefined,
           }
         : undefined,
       message: nicePayResponse.resultMsg || '결제가 완료되었습니다.',

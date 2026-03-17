@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MusicOrchestratorService } from '../music-orchestrator.service';
 import { lyricAnalysisService } from '../../ai/lyric-analysis.service';
-import { stableAudioProvider } from '../stableaudio.provider';
+import { murekaProvider } from '../mureka.provider';
 import { diaryRepository } from '../../../repositories/diary.repository';
 import { db } from '../../../db';
 import { musicJobs } from '../../../db/schema';
 
 // Mock dependencies
 vi.mock('../../ai/lyric-analysis.service');
-vi.mock('../stableaudio.provider');
+vi.mock('../mureka.provider');
 vi.mock('../../../repositories/diary.repository');
 vi.mock('../../../db', () => ({
   db: {
@@ -68,6 +68,8 @@ describe('MusicOrchestratorService', () => {
       );
 
       vi.mocked(lyricAnalysisService.analyzeDiaries).mockResolvedValue({
+        titleKo: '행복한 순간',
+        titleEn: 'Happy Moment',
         overallEmotion: 'happy',
         mood: 'upbeat',
         keywords: ['joy', 'celebration'],
@@ -76,8 +78,8 @@ describe('MusicOrchestratorService', () => {
         musicPrompt: 'upbeat happy music',
       });
 
-      vi.mocked(stableAudioProvider.generateMusic).mockResolvedValue({
-        provider: 'stable_audio',
+      vi.mocked(murekaProvider.generateMusic).mockResolvedValue({
+        provider: 'mureka',
         audioUrl: 'https://example.com/audio.mp3',
         status: 'completed',
       });
@@ -116,6 +118,8 @@ describe('MusicOrchestratorService', () => {
       );
 
       vi.mocked(lyricAnalysisService.analyzeDiaries).mockResolvedValue({
+        titleKo: '행복',
+        titleEn: 'Happiness',
         overallEmotion: 'happy',
         mood: 'upbeat',
         keywords: ['joy'],
@@ -124,8 +128,8 @@ describe('MusicOrchestratorService', () => {
         musicPrompt: 'upbeat music',
       });
 
-      vi.mocked(stableAudioProvider.generateMusic).mockResolvedValue({
-        provider: 'stable_audio',
+      vi.mocked(murekaProvider.generateMusic).mockResolvedValue({
+        provider: 'mureka',
         providerJobId: 'provider-job-id',
         status: 'processing',
       });

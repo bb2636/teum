@@ -2,30 +2,32 @@ import { db } from '../../db';
 import { musicJobs } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { lyricAnalysisService } from '../ai/lyric-analysis.service';
-import { stableAudioProvider } from './stableaudio.provider';
+import { murekaProvider } from './mureka.provider';
 import { diaryRepository } from '../../repositories/diary.repository';
 import { logger } from '../../config/logger';
 
 /**
  * Music Orchestrator Service
- * 
- * Coordinates the full music generation flow:
+ *
+ * 플로우: 일기 7개 선택 → GPT 분석·가사 생성 → Mureka 가사 기반 작곡(·썸네일)
  * 1. Create music job
- * 2. Analyze diaries with AI
- * 3. Generate music with provider
- * 4. Save results
+ * 2. GPT(lyricAnalysisService)로 일기 분석 → overallEmotion, mood, lyrics, musicPrompt
+ * 3. Mureka API: lyrics + prompt(스타일)로 작곡 요청 (비동기 task_id 반환)
+ * 4. 폴링으로 완료 조회 → audioUrl(·thumbnailUrl) 저장
  */
 export class MusicOrchestratorService {
   /**
-   * Generate music from 7 selected diaries.
-   * 
+   * Generate music from 7 selected diaries and optional genre.
+   *
    * @param userId User ID
    * @param diaryIds Array of exactly 7 diary IDs
+   * @param genreTag Optional Mureka style tag (e.g. pop, ballad); used as primary genre in prompt
    * @returns Music job result
    */
   async generateMusic(
     userId: string,
-    diaryIds: string[]
+    diaryIds: string[],
+    genreTag?: string
   ): Promise<{
     jobId: string;
     status: 'queued' | 'processing' | 'completed' | 'failed';
@@ -103,13 +105,21 @@ export class MusicOrchestratorService {
       // Analyze with AI
       const analysis = await lyricAnalysisService.analyzeDiaries(diaryData);
 
-      // Generate music
-      const musicResult = await stableAudioProvider.generateMusic({
-        prompt: analysis.musicPrompt,
-        durationSeconds: 30, // Default 30 seconds
+      // Generate music (Mureka API). 사용자 선택 장르가 있으면 프롬프트 앞에 반영.
+      const stylePrefix = genreTag?.trim()
+        ? `${genreTag.trim()}, `
+        : '';
+      const promptForMureka =
+        stylePrefix +
+        analysis.musicPrompt +
+        ', up to 2 minutes total length, natural fade-out ending, complete musical phrases, no abrupt cut or mid-phrase ending';
+      const musicResult = await murekaProvider.generateMusic({
+        prompt: promptForMureka,
+        lyrics: analysis.lyrics,
+        durationSeconds: 120,
       });
 
-      // Save analysis results immediately
+      // Save analysis results immediately (AI 노래 제목 포함)
       await db
         .update(musicJobs)
         .set({
@@ -119,6 +129,8 @@ export class MusicOrchestratorService {
           lyricalTheme: analysis.lyricalTheme,
           lyrics: analysis.lyrics,
           musicPrompt: analysis.musicPrompt,
+          songTitle: analysis.titleKo,
+          songTitleEn: analysis.titleEn,
           provider: musicResult.provider,
           providerJobId: musicResult.providerJobId,
         })
@@ -150,17 +162,7 @@ export class MusicOrchestratorService {
           audioUrl: musicResult.audioUrl,
         };
       } else if (musicResult.providerJobId) {
-        // Asynchronous: Job ID returned, will be polled
-        // Register webhook if available
-        const webhookUrl = process.env.WEBHOOK_BASE_URL
-          ? `${process.env.WEBHOOK_BASE_URL}/api/music/webhook/${jobId}`
-          : undefined;
-
-        if (webhookUrl) {
-          await stableAudioProvider.registerWebhook(musicResult.providerJobId, webhookUrl);
-        }
-
-        // Job will be polled by background worker or webhook
+        // Asynchronous: Job ID returned, will be polled (Mureka는 폴링으로 상태 조회)
         logger.info('Music generation started (asynchronous)', {
           jobId,
           providerJobId: musicResult.providerJobId,

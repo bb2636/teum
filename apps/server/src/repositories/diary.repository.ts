@@ -10,7 +10,7 @@ export class DiaryRepository {
       orderBy: (diaries, { desc }) => [desc(diaries.date)],
       with: {
         images: {
-          orderBy: (images, { asc }) => [asc(images.order)],
+          orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
           with: {
@@ -50,7 +50,7 @@ export class DiaryRepository {
       orderBy: (diaries, { desc }) => [desc(diaries.date)],
       with: {
         images: {
-          orderBy: (images, { asc }) => [asc(images.order)],
+          orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
           with: {
@@ -86,7 +86,7 @@ export class DiaryRepository {
         and(eq(diaries.id, id), isNull(diaries.deletedAt)),
       with: {
         images: {
-          orderBy: (images, { asc }) => [asc(images.order)],
+          orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
           with: {
@@ -157,7 +157,7 @@ export class DiaryRepository {
         imageUrls.map((url, index) => ({
           diaryId,
           imageUrl: url,
-          order: index,
+          sortOrder: index,
         }))
       )
       .returning();

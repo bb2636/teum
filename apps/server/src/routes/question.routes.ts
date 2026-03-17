@@ -32,6 +32,18 @@ router.post(
   questionController.createQuestion.bind(questionController)
 );
 router.put(
+  '/order',
+  authenticate,
+  requireRole(['admin']),
+  questionController.updateQuestionOrder.bind(questionController)
+);
+router.put(
+  '/:id',
+  authenticate,
+  requireRole(['admin']),
+  questionController.updateQuestion.bind(questionController)
+);
+router.patch(
   '/:id',
   authenticate,
   requireRole(['admin']),
@@ -42,12 +54,6 @@ router.delete(
   authenticate,
   requireRole(['admin']),
   questionController.deleteQuestion.bind(questionController)
-);
-router.put(
-  '/order',
-  authenticate,
-  requireRole(['admin']),
-  questionController.updateQuestionOrder.bind(questionController)
 );
 
 export default router;

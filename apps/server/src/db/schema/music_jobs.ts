@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text, pgEnum, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, pgEnum, jsonb, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 
@@ -25,7 +25,11 @@ export const musicJobs = pgTable('music_jobs', {
   provider: varchar('provider', { length: 50 }), // e.g., 'stable_audio'
   providerJobId: varchar('provider_job_id', { length: 255 }),
   audioUrl: text('audio_url'),
+  thumbnailUrl: text('thumbnail_url'),
   errorMessage: text('error_message'),
+  durationSeconds: integer('duration_seconds'), // 재생 길이(초), 최대 2분
+  songTitle: varchar('song_title', { length: 50 }), // AI 생성 노래 제목 (한국어 10자 이내)
+  songTitleEn: varchar('song_title_en', { length: 50 }), // AI 생성 노래 제목 (영어 20자 이내)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),

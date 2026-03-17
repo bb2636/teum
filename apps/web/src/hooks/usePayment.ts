@@ -60,9 +60,9 @@ export function useProcessPayment() {
       return response.data;
     },
     onSuccess: () => {
-      // Invalidate subscriptions and payments queries
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
     },
   });
 }
@@ -73,7 +73,7 @@ export function useSubscriptions() {
     queryKey: ['subscriptions'],
     queryFn: async () => {
       const response = await apiRequest<{ data: { subscriptions: Subscription[] } }>(
-        '/subscriptions'
+        '/payments/subscriptions'
       );
       return response.data.subscriptions;
     },

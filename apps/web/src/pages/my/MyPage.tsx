@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -7,15 +7,14 @@ import {
   MessageCircle,
   FileText,
   LogOut,
-  Settings,
   ChevronRight,
+  X,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/Logo';
 import { useMe } from '@/hooks/useProfile';
 import { useSubscriptions, usePayments } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useLogout } from '@/hooks/useAuth';
-import { ProfileEditModal } from './ProfileEditModal';
 import { PaymentHistoryModal } from './PaymentHistoryModal';
 import { SupportModal } from './SupportModal';
 import { TermsModal } from './TermsModal';
@@ -28,14 +27,33 @@ export function MyPage() {
   const { data: inquiries = [] } = useSupportInquiries();
   const logout = useLogout();
 
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showTermsList, setShowTermsList] = useState(false);
   const [termsType, setTermsType] = useState<'service' | 'privacy'>('service');
 
+  const promoDismissed = useMemo(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('teum_profile_promo_dismissed') === '1';
+  }, []);
+  const [showPromo, setShowPromo] = useState(!promoDismissed);
+  const dismissPromo = () => {
+    setShowPromo(false);
+    try {
+      localStorage.setItem('teum_profile_promo_dismissed', '1');
+    } catch (_) {}
+  };
+
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
-  const recentPayments = payments.slice(0, 3);
+  const nextPaymentDateStr = activeSubscription?.endDate
+    ? (() => {
+        const d = new Date(activeSubscription.endDate);
+        return Number.isNaN(d.getTime())
+          ? null
+          : `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+      })()
+    : null;
 
   const handleLogout = async () => {
     if (confirm('로그아웃 하시겠습니까?')) {
@@ -56,12 +74,12 @@ export function MyPage() {
     <div className="min-h-screen bg-beige-50 pb-20">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <h1 className="text-2xl font-bold text-brown-900">마이페이지</h1>
+        <h1 className="text-2xl font-bold text-brown-900">프로필</h1>
 
-        {/* Profile Section */}
+        {/* Profile Section - 가운데 정렬 (아바타 + 닉네임) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-20 h-20 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
               {user?.profile?.profileImageUrl ? (
                 <img
                   src={user.profile.profileImageUrl}
@@ -69,111 +87,104 @@ export function MyPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-8 h-8 text-brown-600" />
+                <User className="w-10 h-10 text-brown-600" />
               )}
             </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-brown-900">
-                {user?.profile?.nickname || user?.email}
-              </h2>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-              {activeSubscription && (
-                <p className="text-xs text-green-600 mt-1">
-                  {activeSubscription.planName} 구독 중
-                </p>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowProfileEdit(true)}
-            >
-              <Edit className="w-5 h-5" />
-            </Button>
+            <h2 className="font-semibold text-brown-900 mt-2">
+              {user?.profile?.nickname || user?.email}
+            </h2>
           </div>
         </div>
 
-        {/* Subscription & Payment */}
+        {/* 기록이 곧~ 팝업 카드 (닫기 전) */}
+        {showPromo && (
+          <div className="bg-gray-100 rounded-xl p-4 shadow-sm relative">
+            <div className="flex items-start justify-between gap-2">
+              <Logo size="sm" showText={false} className="shrink-0" />
+              <button
+                type="button"
+                onClick={dismissPromo}
+                className="p-1 rounded-full hover:bg-gray-200 text-gray-500 shrink-0"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <h3 className="text-lg font-semibold text-brown-900 mt-2">
+              기록이 곧, 당신만의 트랙이 됩니다.
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              일기의 감정이 그대로 담긴 단 하나의 선물입니다. 기록하는 순간, 새로운 음악이 태어납니다.
+            </p>
+          </div>
+        )}
+
+        {/* 구독 상태 카드 (팝업 닫은 후 표시) */}
+        {!showPromo && (
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="font-semibold text-brown-900">
+                {activeSubscription ? '구독중' : '미구독'}
+              </span>
+            </div>
+            {activeSubscription && nextPaymentDateStr && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                <span>다음 결제 예정일</span>
+                <span>{nextPaymentDateStr}</span>
+              </div>
+            )}
+            {activeSubscription && (
+              <button
+                type="button"
+                onClick={() => setShowPaymentHistory(true)}
+                className="w-full flex items-center justify-between py-2 text-left hover:bg-brown-50 rounded-lg transition-colors -mx-1 px-1"
+              >
+                <span className="text-sm font-medium text-brown-900">결제 내역 확인</span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 메뉴: 프로필 편집, 결제 내역, 약관 보기, 고객 지원, 로그아웃 */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <button
+            onClick={() => navigate('/my/profile-edit')}
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
+          >
+            <div className="flex items-center gap-3">
+              <Edit className="w-5 h-5 text-brown-600" />
+              <span className="font-medium text-brown-900">프로필 편집</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+          <button
             onClick={() => setShowPaymentHistory(true)}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
               <CreditCard className="w-5 h-5 text-brown-600" />
-              <div className="text-left">
-                <p className="font-medium text-brown-900">결제 내역</p>
-                <p className="text-xs text-muted-foreground">
-                  {recentPayments.length > 0
-                    ? `최근 ${recentPayments.length}건`
-                    : '결제 내역이 없습니다'}
-                </p>
-              </div>
+              <span className="font-medium text-brown-900">결제 내역</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
-        </div>
-
-        {/* Support */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setShowTermsList(true)}
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-brown-600" />
+              <span className="font-medium text-brown-900">약관 보기</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
           <button
             onClick={() => setShowSupport(true)}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
               <MessageCircle className="w-5 h-5 text-brown-600" />
-              <div className="text-left">
-                <p className="font-medium text-brown-900">고객지원</p>
-                <p className="text-xs text-muted-foreground">
-                  {inquiries.length > 0
-                    ? `문의 ${inquiries.length}건`
-                    : '1:1 문의하기'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
-
-        {/* Terms */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => {
-              setTermsType('service');
-              setShowTerms(true);
-            }}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
-          >
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">서비스 이용약관</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <button
-            onClick={() => {
-              setTermsType('privacy');
-              setShowTerms(true);
-            }}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">개인정보 처리방침</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
-
-        {/* Settings */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => navigate('/payment?amount=9900&plan=프리미엄 플랜')}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
-          >
-            <div className="flex items-center gap-3">
-              <Settings className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">구독 관리</span>
+              <span className="font-medium text-brown-900">고객 지원</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -191,12 +202,6 @@ export function MyPage() {
       </div>
 
       {/* Modals */}
-      {showProfileEdit && (
-        <ProfileEditModal
-          user={user}
-          onClose={() => setShowProfileEdit(false)}
-        />
-      )}
       {showPaymentHistory && (
         <PaymentHistoryModal
           subscriptions={subscriptions}
@@ -209,6 +214,47 @@ export function MyPage() {
           inquiries={inquiries}
           onClose={() => setShowSupport(false)}
         />
+      )}
+      {showTermsList && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowTermsList(false)}>
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-semibold text-brown-900">약관 보기</h2>
+              <button type="button" onClick={() => setShowTermsList(false)} className="p-1" aria-label="닫기">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTermsType('service');
+                  setShowTermsList(false);
+                  setShowTerms(true);
+                }}
+                className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
+              >
+                <span className="font-medium text-brown-900">서비스 이용약관</span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTermsType('privacy');
+                  setShowTermsList(false);
+                  setShowTerms(true);
+                }}
+                className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
+              >
+                <span className="font-medium text-brown-900">개인정보 처리방침</span>
+                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {showTerms && (
         <TermsModal

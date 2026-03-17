@@ -221,13 +221,13 @@ export function TermsManagementTab() {
           <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSaveModal} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto"
+              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto text-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">
+              <p className="text-base font-medium text-[#4A2C1A] mb-6">
                 변경사항을 저장하시겠습니까?
               </p>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center justify-center gap-3">
                 <Button
                   onClick={handleCloseSaveModal}
                   variant="outline"

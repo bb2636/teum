@@ -5,6 +5,7 @@ export interface Question {
   id: string;
   question: string;
   isActive: boolean;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,13 +61,18 @@ export function useUpdateQuestion() {
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; question?: string; isActive?: boolean }) => {
       const response = await apiRequest<{ data: { question: Question } }>(`/questions/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(data),
       });
       return response.data.question;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questions'] });
+    onSuccess: (updatedQuestion) => {
+      if (updatedQuestion) {
+        queryClient.setQueryData<Question[]>(['questions', 'all'], (old) =>
+          old?.map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q)) ?? old ?? []
+        );
+        // invalidateQueries 미호출: refetch 시 이전 데이터로 덮어쓰는 현상 방지
+      }
     },
   });
 }

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Pencil } from 'lucide-react';
+import { X, User, Pencil, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useMe, useUpdateProfile, User as UserType } from '@/hooks/useProfile';
+import { useMe, useUpdateProfile } from '@/hooks/useProfile';
 import { useLogout } from '@/hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { WithdrawModal } from './WithdrawModal';
+import { COUNTRY_OPTIONS } from '@/lib/countries';
 
 const profileSchema = z.object({
   nickname: z
@@ -23,11 +24,6 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
-
-interface ProfileEditModalProps {
-  user: UserType | undefined;
-  onClose: () => void;
-}
 
 function formatDateForInput(dateStr?: string | null) {
   if (!dateStr) return { year: '', month: '', day: '' };
@@ -50,15 +46,16 @@ function toISODate(year: string, month: string, day: string) {
   return date.toISOString().split('T')[0];
 }
 
-export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
+export function ProfileEditPage() {
   const navigate = useNavigate();
+  const { data: user, isLoading, refetch } = useMe();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
-  const { refetch } = useMe();
 
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showCountryList, setShowCountryList] = useState(false);
   const [birthYear, setBirthYear] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
@@ -68,6 +65,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -94,7 +92,8 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
   const onSubmit = async (data: ProfileFormData) => {
     try {
       const dateOfBirth = toISODate(birthYear, birthMonth, birthDay);
-      await updateProfile.mutateAsync({ ...data, dateOfBirth });
+      const { name: _name, ...rest } = data;
+      await updateProfile.mutateAsync({ ...rest, dateOfBirth });
       await refetch();
       setShowSaveSuccess(true);
     } catch (error) {
@@ -105,33 +104,40 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
   const handleSaveSuccessClose = () => {
     setShowSaveSuccess(false);
-    onClose();
+    navigate('/my');
   };
 
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
     await logout.mutateAsync();
-    onClose();
     navigate('/login');
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-beige-50 flex items-center justify-center">
+        <div className="text-muted-foreground">로딩 중...</div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between z-10">
-            <h2 className="text-xl font-bold text-brown-900">프로필 편집</h2>
+      <div className="min-h-screen bg-beige-50">
+        <div className="max-w-md mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl font-bold text-brown-900">프로필 편집</h1>
             <button
               type="button"
-              onClick={onClose}
-              className="p-1 rounded-full hover:bg-gray-100"
+              onClick={() => navigate('/my')}
+              className="p-2 rounded-full hover:bg-brown-100"
               aria-label="닫기"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* 프로필 이미지 */}
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
@@ -179,24 +185,22 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
               )}
             </div>
 
-            {/* 이름 */}
+            {/* 이름 (읽기 전용 - 변경 불가) */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-brown-900">이름</Label>
               <Input
                 id="name"
-                {...register('name')}
-                placeholder="이름을 입력하세요"
-                className="bg-gray-50"
+                value={user?.profile?.name ?? ''}
+                readOnly
+                disabled
+                className="bg-gray-100 text-muted-foreground"
               />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
-              )}
             </div>
 
-            {/* 생년월일 */}
+            {/* 생년월일 - 가운데 정렬 */}
             <div className="space-y-2">
               <Label className="text-brown-900">생년월일</Label>
-              <div className="flex items-center gap-2 bg-gray-50 rounded-md border border-input px-3 py-2">
+              <div className="flex items-center justify-center gap-2 bg-gray-50 rounded-md border border-input px-3 py-2">
                 <input
                   type="text"
                   placeholder="YYYY"
@@ -226,22 +230,65 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
               </div>
             </div>
 
-            {/* 국가 선택 */}
+            {/* 국가 선택 - 팝업 스타일 토글 목록 (다른 팝업과 UI 통일) */}
             <div className="space-y-2">
-              <Label htmlFor="country" className="text-brown-900">국가 선택</Label>
-              <select
-                id="country"
-                {...register('country')}
-                className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 text-sm"
+              <Label className="text-brown-900">국가 선택</Label>
+              <button
+                type="button"
+                onClick={() => setShowCountryList(true)}
+                className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 text-sm flex items-center justify-between text-left"
               >
-                <option value="">국가 선택</option>
-                <option value="KR">대한민국</option>
-                <option value="US">미국</option>
-                <option value="JP">일본</option>
-                <option value="CN">중국</option>
-                <option value="ETC">기타</option>
-              </select>
+                <span className={watch('country') ? 'text-brown-900' : 'text-muted-foreground'}>
+                  {watch('country')
+                    ? COUNTRY_OPTIONS.find((c) => c.value === watch('country'))?.label ?? '국가 선택'
+                    : '국가 선택'}
+                </span>
+                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+              </button>
             </div>
+
+            {/* 국가 선택 팝업 - 약관 보기 등과 동일한 스타일 */}
+            {showCountryList && (
+              <div
+                className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+                onClick={() => setShowCountryList(false)}
+              >
+                <div
+                  className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
+                    <h2 className="text-lg font-semibold text-brown-900">국가 선택</h2>
+                    <button
+                      type="button"
+                      onClick={() => setShowCountryList(false)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                      aria-label="닫기"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
+                    {COUNTRY_OPTIONS.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setValue('country', value);
+                          setShowCountryList(false);
+                        }}
+                        className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
+                      >
+                        <span className="font-medium text-brown-900">{label}</span>
+                        {watch('country') === value && (
+                          <span className="text-brown-600 text-sm">선택됨</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 로그아웃 | 회원탈퇴 */}
             <div className="flex items-center justify-center gap-2 py-2">
@@ -322,7 +369,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
           onClose={() => setShowWithdraw(false)}
           onWithdrawComplete={() => {
             setShowWithdraw(false);
-            onClose();
+            navigate('/login');
           }}
         />
       )}

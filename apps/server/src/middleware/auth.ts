@@ -48,6 +48,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): R
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
+            path: '/',
             maxAge: 15 * 60 * 1000, // 15 minutes
           });
 

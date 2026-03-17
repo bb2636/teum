@@ -14,6 +14,7 @@ import { CreateFolderPage } from '../pages/diaries/CreateFolderPage';
 import { MusicHomePage } from '../pages/music/MusicHomePage';
 import { MusicJobPage } from '../pages/music/MusicJobPage';
 import { MyPage } from '../pages/my/MyPage';
+import { ProfileEditPage } from '../pages/my/ProfileEditPage';
 import { PaymentPage } from '../pages/payment/PaymentPage';
 import { AdminPage } from '../pages/admin/AdminPage';
 import { apiRequest } from '../lib/api';
@@ -184,6 +185,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <MyPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my/profile-edit"
+                element={
+                  <ProtectedRoute>
+                    <ProfileEditPage />
                   </ProtectedRoute>
                 }
               />

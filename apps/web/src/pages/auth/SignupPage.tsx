@@ -10,6 +10,7 @@ import { useSignup } from '@/hooks/useAuth';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { Logo } from '@/components/Logo';
+import { COUNTRY_OPTIONS } from '@/lib/countries';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한
 const nicknameSchema = z
@@ -424,12 +425,18 @@ export function SignupPage() {
 
           <div className="space-y-2">
             <Label htmlFor="country">국가 (선택)</Label>
-            <Input
+            <select
               id="country"
-              type="text"
               {...register('country')}
-              placeholder="대한민국"
-            />
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">국가 선택</option>
+              {COUNTRY_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">

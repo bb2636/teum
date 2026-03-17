@@ -2,8 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { musicService } from '../services/music/music.service';
 import { musicPollingService } from '../services/music/music-polling.service';
 import { generateMusicSchema } from '../validations/music';
+import { MUREKA_GENRES } from '../services/music/mureka-styles';
 
 export class MusicController {
+  /** 장르/스타일 목록 (뮤레카 스타일 태그) */
+  async getGenres(_req: Request, res: Response): Promise<Response> {
+    return res.json({
+      success: true,
+      data: { genres: MUREKA_GENRES },
+    });
+  }
+
   async generateMusic(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       if (!req.user) {
@@ -17,11 +26,57 @@ export class MusicController {
       }
 
       const input = generateMusicSchema.parse(req.body);
-      const result = await musicService.generateMusic(req.user.userId, input.diaryIds);
+      const result = await musicService.generateMusic(
+        req.user.userId,
+        input.diaryIds,
+        input.genreTag
+      );
 
       res.json({
         success: true,
         data: result,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'SUBSCRIPTION_REQUIRED') {
+          return res.status(403).json({
+            success: false,
+            error: {
+              code: 'SUBSCRIPTION_REQUIRED',
+              message: '음악 생성을 이용하려면 구독이 필요합니다.',
+            },
+          });
+        }
+        if (error.message === 'MONTHLY_LIMIT_EXCEEDED') {
+          return res.status(403).json({
+            success: false,
+            error: {
+              code: 'MONTHLY_LIMIT_EXCEEDED',
+              message: '이번 달 생성 한도(5곡)를 모두 사용했습니다.',
+            },
+          });
+        }
+      }
+      next(error);
+    }
+  }
+
+  async getJobs(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+      }
+
+      const data = await musicService.getJobs(req.user.userId);
+      res.json({
+        success: true,
+        data,
       });
     } catch (error) {
       next(error);

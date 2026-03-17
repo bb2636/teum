@@ -14,6 +14,7 @@ export interface MusicProvider {
   generateMusic(input: {
     prompt: string;
     durationSeconds?: number;
+    lyrics?: string;
   }): Promise<{
     provider: string;
     providerJobId?: string;

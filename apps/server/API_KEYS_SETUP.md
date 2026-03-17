@@ -34,37 +34,27 @@ AI_ENCOURAGEMENT_ENABLED=true
 
 ---
 
-## Stable Audio API 키 발급
+## Mureka API 키 발급
 
-### 1. Stability AI 계정 생성
-1. [Stability AI Platform](https://platform.stability.ai/) 접속
-2. "Sign Up" 클릭하여 계정 생성
+### 1. Mureka 계정 생성
+1. [Mureka Platform](https://platform.mureka.ai/) 접속
+2. "Sign In" 클릭 후 회원가입
 3. 이메일 인증 완료
 
 ### 2. API 키 생성
-1. 로그인 후 우측 상단 프로필 아이콘 클릭
-2. "Account" 또는 "API Keys" 메뉴 선택
-3. "Create API Key" 클릭
-4. 키 이름 입력 (예: "teum-music")
-5. 생성된 키를 복사
+1. 로그인 후 대시보드에서 "API Keys" 탭 선택
+2. API 키 생성 후 복사 (비밀 유지 필요)
 
-### 3. 사용량 및 결제 설정
-1. "Billing" 또는 "Credits" 메뉴에서 결제 정보 추가
-2. Stable Audio 가격 확인:
-   - API 사용량에 따라 크레딧 차감
-   - 정확한 가격은 플랫폼에서 확인 필요
-
-### 4. 환경 변수 설정
+### 3. 환경 변수 설정
 ```env
-STABLE_AUDIO_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-STABLE_AUDIO_BASE_URL=https://api.stability.ai/v2beta/audio-generation
+MUREKA_API_KEY=여기에_Mureka_API_키_입력
 AI_MUSIC_ENABLED=true
 ```
 
 **참고:**
-- API 문서: [Stable Audio API Documentation](https://platform.stability.ai/docs/api-reference)
-- 엔드포인트: 실제 API 엔드포인트는 문서에서 확인 필요
-- 현재 구현은 placeholder이므로 실제 API 문서에 맞게 조정 필요
+- API 문서: [Mureka API Platform](https://platform.mureka.ai/docs/)
+- Quickstart: [Quickstart 가이드](https://platform.mureka.ai/docs/en/quickstart.html)
+- 서버: `https://api.mureka.ai` (Song Generation, Task Query 등)
 
 ---
 
@@ -83,10 +73,12 @@ OPENAI_API_KEY=여기에_OpenAI_키_입력
 OPENAI_MODEL_TEXT=gpt-4o-mini
 AI_ENCOURAGEMENT_ENABLED=true
 
-# Stable Audio
-STABLE_AUDIO_API_KEY=여기에_Stable_Audio_키_입력
-STABLE_AUDIO_BASE_URL=https://api.stability.ai/v2beta/audio-generation
+# Mureka (음악 생성)
+MUREKA_API_KEY=여기에_Mureka_API_키_입력
 AI_MUSIC_ENABLED=true
+
+# 결제 연동 전: 구독하기 버튼 시 PG 호출 없이 바로 성공 처리 (선택)
+# PAYMENT_MOCK_SUCCESS=true
 ```
 
 ### 3. 서버 재시작
@@ -120,10 +112,10 @@ pnpm --filter server dev
 - 응원 메시지: 짧은 프롬프트로 토큰 절약
 - 캐싱: 동일한 일기 내용에 대한 중복 요청 방지
 
-### Stable Audio
-- 음악 길이: 기본 30초, 필요시 조정
+### Mureka
+- 음악 생성: 가사(lyrics) + 스타일(prompt)로 생성
 - 사용량 모니터링: 대시보드에서 확인
-- 에러 처리: 실패 시 재시도 로직 구현 고려
+- 비동기: task_id 반환 후 `/v1/song/query/{task_id}` 폴링
 
 ---
 
@@ -134,10 +126,10 @@ pnpm --filter server dev
 - **429 Rate Limit**: 요청 빈도 줄이기 또는 더 높은 등급으로 업그레이드
 - **500 Internal Error**: OpenAI 서버 문제, 재시도
 
-### Stable Audio API 오류
-- **401 Unauthorized**: API 키 확인
-- **404 Not Found**: 엔드포인트 URL 확인
-- **500 Internal Error**: API 문서 확인 및 구현 조정
+### Mureka API 오류
+- **401 Unauthorized**: API 키 확인 (Authorization: Bearer MUREKA_API_KEY)
+- **400 Bad Request**: 요청 body(lyrics, prompt, model) 확인
+- **500 Internal Error**: API 문서 및 trace_id로 문의
 
 ### 로그 확인
 ```bash

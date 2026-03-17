@@ -11,7 +11,7 @@
 - **UI**: Tailwind CSS + shadcn/ui
 - **Forms**: React Hook Form + Zod
 - **AI**: OpenAI API (GPT-4o-mini)
-- **Music Generation**: Stable Audio API
+- **Music Generation**: Mureka API ([platform.mureka.ai](https://platform.mureka.ai/))
 - **Payment**: Nice Payments (나이스페이먼츠)
 - **Package Manager**: pnpm
 
@@ -40,76 +40,44 @@
 
 ### 음악 생성 (Music Generation)
 
-사용자가 정확히 7개의 일기를 선택하면, AI가 일기들을 분석하여 음악을 생성합니다.
+**구독 필수**: 활성 구독 사용자만 음악 생성 가능. **월 5곡**, 1곡당 **최대 2분** 제한.
 
 **동작 방식:**
-1. 사용자가 7개의 일기를 선택하고 음악 생성 요청
+1. 사용자가 **장르**를 선택하고, 일기 **전체/폴더별**에서 **7개** 선택 후 음악 생성 요청
 2. GPT가 7개 일기를 종합 분석하여:
-   - 전체 감정 (overall_emotion)
-   - 분위기 (mood)
-   - 키워드 (keywords)
-   - 가사 테마 (lyrical_theme)
-   - 완성된 가사 (lyrics)
-   - 음악 생성 프롬프트 (music_prompt) - 영어
-3. Stable Audio API를 호출하여 실제 음악 생성
-4. 결과를 `music_jobs` 테이블에 저장하고 반환
+   - 노래 제목 (한국어 10자 이내, 영어 20자 이내)
+   - 전체 감정, 분위기, 키워드, 가사 테마, 완성된 가사
+   - 음악 생성 프롬프트 (영어, 약 2분·자연 마무리 포함)
+3. Mureka API 호출 시 **선택한 장르**를 프롬프트 앞에 반영하고, "natural fade-out, complete phrases, no abrupt cut" 추가해 끊김 방지
+4. 결과를 `music_jobs`에 저장 (재생 길이 최대 120초로 제한)
+
+**장르 목록:**  
+- 뮤레카 공식 장르 API가 없어, 서비스에서 스타일 목록을 `GET /api/music/genres`로 제공 (팝, 발라드, 록, 인디, 재즈 등 30여 종). 목록은 [MUREKA_SETUP.md](apps/server/MUREKA_SETUP.md) 및 `apps/server/src/services/music/mureka-styles.ts`에서 관리.
 
 **API 엔드포인트:**
 ```
-POST /api/music/generate
-Body: {
-  "diaryIds": ["uuid1", "uuid2", ..., "uuid7"]
-}
+GET  /api/music/genres         # 장르/스타일 목록 (뮤레카 스타일 태그 + 한글 라벨)
+GET  /api/music/jobs           # 내 음악 목록 + 월간 한도(monthlyUsed/monthlyLimit) + 다음 결제일(nextPaymentDate)
+POST /api/music/generate       # 음악 생성 (diaryIds 7개 + genreTag 필수, 구독·한도 검사)
+GET  /api/music/jobs/:id       # 음악 작업 상태·상세 (제목 한/영, 가사, 재생시간 등)
 ```
 
-**응답:**
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "uuid",
-    "status": "completed",
-    "overallEmotion": "nostalgic healing",
-    "mood": "warm, reflective, slightly hopeful",
-    "keywords": ["growth", "memory", "healing"],
-    "lyricalTheme": "회복과 성장의 이야기",
-    "lyrics": "완성된 가사...",
-    "musicPrompt": "warm reflective piano pop...",
-    "audioUrl": "https://..."
-  }
-}
-```
+**POST /api/music/generate**  
+- Body: `{ "diaryIds": ["uuid1", ..., "uuid7"], "genreTag": "pop" }`  
+- `genreTag`: 장르 태그 (예: pop, ballad, jazz). `GET /api/music/genres` 응답의 `tag` 값 사용  
+- 구독 없음 → 403 `SUBSCRIPTION_REQUIRED`  
+- 월 5곡 초과 → 403 `MONTHLY_LIMIT_EXCEEDED`
 
 **환경 변수:**
-- `STABLE_AUDIO_API_KEY`: Stable Audio API 키 ([발급 방법](apps/server/API_KEYS_SETUP.md#stable-audio-api-키-발급))
-- `STABLE_AUDIO_BASE_URL`: Stable Audio API 베이스 URL
-- `AI_MUSIC_ENABLED`: 기능 활성화 여부 (기본값: true)
+- `MUREKA_API_KEY`: Mureka API 키
+- `AI_MUSIC_ENABLED`: 음악 생성 활성화 (기본값: true)
+- `MUSIC_QUEUE_ENABLED`: 큐 사용 시 true (기본값: false)
+- `MUSIC_QUEUE_INTERVAL_MS`: 큐 폴링 간격 (기본값: 5000)
+- `WEBHOOK_BASE_URL`: 웹훅 수신 URL (선택)
 
-**상세 가이드:** [API 키 발급 가이드](apps/server/API_KEYS_SETUP.md)
-
-**음악 작업 상태 조회:**
-```
-GET /api/music/jobs/:id
-```
-
-**비동기 작업 처리:**
-- Stable Audio API가 비동기 작업을 반환하는 경우 자동으로 폴링
-- 웹훅 지원: `POST /api/music/webhook/:jobId` (프로덕션 환경에서 사용)
-- 작업 상태는 실시간으로 폴링하여 확인 가능
-
-**큐 시스템 (선택적):**
-- 환경 변수 `MUSIC_QUEUE_ENABLED=true`로 활성화 가능
-- 백그라운드에서 순차적으로 음악 생성 작업 처리
-- 대량 요청 시 서버 부하 분산
-
-**환경 변수 (추가):**
-- `MUSIC_QUEUE_ENABLED`: 큐 시스템 활성화 (기본값: false)
-- `MUSIC_QUEUE_INTERVAL_MS`: 큐 폴링 간격 (기본값: 5000ms)
-- `WEBHOOK_BASE_URL`: 웹훅 수신 URL (비동기 작업 완료 알림용)
-
-**참고:**
-- Stable Audio API의 실제 응답 구조에 따라 구현이 조정될 수 있음
-- 동기/비동기 모드 모두 지원
+**가이드:**
+- [API 키·환경 변수](apps/server/API_KEYS_SETUP.md)
+- [Mureka API 사용법](apps/server/MUREKA_SETUP.md) (인증, POST/GET 요청, 곡 길이·끊김 방지)
 
 ## 질문기록 기능
 
@@ -299,8 +267,10 @@ PUT /api/terms/admin/privacy    # 개인정보 처리방침 수정
 - `POST /api/upload/image` - 이미지 업로드
 
 ### 음악
-- `POST /api/music/generate` - 음악 생성
-- `GET /api/music/jobs/:id` - 음악 작업 상태 조회
+- `GET /api/music/genres` - 장르/스타일 목록 (뮤레카 스타일 태그)
+- `GET /api/music/jobs` - 내 음악 목록·월간 한도·다음 결제일
+- `POST /api/music/generate` - 음악 생성 (diaryIds 7개 + genreTag 필수, 구독 필수, 월 5곡·1곡 최대 2분)
+- `GET /api/music/jobs/:id` - 음악 작업 상태·상세
 - `POST /api/music/webhook/:jobId` - 음악 생성 완료 웹훅 (프로바이더용)
 
 ### 결제
@@ -417,8 +387,12 @@ pnpm --filter server db:seed
 - `0002_create_password_reset_tokens.sql` - 비밀번호 재설정 토큰 테이블
 - `0003_create_questions_and_history.sql` - 질문 및 사용 이력 테이블
 - `0004_add_performance_indexes.sql` - 성능 최적화 인덱스 추가
-- `0005_add_question_order.sql` - 질문 순서 컬럼 추가
+- `0005_add_question_order.sql` - 질문 순서 컬럼 추가 (컬럼명 `order`)
+- `0012_questions_sort_order.sql` - 질문 순서 컬럼을 `sort_order`로 변경 (PostgreSQL 예약어 회피)
 - `0006_create_terms.sql` - 약관 관리 테이블
+- `0009_music_jobs_thumbnail_url.sql` - 음악 작업 썸네일 URL
+- `0010_music_jobs_duration_and_title.sql` - 재생 길이(초), 노래 제목(한국어)
+- `0011_music_jobs_song_title_en.sql` - 노래 제목(영어)
 
 **성능 인덱스:**
 - 사용자, 일기, 음악 작업, 질문 이력, 고객지원, 결제 등 주요 쿼리 필드에 인덱스 추가
@@ -440,8 +414,8 @@ pnpm --filter server db:seed
 - ✅ 질문기록 (랜덤 질문 3개, 최근 7일 중복 제외)
 - ✅ 이미지 업로드 (일기 첨부)
 - ✅ AI 응원 메시지 (자동 생성)
-- ✅ 음악 생성 (7개 일기 기반)
-- ✅ 음악 작업 상태 조회 및 결과 확인
+- ✅ 음악 생성 (구독 필수, 월 5곡·1곡 최대 2분, 장르 선택 + 7개 일기 선택)
+- ✅ 음악 목록·상세 (노래 제목 한/영, 재생시간, 가사, 다음 결제일 표시)
 - ✅ 마이페이지
   - 프로필 편집
   - 결제 내역 조회

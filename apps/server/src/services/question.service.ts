@@ -32,10 +32,6 @@ export class QuestionService {
 
   async deleteQuestion(id: string) {
     logger.info('Deleting question', { id });
-    const question = await questionRepository.findById(id);
-    if (!question) {
-      throw new Error('Question not found');
-    }
     await questionRepository.delete(id);
   }
 

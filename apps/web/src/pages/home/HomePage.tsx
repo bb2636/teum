@@ -49,12 +49,14 @@ export function HomePage() {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-          <Button
-            variant="outline"
-            className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
-          >
-            구독하기
-          </Button>
+          <Link to="/payment?plan=월간&amount=4900">
+            <Button
+              variant="outline"
+              className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
+            >
+              구독하기
+            </Button>
+          </Link>
         </div>
 
         {/* Header - Second Row */}

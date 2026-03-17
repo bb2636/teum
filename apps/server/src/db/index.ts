@@ -11,13 +11,13 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set');
 }
 
-// postgres-js connection pool
-const client = postgres(connectionString, {
+// postgres-js connection pool (raw 쿼리용으로 export)
+export const sqlClient = postgres(connectionString, {
   max: 10,
 });
 
 // Drizzle instance
-export const db = drizzle(client, { schema });
+export const db = drizzle(sqlClient, { schema });
 
 // Export schema for use in other files
 export * from './schema';

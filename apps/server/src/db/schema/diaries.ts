@@ -29,7 +29,7 @@ export const diaryImages = pgTable('diary_images', {
   id: uuid('id').defaultRandom().primaryKey(),
   diaryId: uuid('diary_id').references(() => diaries.id, { onDelete: 'cascade' }).notNull(),
   imageUrl: text('image_url').notNull(),
-  order: integer('order').default(0).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -52,7 +52,7 @@ export const diaryQuestions = pgTable('diary_questions', {
     .references(() => diaryQuestionSets.id, { onDelete: 'cascade' })
     .notNull(),
   question: text('question').notNull(),
-  order: integer('order').default(0).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

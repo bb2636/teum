@@ -58,11 +58,11 @@ export async function apiRequest<T>(
     credentials: 'include',
   });
 
-  // Handle token refresh on 401
+  // Handle 401: 세션/쿠키/토큰 만료 시 로그인 화면으로 이동
   if (response.status === 401 && endpoint !== '/auth/refresh') {
     try {
       await refreshToken();
-      // Retry the original request
+      // 토큰 갱신 후 재시도
       const retryIsFormData = options?.body instanceof FormData;
       const retryHeaders: HeadersInit = retryIsFormData
         ? { ...options?.headers }
@@ -76,6 +76,14 @@ export async function apiRequest<T>(
         credentials: 'include',
       });
 
+      if (retryResponse.status === 401) {
+        // 재시도 후에도 401이면 로그인 화면으로 이동
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
+      }
+
       if (!retryResponse.ok) {
         const error = await retryResponse.json().catch(() => ({
           message: 'An error occurred',
@@ -85,7 +93,7 @@ export async function apiRequest<T>(
 
       return retryResponse.json();
     } catch (refreshError) {
-      // Redirect to login if refresh fails
+      // 토큰 갱신 실패 또는 인증 실패 시 로그인 화면으로 이동
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }

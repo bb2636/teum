@@ -116,9 +116,9 @@ export class UserController {
       // Soft delete user
       await userRepository.softDeleteUser(req.user.userId);
 
-      // Clear cookies
-      res.clearCookie('accessToken');
-      res.clearCookie('refreshToken');
+      // Clear cookies (path must match the one used when setting)
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
 
       res.json({
         success: true,

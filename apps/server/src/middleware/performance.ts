@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { performanceMonitor } from '../utils/performance-monitor';
+import { logger } from '../config/logger';
 
 /**
  * Middleware to track API endpoint performance
@@ -11,21 +12,22 @@ export function performanceMiddleware(
 ): void {
   const startTime = Date.now();
 
-  // Override res.end to capture response time
-  const originalEnd = res.end;
-  res.end = function (chunk?: unknown, encoding?: unknown) {
+  // Override res.end to capture response time (래핑으로 오버로드 시그니처는 any로 단언)
+  const originalEnd = res.end.bind(res);
+  res.end = function (...args: unknown[]) {
     const duration = Date.now() - startTime;
-
-    performanceMonitor.recordEndpoint(
-      req.path,
-      req.method,
-      duration,
-      res.statusCode
-    );
-
-    // Call original end
-    originalEnd.call(this, chunk, encoding);
-  };
+    try {
+      performanceMonitor.recordEndpoint(
+        req.path,
+        req.method,
+        duration,
+        res.statusCode
+      );
+    } catch (e) {
+      logger.error({ err: e }, 'Performance monitor recordEndpoint failed');
+    }
+    return originalEnd(...(args as Parameters<typeof originalEnd>));
+  } as typeof res.end;
 
   next();
 }

@@ -18,11 +18,12 @@ export class AuthController {
       // Create user
       const result = await authService.signup(input);
 
-      // Set httpOnly cookies
+      // Set httpOnly cookies (path: '/' so cookie is sent for all /api/* requests)
       res.cookie('accessToken', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
+        path: '/',
         maxAge: 15 * 60 * 1000, // 15 minutes
       });
 
@@ -30,6 +31,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -56,11 +58,12 @@ export class AuthController {
       const result = await authService.login(input);
       logger.info('Login successful', { userId: result.user.id, email: result.user.email });
 
-      // Set httpOnly cookies
+      // Set httpOnly cookies (path: '/' so cookie is sent for all /api/* requests)
       res.cookie('accessToken', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
+        path: '/',
         maxAge: 15 * 60 * 1000, // 15 minutes
       });
 
@@ -68,6 +71,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -139,6 +143,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
+        path: '/',
         maxAge: 15 * 60 * 1000, // 15 minutes
       });
 
@@ -153,15 +158,15 @@ export class AuthController {
         },
       });
     } catch (error) {
-      res.clearCookie('accessToken');
-      res.clearCookie('refreshToken');
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
       next(error);
     }
   }
 
   async logout(req: Request, res: Response) {
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
     res.json({
       success: true,
       message: 'Logged out successfully',

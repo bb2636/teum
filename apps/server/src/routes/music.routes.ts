@@ -6,6 +6,8 @@ const router: Router = Router();
 
 router.use(authenticate);
 
+router.get('/jobs', musicController.getJobs.bind(musicController));
+router.get('/genres', musicController.getGenres.bind(musicController));
 router.post('/generate', musicController.generateMusic.bind(musicController));
 router.get('/jobs/:id', musicController.getJob.bind(musicController));
 

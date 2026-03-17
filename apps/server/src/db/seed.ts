@@ -154,13 +154,13 @@ async function seed() {
         await db.insert(schema.questions).values({
           question: sampleQuestions[i],
           isActive: true,
-          order: i + 1,
+          sortOrder: i + 1,
         });
       } else {
         // Update order if exists
         await db
           .update(schema.questions)
-          .set({ order: i + 1, isActive: true })
+          .set({ sortOrder: i + 1, isActive: true })
           .where(eq(schema.questions.id, existingQuestion.id));
       }
     }

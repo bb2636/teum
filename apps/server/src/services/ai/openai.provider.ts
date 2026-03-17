@@ -114,6 +114,8 @@ ${diaryText.substring(0, 2000)}`;
       answers?: Array<{ question: string; answer: string }>;
     }>;
   }): Promise<{
+    titleKo: string;
+    titleEn: string;
     overallEmotion: string;
     mood: string;
     keywords: string[];
@@ -151,6 +153,8 @@ ${combinedText.substring(0, 4000)}
 
 다음 JSON 형식으로 정확히 응답해주세요 (JSON만 출력, 다른 텍스트 없이):
 {
+  "titleKo": "노래 제목 한국어 10자 이내",
+  "titleEn": "English song title 20 characters max",
   "overallEmotion": "전체적인 감정 (예: nostalgic healing, peaceful reflection)",
   "mood": "분위기 (예: warm, reflective, slightly hopeful)",
   "keywords": ["키워드1", "키워드2", "키워드3", "키워드4"],
@@ -166,8 +170,9 @@ musicPrompt는 영어로 작성하고, 다음 요소들을 포함해야 합니�
 - instrumentation (악기 구성)
 - atmosphere (분위기)
 - diary/reflection feeling (일기/성찰 느낌)
+- 곡 길이는 약 2분 안으로 자연스럽게 마무리되도록 (natural ending, no abrupt cut) 구상
 
-예시: "warm reflective piano pop, soft female vocal feel, nostalgic yet hopeful, slow tempo, intimate diary-like atmosphere, gentle buildup"`;
+예시: "warm reflective piano pop, soft female vocal feel, nostalgic yet hopeful, slow tempo, intimate diary-like atmosphere, gentle buildup, natural ending within 2 minutes"`;
 
       const response = await this.client.chat.completions.create({
         model: this.model,
@@ -193,12 +198,16 @@ musicPrompt는 영어로 작성하고, 다음 요소들을 포함해야 합니�
 
       const parsed = JSON.parse(content);
       
-      // Validate structure
       if (!parsed.overallEmotion || !parsed.mood || !parsed.keywords || !parsed.lyricalTheme || !parsed.lyrics || !parsed.musicPrompt) {
         throw new Error('Invalid response structure from OpenAI');
       }
 
+      const titleKo = String(parsed.titleKo ?? parsed.title ?? parsed.lyricalTheme ?? '제목 없음').slice(0, 10);
+      const titleEn = String(parsed.titleEn ?? '').slice(0, 20);
+
       return {
+        titleKo,
+        titleEn: titleEn || titleKo,
         overallEmotion: String(parsed.overallEmotion),
         mood: String(parsed.mood),
         keywords: Array.isArray(parsed.keywords) ? parsed.keywords.map(String) : [],

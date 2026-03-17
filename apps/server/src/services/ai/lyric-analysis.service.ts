@@ -6,6 +6,8 @@ import { logger } from '../../config/logger';
  * Music Analysis Response Schema
  */
 const musicAnalysisSchema = z.object({
+  titleKo: z.string().max(10),
+  titleEn: z.string().max(20).optional().default(''),
   overallEmotion: z.string(),
   mood: z.string(),
   keywords: z.array(z.string()),

@@ -1,5 +1,6 @@
-import { eq, and, isNull, notInArray, sql, desc, gte, asc } from 'drizzle-orm';
-import { db } from '../db';
+import { eq, and, isNull, notInArray, desc, gte, asc } from 'drizzle-orm';
+import { db, sqlClient } from '../db';
+import { logger } from '../config/logger';
 import { questions, userQuestionHistory } from '../db/schema';
 
 export class QuestionRepository {
@@ -8,7 +9,7 @@ export class QuestionRepository {
       .select()
       .from(questions)
       .where(and(eq(questions.isActive, true), isNull(questions.deletedAt)))
-      .orderBy(asc(questions.order), desc(questions.createdAt));
+      .orderBy(asc(questions.sortOrder), desc(questions.createdAt));
   }
 
   async findById(id: string) {
@@ -20,37 +21,53 @@ export class QuestionRepository {
     return question;
   }
 
-  async create(data: { question: string; isActive?: boolean; order?: number }) {
-    // Get max order value
-    const maxOrderResult = await db
-      .select({ maxOrder: sql<number>`COALESCE(MAX(${questions.order}), 0)` })
+  async create(data: { question: string; isActive?: boolean; sortOrder?: number }) {
+    const rows = await db
+      .select({ sortOrder: questions.sortOrder })
       .from(questions)
       .where(isNull(questions.deletedAt));
-    
-    const maxOrder = maxOrderResult[0]?.maxOrder ?? 0;
-    const newOrder = data.order ?? maxOrder + 1;
+    const maxOrder = rows.length ? Math.max(0, ...rows.map((r) => r.sortOrder)) : 0;
+    const newSortOrder = data.sortOrder ?? maxOrder + 1;
 
     const [question] = await db
       .insert(questions)
       .values({
         question: data.question,
         isActive: data.isActive ?? true,
-        order: newOrder,
+        sortOrder: newSortOrder,
       })
       .returning();
     return question;
   }
 
-  async update(id: string, data: { question?: string; isActive?: boolean; order?: number }) {
-    const [question] = await db
-      .update(questions)
-      .set({
-        ...data,
+  async update(id: string, data: { question?: string; isActive?: boolean; sortOrder?: number }) {
+    // question: postgres.js raw SQL로 직접 업데이트
+    if (data.question !== undefined) {
+      const rows = await sqlClient`
+        UPDATE questions SET question = ${data.question}, updated_at = NOW()
+        WHERE id = ${id} AND deleted_at IS NULL
+        RETURNING id
+      `;
+      if (rows.length === 0) {
+        logger.warn('Question update (raw) affected 0 rows', { id });
+      }
+    }
+    // isActive, sortOrder: Drizzle 사용
+    if (data.isActive !== undefined || data.sortOrder !== undefined) {
+      const setValues = {
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
         updatedAt: new Date(),
-      })
-      .where(eq(questions.id, id))
-      .returning();
-    return question;
+      };
+      await db.update(questions).set(setValues).where(eq(questions.id, id));
+    }
+    const result = await this.findById(id);
+    if (!result) {
+      logger.warn('Question not found after update', { id });
+      throw new Error('Question not found');
+    }
+    logger.info('Question update done', { id, dbQuestion: result.question });
+    return result;
   }
 
   async updateOrder(questionIds: string[]) {
@@ -58,7 +75,7 @@ export class QuestionRepository {
     const updates = questionIds.map((id, index) =>
       db
         .update(questions)
-        .set({ order: index + 1, updatedAt: new Date() })
+        .set({ sortOrder: index + 1, updatedAt: new Date() })
         .where(eq(questions.id, id))
     );
     
@@ -69,10 +86,8 @@ export class QuestionRepository {
   }
 
   async delete(id: string) {
-    await db
-      .update(questions)
-      .set({ deletedAt: new Date() })
-      .where(eq(questions.id, id));
+    // 하드 삭제 - DB에서 완전히 제거 (user_question_history는 FK ON DELETE CASCADE로 자동 삭제)
+    await db.delete(questions).where(eq(questions.id, id));
   }
 
   /**
@@ -110,7 +125,7 @@ export class QuestionRepository {
       .select()
       .from(questions)
       .where(and(...conditions))
-      .orderBy(asc(questions.order));
+      .orderBy(asc(questions.sortOrder));
 
     // If we don't have enough questions after filtering, use all active questions
     const availableQuestions =
@@ -119,7 +134,7 @@ export class QuestionRepository {
             .select()
             .from(questions)
             .where(and(eq(questions.isActive, true), isNull(questions.deletedAt)))
-            .orderBy(asc(questions.order))
+            .orderBy(asc(questions.sortOrder))
         : allQuestions;
 
     // Return first 'count' questions in order (no shuffling - use order field)

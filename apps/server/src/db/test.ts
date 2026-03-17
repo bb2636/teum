@@ -43,11 +43,11 @@ async function testDatabase() {
     console.log('\nTest 4: Fetching questions...');
     const questions = await db.query.questions.findMany({
       where: (questions, { eq, isNull }) => and(eq(questions.isActive, true), isNull(questions.deletedAt)),
-      orderBy: (questions, { asc }) => [asc(questions.order)],
+      orderBy: (questions, { asc }) => [asc(questions.sortOrder)],
     });
     console.log(`✅ Found ${questions.length} active questions`);
     questions.slice(0, 5).forEach((q) => {
-      console.log(`   - ${q.question} (Order: ${q.order})`);
+      console.log(`   - ${q.question} (Order: ${q.sortOrder})`);
     });
 
     // Test 5: Test transaction (insert and rollback)

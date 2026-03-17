@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Music, Loader2, CheckCircle2, XCircle, Play, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, XCircle, Play, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicJob } from '@/hooks/useMusic';
 import { format } from 'date-fns';
@@ -9,6 +10,20 @@ export function MusicJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const { data: job, isLoading, error } = useMusicJob(jobId || '');
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+
+  // 완료 시 완성 팝업 이번 세션에서 한 번만 표시
+  useEffect(() => {
+    if (job?.status !== 'completed' || !jobId) return;
+    const key = `music_completion_seen_${jobId}`;
+    if (sessionStorage.getItem(key)) return;
+    setShowCompletionPopup(true);
+  }, [job?.status, jobId]);
+
+  const handleCloseCompletionPopup = () => {
+    if (jobId) sessionStorage.setItem(`music_completion_seen_${jobId}`, '1');
+    setShowCompletionPopup(false);
+  };
 
   if (isLoading && !job) {
     return (
@@ -37,80 +52,101 @@ export function MusicJobPage() {
     );
   }
 
-  const getStatusIcon = () => {
-    switch (job.status) {
-      case 'completed':
-        return <CheckCircle2 className="w-6 h-6 text-green-600" />;
-      case 'failed':
-        return <XCircle className="w-6 h-6 text-red-600" />;
-      case 'processing':
-      case 'queued':
-        return <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />;
-      default:
-        return <Music className="w-6 h-6 text-brown-600" />;
-    }
-  };
-
-  const getStatusText = () => {
-    switch (job.status) {
-      case 'completed':
-        return '완료';
-      case 'failed':
-        return '실패';
-      case 'processing':
-        return '생성 중...';
-      case 'queued':
-        return '대기 중...';
-      default:
-        return job.status;
-    }
-  };
+  const isProcessing = job.status === 'processing' || job.status === 'queued';
+  const title = job.title || job.lyricalTheme || '제목 없음';
+  const titleEn = job.titleEn;
 
   return (
     <div className="min-h-screen bg-beige-50 pb-20">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/music')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-brown-900">음악 생성</h1>
+          <h1 className="text-xl font-bold text-brown-900">음악 생성</h1>
         </div>
 
-        {/* Status Card */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-4 mb-4">
-            {getStatusIcon()}
-            <div className="flex-1">
-              <h2 className="font-semibold text-brown-900">상태: {getStatusText()}</h2>
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(job.createdAt), 'yyyy.MM.dd HH:mm', { locale: ko })}
+        {/* 로딩 팝업: 생성 중일 때 */}
+        {isProcessing && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+              <div className="flex justify-center gap-1 mb-4">
+                <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:300ms]" />
+              </div>
+              <p className="font-semibold text-brown-900 mb-2">음악을 만들고 있습니다.</p>
+              <p className="text-sm text-muted-foreground">
+                선택한 일기의 감정을 분석하고 선율로 바꾸는 중입니다.
               </p>
             </div>
           </div>
+        )}
 
-          {job.status === 'processing' || job.status === 'queued' ? (
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                음악을 생성하고 있습니다. 잠시만 기다려주세요...
+        {/* 완성 팝업: 노래 도착 + 가사 + 다운로드/닫기 */}
+        {job.status === 'completed' && showCompletionPopup && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col shadow-xl">
+              <h3 className="font-semibold text-lg text-brown-900 mb-2">노래가 도착했습니다</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.
               </p>
+              <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-brown-50/50 p-4 mb-4 min-h-[120px]">
+                <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans">
+                  {job.lyrics || '이곳에 가사가 들어갑니다.'}
+                </pre>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-brown-600 hover:bg-brown-700"
+                  onClick={() => {
+                    if (job.audioUrl) window.open(job.audioUrl, '_blank');
+                  }}
+                >
+                  다운로드
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={handleCloseCompletionPopup}>
+                  닫기
+                </Button>
+              </div>
             </div>
-          ) : job.status === 'failed' ? (
-            <div className="mt-4 p-3 bg-red-50 rounded-lg">
-              <p className="text-sm text-red-700">
-                {job.errorMessage || '음악 생성에 실패했습니다'}
-              </p>
-            </div>
-          ) : null}
-        </div>
+          </div>
+        )}
 
-        {/* Results */}
+        {/* 실패 시 */}
+        {job.status === 'failed' && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-4 mb-4">
+              <XCircle className="w-6 h-6 text-red-600" />
+              <h2 className="font-semibold text-brown-900">생성 실패</h2>
+            </div>
+            <p className="text-sm text-red-700 mb-4">
+              {job.errorMessage || '음악 생성에 실패했습니다'}
+            </p>
+            <Button variant="outline" onClick={() => navigate('/music')}>
+              목록으로
+            </Button>
+          </div>
+        )}
+
+        {/* 완료 시: 멜론 스타일 제목 + 가사 상세 */}
         {job.status === 'completed' && (
           <>
-            {/* Audio Player */}
+            {/* 노래 제목 (멜론 스타일) - 한국어 + 영어 */}
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-brown-900 mb-0.5">{title}</h2>
+              {titleEn && (
+                <p className="text-sm text-muted-foreground mb-1">{titleEn}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(job.createdAt), 'yyyy.MM.dd', { locale: ko })}
+              </p>
+            </div>
+
+            {/* 오디오 + 재생/다운로드 */}
             {job.audioUrl && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-brown-900 mb-4">생성된 음악</h3>
                 <audio controls className="w-full mb-4">
                   <source src={job.audioUrl} type="audio/mpeg" />
                   <source src={job.audioUrl} type="audio/wav" />
@@ -125,93 +161,32 @@ export function MusicJobPage() {
                     <Download className="w-4 h-4 mr-2" />
                     다운로드
                   </Button>
+                  <Button
+                    className="flex-1 bg-brown-600 hover:bg-brown-700"
+                    onClick={() => window.open(job.audioUrl, '_blank')}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    재생
+                  </Button>
                 </div>
               </div>
             )}
 
-            {/* Analysis Results */}
-            <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
-              <h3 className="font-semibold text-brown-900">분석 결과</h3>
-
-              {job.overallEmotion && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">전체 감정</p>
-                  <p className="text-sm font-medium text-brown-900">{job.overallEmotion}</p>
-                </div>
-              )}
-
-              {job.mood && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">분위기</p>
-                  <p className="text-sm font-medium text-brown-900">{job.mood}</p>
-                </div>
-              )}
-
-              {job.keywords && job.keywords.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">키워드</p>
-                  <div className="flex flex-wrap gap-2">
-                    {job.keywords.map((keyword, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-brown-100 text-brown-700 rounded-full text-xs"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {job.lyricalTheme && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">주제</p>
-                  <p className="text-sm text-brown-800">{job.lyricalTheme}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Lyrics */}
+            {/* 가사 (멜론 스타일) */}
             {job.lyrics && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <h3 className="font-semibold text-brown-900 mb-4">가사</h3>
-                <div className="prose prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans">
-                    {job.lyrics}
-                  </pre>
-                </div>
+                <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans leading-relaxed">
+                  {job.lyrics}
+                </pre>
               </div>
             )}
 
-            {/* Music Prompt */}
-            {job.musicPrompt && (
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-brown-900 mb-2">음악 프롬프트</h3>
-                <p className="text-sm text-muted-foreground">{job.musicPrompt}</p>
-              </div>
-            )}
+            <Button variant="outline" className="w-full" onClick={() => navigate('/music')}>
+              다시 만들기
+            </Button>
           </>
         )}
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => navigate('/music')}
-          >
-            다시 만들기
-          </Button>
-          {job.status === 'completed' && job.audioUrl && (
-            <Button
-              className="flex-1 bg-brown-600 hover:bg-brown-700"
-              onClick={() => window.open(job.audioUrl, '_blank')}
-            >
-              <Play className="w-4 h-4 mr-2" />
-              재생
-            </Button>
-          )}
-        </div>
       </div>
     </div>
   );

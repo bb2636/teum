@@ -70,7 +70,7 @@ export function useDeleteUser() {
 
 export function useUpdateUserStatus() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
       const response = await apiRequest<{ data: { user: { id: string; email: string; isActive: boolean } } }>(`/users/${userId}/status`, {
@@ -79,8 +79,14 @@ export function useUpdateUserStatus() {
       });
       return response.data.user;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    onSuccess: (updatedUser) => {
+      if (!updatedUser?.id) return;
+      queryClient.setQueryData<AdminUser[]>(['admin', 'users'], (prev) => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.map((u) =>
+          u.id === updatedUser.id ? { ...u, isActive: Boolean(updatedUser.isActive) } : u
+        );
+      });
     },
   });
 }

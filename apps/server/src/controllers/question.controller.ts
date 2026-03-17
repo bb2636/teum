@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { questionService } from '../services/question.service';
 import { createQuestionSchema, updateQuestionSchema } from '../validations/question';
 import { requireRole } from '../middleware/auth';
+import { logger } from '../config/logger';
 
 export class QuestionController {
   // Get random questions for user (excludes questions used in last 7 days)
@@ -93,6 +94,13 @@ export class QuestionController {
       }
 
       const input = updateQuestionSchema.parse(req.body);
+      logger.info(`Update question - id=${id} body=${JSON.stringify(req.body)} parsed=${JSON.stringify(input)}`);
+      if (Object.keys(input).length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: '수정할 내용(question 또는 isActive)을 입력해주세요' },
+        });
+      }
       const question = await questionService.updateQuestion(id, input);
 
       res.json({

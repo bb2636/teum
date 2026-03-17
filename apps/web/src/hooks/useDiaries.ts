@@ -14,7 +14,7 @@ export interface Diary {
   date: string;
   createdAt: string;
   updatedAt: string;
-  images?: Array<{ id: string; imageUrl: string; order: number }>;
+  images?: Array<{ id: string; imageUrl: string; sortOrder: number }>;
   answers?: Array<{
     id: string;
     questionId: string;

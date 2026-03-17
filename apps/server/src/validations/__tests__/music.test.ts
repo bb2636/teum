@@ -10,18 +10,39 @@ const generateUUID = (index: number) => {
 
 describe('Music Validation', () => {
   describe('generateMusicSchema', () => {
-    it('should validate correct input with 7 diary IDs', () => {
+    it('should validate correct input with 7 diary IDs and genreTag', () => {
       const input = {
         diaryIds: Array.from({ length: 7 }, (_, i) => generateUUID(i)),
+        genreTag: 'pop',
       };
 
       const result = generateMusicSchema.safeParse(input);
       expect(result.success).toBe(true);
     });
 
+    it('should reject input without genreTag', () => {
+      const input = {
+        diaryIds: Array.from({ length: 7 }, (_, i) => generateUUID(i)),
+      };
+
+      const result = generateMusicSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject input with empty genreTag', () => {
+      const input = {
+        diaryIds: Array.from({ length: 7 }, (_, i) => generateUUID(i)),
+        genreTag: '',
+      };
+
+      const result = generateMusicSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
     it('should reject input with less than 7 diary IDs', () => {
       const input = {
         diaryIds: Array.from({ length: 6 }, (_, i) => generateUUID(i)),
+        genreTag: 'ballad',
       };
 
       const result = generateMusicSchema.safeParse(input);
@@ -31,6 +52,7 @@ describe('Music Validation', () => {
     it('should reject input with more than 7 diary IDs', () => {
       const input = {
         diaryIds: Array.from({ length: 8 }, (_, i) => generateUUID(i)),
+        genreTag: 'ballad',
       };
 
       const result = generateMusicSchema.safeParse(input);
@@ -40,6 +62,7 @@ describe('Music Validation', () => {
     it('should reject invalid UUID format', () => {
       const input = {
         diaryIds: ['invalid-uuid', ...Array.from({ length: 6 }, (_, i) => generateUUID(i))],
+        genreTag: 'jazz',
       };
 
       const result = generateMusicSchema.safeParse(input);

@@ -6,9 +6,13 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { QuestionEditModal } from './QuestionEditModal';
 import { QuestionDeleteModal } from './QuestionDeleteModal';
+import type { Question } from '@/hooks/useQuestions';
+
+const EMPTY_QUESTIONS: Question[] = [];
 
 export function QuestionsManagementTab() {
-  const { data: questions = [], isLoading } = useQuestions();
+  const { data, isLoading } = useQuestions();
+  const questions = data ?? EMPTY_QUESTIONS;
   const createQuestion = useCreateQuestion();
   const updateQuestion = useUpdateQuestion();
   const deleteQuestion = useDeleteQuestion();
@@ -26,14 +30,15 @@ export function QuestionsManagementTab() {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTarget = useRef<number | null>(null);
 
-  // Initialize local questions when questions data changes
+  // questions가 변경되면 localQuestions 동기화 (초기 로드, refetch 시)
+  // 주의: questions 기본값으로 [] 사용 시 매 렌더 새 참조가 생겨 무한 루프 발생 → EMPTY_QUESTIONS 사용
   useEffect(() => {
     if (questions.length > 0) {
       setLocalQuestions(questions);
     }
   }, [questions]);
 
-  // Use local questions if available, otherwise use questions from API
+  // 표시용: localQuestions가 있으면 사용 (드래그/수정 즉시 반영), 없으면 questions
   const sortedQuestions = localQuestions.length > 0 ? localQuestions : questions;
 
   const handleEdit = (question: { id: string; question: string }) => {
@@ -42,15 +47,25 @@ export function QuestionsManagementTab() {
 
   const handleSaveEdit = async (questionText: string) => {
     if (!editingId) return;
-    
+
+    const previousQuestions = [...localQuestions];
+    setLocalQuestions((prev) =>
+      prev.map((q) => (q.id === editingId ? { ...q, question: questionText } : q))
+    );
+    setEditingId(null);
+
     try {
-      await updateQuestion.mutateAsync({
+      const updated = await updateQuestion.mutateAsync({
         id: editingId,
         question: questionText,
       });
-      setEditingId(null);
+      setLocalQuestions((prev) =>
+        prev.map((q) => (q.id === editingId ? { ...q, ...updated } : q))
+      );
     } catch (error) {
       console.error('Failed to update question:', error);
+      setLocalQuestions(previousQuestions);
+      setEditingId(editingId);
       alert('질문 수정에 실패했습니다.');
       throw error;
     }

@@ -13,10 +13,13 @@
     "test:coverage": "vitest --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate:order": "tsx src/db/run-order-migrations.ts",
+    "db:migrate:keywords": "tsx src/db/run-keywords-migration.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
-    "db:test": "tsx src/db/test.ts"
+    "db:test": "tsx src/db/test.ts",
+    "db:purge-deleted-questions": "tsx src/db/purge-deleted-questions.ts"
   },
   "dependencies": {
     "@types/multer": "^2.1.0",

@@ -1,7 +1,7 @@
 import { db } from '../../db';
 import { musicJobs } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
-import { stableAudioProvider } from './stableaudio.provider';
+import { murekaProvider } from './mureka.provider';
 import { logger } from '../../config/logger';
 
 /**
@@ -39,16 +39,18 @@ export class MusicPollingService {
 
     try {
       // Poll provider for job status
-      const status = await stableAudioProvider.getJobStatus(job.providerJobId);
+      const status = await murekaProvider.getJobStatus(job.providerJobId);
 
       if (status.status === 'completed' && status.audioUrl) {
-        // Job completed, update database
+        // Job completed, update database (오디오 + 썸네일 + 재생 길이)
         await db
           .update(musicJobs)
           .set({
             status: 'completed',
             audioUrl: status.audioUrl,
+            thumbnailUrl: status.thumbnailUrl ?? null,
             completedAt: new Date(),
+            durationSeconds: 120, // 1곡 최대 2분으로 제한
           })
           .where(eq(musicJobs.id, jobId));
 

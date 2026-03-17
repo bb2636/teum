@@ -138,7 +138,7 @@ export function AdminPage() {
   const formatDateOfBirth = (date: string | Date | null | undefined) => {
     if (!date) return '-';
     try {
-      return format(new Date(date), 'yy.MM.dd');
+      return format(new Date(date), 'yyyy.MM.dd');
     } catch {
       return '-';
     }
@@ -177,7 +177,7 @@ export function AdminPage() {
       {/* Delete User Modal */}
       {deleteUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl text-center">
             {deleteStatus === 'confirm' && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">삭제하시겠습니까?</h3>
@@ -204,7 +204,7 @@ export function AdminPage() {
                     </>
                   )}
                 </div>
-                <div className="flex gap-3 justify-end">
+                <div className="flex gap-3 justify-center">
                   <button
                     onClick={() => {
                       setDeleteUser(null);
@@ -470,6 +470,7 @@ export function AdminPage() {
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
+                                  if (user.isActive) return; // 이미 활성 상태면 무시
                                   try {
                                     await updateUserStatusMutation.mutateAsync({
                                       userId: user.id,
@@ -482,7 +483,7 @@ export function AdminPage() {
                                     alert('사용자 상태 변경에 실패했습니다.');
                                   }
                                 }}
-                                disabled={updateUserStatusMutation.isPending}
+                                disabled={updateUserStatusMutation.isPending || user.isActive}
                                 className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 first:rounded-t-lg disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <span className="w-2 h-2 rounded-full bg-green-500"></span>
@@ -491,6 +492,7 @@ export function AdminPage() {
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
+                                  if (!user.isActive) return; // 이미 정지 상태면 무시
                                   try {
                                     await updateUserStatusMutation.mutateAsync({
                                       userId: user.id,
@@ -503,7 +505,7 @@ export function AdminPage() {
                                     alert('사용자 상태 변경에 실패했습니다.');
                                   }
                                 }}
-                                disabled={updateUserStatusMutation.isPending}
+                                disabled={updateUserStatusMutation.isPending || !user.isActive}
                                 className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 last:rounded-b-lg disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <span className="w-2 h-2 rounded-full bg-red-500"></span>

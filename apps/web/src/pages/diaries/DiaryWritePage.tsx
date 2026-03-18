@@ -671,6 +671,15 @@ export function DiaryWritePage() {
   if (type === 'free_form') {
     return (
       <div className="min-h-screen bg-[#F5F5F0] pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
+        {(uploading || createDiary.isPending || updateDiary.isPending) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg">
+              <div className="w-8 h-8 border-[3px] border-amber-300 border-t-amber-600 rounded-full animate-spin" />
+              <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>응원 메시지 준비 중...</p>
+              <p className="text-xs text-gray-400">일기를 저장하고 있어요</p>
+            </div>
+          </div>
+        )}
         <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
@@ -815,6 +824,15 @@ export function DiaryWritePage() {
   // Question-based Diary - 2번 이미지 스타일
   return (
     <div className="min-h-screen bg-[#F5F5F0] pb-24 overflow-hidden relative" style={{ touchAction: 'none' }}>
+      {(uploading || createDiary.isPending || updateDiary.isPending) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg">
+            <div className="w-8 h-8 border-[3px] border-amber-300 border-t-amber-600 rounded-full animate-spin" />
+            <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>응원 메시지 준비 중...</p>
+            <p className="text-xs text-gray-400">일기를 저장하고 있어요</p>
+          </div>
+        </div>
+      )}
       <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
         {/* Header - 2번: 원형 뒤로가기, 중앙 날짜, 체크 저장 */}
         <div className="flex items-center justify-between px-4 py-3 bg-white">

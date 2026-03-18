@@ -16,36 +16,58 @@ export function PaymentPage() {
   const amount = searchParams.get('amount') || '0';
   const planName = searchParams.get('plan') || '기본 플랜';
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [cardCompany, setCardCompany] = useState<string>('');
   const [easyPayProvider, setEasyPayProvider] = useState<EasyPayProvider | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [termsAgreed, setTermsAgreed] = useState(false);
 
   const processPayment = useProcessPayment();
 
+  // 결제 수단 선택 시 유효성 검사
+  const isPaymentMethodValid = () => {
+    if (!paymentMethod) return false;
+    if (paymentMethod === 'card' && !cardCompany) return false;
+    if (paymentMethod === 'easy_pay' && !easyPayProvider) return false;
+    return true;
+  };
+
+  // 버튼 활성화 조건: 결제 수단이 선택되어 있고 유효한 경우
+  const isButtonEnabled = isPaymentMethodValid();
+
   const handlePaymentClick = () => {
-    if (!termsAgreed) {
-      setShowTermsSheet(true);
+    // 결제 수단 유효성 검사
+    if (!isPaymentMethodValid()) {
+      if (paymentMethod === 'card' && !cardCompany) {
+        alert('카드사를 선택해주세요');
+        return;
+      }
+      if (paymentMethod === 'easy_pay' && !easyPayProvider) {
+        alert('간편결제 서비스를 선택해주세요');
+        return;
+      }
       return;
     }
 
-    if (paymentMethod === 'card' && !cardCompany) {
-      alert('카드사를 선택해주세요');
-      return;
-    }
+    // 약관 동의 시트 표시
+    setShowTermsSheet(true);
+  };
 
-    if (paymentMethod === 'easy_pay' && !easyPayProvider) {
-      alert('간편결제 서비스를 선택해주세요');
-      return;
+  const handleTermsAgreed = (agreed: boolean) => {
+    if (agreed) {
+      // 약관 동의 후 결제 확인 모달 표시
+      setShowTermsSheet(false);
+      setShowConfirmModal(true);
     }
-
-    setShowConfirmModal(true);
   };
 
   const handleConfirmPayment = async () => {
+    if (!paymentMethod) {
+      alert('결제 수단을 선택해주세요.');
+      return;
+    }
+
     setIsProcessing(true);
     setShowConfirmModal(false);
 
@@ -53,7 +75,7 @@ export function PaymentPage() {
       const paymentData = {
         amount: parseFloat(amount),
         planName,
-        paymentMethod,
+        paymentMethod: paymentMethod as PaymentMethod, // null 체크 후 타입 단언
         cardCompany: paymentMethod === 'card' ? cardCompany : undefined,
         easyPayProvider: paymentMethod === 'easy_pay' ? (easyPayProvider || undefined) : undefined,
       };
@@ -138,7 +160,10 @@ export function PaymentPage() {
                 name="paymentMethod"
                 value="card"
                 checked={paymentMethod === 'card'}
-                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                onChange={(e) => {
+                  setPaymentMethod(e.target.value as PaymentMethod);
+                  setCardCompany(''); // 카드사 초기화
+                }}
                 className="w-5 h-5 text-brown-600 focus:ring-brown-500"
               />
               <div className="flex items-center gap-2">
@@ -180,7 +205,10 @@ export function PaymentPage() {
                 name="paymentMethod"
                 value="easy_pay"
                 checked={paymentMethod === 'easy_pay'}
-                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                onChange={(e) => {
+                  setPaymentMethod(e.target.value as PaymentMethod);
+                  setEasyPayProvider(null); // 간편결제 초기화
+                }}
                 className="w-5 h-5 text-brown-600 focus:ring-brown-500"
               />
               <div className="flex items-center gap-2">
@@ -238,7 +266,11 @@ export function PaymentPage() {
                 name="paymentMethod"
                 value="bank_transfer"
                 checked={paymentMethod === 'bank_transfer'}
-                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                onChange={(e) => {
+                  setPaymentMethod(e.target.value as PaymentMethod);
+                  setCardCompany(''); // 초기화
+                  setEasyPayProvider(null); // 초기화
+                }}
                 className="w-5 h-5 text-brown-600 focus:ring-brown-500"
               />
               <div className="flex items-center gap-2">
@@ -259,7 +291,7 @@ export function PaymentPage() {
         {/* Payment Button */}
         <Button
           onClick={handlePaymentClick}
-          disabled={isProcessing || processPayment.isPending || !termsAgreed}
+          disabled={isProcessing || processPayment.isPending || !isButtonEnabled}
           className="w-full bg-brown-600 hover:bg-brown-700 text-white py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessing || processPayment.isPending
@@ -272,9 +304,7 @@ export function PaymentPage() {
       <PaymentTermsSheet
         isOpen={showTermsSheet}
         onClose={() => setShowTermsSheet(false)}
-        onAgree={(agreed) => {
-          setTermsAgreed(agreed);
-        }}
+        onAgree={handleTermsAgreed}
       />
 
       {/* Payment Confirm Modal */}

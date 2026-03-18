@@ -150,15 +150,15 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
 
             <button
               onClick={() => {
-                onAgree(allRequiredAgreed);
                 if (allRequiredAgreed) {
-                  onClose();
+                  onAgree(true);
+                  // onClose는 PaymentPage에서 처리
                 }
               }}
               disabled={!allRequiredAgreed}
               className="w-full py-3 px-4 rounded-lg bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              동의하고 계속하기
+              결제하기
             </button>
           </div>
         </div>

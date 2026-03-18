@@ -59,5 +59,5 @@ externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "NODE_ENV=production PORT=5000 npx tsx apps/server/src/index.ts"]
-build = ["bash", "-c", "pnpm install && pnpm --filter web build"]
+run = ["pnpm", "start"]
+build = ["pnpm", "--filter", "web", "build"]

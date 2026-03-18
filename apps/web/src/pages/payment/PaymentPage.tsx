@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Smartphone, Building2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useProcessPayment } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';
+import { useHideTabBar } from '@/contexts/HideTabBarContext';
 
 type PaymentMethod = 'card' | 'easy_pay' | 'bank_transfer';
 type EasyPayProvider = 'toss' | 'npay' | 'apple';
@@ -13,8 +14,17 @@ type EasyPayProvider = 'toss' | 'npay' | 'apple';
 export function PaymentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { setHideTabBar } = useHideTabBar();
   const amount = searchParams.get('amount') || '0';
   const planName = searchParams.get('plan') || '기본 플랜';
+
+  // 결제 페이지 진입 시 하단바 숨기기
+  useEffect(() => {
+    setHideTabBar(true);
+    return () => {
+      setHideTabBar(false);
+    };
+  }, [setHideTabBar]);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [cardCompany, setCardCompany] = useState<string>('');

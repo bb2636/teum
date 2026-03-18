@@ -33,7 +33,8 @@ teum/
 
 - `DATABASE_URL` - PostgreSQL connection string (auto-set by Replit)
 - `JWT_SECRET` - JWT signing secret for auth
-- `OPENAI_API_KEY` - For AI-generated diary feedback messages
+- `AI_INTEGRATIONS_OPENAI_BASE_URL` / `AI_INTEGRATIONS_OPENAI_API_KEY` - Replit AI Integrations for OpenAI access (primary)
+- `OPENAI_API_KEY` / `OPENAI_BASE_URL` - Legacy fallback for OpenAI API access
 - `MUREKA_API_KEY` - For AI music generation
 - `CORS_ORIGIN` / `FRONTEND_URL` - Frontend URL for CORS (defaults to localhost:3000)
 

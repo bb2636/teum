@@ -13,21 +13,33 @@ export class OpenAIProvider implements AIProvider {
   private enabled: boolean;
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const aiIntegrationsKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    const aiIntegrationsBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+    const legacyApiKey = process.env.OPENAI_API_KEY;
+    const legacyBaseURL = process.env.OPENAI_BASE_URL;
+
+    const useIntegrations = !!aiIntegrationsKey;
+    const apiKey = useIntegrations ? aiIntegrationsKey : legacyApiKey;
+    const baseURL = useIntegrations ? aiIntegrationsBaseURL : legacyBaseURL;
+
     this.model = process.env.OPENAI_MODEL_TEXT || 'gpt-4o-mini';
     const encouragementEnabled = process.env.AI_ENCOURAGEMENT_ENABLED === 'true';
     this.enabled = encouragementEnabled && !!apiKey;
 
     logger.info('OpenAI provider initialization', {
       hasApiKey: !!apiKey,
-      apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'none',
+      hasBaseURL: !!baseURL,
+      useAIIntegrations: !!aiIntegrationsKey,
       encouragementEnabled,
       enabled: this.enabled,
       model: this.model,
     });
 
     if (this.enabled && apiKey) {
-      this.client = new OpenAI({ apiKey });
+      this.client = new OpenAI({
+        apiKey,
+        ...(baseURL ? { baseURL } : {}),
+      });
       logger.info('OpenAI provider initialized successfully');
     } else {
       logger.warn('OpenAI provider disabled', {

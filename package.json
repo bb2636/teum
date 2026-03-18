@@ -8,7 +8,7 @@
     "dev:web": "pnpm --filter web dev",
     "dev:server": "pnpm --filter server dev",
     "build": "pnpm --filter web build && pnpm --filter server build",
-    "start": "NODE_ENV=production PORT=5000 node apps/server/dist/index.js",
+    "start": "NODE_ENV=production PORT=5000 npx tsx apps/server/src/index.ts",
     "typecheck": "pnpm --filter web typecheck && pnpm --filter server typecheck",
     "lint": "pnpm --filter web lint && pnpm --filter server lint"
   },
@@ -19,5 +19,8 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "tsx": "^4.21.0"
   }
 }

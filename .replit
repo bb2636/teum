@@ -61,3 +61,8 @@ externalPort = 3000
 deploymentTarget = "cloudrun"
 run = ["sh", "-c", "pnpm start"]
 build = ["sh", "-c", "pnpm --filter web build"]
+
+[userenv]
+
+[userenv.shared]
+OPENAI_BASE_URL = "http://localhost:1106/modelfarm/openai"

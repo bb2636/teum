@@ -2,10 +2,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiary, useDeleteDiary } from '@/hooks/useDiaries';
-import { getStorageImageSrc } from '@/lib/api';
+import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useState } from 'react';
+import { DiaryDeleteModal } from './DiaryDeleteModal';
 
 export function DiaryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,9 +14,14 @@ export function DiaryDetailPage() {
   const { data: diary, isLoading } = useDiary(id || '');
   const deleteDiary = useDeleteDiary();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleDelete = async () => {
-    if (!id || !confirm('정말 이 일기를 삭제하시겠습니까?')) return;
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!id) return;
 
     setIsDeleting(true);
     deleteDiary.mutate(id, {
@@ -24,6 +30,7 @@ export function DiaryDetailPage() {
       },
       onError: () => {
         setIsDeleting(false);
+        setShowDeleteModal(false);
       },
     });
   };
@@ -68,7 +75,7 @@ export function DiaryDetailPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               disabled={isDeleting}
             >
               <Trash2 className="w-5 h-5" />
@@ -99,10 +106,9 @@ export function DiaryDetailPage() {
           {diary.images && diary.images.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {diary.images.map((img) => (
-                <img
+                <StorageImage
                   key={img.id}
-                  src={getStorageImageSrc(img.imageUrl)}
-                  alt=""
+                  url={img.imageUrl}
                   className="w-full h-48 rounded-lg object-cover"
                 />
               ))}
@@ -112,9 +118,19 @@ export function DiaryDetailPage() {
           {/* Content */}
           {diary.content && (
             <div className="prose prose-sm max-w-none">
-              <p className="text-brown-800 whitespace-pre-wrap leading-relaxed">
-                {diary.content}
-              </p>
+              <div className="text-brown-800 leading-relaxed whitespace-pre-wrap">
+                {(() => {
+                  // HTML 태그 제거 (기존 데이터에 <br> 태그가 있을 수 있음)
+                  const tmp = document.createElement('div');
+                  tmp.innerHTML = diary.content;
+                  let text = tmp.textContent || tmp.innerText || '';
+                  // <br> 태그를 줄바꿈으로 변환
+                  text = text.replace(/<br\s*\/?>/gi, '\n');
+                  // HTML 엔티티 디코딩
+                  text = text.replace(/&nbsp;/g, ' ');
+                  return text;
+                })()}
+              </div>
             </div>
           )}
 
@@ -143,6 +159,14 @@ export function DiaryDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DiaryDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

@@ -80,16 +80,25 @@ app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/questions', questionRoutes);
 
 // Serve uploaded images (memory adapter: /storage/uploads/... → GET /api/storage/uploads/...)
+// This endpoint is public (no authentication required) to allow image access
 app.get(/^\/api\/storage\/(.+)$/, async (req, res) => {
   const path = (req.params as Record<string, string>)[0];
-  if (!path) return res.status(404).json({ success: false, error: { message: 'Not found' } });
-  if (!adapter.get) return res.status(404).json({ success: false, error: { message: 'Storage not serveable' } });
+  if (!path) {
+    return res.status(404).json({ success: false, error: { message: 'Not found' } });
+  }
+  if (!adapter.get) {
+    return res.status(404).json({ success: false, error: { message: 'Storage not serveable' } });
+  }
   try {
     const file = await adapter.get(path);
-    if (!file) return res.status(404).json({ success: false, error: { message: 'File not found' } });
+    if (!file) {
+      return res.status(404).json({ success: false, error: { message: 'File not found' } });
+    }
     res.setHeader('Content-Type', file.mimetype);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     res.send(file.buffer);
-  } catch {
+  } catch (error) {
+    console.error('Storage get error:', error);
     res.status(404).json({ success: false, error: { message: 'Not found' } });
   }
 });

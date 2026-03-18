@@ -137,8 +137,15 @@ export class QuestionRepository {
             .orderBy(asc(questions.sortOrder))
         : allQuestions;
 
-    // Return first 'count' questions in order (no shuffling - use order field)
-    return availableQuestions.slice(0, count);
+    // Shuffle the questions randomly
+    const shuffled = [...availableQuestions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Return first 'count' questions randomly shuffled
+    return shuffled.slice(0, count);
   }
 
   /**

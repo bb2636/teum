@@ -12,10 +12,9 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useMe } from '@/hooks/useProfile';
-import { useSubscriptions, usePayments } from '@/hooks/usePayment';
+import { useSubscriptions } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useLogout } from '@/hooks/useAuth';
-import { PaymentHistoryModal } from './PaymentHistoryModal';
 import { SupportModal } from './SupportModal';
 import { TermsModal } from './TermsModal';
 
@@ -23,11 +22,9 @@ export function MyPage() {
   const navigate = useNavigate();
   const { data: user, isLoading } = useMe();
   const { data: subscriptions = [] } = useSubscriptions();
-  const { data: payments = [] } = usePayments();
   const { data: inquiries = [] } = useSupportInquiries();
   const logout = useLogout();
 
-  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showTermsList, setShowTermsList] = useState(false);
@@ -46,6 +43,8 @@ export function MyPage() {
   };
 
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  
+  // 다음 결제일 (endDate = 한 달 뒤)
   const nextPaymentDateStr = activeSubscription?.endDate
     ? (() => {
         const d = new Date(activeSubscription.endDate);
@@ -128,20 +127,10 @@ export function MyPage() {
               </span>
             </div>
             {activeSubscription && nextPaymentDateStr && (
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                <span>다음 결제 예정일</span>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>다음 결제일</span>
                 <span>{nextPaymentDateStr}</span>
               </div>
-            )}
-            {activeSubscription && (
-              <button
-                type="button"
-                onClick={() => setShowPaymentHistory(true)}
-                className="w-full flex items-center justify-between py-2 text-left hover:bg-brown-50 rounded-lg transition-colors -mx-1 px-1"
-              >
-                <span className="text-sm font-medium text-brown-900">결제 내역 확인</span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-              </button>
             )}
           </div>
         )}
@@ -159,7 +148,7 @@ export function MyPage() {
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
           <button
-            onClick={() => setShowPaymentHistory(true)}
+            onClick={() => navigate('/my/payment-history')}
             className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
@@ -202,13 +191,6 @@ export function MyPage() {
       </div>
 
       {/* Modals */}
-      {showPaymentHistory && (
-        <PaymentHistoryModal
-          subscriptions={subscriptions}
-          payments={payments}
-          onClose={() => setShowPaymentHistory(false)}
-        />
-      )}
       {showSupport && (
         <SupportModal
           inquiries={inquiries}

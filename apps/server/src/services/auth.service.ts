@@ -40,8 +40,7 @@ export class AuthService {
       country: input.country,
     });
 
-    // Create default folder
-    await userRepository.createDefaultFolder(user.id);
+    // No longer create default "All" folder - users will see "전체" (All) option instead
 
     // Create auth account
     await userRepository.createAuthAccount({

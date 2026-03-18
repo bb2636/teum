@@ -33,42 +33,55 @@ export function PaymentHistoryModal({
               <p className="text-sm text-muted-foreground">구독 내역이 없습니다</p>
             ) : (
               <div className="space-y-3">
-                {subscriptions.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className="bg-brown-50 rounded-lg p-3 border border-brown-200"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-medium text-brown-900">{sub.planName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(sub.startDate), 'yyyy.MM.dd', { locale: ko })} ~{' '}
-                          {sub.endDate
-                            ? format(new Date(sub.endDate), 'yyyy.MM.dd', { locale: ko })
-                            : '무기한'}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          sub.status === 'active'
-                            ? 'bg-green-100 text-green-700'
+                {subscriptions.map((sub) => {
+                  // 다음 결제일 계산 (endDate가 있으면 endDate, 없으면 startDate + 1개월)
+                  const nextPaymentDate = sub.endDate 
+                    ? new Date(sub.endDate)
+                    : (() => {
+                        const start = new Date(sub.startDate);
+                        start.setMonth(start.getMonth() + 1);
+                        return start;
+                      })();
+                  
+                  return (
+                    <div
+                      key={sub.id}
+                      className="bg-brown-50 rounded-lg p-3 border border-brown-200"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-medium text-brown-900">{sub.planName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            구독일: {format(new Date(sub.startDate), 'yyyy.MM.dd', { locale: ko })}
+                          </p>
+                          {sub.status === 'active' && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              다음 결제일: {format(nextPaymentDate, 'yyyy.MM.dd', { locale: ko })}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            sub.status === 'active'
+                              ? 'bg-green-100 text-green-700'
+                              : sub.status === 'cancelled'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {sub.status === 'active'
+                            ? '활성'
                             : sub.status === 'cancelled'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {sub.status === 'active'
-                          ? '활성'
-                          : sub.status === 'cancelled'
-                          ? '취소됨'
-                          : '만료'}
-                      </span>
+                            ? '취소됨'
+                            : '만료'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-brown-900">
+                        {parseInt(sub.amount.toString()).toLocaleString()}원
+                      </p>
                     </div>
-                    <p className="text-sm font-semibold text-brown-900">
-                      {parseInt(sub.amount.toString()).toLocaleString()}원
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

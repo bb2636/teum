@@ -38,12 +38,24 @@ export class MurekaProvider {
 
   constructor() {
     this.apiKey = process.env.MUREKA_API_KEY || null;
-    this.enabled = process.env.AI_MUSIC_ENABLED === 'true' && !!this.apiKey;
+    const musicEnabled = process.env.AI_MUSIC_ENABLED === 'true';
+    this.enabled = musicEnabled && !!this.apiKey;
+
+    logger.info('Mureka provider initialization', {
+      hasApiKey: !!this.apiKey,
+      apiKeyPrefix: this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'none',
+      musicEnabled,
+      enabled: this.enabled,
+    });
 
     if (this.enabled) {
-      logger.info('Mureka provider initialized');
+      logger.info('Mureka provider initialized successfully');
     } else {
-      logger.warn('Mureka provider disabled - missing MUREKA_API_KEY or AI_MUSIC_ENABLED');
+      logger.warn('Mureka provider disabled', {
+        reason: !this.apiKey ? 'missing API key' : 'feature flag disabled',
+        musicEnabled,
+        hasApiKey: !!this.apiKey,
+      });
     }
   }
 

@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useHideTabBar } from '../contexts/HideTabBarContext';
 
 const AUTH_ROUTES = ['/splash', '/login', '/signup', '/forgot-password'];
-const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin', '/my/profile-edit'];
+const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin', '/my/profile-edit', '/my/payment-history', '/payment/success'];
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,10 +13,16 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { hideTabBar } = useHideTabBar();
-  const showTabBar =
-    !hideTabBar &&
-    !AUTH_ROUTES.includes(location.pathname) &&
-    !HIDE_TAB_BAR_ROUTES.some((route) => location.pathname.startsWith(route));
+  
+  // Check if current route should hide tab bar
+  const isEditRoute = location.pathname.match(/^\/diaries\/[^/]+\/edit$/);
+  const shouldHideTabBar =
+    hideTabBar ||
+    AUTH_ROUTES.includes(location.pathname) ||
+    HIDE_TAB_BAR_ROUTES.some((route) => location.pathname.startsWith(route)) ||
+    isEditRoute;
+  
+  const showTabBar = !shouldHideTabBar;
 
   return (
     <div className="min-h-screen bg-background">

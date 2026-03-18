@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { getStorageImageSrc } from '@/lib/api';
+import { StorageImage } from '@/components/StorageImage';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { MonthPickerModal } from './MonthPickerModal';
@@ -9,15 +9,35 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { ko } from 'date-fns/locale';
 import { Diary } from '@/hooks/useDiaries';
 
+/** HTML 태그를 제거하고 텍스트만 반환 */
+function stripHTML(html: string): string {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
 /** 일기에서 목록에 쓸 "첫 줄" 텍스트 추출 */
 function getFirstLine(diary: Diary): string {
   if (diary.title?.trim()) return diary.title.trim();
   if (diary.type === 'question_based' && diary.answers?.length) {
+    // 질문기록일 때는 먼저 첫 번째 질문 제목을 확인
+    const firstQuestion = diary.answers[0].question?.question?.trim();
+    if (firstQuestion) return firstQuestion;
+    // 질문 제목이 없으면 답변 내용 확인
     const first = diary.answers[0].answer?.trim();
     if (first) return first.split('\n')[0].trim() || first;
+    // 질문 제목도 답변도 없으면 공백 반환
+    return '';
   }
-  if (diary.content?.trim()) return diary.content.trim().split('\n')[0].trim();
-  return '내용 없음';
+  if (diary.content?.trim()) {
+    const textContent = stripHTML(diary.content);
+    return textContent.trim().split('\n')[0].trim();
+  }
+  // 질문기록이지만 답변이 없는 경우 공백 반환
+  if (diary.type === 'question_based') {
+    return '';
+  }
+  return '';
 }
 
 interface DiarySlideProps {
@@ -65,7 +85,9 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs text-gray-500">
-                    {diary.folder?.name || '폴더 이름'}
+                    {diary.folder 
+                      ? (diary.folder.isDefault || diary.folder.name === 'All' ? '전체' : diary.folder.name)
+                      : '전체'}
                   </span>
                   {diary.type === 'question_based' && (
                     <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
@@ -75,14 +97,15 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
                   <span className="ml-auto text-gray-400">⋯</span>
                 </div>
                 <p className="text-sm text-[#4A2C1A] font-medium mb-1">{diaryDate}</p>
-                <p className="text-sm text-gray-700 line-clamp-2">{firstLine}</p>
+                {firstLine && (
+                  <p className="text-sm text-gray-700 line-clamp-2">{firstLine}</p>
+                )}
                 {diary.images && diary.images.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto mt-3">
                     {diary.images.slice(0, 4).map((img, idx) => (
-                      <img
+                      <StorageImage
                         key={idx}
-                        src={getStorageImageSrc(img.imageUrl)}
-                        alt=""
+                        url={img.imageUrl}
                         className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                       />
                     ))}
@@ -165,7 +188,13 @@ export function CalendarPage() {
 
   // Get diaries for a specific date
   const getDiariesForDate = (date: Date) => {
-    return diaries.filter((diary) => isSameDay(new Date(diary.date), date));
+    // Normalize dates to compare only year, month, day (ignore time)
+    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return diaries.filter((diary) => {
+      const diaryDate = new Date(diary.date);
+      const normalizedDiaryDate = new Date(diaryDate.getFullYear(), diaryDate.getMonth(), diaryDate.getDate());
+      return normalizedDate.getTime() === normalizedDiaryDate.getTime();
+    });
   };
 
   // Calendar grid

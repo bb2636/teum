@@ -19,7 +19,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
     "db:test": "tsx src/db/test.ts",
-    "db:purge-deleted-questions": "tsx src/db/purge-deleted-questions.ts"
+    "db:purge-deleted-questions": "tsx src/db/purge-deleted-questions.ts",
+    "test:openai": "tsx src/scripts/test-openai.ts",
+    "test:mureka": "tsx src/scripts/test-mureka.ts"
   },
   "dependencies": {
     "@types/multer": "^2.1.0",

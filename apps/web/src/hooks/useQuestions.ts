@@ -16,11 +16,14 @@ export function useRandomQuestions(count: number = 3) {
     queryKey: ['questions', 'random', count],
     queryFn: async () => {
       const response = await apiRequest<{ data: { questions: Question[] } }>(
-        `/questions/random?count=${count}`
+        `/questions/random?count=${count}&_t=${Date.now()}` // Add timestamp to query string to bypass cache
       );
       return response.data.questions;
     },
     staleTime: 0, // Always fetch fresh random questions
+    gcTime: 0, // Don't cache random questions
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
   });
 }
 

@@ -4,6 +4,8 @@ import { ArrowLeft, CreditCard, Smartphone, Building2, ChevronDown } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useProcessPayment } from '@/hooks/usePayment';
+import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
+import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';
 
 type PaymentMethod = 'card' | 'easy_pay' | 'bank_transfer';
 type EasyPayProvider = 'toss' | 'npay' | 'apple';
@@ -18,10 +20,18 @@ export function PaymentPage() {
   const [cardCompany, setCardCompany] = useState<string>('');
   const [easyPayProvider, setEasyPayProvider] = useState<EasyPayProvider | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showTermsSheet, setShowTermsSheet] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [termsAgreed, setTermsAgreed] = useState(false);
 
   const processPayment = useProcessPayment();
 
-  const handlePayment = async () => {
+  const handlePaymentClick = () => {
+    if (!termsAgreed) {
+      setShowTermsSheet(true);
+      return;
+    }
+
     if (paymentMethod === 'card' && !cardCompany) {
       alert('카드사를 선택해주세요');
       return;
@@ -32,7 +42,12 @@ export function PaymentPage() {
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmPayment = async () => {
     setIsProcessing(true);
+    setShowConfirmModal(false);
 
     try {
       const paymentData = {
@@ -46,8 +61,7 @@ export function PaymentPage() {
       const result = await processPayment.mutateAsync(paymentData);
 
       if (result.success) {
-        alert('결제가 완료되었습니다!');
-        navigate('/my');
+        navigate('/payment/success');
       } else {
         alert('결제에 실패했습니다. 다시 시도해주세요.');
       }
@@ -78,19 +92,35 @@ export function PaymentPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-brown-900">결제</h1>
+          <h1 className="text-xl font-bold text-brown-900">구독 결제</h1>
           <div className="w-10" /> {/* Spacer */}
         </div>
 
-        {/* Payment Summary */}
+        {/* Plan Benefits */}
+        <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
+          <div className="mb-3">
+            <span className="font-semibold text-brown-900">Mureka</span>
+          </div>
+          <ul className="space-y-2 text-sm text-gray-700">
+            <li>• 무제한 일기 작성 및 저장</li>
+            <li>• AI 분석 기반 가사 생성</li>
+            <li>• 음악 생성 (Mureka)</li>
+          </ul>
+        </div>
+
+        {/* Payment Info */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">다음 결제일</span>
+            <span className="text-sm text-muted-foreground">2026.00.00</span>
+          </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">플랜</span>
             <span className="font-semibold text-brown-900">{planName}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">결제 금액</span>
-            <span className="text-xl font-bold text-brown-900">
+            <span className="text-lg font-bold text-brown-900">
               {parseInt(amount).toLocaleString()}원
             </span>
           </div>
@@ -228,15 +258,32 @@ export function PaymentPage() {
 
         {/* Payment Button */}
         <Button
-          onClick={handlePayment}
-          disabled={isProcessing || processPayment.isPending}
-          className="w-full bg-brown-600 hover:bg-brown-700 text-white py-6 text-lg font-semibold"
+          onClick={handlePaymentClick}
+          disabled={isProcessing || processPayment.isPending || !termsAgreed}
+          className="w-full bg-brown-600 hover:bg-brown-700 text-white py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isProcessing || processPayment.isPending
             ? '결제 처리 중...'
-            : `${parseInt(amount).toLocaleString()}원 결제하기`}
+            : `월 ${parseInt(amount).toLocaleString()}원으로 시작하기`}
         </Button>
       </div>
+
+      {/* Terms Sheet */}
+      <PaymentTermsSheet
+        isOpen={showTermsSheet}
+        onClose={() => setShowTermsSheet(false)}
+        onAgree={(agreed) => {
+          setTermsAgreed(agreed);
+        }}
+      />
+
+      {/* Payment Confirm Modal */}
+      <PaymentConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmPayment}
+        amount={parseInt(amount)}
+      />
     </div>
   );
 }

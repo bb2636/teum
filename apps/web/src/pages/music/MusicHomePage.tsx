@@ -4,6 +4,7 @@ import { Music, Loader2, Download, Sprout, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useGenerateMusic, useMusicGenres, useMusicJobs } from '@/hooks/useMusic';
+import { useSubscriptions } from '@/hooks/usePayment';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -15,6 +16,7 @@ export function MusicHomePage() {
   const { data: genresData } = useMusicGenres();
   const { data: diariesAll = [] } = useDiaries();
   const { data: folders = [] } = useFolders();
+  const { data: subscriptions = [] } = useSubscriptions();
   const generateMusic = useGenerateMusic();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -29,7 +31,8 @@ export function MusicHomePage() {
   const jobs = jobsData?.jobs ?? [];
   const monthlyUsed = jobsData?.monthlyUsed ?? 0;
   const hasSubscription = jobsData?.hasSubscription ?? false;
-  const nextPaymentDate = jobsData?.nextPaymentDate;
+  const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  const subscriptionStartDate = activeSubscription?.startDate;
   const completedJobs = jobs.filter((j) => j.status === 'completed');
 
   const formatDuration = (seconds?: number) => {
@@ -110,9 +113,9 @@ export function MusicHomePage() {
           <div className="flex items-center justify-between mb-3">
             <span className="font-semibold text-brown-900">Mureka</span>
             <span className="text-xs text-muted-foreground">
-              {nextPaymentDate
-                ? `결제일 ${format(new Date(nextPaymentDate), 'M월 d일', { locale: ko })}`
-                : '결제일'}
+              {subscriptionStartDate
+                ? `구독일 ${format(new Date(subscriptionStartDate), 'M월 d일', { locale: ko })}`
+                : '구독일'}
             </span>
           </div>
           <p className="text-sm text-brown-800 mb-1">
@@ -124,7 +127,7 @@ export function MusicHomePage() {
           <Button
             onClick={handleOpenCreateModal}
             disabled={!hasSubscription || monthlyUsed >= MONTHLY_LIMIT}
-            className="w-full bg-brown-600 hover:bg-brown-700 text-white py-3 font-medium"
+            className="w-full bg-brown-600 hover:bg-brown-700 text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             음악 생성 +
           </Button>

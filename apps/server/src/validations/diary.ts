@@ -3,13 +3,29 @@ import { z } from 'zod';
 // Folder validation
 export const createFolderSchema = z.object({
   name: z.string().min(1, 'Folder name is required').max(100),
-  coverImageUrl: z.string().url().optional().or(z.literal('')),
+  coverImageUrl: z
+    .union([
+      z.string().url(), // Absolute URL
+      z.string().refine((val) => val.startsWith('/'), {
+        message: 'Relative path must start with /',
+      }), // Relative path like /storage/...
+      z.literal(''),
+    ])
+    .optional(),
   color: z.string().optional(),
 });
 
 export const updateFolderSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  coverImageUrl: z.string().url().optional().or(z.literal('')),
+  coverImageUrl: z
+    .union([
+      z.string().url(), // Absolute URL
+      z.string().refine((val) => val.startsWith('/'), {
+        message: 'Relative path must start with /',
+      }), // Relative path like /storage/...
+      z.literal(''),
+    ])
+    .optional(),
   color: z.string().optional(),
 });
 

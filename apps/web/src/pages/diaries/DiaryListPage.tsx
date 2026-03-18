@@ -2,7 +2,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
-import { getStorageImageSrc } from '@/lib/api';
+import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -64,27 +64,57 @@ export function DiaryListPage() {
                         </span>
                       )}
                     </div>
-                    {diary.title && (
-                      <h3 className="font-semibold text-brown-900 mb-1 truncate">
-                        {diary.title}
-                      </h3>
-                    )}
-                    {diary.content && (
-                      <p className="text-sm text-brown-700 line-clamp-2">
-                        {diary.content}
-                      </p>
-                    )}
-                    {diary.images && diary.images.length > 0 && (
-                      <div className="flex gap-2 mt-2">
-                        {diary.images.slice(0, 3).map((img) => (
-                          <img
-                            key={img.id}
-                            src={getStorageImageSrc(img.imageUrl)}
-                            alt=""
-                            className="w-16 h-16 rounded object-cover"
-                          />
-                        ))}
+                    
+                    {/* 질문기록 형식: 썸네일과 질문 제목들 표시 */}
+                    {diary.type === 'question_based' && diary.answers && diary.answers.length > 0 ? (
+                      <div className="flex gap-3">
+                        {/* 썸네일 (있는 경우) */}
+                        {diary.images && diary.images.length > 0 && (
+                          <div className="flex-shrink-0">
+                            <StorageImage
+                              url={diary.images[0].imageUrl}
+                              className="w-16 h-16 rounded object-cover"
+                            />
+                          </div>
+                        )}
+                        {/* 질문 제목들 */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          {diary.answers.map((answer, index) => (
+                            <p
+                              key={answer.id}
+                              className="text-sm text-brown-700 truncate"
+                              title={answer.question?.question || `질문 ${index + 1}`}
+                            >
+                              {answer.question?.question || `질문 ${index + 1}`}
+                            </p>
+                          ))}
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        {/* 자유형식: 기존 레이아웃 */}
+                        {diary.title && (
+                          <h3 className="font-semibold text-brown-900 mb-1 truncate">
+                            {diary.title}
+                          </h3>
+                        )}
+                        {diary.content && (
+                          <p className="text-sm text-brown-700 line-clamp-2">
+                            {diary.content}
+                          </p>
+                        )}
+                        {diary.images && diary.images.length > 0 && (
+                          <div className="flex gap-2 mt-2">
+                            {diary.images.slice(0, 3).map((img) => (
+                              <StorageImage
+                                key={img.id}
+                                url={img.imageUrl}
+                                className="w-16 h-16 rounded object-cover"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+import { db } from '../db';
 import { diaryRepository } from '../repositories/diary.repository';
 import { folderRepository } from '../repositories/folder.repository';
 import { questionRepository } from '../repositories/question.repository';
@@ -82,13 +84,44 @@ export class DiaryService {
       }
 
       // Build questionAnswers for AI encouragement: fetch question text from questions table
-      // (diary_answers.questionId references questions table for new system, not diary_questions)
+      // (diary_answers.questionId can reference either questions table (new) or diary_questions (old))
       questionAnswers = await Promise.all(
         data.answers.map(async ({ questionId, answer }) => {
-          const q = await questionRepository.findById(questionId);
-          return { question: q?.question ?? '', answer };
+          // Try to get question from questions table first (new system)
+          let q = await questionRepository.findById(questionId);
+          let questionText = q?.question ?? '';
+          
+          // If not found, try diary_questions table (old system, backward compatibility)
+          if (!questionText) {
+            const { diaryQuestions } = await import('../db/schema');
+            const [oldQuestion] = await db
+              .select()
+              .from(diaryQuestions)
+              .where(eq(diaryQuestions.id, questionId))
+              .limit(1);
+            questionText = oldQuestion?.question ?? '';
+            
+            if (questionText) {
+              logger.info('Found question in diary_questions table (old system)', { questionId, diaryId: diary.id });
+            }
+          }
+          
+          if (!questionText) {
+            logger.warn('Question text not found in both tables for questionId', { questionId, diaryId: diary.id });
+          }
+          return { question: questionText, answer };
         })
       );
+      
+      // Log question answers for debugging
+      logger.info('Question answers prepared for AI', {
+        diaryId: diary.id,
+        answersCount: questionAnswers.length,
+        questionsWithText: questionAnswers.filter(qa => qa.question.trim()).length,
+        sampleQuestion: questionAnswers[0]?.question?.substring(0, 50) || 'N/A',
+        allQuestions: questionAnswers.map(qa => qa.question || 'NO_QUESTION'),
+        allAnswers: questionAnswers.map(qa => qa.answer?.substring(0, 50) || 'NO_ANSWER'),
+      });
     }
 
     // Return diary with relations
@@ -99,6 +132,15 @@ export class DiaryService {
 
     // Trigger encouragement generation asynchronously (non-blocking)
     // This should not affect diary creation if it fails
+    logger.info('Triggering AI encouragement generation', {
+      diaryId: diary.id,
+      type: data.type,
+      hasContent: !!data.content,
+      contentLength: data.content?.length || 0,
+      hasAnswers: questionAnswers.length > 0,
+      answersCount: questionAnswers.length,
+    });
+    
     encouragementService
       .generateAndSaveEncouragement(diary.id, userId, {
         title: data.title,
@@ -108,7 +150,12 @@ export class DiaryService {
       })
       .catch((error) => {
         // Log but don't throw - diary creation should succeed even if AI fails
-        logger.error('Failed to generate encouragement (non-blocking)', { error, diaryId: diary.id });
+        logger.error('Failed to generate encouragement (non-blocking)', { 
+          error: error instanceof Error ? error.message : String(error),
+          errorName: error instanceof Error ? error.name : undefined,
+          errorCode: (error as any)?.code,
+          diaryId: diary.id 
+        });
       });
 
     return fullDiary;
@@ -161,17 +208,61 @@ export class DiaryService {
       throw new Error('Failed to retrieve updated diary');
     }
 
-    // Optionally regenerate encouragement message on update
-    // For now, we'll regenerate if content changed
+    // Regenerate encouragement message on update if content changed
     if (data.content !== undefined || data.title !== undefined) {
+      // For question-based diaries, fetch answers to include in AI analysis
+      let questionAnswers: Array<{ question: string; answer: string }> = [];
+      if (updatedDiary.type === 'question_based' && updatedDiary.answers && updatedDiary.answers.length > 0) {
+        // Build questionAnswers from existing answers
+        questionAnswers = await Promise.all(
+          updatedDiary.answers.map(async (answer) => {
+            // Try to get question from questions table first (new system)
+            let q = await questionRepository.findById(answer.questionId);
+            let questionText = q?.question ?? '';
+            
+            // If not found, try diary_questions table (old system, backward compatibility)
+            if (!questionText && answer.question?.question) {
+              questionText = answer.question.question;
+            }
+            
+            if (!questionText) {
+              const { diaryQuestions } = await import('../db/schema');
+              const [oldQuestion] = await db
+                .select()
+                .from(diaryQuestions)
+                .where(eq(diaryQuestions.id, answer.questionId))
+                .limit(1);
+              questionText = oldQuestion?.question ?? '';
+            }
+            
+            return { question: questionText, answer: answer.answer };
+          })
+        );
+        
+        logger.info('Question answers prepared for AI (update)', {
+          diaryId: id,
+          answersCount: questionAnswers.length,
+          questionsWithText: questionAnswers.filter(qa => qa.question.trim()).length,
+        });
+      }
+      
       encouragementService
         .generateAndSaveEncouragement(id, userId, {
           title: updatedDiary.title || undefined,
           content: updatedDiary.content || undefined,
           type: updatedDiary.type,
+          answers: questionAnswers.length > 0 ? questionAnswers : undefined,
         })
         .catch((error) => {
-          logger.error('Failed to regenerate encouragement (non-blocking)', { error, diaryId: id });
+          logger.error('Failed to regenerate encouragement (non-blocking)', { 
+            error: error instanceof Error ? error.message : String(error),
+            errorName: error instanceof Error ? error.name : undefined,
+            errorCode: (error as any)?.code,
+            errorStatus: (error as any)?.status,
+            diaryId: id,
+            diaryType: updatedDiary.type,
+            hasAnswers: questionAnswers.length > 0,
+          });
         });
     }
 

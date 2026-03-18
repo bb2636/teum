@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Layout } from './providers';
 import { HideTabBarProvider } from '../contexts/HideTabBarContext';
 import { SplashPage } from '../pages/auth/SplashPage';
@@ -17,24 +16,14 @@ import { MusicJobPage } from '../pages/music/MusicJobPage';
 import { MyPage } from '../pages/my/MyPage';
 import { ProfileEditPage } from '../pages/my/ProfileEditPage';
 import { PaymentPage } from '../pages/payment/PaymentPage';
+import { PaymentSuccessPage } from '../pages/payment/PaymentSuccessPage';
+import { PaymentHistoryPage } from '../pages/my/PaymentHistoryPage';
 import { AdminPage } from '../pages/admin/AdminPage';
-import { apiRequest } from '../lib/api';
-import { User } from '../hooks/useProfile';
+import { useMe } from '../hooks/useProfile';
 
 // Protected Route Component
 function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ['user', 'me'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest<{ data: { user: User } }>('/users/me');
-        return response.data.user;
-      } catch {
-        return null;
-      }
-    },
-    retry: false,
-  });
+  const { data: user, isLoading } = useMe();
 
   if (isLoading) {
     return (
@@ -57,18 +46,7 @@ function ProtectedRoute({ children, requireAdmin = false }: { children: React.Re
 
 // Admin Route Component - 관리자가 아니면 로그인 페이지로
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ['user', 'me'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest<{ data: { user: User } }>('/users/me');
-        return response.data.user;
-      } catch {
-        return null;
-      }
-    },
-    retry: false,
-  });
+  const { data: user, isLoading } = useMe();
 
   if (isLoading) {
     return (
@@ -159,6 +137,14 @@ export default function App() {
                 }
               />
               <Route
+                path="/diaries/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <DiaryWritePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/music"
                 element={
                   <ProtectedRoute>
@@ -183,6 +169,14 @@ export default function App() {
                 }
               />
               <Route
+                path="/payment/success"
+                element={
+                  <ProtectedRoute>
+                    <PaymentSuccessPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/my"
                 element={
                   <ProtectedRoute>
@@ -195,6 +189,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <ProfileEditPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my/payment-history"
+                element={
+                  <ProtectedRoute>
+                    <PaymentHistoryPage />
                   </ProtectedRoute>
                 }
               />

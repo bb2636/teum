@@ -34,33 +34,61 @@ export class EncouragementService {
     }
 
     try {
-      logger.info('Generating encouragement message', { diaryId });
+      logger.info('Generating encouragement message', { 
+        diaryId,
+        type: diaryData.type,
+        hasContent: !!diaryData.content,
+        contentLength: diaryData.content?.length || 0,
+        hasAnswers: !!diaryData.answers,
+        answersCount: diaryData.answers?.length || 0,
+      });
 
       // Generate encouragement message
       const message = await openAIProvider.generateEncouragement(diaryData);
-
-      // Save to ai_feedback table
-      await db.insert(aiFeedback).values({
-        userId,
+      
+      logger.info('Encouragement message generated', {
         diaryId,
-        kind: 'encouragement',
-        promptVersion: '1.0',
-        inputExcerpt: this.truncateContent(diaryData.content || diaryData.title || ''),
-        outputText: message,
+        messageLength: message?.length || 0,
+        messagePreview: message?.substring(0, 100) || 'empty',
       });
 
-      // Update diary.ai_message with latest encouragement
-      await db
-        .update(diaries)
-        .set({ aiMessage: message })
-        .where(eq(diaries.id, diaryId));
+      // Only save if we got a valid message (not fallback)
+      if (message && message.trim() && !message.includes('오늘 하루도 수고하셨어요')) {
+        // Save to ai_feedback table
+        await db.insert(aiFeedback).values({
+          userId,
+          diaryId,
+          kind: 'encouragement',
+          promptVersion: '1.0',
+          inputExcerpt: this.truncateContent(diaryData.content || diaryData.title || ''),
+          outputText: message,
+        });
 
-      logger.info('Encouragement message generated and saved', { diaryId });
+        // Update diary.ai_message with latest encouragement
+        await db
+          .update(diaries)
+          .set({ aiMessage: message })
+          .where(eq(diaries.id, diaryId));
+
+        logger.info('Encouragement message generated and saved', { diaryId, messageLength: message.length });
+      } else {
+        logger.warn('Encouragement message generation returned fallback or empty message, not saving', { diaryId });
+      }
     } catch (error) {
       // Log error but don't throw - diary save should still succeed
       logger.error('Failed to generate encouragement message', {
         diaryId,
         error: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : undefined,
+        errorCode: (error as any)?.code,
+        errorStatus: (error as any)?.status,
+        errorType: (error as any)?.type,
+        stack: error instanceof Error ? error.stack : undefined,
+        diaryType: diaryData.type,
+        hasContent: !!diaryData.content,
+        contentLength: diaryData.content?.length || 0,
+        hasAnswers: !!diaryData.answers,
+        answersCount: diaryData.answers?.length || 0,
       });
     }
   }

@@ -57,6 +57,15 @@ export class PaymentService {
   }> {
     logger.info('Processing payment', { userId, input, mock: this.isPaymentMockSuccess() });
 
+    // 중복 구독 방지: 이미 활성 구독이 있으면 에러
+    if (input.planName) {
+      const activeSubscription = await this.getActiveSubscription(userId);
+      if (activeSubscription) {
+        logger.warn('User already has active subscription', { userId, existingSubscriptionId: activeSubscription.id });
+        throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+      }
+    }
+
     const orderId = `ORDER_${Date.now()}_${userId.substring(0, 8)}`;
     let paymentMethodStr: string = input.paymentMethod;
     if (input.paymentMethod === 'card' && input.cardCompany) {
@@ -314,6 +323,51 @@ export class PaymentService {
     return {
       success: true,
       message: cancelResponse.resultMsg || '결제가 취소되었습니다.',
+    };
+  }
+
+  /**
+   * Cancel subscription (구독 취소)
+   */
+  async cancelSubscription(
+    userId: string,
+    subscriptionId: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    logger.info('Cancelling subscription', { userId, subscriptionId });
+
+    // Find subscription
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.id, subscriptionId))
+      .limit(1);
+
+    if (!subscription || subscription.userId !== userId) {
+      throw new Error('Subscription not found or unauthorized');
+    }
+
+    if (subscription.status !== 'active') {
+      throw new Error('Only active subscriptions can be cancelled');
+    }
+
+    // Update subscription status to cancelled
+    await db
+      .update(subscriptions)
+      .set({ 
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, subscriptionId));
+
+    logger.info('Subscription cancelled successfully', { subscriptionId });
+
+    return {
+      success: true,
+      message: '구독이 취소되었습니다.',
     };
   }
 }

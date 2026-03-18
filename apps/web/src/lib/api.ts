@@ -66,8 +66,13 @@ export async function apiRequest<T>(
     credentials: 'include',
   });
 
-  // Handle 401: 세션/쿠키/토큰 만료 시 로그인 화면으로 이동
+  // Handle 401: 세션/쿠키/토큰 만료 시 로그인 화면으로 이동 (단, /users/me는 인증 확인용이므로 리다이렉트하지 않고 throw)
   if (response.status === 401 && endpoint !== '/auth/refresh') {
+    if (endpoint === '/users/me') {
+      const err = new Error('Unauthorized') as Error & { status?: number };
+      err.status = 401;
+      throw err;
+    }
     try {
       await refreshToken();
       // 토큰 갱신 후 재시도

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
-import { useFolders, useCreateDiary } from '@/hooks/useDiaries';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useRandomQuestions } from '@/hooks/useQuestions';
 import { FolderSelectModal } from './FolderSelectModal';
@@ -13,6 +14,7 @@ import { ko } from 'date-fns/locale';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { getStorageImageSrc } from '@/lib/api';
 
 type TextStyle = 'title' | 'header' | 'subheader' | 'body' | 'mono';
 type FormatType = 'bold' | 'italic' | 'underline' | 'strikethrough' | 'unorderedList' | 'orderedList';
@@ -29,18 +31,33 @@ type DiaryFormData = z.infer<typeof diarySchema>;
 
 export function DiaryWritePage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const type = (searchParams.get('type') as 'free_form' | 'question_based') || 'free_form';
+  const isEditMode = !!id;
+  const queryClient = useQueryClient();
 
-  const { data: folders = [] } = useFolders();
+  // Load diary data if in edit mode
+  const { data: existingDiary, isLoading: isLoadingDiary } = useDiary(id || '');
+
+  const type = existingDiary?.type || (searchParams.get('type') as 'free_form' | 'question_based') || 'free_form';
+  
   const createDiary = useCreateDiary();
+  const updateDiary = useUpdateDiary();
   const uploadImage = useUploadImage();
   const { data: randomQuestions = [], isLoading: questionsLoading } = useRandomQuestions(3);
+  
+  // Invalidate random questions cache when page mounts to get fresh questions
+  useEffect(() => {
+    if (type === 'question_based') {
+      queryClient.invalidateQueries({ queryKey: ['questions', 'random'] });
+    }
+  }, [type, queryClient]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [selectedDate] = useState(
+  const [fileToUrlMap, setFileToUrlMap] = useState<Map<File, string>>(new Map()); // Track uploaded files
+  const [selectedDate, setSelectedDate] = useState(
     searchParams.get('date') || format(new Date(), 'yyyy-MM-dd')
   );
   const [uploading, setUploading] = useState(false);
@@ -59,17 +76,79 @@ export function DiaryWritePage() {
     handleSubmit,
     formState: {},
     watch,
+    reset,
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
     defaultValues: {
       type,
       date: selectedDate,
-      folderId: folders.find((f) => f.isDefault)?.id || undefined,
+      folderId: undefined, // No default folder - user must select
     },
   });
 
+  // Load existing diary data when in edit mode
+  useEffect(() => {
+    if (isEditMode && existingDiary) {
+      const diaryDate = format(new Date(existingDiary.date), 'yyyy-MM-dd');
+      setSelectedDate(diaryDate);
+      
+      reset({
+        title: '', // 제목 필드 제거
+        content: existingDiary.content || '',
+        type: existingDiary.type,
+        date: diaryDate,
+        folderId: existingDiary.folderId,
+      });
+
+      // Set contentEditable content
+      if (contentEditableRef.current && existingDiary.content) {
+        // 기존 내용이 순수 텍스트이므로 그대로 표시 (줄바꿈은 <br>로 변환)
+        const textWithBreaks = existingDiary.content.replace(/\n/g, '<br>');
+        contentEditableRef.current.innerHTML = textWithBreaks;
+      }
+
+      // Load images
+      if (existingDiary.images && existingDiary.images.length > 0) {
+        const imageUrls = existingDiary.images.map((img) => img.imageUrl);
+        setSelectedImages(imageUrls);
+      }
+
+      // Load answers for question-based diaries
+      if (existingDiary.type === 'question_based' && existingDiary.answers) {
+        const answerMap: Record<string, string> = {};
+        existingDiary.answers.forEach((answer) => {
+          answerMap[answer.questionId] = answer.answer;
+        });
+        setAnswers(answerMap);
+      }
+    }
+  }, [isEditMode, existingDiary, reset]);
+
   const selectedFolderId = watch('folderId');
   const content = watch('content');
+
+  // HTML을 순수 텍스트로 변환 (줄바꿈 유지) - 함수를 먼저 정의
+  const htmlToPlainText = (html: string): string => {
+    if (!html) return '';
+    
+    // 임시 div 생성하여 HTML 파싱
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    
+    // <br> 태그를 줄바꿈으로 변환
+    tmp.querySelectorAll('br').forEach((br) => {
+      br.replaceWith('\n');
+    });
+    
+    // 모든 텍스트 추출 (줄바꿈 포함)
+    let text = tmp.textContent || tmp.innerText || '';
+    
+    // 연속된 공백/줄바꿈 정리 (최대 2개 연속만 허용)
+    text = text.replace(/\n{3,}/g, '\n\n');
+    text = text.replace(/[ \t]{2,}/g, ' ');
+    
+    return text.trim();
+  };
 
   // 스크롤 방지
   useEffect(() => {
@@ -108,13 +187,45 @@ export function DiaryWritePage() {
     }
   }, [content]);
 
+  // Handle paste event - extract plain text only
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const pastedText = clipboardData.getData('text/plain');
+    
+    // Insert plain text at cursor position
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      
+      // Create text node and insert
+      const textNode = document.createTextNode(pastedText);
+      range.insertNode(textNode);
+      
+      // Move cursor after inserted text
+      range.setStartAfter(textNode);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else if (contentEditableRef.current) {
+      // If no selection, append to end
+      const textNode = document.createTextNode(pastedText);
+      contentEditableRef.current.appendChild(textNode);
+    }
+    
+    handleContentChange();
+  };
+
   // Handle contentEditable changes
   const handleContentChange = () => {
     if (contentEditableRef.current) {
-      // Save HTML to preserve formatting
+      // HTML을 순수 텍스트로 변환하여 저장
       const html = contentEditableRef.current.innerHTML;
+      const plainText = htmlToPlainText(html);
       const event = {
-        target: { value: html },
+        target: { value: plainText },
       } as React.ChangeEvent<HTMLInputElement>;
       register('content').onChange(event);
     }
@@ -274,9 +385,111 @@ export function DiaryWritePage() {
     });
     setSelectedImages([...selectedImages, ...previewUrls]);
     
+    // Upload images immediately and insert into content (only for free_form)
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i];
+      const previewUrl = previewUrls[i];
+      
+      // Check if file is already uploaded
+      if (fileToUrlMap.has(file)) {
+        const uploadedUrl = fileToUrlMap.get(file)!;
+        // Insert image into content only for free_form
+        if (type === 'free_form') {
+          insertImageIntoContentEditable(uploadedUrl);
+        } else {
+          // For question_based, replace blob URL with uploaded URL in selectedImages
+          setSelectedImages((prev) => {
+            const newImages = [...prev];
+            const blobIndex = newImages.findIndex((url) => url === previewUrl);
+            if (blobIndex !== -1) {
+              newImages[blobIndex] = uploadedUrl;
+              URL.revokeObjectURL(previewUrl); // Clean up blob URL
+            }
+            return newImages;
+          });
+        }
+        continue;
+      }
+      
+      try {
+        // Upload image
+        const uploadedUrl = await uploadImage.mutateAsync(file);
+        
+        // Track uploaded file
+        setFileToUrlMap((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(file, uploadedUrl);
+          return newMap;
+        });
+        
+        // Insert image into content only for free_form
+        if (type === 'free_form') {
+          // Insert img tag into contentEditable
+          insertImageIntoContentEditable(uploadedUrl);
+        } else {
+          // For question_based, replace blob URL with uploaded URL in selectedImages
+          setSelectedImages((prev) => {
+            const newImages = [...prev];
+            const blobIndex = newImages.findIndex((url) => url === previewUrl);
+            if (blobIndex !== -1) {
+              newImages[blobIndex] = uploadedUrl;
+              URL.revokeObjectURL(previewUrl); // Clean up blob URL
+            }
+            return newImages;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to upload image:', error);
+        // Keep preview URL even if upload fails
+      }
+    }
+    
     // Reset input value to allow selecting the same file again
     e.target.value = '';
   };
+
+  const insertImageIntoContentEditable = (imageUrl: string) => {
+    if (!contentEditableRef.current) return;
+    
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    
+    // Create img element
+    const img = document.createElement('img');
+    img.src = getStorageImageSrc(imageUrl);
+    img.alt = 'Uploaded image';
+    img.className = 'max-w-full h-auto rounded-lg my-2';
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    img.style.display = 'block';
+    img.style.margin = '8px 0';
+    
+    // Insert image at cursor position or at the end
+    if (range && !range.collapsed) {
+      range.deleteContents();
+      range.insertNode(img);
+    } else {
+      // Insert at cursor or at the end
+      if (range) {
+        range.insertNode(img);
+        // Move cursor after image
+        range.setStartAfter(img);
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      } else {
+        // Append at the end
+        contentEditableRef.current.appendChild(img);
+        // Add a line break after image
+        const br = document.createElement('br');
+        contentEditableRef.current.appendChild(br);
+      }
+    }
+    
+    // Update content
+    handleContentChange();
+  };
+
 
   const handleCameraClick = () => {
     cameraInputRef.current?.click();
@@ -300,10 +513,6 @@ export function DiaryWritePage() {
     }, 100);
   };
 
-  const handleCreateNewFolder = () => {
-    setShowFolderModal(false);
-    navigate('/folders/new?returnTo=/diaries/new');
-  };
 
   const submitDiary = async (folderId?: string) => {
     try {
@@ -311,12 +520,60 @@ export function DiaryWritePage() {
 
       const formData = watch();
 
-      // Upload images first
+      // Collect all uploaded image URLs
       const imageUrls: string[] = [];
+      
+      // For free_form: collect from contentEditable
+      if (type === 'free_form') {
+        // Extract image URLs from contentEditable
+        if (contentEditableRef.current) {
+          const images = contentEditableRef.current.querySelectorAll('img');
+          images.forEach((img) => {
+            const src = img.getAttribute('src');
+            if (src && !src.startsWith('blob:')) {
+              // Extract URL from src (remove /api/storage/ prefix if present)
+              const url = src.replace(/^.*\/api\/storage\//, '/storage/');
+              if (!imageUrls.includes(url)) {
+                imageUrls.push(url);
+              }
+            }
+          });
+        }
+      } else {
+        // For question_based: collect from selectedImages (uploaded URLs)
+        // Images are shown as thumbnails at the bottom, not in content
+        selectedImages.forEach((url) => {
+          // Only include uploaded URLs (not blob URLs)
+          if (!url.startsWith('blob:')) {
+            if (!imageUrls.includes(url)) {
+              imageUrls.push(url);
+            }
+          }
+        });
+      }
+      
+      // Upload any remaining files that haven't been uploaded yet
       for (const file of selectedFiles) {
+        // Check if file is already uploaded
+        if (fileToUrlMap.has(file)) {
+          const url = fileToUrlMap.get(file)!;
+          if (!imageUrls.includes(url)) {
+            imageUrls.push(url);
+          }
+          continue;
+        }
+        
         try {
           const url = await uploadImage.mutateAsync(file);
-          imageUrls.push(url);
+          // Track uploaded file
+          setFileToUrlMap((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(file, url);
+            return newMap;
+          });
+          if (!imageUrls.includes(url)) {
+            imageUrls.push(url);
+          }
         } catch (error) {
           console.error('Failed to upload image:', error);
           // Continue with other images even if one fails
@@ -334,20 +591,43 @@ export function DiaryWritePage() {
               }))
           : undefined;
 
+      // Get latest content from contentEditable for free_form type and convert to plain text
+      let finalContent = formData.content;
+      if (type === 'free_form' && contentEditableRef.current) {
+        const rawContent = contentEditableRef.current.innerHTML;
+        finalContent = htmlToPlainText(rawContent);
+      }
+
       const diaryData = {
         ...formData,
+        title: '', // 제목 필드 제거
+        content: finalContent,
         folderId: folderId || formData.folderId,
         date: selectedDate,
         imageUrls,
         answers: answerArray,
       };
 
-      const newDiary = await createDiary.mutateAsync(diaryData);
+      if (isEditMode && id) {
+        // Update existing diary
+        const updatedDiary = await updateDiary.mutateAsync({
+          id,
+          ...diaryData,
+        });
 
-      // Clean up object URLs
-      selectedImages.forEach((url) => URL.revokeObjectURL(url));
+        // Clean up object URLs
+        selectedImages.forEach((url) => URL.revokeObjectURL(url));
 
-      navigate(`/diaries/${newDiary.id}`);
+        navigate(`/diaries/${updatedDiary.id}`);
+      } else {
+        // Create new diary
+        const newDiary = await createDiary.mutateAsync(diaryData);
+
+        // Clean up object URLs
+        selectedImages.forEach((url) => URL.revokeObjectURL(url));
+
+        navigate(`/diaries/${newDiary.id}`);
+      }
     } catch (error) {
       console.error('Failed to create diary:', error);
       alert('일기 저장에 실패했습니다.');
@@ -379,6 +659,15 @@ export function DiaryWritePage() {
   };
 
   // Free Form Diary - Note style
+  // Show loading state when editing and diary is loading
+  if (isEditMode && isLoadingDiary) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F0] flex items-center justify-center">
+        <div className="text-muted-foreground">일기를 불러오는 중...</div>
+      </div>
+    );
+  }
+
   if (type === 'free_form') {
     return (
       <div className="min-h-screen bg-[#F5F5F0] pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
@@ -413,6 +702,7 @@ export function DiaryWritePage() {
                 ref={contentEditableRef}
                 contentEditable
                 onInput={handleContentChange}
+                onPaste={handlePaste}
                 onKeyDown={handleContentKeyDown}
                 onBlur={updateActiveFormats}
                 onFocus={updateActiveFormats}
@@ -427,15 +717,16 @@ export function DiaryWritePage() {
               />
             </div>
 
-            {/* 선택한 이미지 미리보기 */}
+            {/* 선택한 이미지 미리보기 (blob 또는 스토리지 URL 모두 표시) */}
             {selectedImages.length > 0 && (
               <div className="mx-4 mb-2 flex gap-2 overflow-x-auto pb-2">
                 {selectedImages.map((url, i) => (
                   <img
-                    key={url}
-                    src={url}
+                    key={`${url}-${i}`}
+                    src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
                     alt={`미리보기 ${i + 1}`}
                     className="h-20 w-20 flex-shrink-0 rounded-lg object-cover border border-gray-200"
+                    loading="eager"
                   />
                 ))}
               </div>
@@ -506,7 +797,6 @@ export function DiaryWritePage() {
               selectedFolderId={selectedFolderId}
               onSelect={handleFolderSelect}
               onClose={() => setShowFolderModal(false)}
-              onCreateNew={handleCreateNewFolder}
             />
           )}
 
@@ -566,34 +856,46 @@ export function DiaryWritePage() {
                   >
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.currentTarget.blur();
                         setExpandedQuestionId(
                           expandedQuestionId === question.id ? null : question.id
-                        )
-                      }
+                        );
+                      }}
                       className="w-full text-left"
                     >
-                      <p className="text-[#4A2C1A] font-medium mb-1">{question.question}</p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[#4A2C1A] font-medium flex-1">{question.question}</p>
+                      </div>
                       {expandedQuestionId !== question.id && (
-                        <p className="text-gray-400 text-sm truncate">
-                          {answers[question.id]?.trim() || '글쓰기 시작...'}
-                        </p>
+                        <div className="space-y-2">
+                          {answers[question.id]?.trim() && (
+                            <p className="text-gray-400 text-sm truncate">
+                              {answers[question.id].trim()}
+                            </p>
+                          )}
+                          {!answers[question.id]?.trim() && (
+                            <p className="text-gray-400 text-sm">글쓰기 시작...</p>
+                          )}
+                        </div>
                       )}
                     </button>
                     {expandedQuestionId === question.id && (
-                      <textarea
-                        id={`answer-${question.id}`}
-                        value={answers[question.id] || ''}
-                        onChange={(e) =>
-                          setAnswers((prev) => ({
-                            ...prev,
-                            [question.id]: e.target.value,
-                          }))
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="글쓰기 시작..."
-                        className="flex-1 w-full min-h-[200px] mt-3 bg-transparent resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto"
-                      />
+                      <>
+                        <textarea
+                          id={`answer-${question.id}`}
+                          value={answers[question.id] || ''}
+                          onChange={(e) =>
+                            setAnswers((prev) => ({
+                              ...prev,
+                              [question.id]: e.target.value,
+                            }))
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="글쓰기 시작..."
+                          className="flex-1 w-full min-h-[200px] mt-3 bg-transparent resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto"
+                        />
+                      </>
                     )}
                   </div>
                 ))}
@@ -605,15 +907,16 @@ export function DiaryWritePage() {
             )}
           </div>
 
-          {/* 선택한 이미지 미리보기 (질문기록) */}
+          {/* 선택한 이미지 미리보기 (질문기록, blob 또는 스토리지 URL 모두 표시) */}
           {selectedImages.length > 0 && (
             <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
               {selectedImages.map((url, i) => (
                 <img
-                  key={url}
-                  src={url}
+                  key={`${url}-${i}`}
+                  src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
                   alt={`미리보기 ${i + 1}`}
                   className="h-16 w-16 flex-shrink-0 rounded-lg object-cover border border-gray-200"
+                  loading="eager"
                 />
               ))}
             </div>
@@ -680,7 +983,6 @@ export function DiaryWritePage() {
           selectedFolderId={selectedFolderId}
           onSelect={handleFolderSelect}
           onClose={() => setShowFolderModal(false)}
-          onCreateNew={handleCreateNewFolder}
         />
       )}
 

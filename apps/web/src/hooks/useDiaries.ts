@@ -5,7 +5,7 @@ export interface Diary {
   id: string;
   userId: string;
   folderId?: string;
-  folder?: { id: string; name: string };
+  folder?: { id: string; name: string; isDefault?: boolean };
   type: 'free_form' | 'question_based';
   title?: string;
   content?: string;
@@ -162,7 +162,16 @@ export function useCreateDiary() {
       updateList(newDiary.folderId || '전체');
       if (newDiary.folderId) updateList('전체');
 
+      // Invalidate all diary queries
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
+      
+      // Invalidate calendar queries for the specific year/month of the new diary
+      const diaryDate = new Date(newDiary.date);
+      const year = diaryDate.getFullYear();
+      const month = diaryDate.getMonth() + 1;
+      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar', year, month] });
+      
+      // Also invalidate all calendar queries to be safe
       queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });
@@ -248,6 +257,14 @@ export function useUpdateDiary() {
 
       // Invalidate to refetch in background (gets any other updates)
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
+      
+      // Invalidate calendar queries for the specific year/month of the updated diary
+      const diaryDate = new Date(updatedDiary.date);
+      const year = diaryDate.getFullYear();
+      const month = diaryDate.getMonth() + 1;
+      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar', year, month] });
+      
+      // Also invalidate all calendar queries to be safe
       queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });

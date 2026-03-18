@@ -11,7 +11,7 @@ import { ko } from 'date-fns/locale';
 import { QuestionsManagementTab } from './QuestionsManagementTab';
 import { SupportManagementTab } from './SupportManagementTab';
 import { TermsManagementTab } from './TermsManagementTab';
-import { getStorageImageSrc } from '@/lib/api';
+import { StorageImage } from '@/components/StorageImage';
 
 type AdminTab = 'users' | 'diaries' | 'questions' | 'support' | 'terms';
 type DiaryFilter = 'all' | 'free' | 'question';
@@ -615,18 +615,26 @@ export function AdminPage() {
                         </p>
                       </div>
                     )}
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">
-                      {diary.title || '제목 없음'}
-                    </h3>
-                    <p className="text-sm text-gray-600 line-clamp-3 mb-3">
-                      {diary.type === 'question_based' && diary.answers && diary.answers.length > 0
-                        ? diary.answers[0]?.answer || diary.content || '내용 없음'
-                        : diary.content || '내용 없음'}
+                    {diary.title && (
+                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">
+                        {diary.title}
+                      </h3>
+                    )}
+                    <p className="text-sm text-gray-600 line-clamp-3 mb-3 whitespace-pre-wrap">
+                      {(() => {
+                        const content = diary.type === 'question_based' && diary.answers && diary.answers.length > 0
+                          ? diary.answers[0]?.answer || diary.content || '내용 없음'
+                          : diary.content || '내용 없음';
+                        // HTML 태그 제거
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = content;
+                        return tmp.textContent || tmp.innerText || '내용 없음';
+                      })()}
                     </p>
                     {diary.images && diary.images.length > 0 && (
                       <div className="mb-3">
-                        <img
-                          src={getStorageImageSrc(diary.images[0].imageUrl)}
+                        <StorageImage
+                          url={diary.images[0].imageUrl}
                           alt="Diary"
                           className="w-full h-32 object-cover rounded"
                         />
@@ -734,7 +742,19 @@ export function AdminPage() {
                 {/* Free-form Diary */}
                 {selectedDiary.type === 'free_form' && selectedDiary.content && (
                   <div className="mb-6">
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedDiary.content}</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {(() => {
+                        // HTML 태그 제거 (기존 데이터에 <br> 태그가 있을 수 있음)
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = selectedDiary.content;
+                        let text = tmp.textContent || tmp.innerText || '';
+                        // <br> 태그를 줄바꿈으로 변환
+                        text = text.replace(/<br\s*\/?>/gi, '\n');
+                        // HTML 엔티티 디코딩
+                        text = text.replace(/&nbsp;/g, ' ');
+                        return text;
+                      })()}
+                    </p>
                   </div>
                 )}
 
@@ -742,9 +762,9 @@ export function AdminPage() {
                 {selectedDiary.images && selectedDiary.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-4">
                     {selectedDiary.images.map((image) => (
-                      <img
+                      <StorageImage
                         key={image.id}
-                        src={getStorageImageSrc(image.imageUrl)}
+                        url={image.imageUrl}
                         alt="Diary"
                         className="w-full h-48 object-cover rounded"
                       />
@@ -871,11 +891,12 @@ export function AdminPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">구독 상세 내역</h3>
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-gray-50 border-b border-gray-200">
-                      <div className="grid grid-cols-4 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
-                        <div className="text-center">결제일</div>
+                      <div className="grid grid-cols-5 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
+                        <div className="text-center">구독일</div>
+                        <div className="text-center">다음 결제일</div>
                         <div className="text-center">상품명</div>
                         <div className="text-center">결제금액</div>
-                        <div className="text-center">상세보기</div>
+                        <div className="text-center">상태</div>
                       </div>
                     </div>
                     <div className="divide-y divide-gray-200">
@@ -889,10 +910,25 @@ export function AdminPage() {
                             ? new Date(payment.paidAt) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
                             : payment.status !== 'completed';
                           
+                          // 구독일 = 결제일 (paidAt 또는 createdAt)
+                          const subscriptionDate = payment.paidAt || payment.createdAt;
+                          
+                          // 다음 결제일 = 구독일 + 1개월
+                          const nextPaymentDate = (() => {
+                            const date = new Date(subscriptionDate);
+                            date.setMonth(date.getMonth() + 1);
+                            return date;
+                          })();
+                          
                           return (
-                            <div key={payment.id} className="grid grid-cols-4 gap-4 px-4 py-3 text-sm">
+                            <div key={payment.id} className="grid grid-cols-5 gap-4 px-4 py-3 text-sm">
                               <div className="text-center text-gray-900">
-                                {formatDate(payment.paidAt || payment.createdAt)}
+                                {formatDate(subscriptionDate)}
+                              </div>
+                              <div className="text-center text-gray-900">
+                                {payment.status === 'completed' && !isExpired
+                                  ? formatDate(nextPaymentDate.toISOString())
+                                  : '-'}
                               </div>
                               <div className="text-center text-gray-900">Monthly Plan</div>
                               <div className="text-center text-gray-900">

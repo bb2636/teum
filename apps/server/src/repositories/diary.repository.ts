@@ -1,6 +1,7 @@
-import { eq, and, isNull, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, desc, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { diaries, diaryImages, diaryAnswers } from '../db/schema';
+import { questions } from '../db/schema/questions';
 
 export class DiaryRepository {
   async findAll() {
@@ -31,12 +32,51 @@ export class DiaryRepository {
       limit: 100, // Limit for admin view to prevent excessive data loading
     });
 
+    // Enrich answers with question data from questions table if question is null
+    // Collect all questionIds that need to be fetched from questions table
+    const questionIdsToFetch: string[] = [];
+    for (const diary of results) {
+      if (diary.answers && diary.answers.length > 0) {
+        for (const answer of diary.answers) {
+          if (!answer.question && answer.questionId) {
+            questionIdsToFetch.push(answer.questionId);
+          }
+        }
+      }
+    }
+
+    // Fetch all questions in one query
+    let questionsMap = new Map<string, typeof questions.$inferSelect>();
+    if (questionIdsToFetch.length > 0) {
+      const fetchedQuestions = await db
+        .select()
+        .from(questions)
+        .where(and(inArray(questions.id, questionIdsToFetch), isNull(questions.deletedAt)));
+      
+      questionsMap = new Map(fetchedQuestions.map((q) => [q.id, q]));
+    }
+
+    // Enrich answers with question data
+    for (const diary of results) {
+      if (diary.answers && diary.answers.length > 0) {
+        for (const answer of diary.answers) {
+          if (!answer.question && answer.questionId) {
+            const question = questionsMap.get(answer.questionId);
+            if (question) {
+              // Add question data to answer
+              (answer as any).question = question;
+            }
+          }
+        }
+      }
+    }
+
     return results;
   }
 
   async findByUserId(userId: string, folderId?: string) {
     // Optimized: Use single query with relations instead of N+1 queries
-    return db.query.diaries.findMany({
+    const results = await db.query.diaries.findMany({
       where: (diaries, { eq, isNull, and: andFn }) => {
         const conditions = [
           eq(diaries.userId, userId),
@@ -54,7 +94,7 @@ export class DiaryRepository {
         },
         answers: {
           with: {
-            question: true,
+            question: true, // May be null if question is from questions table
           },
         },
         aiFeedback: {
@@ -63,6 +103,27 @@ export class DiaryRepository {
         },
       },
     });
+
+    // Enrich answers with question data from questions table if question is null
+    for (const diary of results) {
+      if (diary.answers && diary.answers.length > 0) {
+        for (const answer of diary.answers) {
+          // If question from diaryQuestions is null, try to get from questions table
+          if (!answer.question && answer.questionId) {
+            const question = await db.query.questions.findFirst({
+              where: (questions, { eq, isNull: isNullFn }) =>
+                and(eq(questions.id, answer.questionId), isNullFn(questions.deletedAt)),
+            });
+            if (question) {
+              // Add question data to answer
+              (answer as any).question = question;
+            }
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   async findByDateRange(userId: string, startDate: Date, endDate: Date) {
@@ -90,12 +151,43 @@ export class DiaryRepository {
         },
         answers: {
           with: {
-            question: true,
+            question: true, // May be null if question is from questions table
           },
         },
         aiFeedback: true,
       },
     });
+
+    // Enrich answers with question data from questions table if question is null
+    if (diary && diary.answers && diary.answers.length > 0) {
+      // Collect all questionIds that need to be fetched
+      const questionIdsToFetch = diary.answers
+        .filter((answer) => !answer.question && answer.questionId)
+        .map((answer) => answer.questionId);
+
+      // Fetch all questions in one query
+      let questionsMap = new Map<string, typeof questions.$inferSelect>();
+      if (questionIdsToFetch.length > 0) {
+        const fetchedQuestions = await db
+          .select()
+          .from(questions)
+          .where(and(inArray(questions.id, questionIdsToFetch), isNull(questions.deletedAt)));
+        
+        questionsMap = new Map(fetchedQuestions.map((q) => [q.id, q]));
+      }
+
+      // Enrich answers with question data
+      for (const answer of diary.answers) {
+        if (!answer.question && answer.questionId) {
+          const question = questionsMap.get(answer.questionId);
+          if (question) {
+            // Add question data to answer
+            (answer as any).question = question;
+          }
+        }
+      }
+    }
+
     return diary;
   }
 

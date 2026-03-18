@@ -2,14 +2,29 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StorageImage } from '@/components/StorageImage';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useCreateFolder } from '@/hooks/useFolders';
+import { useSubscriptions } from '@/hooks/usePayment';
+
+/** HTML 태그를 제거하고 텍스트만 반환 */
+function stripHTML(html: string): string {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
 
 export function HomePage() {
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const { data: diaries = [], isLoading: diariesLoading } = useDiaries(selectedFolderId);
+  const { data: subscriptions = [] } = useSubscriptions();
   const createFolder = useCreateFolder();
+  
+  const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  
+  // Filter out "All" folder (isDefault: true)
+  const filteredFolders = folders.filter((folder) => !folder.isDefault);
 
   // 기본은 전체(undefined), 폴더 로드 시에도 전체 유지
 
@@ -44,14 +59,24 @@ export function HomePage() {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-          <Link to="/payment?plan=월간&amount=4900">
+          {activeSubscription ? (
             <Button
               variant="outline"
-              className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
+              className="bg-gray-100 text-gray-700 border-0 rounded-lg px-4 py-2 h-auto cursor-default"
+              disabled
             >
-              구독하기
+              구독중
             </Button>
-          </Link>
+          ) : (
+            <Link to="/payment?plan=월간&amount=4900">
+              <Button
+                variant="outline"
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
+              >
+                구독하기
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Header - Second Row */}
@@ -74,13 +99,14 @@ export function HomePage() {
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A2C1A]"></span>
             )}
           </button>
-          {!foldersLoading && folders.map((folder) => (
+          {!foldersLoading && filteredFolders.map((folder) => (
             <button
               key={folder.id}
               onClick={() => handleFolderClick(folder.id)}
-              className="relative pb-1 flex-shrink-0"
+              className="relative pb-1 flex-shrink-0 max-w-[120px]"
+              title={folder.name}
             >
-              <span className={`text-sm font-medium ${
+              <span className={`text-sm font-medium block truncate ${
                 selectedFolderId === folder.id ? 'text-[#4A2C1A]' : 'text-gray-600'
               }`}>
                 {folder.name}
@@ -159,11 +185,55 @@ export function HomePage() {
                       </span>
                     )}
                   </div>
-                  {diary.title && (
-                    <h3 className="font-semibold text-[#4A2C1A]">{diary.title}</h3>
-                  )}
-                  {diary.content && (
-                    <p className="text-sm text-gray-700 line-clamp-2">{diary.content}</p>
+                  
+                  {/* 질문기록 형식: 썸네일과 질문 제목들 표시 */}
+                  {diary.type === 'question_based' && diary.answers && diary.answers.length > 0 ? (
+                    <div className="flex gap-3">
+                      {/* 썸네일 (있는 경우) */}
+                      {diary.images && diary.images.length > 0 && (
+                        <div className="flex-shrink-0">
+                          <StorageImage
+                            url={diary.images[0].imageUrl}
+                            className="h-16 w-16 rounded object-cover"
+                          />
+                        </div>
+                      )}
+                      {/* 질문 제목들 */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        {diary.answers.map((answer, index) => (
+                          <p
+                            key={answer.id}
+                            className="text-sm text-gray-700 truncate"
+                            title={answer.question?.question || `질문 ${index + 1}`}
+                          >
+                            {answer.question?.question || `질문 ${index + 1}`}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 자유형식: 기존 레이아웃 */}
+                      {diary.images && diary.images.length > 0 && (
+                        <div className="flex gap-1 overflow-x-auto">
+                          {diary.images.slice(0, 3).map((img) => (
+                            <StorageImage
+                              key={img.id}
+                              url={img.imageUrl}
+                              className="h-16 w-16 flex-shrink-0 rounded object-cover"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {diary.title && (
+                        <h3 className="font-semibold text-[#4A2C1A]">{diary.title}</h3>
+                      )}
+                      {diary.content && (
+                        <p className="text-sm text-gray-700 line-clamp-2">
+                          {stripHTML(diary.content)}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </Link>

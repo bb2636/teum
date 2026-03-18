@@ -63,6 +63,8 @@ export function useProcessPayment() {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['me'] }); // 유저 정보도 업데이트
+      queryClient.invalidateQueries({ queryKey: ['users'] }); // 관리자 화면 유저 목록도 업데이트
     },
   });
 }
@@ -92,5 +94,32 @@ export function usePayments() {
       return response.data.payments;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Cancel subscription
+export function useCancelSubscription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (subscriptionId: string) => {
+      const response = await apiRequest<{ data: { success: boolean; message: string } }>(
+        '/payments/subscriptions/cancel',
+        {
+          method: 'POST',
+          body: JSON.stringify({ subscriptionId }),
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      // 즉시 refetch하여 구독 상태 반영
+      queryClient.refetchQueries({ queryKey: ['music', 'jobs'] });
+      queryClient.refetchQueries({ queryKey: ['subscriptions'] });
+    },
   });
 }

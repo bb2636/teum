@@ -1,6 +1,8 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/error-handler';
 import { setCacheHeaders } from './middleware/cache-headers';
 import { performanceMiddleware } from './middleware/performance';
@@ -8,6 +10,9 @@ import { performanceMonitor } from './utils/performance-monitor';
 import { authenticate } from './middleware/auth';
 import { requireRole } from './middleware/auth';
 import { adapter } from './storage';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const app: Express = express();
 
@@ -113,6 +118,15 @@ app.use('/api/*', (req, res) => {
     },
   });
 });
+
+// In production, serve the frontend build
+if (process.env.NODE_ENV === 'production') {
+  const webDistPath = path.resolve(__dirname, '../../web/dist');
+  app.use(express.static(webDistPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(webDistPath, 'index.html'));
+  });
+}
 
 // Error handler (must be last)
 app.use(errorHandler);

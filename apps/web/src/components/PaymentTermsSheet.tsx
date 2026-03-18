@@ -168,10 +168,10 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
         <TermsModal type="service" onClose={() => setShowServiceTerms(false)} />
       )}
       {showPaymentTerms && (
-        <TermsModal type="service" onClose={() => setShowPaymentTerms(false)} />
+        <TermsModal type="payment" onClose={() => setShowPaymentTerms(false)} />
       )}
       {showRefundTerms && (
-        <TermsModal type="service" onClose={() => setShowRefundTerms(false)} />
+        <TermsModal type="refund" onClose={() => setShowRefundTerms(false)} />
       )}
     </>
   );

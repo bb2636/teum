@@ -3,7 +3,7 @@ import { db } from '../db';
 import { terms } from '../db/schema';
 
 export class TermsRepository {
-  async findByType(type: 'service' | 'privacy') {
+  async findByType(type: 'service' | 'privacy' | 'payment' | 'refund') {
     const [term] = await db
       .select()
       .from(terms)
@@ -14,7 +14,7 @@ export class TermsRepository {
   }
 
   async create(data: {
-    type: 'service' | 'privacy';
+    type: 'service' | 'privacy' | 'payment' | 'refund';
     version: string;
     content: string;
   }) {

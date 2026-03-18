@@ -2,12 +2,12 @@ import { termsRepository } from '../repositories/terms.repository';
 import { logger } from '../config/logger';
 
 export class TermsService {
-  async getTerms(type: 'service' | 'privacy') {
+  async getTerms(type: 'service' | 'privacy' | 'payment' | 'refund') {
     logger.info('Fetching terms', { type });
     return termsRepository.findByType(type);
   }
 
-  async createOrUpdateTerms(type: 'service' | 'privacy', content: string, incrementVersion: boolean = true) {
+  async createOrUpdateTerms(type: 'service' | 'privacy' | 'payment' | 'refund', content: string, incrementVersion: boolean = true) {
     logger.info('Creating or updating terms', { type, incrementVersion });
     
     const existing = await termsRepository.findByType(type);

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api';
 
 interface TermsModalProps {
-  type: 'service' | 'privacy';
+  type: 'service' | 'privacy' | 'payment' | 'refund';
   onClose: () => void;
 }
 
@@ -34,7 +34,10 @@ export function TermsModal({ type, onClose }: TermsModalProps) {
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-brown-900">
-            {type === 'service' ? '서비스 이용약관' : '개인정보 처리방침'}
+            {type === 'service' ? '서비스 이용약관' :
+             type === 'privacy' ? '개인정보 처리방침' :
+             type === 'payment' ? '정기결제/자동갱신' :
+             '환불/취소 정책'}
           </h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />

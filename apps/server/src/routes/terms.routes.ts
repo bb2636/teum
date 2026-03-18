@@ -8,6 +8,8 @@ const router: Router = Router();
 // Public routes
 router.get('/service', termsController.getServiceTerms.bind(termsController));
 router.get('/privacy', termsController.getPrivacyPolicy.bind(termsController));
+router.get('/payment', termsController.getPaymentTerms.bind(termsController));
+router.get('/refund', termsController.getRefundTerms.bind(termsController));
 
 // Admin routes
 router.get(
@@ -33,6 +35,30 @@ router.put(
   authenticate,
   requireRole(['admin']),
   termsController.updatePrivacyPolicy.bind(termsController)
+);
+router.get(
+  '/admin/payment',
+  authenticate,
+  requireRole(['admin']),
+  termsController.getAdminPaymentTerms.bind(termsController)
+);
+router.get(
+  '/admin/refund',
+  authenticate,
+  requireRole(['admin']),
+  termsController.getAdminRefundTerms.bind(termsController)
+);
+router.put(
+  '/admin/payment',
+  authenticate,
+  requireRole(['admin']),
+  termsController.updatePaymentTerms.bind(termsController)
+);
+router.put(
+  '/admin/refund',
+  authenticate,
+  requireRole(['admin']),
+  termsController.updateRefundTerms.bind(termsController)
 );
 
 export default router;

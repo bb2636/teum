@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { useServiceTerms, usePrivacyPolicy, useUpdateServiceTerms, useUpdatePrivacyPolicy } from '@/hooks/useTerms';
+import { 
+  useServiceTerms, 
+  usePrivacyPolicy, 
+  usePaymentTerms,
+  useRefundTerms,
+  useUpdateServiceTerms, 
+  useUpdatePrivacyPolicy,
+  useUpdatePaymentTerms,
+  useUpdateRefundTerms,
+} from '@/hooks/useTerms';
 import { FileText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-type TermsType = 'service' | 'privacy';
+type TermsType = 'service' | 'privacy' | 'payment' | 'refund';
 
 export function TermsManagementTab() {
   const [selectedType, setSelectedType] = useState<TermsType>('service');
@@ -20,11 +29,24 @@ export function TermsManagementTab() {
 
   const serviceTerms = useServiceTerms();
   const privacyPolicy = usePrivacyPolicy();
+  const paymentTerms = usePaymentTerms();
+  const refundTerms = useRefundTerms();
   const updateServiceTerms = useUpdateServiceTerms();
   const updatePrivacyPolicy = useUpdatePrivacyPolicy();
+  const updatePaymentTerms = useUpdatePaymentTerms();
+  const updateRefundTerms = useUpdateRefundTerms();
 
-  const currentTerms = selectedType === 'service' ? serviceTerms : privacyPolicy;
-  const updateMutation = selectedType === 'service' ? updateServiceTerms : updatePrivacyPolicy;
+  const currentTerms = 
+    selectedType === 'service' ? serviceTerms :
+    selectedType === 'privacy' ? privacyPolicy :
+    selectedType === 'payment' ? paymentTerms :
+    refundTerms;
+  
+  const updateMutation = 
+    selectedType === 'service' ? updateServiceTerms :
+    selectedType === 'privacy' ? updatePrivacyPolicy :
+    selectedType === 'payment' ? updatePaymentTerms :
+    updateRefundTerms;
 
   // Load content when terms data changes or type changes
   useEffect(() => {
@@ -85,8 +107,12 @@ export function TermsManagementTab() {
       // Refresh to get updated version
       if (selectedType === 'service') {
         serviceTerms.refetch();
-      } else {
+      } else if (selectedType === 'privacy') {
         privacyPolicy.refetch();
+      } else if (selectedType === 'payment') {
+        paymentTerms.refetch();
+      } else {
+        refundTerms.refetch();
       }
     } catch (error) {
       console.error('Failed to save terms:', error);
@@ -103,7 +129,18 @@ export function TermsManagementTab() {
   };
 
   const getTermsTitle = (type: TermsType) => {
-    return type === 'service' ? '서비스 이용약관' : '개인정보 처리방침';
+    switch (type) {
+      case 'service':
+        return '서비스 이용약관';
+      case 'privacy':
+        return '개인정보 처리방침';
+      case 'payment':
+        return '정기결제/자동갱신';
+      case 'refund':
+        return '환불/취소 정책';
+      default:
+        return '';
+    }
   };
 
   const getTermsIcon = () => {
@@ -115,7 +152,7 @@ export function TermsManagementTab() {
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-[#4A2C1A] mb-2">약관 관리</h2>
-        <p className="text-sm text-gray-600">서비스 이용약관 및 개인정보 처리방침을 관리합니다.</p>
+        <p className="text-sm text-gray-600">서비스 이용약관, 개인정보 처리방침, 정기결제/자동갱신, 환불/취소 정책을 관리합니다.</p>
       </div>
 
       <div className="flex gap-6">
@@ -161,6 +198,50 @@ export function TermsManagementTab() {
             {privacyPolicy.data?.updatedAt && (
               <p className="text-xs text-gray-500 mt-2">
                 최종 수정: {format(new Date(privacyPolicy.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
+              </p>
+            )}
+          </button>
+
+          {/* Payment Terms Card */}
+          <button
+            onClick={() => setSelectedType('payment')}
+            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+              selectedType === 'payment'
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`${selectedType === 'payment' ? 'text-purple-600' : 'text-gray-400'}`}>
+                {getTermsIcon()}
+              </div>
+              <h3 className="font-semibold text-[#4A2C1A]">정기결제/자동갱신</h3>
+            </div>
+            {paymentTerms.data?.updatedAt && (
+              <p className="text-xs text-gray-500 mt-2">
+                최종 수정: {format(new Date(paymentTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
+              </p>
+            )}
+          </button>
+
+          {/* Refund Terms Card */}
+          <button
+            onClick={() => setSelectedType('refund')}
+            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+              selectedType === 'refund'
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`${selectedType === 'refund' ? 'text-purple-600' : 'text-gray-400'}`}>
+                {getTermsIcon()}
+              </div>
+              <h3 className="font-semibold text-[#4A2C1A]">환불/취소 정책</h3>
+            </div>
+            {refundTerms.data?.updatedAt && (
+              <p className="text-xs text-gray-500 mt-2">
+                최종 수정: {format(new Date(refundTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
               </p>
             )}
           </button>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, Loader2, Download, Sprout, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,13 @@ export function MusicHomePage() {
   const { data: genresData } = useMusicGenres();
   const { data: diariesAll = [] } = useDiaries();
   const { data: folders = [] } = useFolders();
-  const { data: subscriptions = [] } = useSubscriptions();
+  const { data: subscriptions = [], refetch: refetchSubscriptions } = useSubscriptions();
   const generateMusic = useGenerateMusic();
+
+  // 페이지 마운트 시 구독 정보 갱신 (결제 성공 후 바로 반영되도록)
+  useEffect(() => {
+    refetchSubscriptions();
+  }, [refetchSubscriptions]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);

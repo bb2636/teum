@@ -65,6 +65,9 @@ export function useProcessPayment() {
       queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
       queryClient.invalidateQueries({ queryKey: ['me'] }); // 유저 정보도 업데이트
       queryClient.invalidateQueries({ queryKey: ['users'] }); // 관리자 화면 유저 목록도 업데이트
+      // 즉시 refetch하여 구독 정보 반영
+      queryClient.refetchQueries({ queryKey: ['subscriptions'] });
+      queryClient.refetchQueries({ queryKey: ['music', 'jobs'] });
     },
   });
 }

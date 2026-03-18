@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 
 export interface Terms {
-  type: 'service' | 'privacy';
+  type: 'service' | 'privacy' | 'payment' | 'refund';
   title: string;
   content: string;
   version: string;
@@ -106,6 +106,102 @@ export function useUpdatePrivacyPolicy() {
       // Update cache directly instead of invalidating
       queryClient.setQueryData(['terms', 'admin', 'privacy'], data);
       queryClient.invalidateQueries({ queryKey: ['terms', 'admin', 'privacy'] });
+    },
+  });
+}
+
+// Admin: Get payment terms
+export function usePaymentTerms() {
+  return useQuery<Terms>({
+    queryKey: ['terms', 'admin', 'payment'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest<{ data: Terms }>('/terms/admin/payment');
+        return response.data;
+      } catch (error) {
+        return {
+          type: 'payment' as const,
+          title: '정기결제/자동갱신',
+          content: '',
+          version: '1.0',
+          updatedAt: null,
+          createdAt: null,
+        };
+      }
+    },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// Admin: Get refund terms
+export function useRefundTerms() {
+  return useQuery<Terms>({
+    queryKey: ['terms', 'admin', 'refund'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest<{ data: Terms }>('/terms/admin/refund');
+        return response.data;
+      } catch (error) {
+        return {
+          type: 'refund' as const,
+          title: '환불/취소 정책',
+          content: '',
+          version: '1.0',
+          updatedAt: null,
+          createdAt: null,
+        };
+      }
+    },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// Admin: Update payment terms
+export function useUpdatePaymentTerms() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ content, autoSave = false }: { content: string; autoSave?: boolean }) => {
+      const url = autoSave 
+        ? '/terms/admin/payment?autoSave=true'
+        : '/terms/admin/payment';
+      const response = await apiRequest<{ data: Terms }>(url, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['terms', 'admin', 'payment'], data);
+      queryClient.invalidateQueries({ queryKey: ['terms', 'admin', 'payment'] });
+    },
+  });
+}
+
+// Admin: Update refund terms
+export function useUpdateRefundTerms() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ content, autoSave = false }: { content: string; autoSave?: boolean }) => {
+      const url = autoSave 
+        ? '/terms/admin/refund?autoSave=true'
+        : '/terms/admin/refund';
+      const response = await apiRequest<{ data: Terms }>(url, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['terms', 'admin', 'refund'], data);
+      queryClient.invalidateQueries({ queryKey: ['terms', 'admin', 'refund'] });
     },
   });
 }

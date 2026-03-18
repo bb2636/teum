@@ -46,18 +46,6 @@ app.get('/api/admin/performance', authenticate, requireRole(['admin']), (_req, r
   });
 });
 
-// Root path
-app.get('/', (_req, res) => {
-  res.json({ 
-    message: 'Teum API Server',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      api: '/api',
-    },
-  });
-});
-
 // API routes
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -125,6 +113,17 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(webDistPath));
   app.get('*', (_req, res) => {
     res.sendFile(path.join(webDistPath, 'index.html'));
+  });
+} else {
+  app.get('/', (_req, res) => {
+    res.json({
+      message: 'Teum API Server',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+      },
+    });
   });
 }
 

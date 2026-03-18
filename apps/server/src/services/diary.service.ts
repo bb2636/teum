@@ -124,15 +124,8 @@ export class DiaryService {
       });
     }
 
-    // Return diary with relations
-    const fullDiary = await diaryRepository.findById(diary.id);
-    if (!fullDiary) {
-      throw new Error('Failed to retrieve created diary');
-    }
-
-    // Trigger encouragement generation asynchronously (non-blocking)
-    // This should not affect diary creation if it fails
-    logger.info('Triggering AI encouragement generation', {
+    // Generate AI encouragement synchronously so it's included in the response
+    logger.info('Generating AI encouragement', {
       diaryId: diary.id,
       type: data.type,
       hasContent: !!data.content,
@@ -140,23 +133,26 @@ export class DiaryService {
       hasAnswers: questionAnswers.length > 0,
       answersCount: questionAnswers.length,
     });
-    
-    encouragementService
-      .generateAndSaveEncouragement(diary.id, userId, {
+
+    try {
+      await encouragementService.generateAndSaveEncouragement(diary.id, userId, {
         title: data.title,
         content: data.content,
         type: data.type,
         answers: questionAnswers,
-      })
-      .catch((error) => {
-        // Log but don't throw - diary creation should succeed even if AI fails
-        logger.error('Failed to generate encouragement (non-blocking)', { 
-          error: error instanceof Error ? error.message : String(error),
-          errorName: error instanceof Error ? error.name : undefined,
-          errorCode: (error as any)?.code,
-          diaryId: diary.id 
-        });
       });
+    } catch (error) {
+      logger.error('Failed to generate encouragement (non-blocking)', {
+        error: error instanceof Error ? error.message : String(error),
+        diaryId: diary.id,
+      });
+    }
+
+    // Return diary with relations (including AI message)
+    const fullDiary = await diaryRepository.findById(diary.id);
+    if (!fullDiary) {
+      throw new Error('Failed to retrieve created diary');
+    }
 
     return fullDiary;
   }

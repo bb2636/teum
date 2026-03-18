@@ -58,6 +58,6 @@ localPort = 5002
 externalPort = 3000
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["pnpm", "start"]
-build = ["pnpm", "--filter", "web", "build"]
+deploymentTarget = "cloudrun"
+run = ["sh", "-c", "pnpm start"]
+build = ["sh", "-c", "pnpm --filter web build"]

@@ -8,7 +8,7 @@ Teum is a mobile-optimized web application where users can write personal diarie
 
 - **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, Zustand
 - **Backend**: Node.js + Express, TypeScript, Drizzle ORM
-- **Database**: PostgreSQL (Replit built-in)
+- **Database**: PostgreSQL (외부 Neon DB)
 - **Package Manager**: pnpm (monorepo with workspaces)
 
 ## Project Structure
@@ -57,7 +57,7 @@ pnpm --filter server db:migrate
 ## Deployment
 
 Configured for autoscale deployment:
-- Build: `pnpm install && pnpm build`
-- Run: `node apps/server/dist/index.js`
+- Build: `pnpm --filter web build`
+- Run: `pnpm start` (내부적으로 `tsx`로 서버 TypeScript 소스를 직접 실행)
 
-For production, the built frontend assets should be served by the Express server or a CDN.
+프로덕션에서 Express 서버가 프론트엔드 빌드 파일(`apps/web/dist`)도 함께 서빙합니다.

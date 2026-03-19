@@ -22,7 +22,7 @@ export function MyPage() {
   const navigate = useNavigate();
   const { data: user, isLoading } = useMe();
   const { data: subscriptions = [] } = useSubscriptions();
-  const { data: inquiries = [] } = useSupportInquiries();
+  useSupportInquiries();
   const logout = useLogout();
 
   const [showTerms, setShowTerms] = useState(false);

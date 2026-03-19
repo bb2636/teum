@@ -7,7 +7,6 @@ import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useSubscriptions } from '@/hooks/usePayment';
-import { Toast } from '@/components/Toast';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -585,7 +584,7 @@ export function HomePage() {
                             to={`/diaries/${diary.id}`}
                             className="block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                           >
-                            {hasImage ? (
+                            {hasImage && diary.images && diary.images.length > 0 ? (
                               <div className="relative">
                                 <StorageImage
                                   url={diary.images[0].imageUrl}

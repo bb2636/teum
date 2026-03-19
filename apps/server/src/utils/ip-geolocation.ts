@@ -34,7 +34,7 @@ export async function detectCountryFromIp(ip: string): Promise<string | null> {
       return null;
     }
 
-    const data: IpApiResponse = await response.json();
+    const data = (await response.json()) as IpApiResponse;
 
     if (data.status === 'success' && data.countryCode) {
       return data.countryCode;

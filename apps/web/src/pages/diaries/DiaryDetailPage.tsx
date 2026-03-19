@@ -148,17 +148,18 @@ export function DiaryDetailPage() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* AI 응원 메시지 - 맨 밑 별도 섹션 */}
-        {(diary.aiMessage || diary.aiFeedback?.outputText) && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300">
-            <p className="text-sm font-semibold text-amber-800 mb-2">응원 메시지</p>
-            <p className="text-base text-brown-800 leading-relaxed">
-              {diary.aiMessage || diary.aiFeedback?.outputText}
-            </p>
           </div>
-        )}
+
+          {/* AI 응원 메시지 - 맨 밑 별도 섹션 */}
+          {(diary.aiMessage || diary.aiFeedback?.outputText) && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300 mt-4">
+              <p className="text-sm font-semibold text-amber-800 mb-2">응원 메시지</p>
+              <p className="text-base text-brown-800 leading-relaxed">
+                {diary.aiMessage || diary.aiFeedback?.outputText}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}

@@ -11,6 +11,7 @@ export interface User {
     nickname?: string;
     name?: string;
     profileImageUrl?: string;
+    country?: string;
   };
 }
 

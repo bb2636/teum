@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Smartphone, Building2, ChevronDown, BookOpen, FileText, Headphones } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones } from 'lucide-react';
 import { useProcessPayment } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';

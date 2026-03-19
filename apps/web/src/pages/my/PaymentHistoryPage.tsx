@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscriptions, usePayments, useCancelSubscription } from '@/hooks/usePayment';
 import { useMe } from '@/hooks/useProfile';
@@ -139,6 +139,7 @@ export function PaymentHistoryPage() {
               </div>
             )}
           </div>
+        </div>
       </div>
 
       {/* 구독 취소 모달 */}

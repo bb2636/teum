@@ -3,7 +3,7 @@
  * IP 기반 국가 감지로 자동 언어 설정
  */
 
-export type Language = 'ko' | 'en' | 'ja' | 'zh' | 'de' | 'es' | 'it' | 'pt' | 'ru' | 'ar' | 'vi' | 'th';
+export type Language = 'ko' | 'en' | 'ja' | 'zh' | 'de' | 'es' | 'it' | 'pt' | 'ru' | 'ar' | 'vi' | 'th' | 'fr' | 'nl' | 'sv' | 'no' | 'da' | 'fi' | 'pl' | 'tr' | 'id' | 'ms' | 'tl';
 
 // 국가 코드를 언어 코드로 매핑
 const COUNTRY_TO_LANGUAGE: Record<string, Language> = {
@@ -162,6 +162,17 @@ const translations: Record<Language, Record<string, string>> = {
   ar: {},
   vi: {},
   th: {},
+  fr: {},
+  nl: {},
+  sv: {},
+  no: {},
+  da: {},
+  fi: {},
+  pl: {},
+  tr: {},
+  id: {},
+  ms: {},
+  tl: {},
 };
 
 /**

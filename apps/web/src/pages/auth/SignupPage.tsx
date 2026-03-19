@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSignup } from '@/hooks/useAuth';
-import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
+import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
+import { useUploadImage } from '@/hooks/useUpload';
 import { Logo } from '@/components/Logo';
-import { COUNTRY_OPTIONS } from '@/lib/countries';
+import { ChevronLeft, Eye, EyeOff, X, User, Pencil } from 'lucide-react';
+import { TermsModal } from '@/pages/my/TermsModal';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한
 const nicknameSchema = z
@@ -27,14 +29,17 @@ const passwordSchema = z
   .refine((val) => /[a-zA-Z]/.test(val), '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.')
   .refine((val) => /[0-9]/.test(val), '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.');
 
-const signupSchema = z.object({
+// Step 1: Account info schema
+const step1Schema = z.object({
   email: z.string().email('올바른 이메일을 입력해주세요'),
   password: passwordSchema,
   confirmPassword: z.string(),
+});
+
+// Step 2: Profile info schema
+const step2Schema = z.object({
   nickname: nicknameSchema,
   name: z.string().min(1, '이름을 입력해주세요.').max(100),
-  phone: z.string().optional(),
-  verificationCode: z.string().optional(),
   dateOfBirth: z
     .string()
     .refine((val) => {
@@ -43,80 +48,114 @@ const signupSchema = z.object({
       return year && month && day && month >= 1 && month <= 12 && day >= 1 && day <= 31;
     }, '생년월일을 입력해주세요.')
     .optional(),
-  country: z.string().optional(),
+  profileImageUrl: z.string().optional(),
+});
+
+// Step 3: Terms schema
+const step3Schema = z.object({
   termsService: z.boolean().refine((val) => val === true, '서비스 이용약관에 동의해주세요'),
   termsPrivacy: z.boolean().refine((val) => val === true, '개인정보 처리방침에 동의해주세요'),
 });
 
-type SignupFormData = z.infer<typeof signupSchema>;
+type Step1FormData = z.infer<typeof step1Schema>;
+type Step2FormData = z.infer<typeof step2Schema>;
+type Step3FormData = z.infer<typeof step3Schema>;
 
 export function SignupPage() {
   const signupMutation = useSignup();
-  const requestVerification = useRequestPhoneVerification();
-  const confirmVerification = useConfirmPhoneVerification();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState<string | null>(null);
-  const [verificationCode, setVerificationCode] = useState<string | null>(null);
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [showVerificationCode, setShowVerificationCode] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
+  const [emailVerificationCode, setEmailVerificationCode] = useState<string | null>(null);
+  const [emailVerificationInput, setEmailVerificationInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [nicknameError, setNicknameError] = useState<string[]>([]);
-  
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    trigger,
-  } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-    mode: 'onChange', // 실시간 유효성 검사
+  const [formData, setFormData] = useState<{
+    step1?: Step1FormData;
+    step2?: Step2FormData;
+    step3?: Step3FormData;
+  }>({});
+
+  const checkEmailExists = useCheckEmailExists();
+  const requestEmailVerification = useRequestEmailVerification();
+  const confirmEmailVerification = useConfirmEmailVerification();
+  const uploadImage = useUploadImage();
+  const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
+  const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'privacy'>(false);
+
+  // Step 1 form
+  const step1Form = useForm<Step1FormData>({
+    resolver: zodResolver(step1Schema),
+    mode: 'onChange',
   });
 
-  const email = watch('email');
-  const password = watch('password');
-  const confirmPassword = watch('confirmPassword');
-  const nickname = watch('nickname');
-  const name = watch('name');
-  const termsService = watch('termsService');
-  const termsPrivacy = watch('termsPrivacy');
-  const phone = watch('phone');
-  
+  // Step 2 form
+  const step2Form = useForm<Step2FormData>({
+    resolver: zodResolver(step2Schema),
+    mode: 'onChange',
+  });
+
+  // Step 3 form
+  const step3Form = useForm<Step3FormData>({
+    resolver: zodResolver(step3Schema),
+    mode: 'onChange',
+  });
+
+  const step1Email = step1Form.watch('email');
+  const step1Password = step1Form.watch('password');
+  const step1ConfirmPassword = step1Form.watch('confirmPassword');
+  const step2Nickname = step2Form.watch('nickname');
+  const step2Name = step2Form.watch('name');
+  const step2DateOfBirth = step2Form.watch('dateOfBirth');
+  const step3TermsService = step3Form.watch('termsService');
+  const step3TermsPrivacy = step3Form.watch('termsPrivacy');
+
   // Check nickname availability
-  const shouldCheckNickname = nickname && nickname.length >= 2 && nickname.length <= 12 && !nickname.includes(' ') && /^[a-zA-Z0-9가-힣_]+$/.test(nickname);
-  const nicknameCheck = useNicknameCheck(nickname || '', shouldCheckNickname || false);
-  
-  // 버튼 활성화 조건: 모든 필수 필드가 입력되고 유효성 검사를 통과해야 함
-  const isFormValid = 
-    email && 
-    password && 
-    confirmPassword && 
-    nickname && 
-    name && 
-    termsService === true && 
-    termsPrivacy === true &&
-    !errors.email &&
-    !errors.password &&
-    !errors.confirmPassword &&
-    !errors.nickname &&
-    !errors.name &&
-    !errors.termsService &&
-    !errors.termsPrivacy &&
-    nicknameError.length === 0 &&
-    password === confirmPassword;
+  const shouldCheckNickname = step2Nickname && step2Nickname.length >= 2 && step2Nickname.length <= 12 && !step2Nickname.includes(' ') && /^[a-zA-Z0-9가-힣_]+$/.test(step2Nickname);
+  const nicknameCheck = useNicknameCheck(step2Nickname || '', shouldCheckNickname || false);
+
+  // Step 1 validation
+  const step1Errors = step1Form.formState.errors;
+  const isStep1Valid =
+    step1Email &&
+    step1Password &&
+    step1ConfirmPassword &&
+    !step1Errors.email &&
+    !step1Errors.password &&
+    step1Password === step1ConfirmPassword &&
+    emailVerified;
+
+  // Step 2 validation
+  const step2Errors = step2Form.formState.errors;
+  const isStep2Valid =
+    step2Nickname &&
+    step2Name &&
+    step2DateOfBirth &&
+    !step2Errors.nickname &&
+    !step2Errors.name &&
+    !step2Errors.dateOfBirth &&
+    nicknameError.length === 0;
+
+  // Step 3 validation
+  const step3Errors = step3Form.formState.errors;
+  const isStep3Valid = step3TermsService === true && step3TermsPrivacy === true;
 
   // 닉네임 실시간 유효성 검사
   useEffect(() => {
-    if (nickname && nickname.length > 0) {
+    if (step2Nickname && step2Nickname.length > 0) {
       const errors: string[] = [];
       
-      if (nickname.length < 2 || nickname.length > 12) {
+      if (step2Nickname.length < 2 || step2Nickname.length > 12) {
         errors.push('닉네임은 2~12자로 입력해 주세요.');
       }
       
-      if (nickname.includes(' ')) {
+      if (step2Nickname.includes(' ')) {
         errors.push('닉네임에 공백은 사용할 수 없습니다.');
       }
       
-      if (!/^[a-zA-Z0-9가-힣_]+$/.test(nickname)) {
+      if (!/^[a-zA-Z0-9가-힣_]+$/.test(step2Nickname)) {
         errors.push('사용할 수 없는 문자가 포함되어 있습니다.');
       }
       
@@ -128,88 +167,155 @@ export function SignupPage() {
       }
       
       setNicknameError(errors);
-      trigger('nickname');
+      step2Form.trigger('nickname');
     } else {
       setNicknameError([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nickname, nicknameCheck.data, shouldCheckNickname]);
+  }, [step2Nickname, nicknameCheck.data, shouldCheckNickname]);
 
-  // Request verification code
-  const handleRequestVerification = async () => {
-    if (!phone || phone.length < 10) {
-      setError('올바른 전화번호를 입력해주세요');
+  // Handle email verification request
+  const handleRequestEmailVerification = async () => {
+    if (!step1Email) {
+      setError('이메일을 입력해주세요');
+      return;
+    }
+
+    const isValid = await step1Form.trigger('email');
+    if (!isValid) {
       return;
     }
 
     setError(null);
-    requestVerification.mutate(phone, {
-      onSuccess: (data) => {
-        setShowVerificationCode(true);
-        if (data.code) {
-          setVerificationCode(data.code);
-        }
-      },
-      onError: (err) => {
-        setError(err instanceof Error ? err.message : '인증번호 발송에 실패했습니다');
-      },
-    });
-  };
 
-  // Confirm verification code
-  const handleConfirmVerification = async (code: string) => {
-    if (!phone || !code) {
-      setError('전화번호와 인증번호를 입력해주세요');
-      return;
-    }
-
-    setError(null);
-    confirmVerification.mutate(
-      { phone, code },
-      {
-        onSuccess: () => {
-          setPhoneVerified(true);
-          setError(null);
-        },
-        onError: (err) => {
-          setError(err instanceof Error ? err.message : '인증번호가 올바르지 않습니다');
-          setPhoneVerified(false);
-        },
+    // Check if email exists
+    try {
+      const checkResult = await checkEmailExists.mutateAsync(step1Email);
+      if (checkResult.exists) {
+        setError('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
+        return;
       }
-    );
+    } catch (err) {
+      console.error('Email check error:', err);
+    }
+
+    // Request verification code
+    try {
+      const result = await requestEmailVerification.mutateAsync(step1Email);
+      setShowEmailVerificationModal(true);
+      if (result.code) {
+        setEmailVerificationCode(result.code);
+        console.log('이메일 인증번호:', result.code);
+      }
+    } catch (err) {
+      const error = err as Error & { response?: { data?: { error?: { message?: string } } } };
+      const message = error.response?.data?.error?.message || error.message || '인증번호 발송에 실패했습니다';
+      setError(message);
+    }
   };
 
-  // Watch verification code input
-  const verificationCodeInput = watch('verificationCode');
-  
-  useEffect(() => {
-    if (verificationCodeInput && verificationCodeInput.length === 6 && phone && !phoneVerified) {
-      handleConfirmVerification(verificationCodeInput);
+  // Handle email verification confirm
+  const handleConfirmEmailVerification = async () => {
+    if (!step1Email || !emailVerificationInput) {
+      setError('인증번호를 입력해주세요');
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verificationCodeInput]);
 
-  const onSubmit = async (data: SignupFormData) => {
+    if (emailVerificationInput.length !== 6) {
+      setError('인증번호는 6자리입니다');
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await confirmEmailVerification.mutateAsync({
+        email: step1Email,
+        code: emailVerificationInput,
+      });
+      setEmailVerified(true);
+      setShowEmailVerificationModal(false);
+      setEmailVerificationInput('');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || '인증번호가 올바르지 않습니다');
+    }
+  };
+
+  // Step 1 submit
+  const onStep1Submit = async (data: Step1FormData) => {
+    if (!emailVerified) {
+      setError('이메일 인증을 완료해주세요');
+      return;
+    }
+
     if (data.password !== data.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다');
       return;
     }
 
+    setFormData((prev) => ({ ...prev, step1: data }));
+    setStep(2);
+    setError(null);
+  };
+
+  // Handle profile image upload
+  const handleProfileImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('이미지 파일만 업로드 가능합니다');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('이미지 크기는 5MB 이하여야 합니다');
+      return;
+    }
+
+    try {
+      const uploadedUrl = await uploadImage.mutateAsync(file);
+      setProfileImageUrl(uploadedUrl);
+      step2Form.setValue('profileImageUrl', uploadedUrl);
+    } catch (err) {
+      setError('이미지 업로드에 실패했습니다');
+    }
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  // Step 2 submit
+  const onStep2Submit = async (data: Step2FormData) => {
     if (nicknameError.length > 0) {
       setError('닉네임을 올바르게 입력해주세요');
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, step2: { ...data, profileImageUrl } }));
+    setStep(3);
+    setError(null);
+  };
+
+  // Step 3 submit (final signup)
+  const onStep3Submit = async (data: Step3FormData) => {
+    if (!formData.step1 || !formData.step2) {
+      setError('이전 단계 정보가 없습니다');
       return;
     }
 
     setError(null);
     signupMutation.mutate(
       {
-        email: data.email,
-        password: data.password,
-        nickname: data.nickname,
-        name: data.name,
-        phone: data.phone || undefined,
-        dateOfBirth: data.dateOfBirth || undefined,
-        country: data.country || undefined,
+        email: formData.step1.email,
+        password: formData.step1.password,
+        nickname: formData.step2.nickname,
+        name: formData.step2.name,
+        dateOfBirth: formData.step2.dateOfBirth,
+        profileImageUrl: formData.step2.profileImageUrl,
         termsConsents: [
           { termsType: 'service', consented: data.termsService },
           { termsType: 'privacy', consented: data.termsPrivacy },
@@ -224,14 +330,37 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 py-8">
+    <div className="min-h-screen flex flex-col px-4 py-8 bg-beige-50">
       <div className="w-full max-w-sm mx-auto space-y-6">
+        {/* Header */}
         <div className="text-center space-y-4">
+          {step > 1 && (
+            <button
+              onClick={() => setStep((prev) => (prev === 2 ? 1 : 2) as 1 | 2 | 3)}
+              className="absolute left-4 top-8 p-2 rounded-full hover:bg-gray-100"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
           <Logo size="sm" showText={false} />
           <h1 className="text-2xl font-bold">회원가입</h1>
           <p className="text-sm text-muted-foreground">
-            사용하실 계정 정보를 입력해주세요.
+            {step === 1 && '사용하실 계정 정보를 입력해주세요.'}
+            {step === 2 && '회원 정보를 입력해주세요.'}
+            {step === 3 && '약관에 동의해주세요.'}
           </p>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="flex items-center justify-center gap-2">
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              className={`h-2 w-8 rounded-full ${
+                s <= step ? 'bg-brown-600' : 'bg-gray-200'
+              }`}
+            />
+          ))}
         </div>
 
         {error && (
@@ -240,239 +369,257 @@ export function SignupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">이메일</Label>
-            <div className="flex gap-2">
-              <Input
-                id="email"
-                type="email"
-                {...register('email')}
-                placeholder="이메일을 입력해주세요"
-                className={errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={async () => {
-                  const isValid = await trigger('email');
-                  if (isValid) {
-                    // TODO: 이메일 인증번호 발송
-                    console.log('이메일 인증번호 발송');
-                  }
-                }}
-              >
-                인증번호 보내기
-              </Button>
-            </div>
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">비밀번호</Label>
-            <Input
-              id="password"
-              type="password"
-              {...register('password')}
-              placeholder="비밀번호를 입력해주세요"
-              className={errors.password ? 'border-red-500 placeholder:text-red-500' : ''}
-            />
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password.message}</p>
-            )}
-            {!errors.password && password && (
-              <p className="text-xs text-red-500">
-                비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">비밀번호 확인</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              {...register('confirmPassword')}
-              placeholder="비밀번호를 입력해주세요"
-              className={password && watch('confirmPassword') !== password ? 'border-red-500 placeholder:text-red-500' : ''}
-            />
-            {password && watch('confirmPassword') !== password && (
-              <p className="text-sm text-red-500">비밀번호가 일치하지 않습니다.</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="nickname">닉네임</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="nickname"
-                type="text"
-                {...register('nickname')}
-                placeholder="닉네임을 입력하세요"
-                className={errors.nickname || nicknameError.length > 0 ? 'border-red-500 placeholder:text-red-500' : ''}
-              />
-              {nickname && nicknameError.length === 0 && !errors.nickname && (
-                <div className="w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-xs">✓</span>
-                </div>
-              )}
-            </div>
-            {nicknameError.length > 0 && (
-              <div className="space-y-1">
-                {nicknameError.map((err, index) => (
-                  <p key={index} className="text-sm text-red-500">
-                    {err}
-                  </p>
-                ))}
-              </div>
-            )}
-            {errors.nickname && nicknameError.length === 0 && (
-              <p className="text-sm text-red-500">{errors.nickname.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">이름</Label>
-            <Input
-              id="name"
-              type="text"
-              {...register('name')}
-              placeholder="이름을 입력하세요"
-              className={errors.name ? 'border-red-500 placeholder:text-red-500' : ''}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">생년월일</Label>
-            <Input
-              id="dateOfBirth"
-              type="date"
-              {...register('dateOfBirth')}
-              className={errors.dateOfBirth ? 'border-red-500' : ''}
-            />
-            {errors.dateOfBirth && (
-              <p className="text-sm text-red-500">{errors.dateOfBirth.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">전화번호 (선택)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="phone"
-                type="tel"
-                {...register('phone')}
-                placeholder="010-1234-5678"
-                disabled={phoneVerified}
-              />
-              {!phoneVerified && (
+        {/* Step 1: Account Info */}
+        {step === 1 && (
+          <form onSubmit={step1Form.handleSubmit(onStep1Submit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">이메일</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  {...step1Form.register('email')}
+                  placeholder="이메일을 입력해주세요"
+                  className={step1Errors.email ? 'border-red-500' : ''}
+                  disabled={emailVerified}
+                />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleRequestVerification}
-                  disabled={requestVerification.isPending || !phone}
+                  onClick={handleRequestEmailVerification}
+                  disabled={requestEmailVerification.isPending || emailVerified}
                 >
-                  {requestVerification.isPending ? '발송 중...' : '인증번호 받기'}
+                  {emailVerified ? '인증완료' : '인증번호 보내기'}
                 </Button>
+              </div>
+              {step1Errors.email && (
+                <p className="text-sm text-red-500">{step1Errors.email.message}</p>
               )}
-              {phoneVerified && (
-                <span className="flex items-center text-sm text-green-600">
-                  ✓ 인증완료
-                </span>
+              {emailVerified && (
+                <p className="text-sm text-green-600">✓ 이메일 인증이 완료되었습니다</p>
               )}
             </div>
-            {showVerificationCode && !phoneVerified && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-700 font-medium mb-1">
-                  인증번호가 발송되었습니다
-                </p>
-                {verificationCode ? (
-                  <div className="mt-2 p-2 bg-white border border-blue-300 rounded">
-                    <p className="text-xs text-blue-600 mb-1">인증번호:</p>
-                    <p className="text-lg font-mono font-bold text-blue-800 tracking-widest text-center">
-                      {verificationCode}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-blue-600">
-                    개발 모드: 서버 콘솔을 확인하여 6자리 인증번호를 확인하세요.
-                  </p>
-                )}
-              </div>
-            )}
-            {showVerificationCode && !phoneVerified && (
-              <div className="space-y-2">
-                <Label htmlFor="verificationCode">인증번호</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">비밀번호</Label>
+              <div className="relative">
                 <Input
-                  id="verificationCode"
-                  type="text"
-                  {...register('verificationCode')}
-                  placeholder="6자리 인증번호"
-                  maxLength={6}
-                  className="text-center text-lg tracking-widest"
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  {...step1Form.register('password')}
+                  placeholder="비밀번호를 입력해주세요"
+                  className={step1Errors.password ? 'border-red-500' : ''}
                 />
-                {errors.verificationCode && (
-                  <p className="text-sm text-red-500">{errors.verificationCode.message}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {step1Errors.password && (
+                <p className="text-sm text-red-500">{step1Errors.password.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">비밀번호 확인</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  {...step1Form.register('confirmPassword')}
+                  placeholder="비밀번호를 입력해주세요"
+                  className={
+                    step1Password && step1ConfirmPassword !== step1Password
+                      ? 'border-red-500'
+                      : ''
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {step1Password && step1ConfirmPassword !== step1Password && (
+                <p className="text-sm text-red-500">비밀번호가 일치하지 않습니다.</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              disabled={!isStep1Valid}
+            >
+              다음
+            </Button>
+          </form>
+        )}
+
+        {/* Step 2: Profile Info */}
+        {step === 2 && (
+          <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label>프로필 사진</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0">
+                  <div className="w-16 h-16 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
+                    {profileImageUrl ? (
+                      <img
+                        src={profileImageUrl}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-brown-600" />
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center cursor-pointer hover:bg-brown-700">
+                    <Pencil className="w-3 h-3 text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <p className="text-sm text-muted-foreground">프로필 사진을 선택하세요 (선택)</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nickname">닉네임</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="nickname"
+                  type="text"
+                  {...step2Form.register('nickname')}
+                  placeholder="닉네임을 입력하세요"
+                  className={
+                    step2Errors.nickname || nicknameError.length > 0 ? 'border-red-500' : ''
+                  }
+                />
+                {step2Nickname && nicknameError.length === 0 && !step2Errors.nickname && (
+                  <div className="w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+              {nicknameError.length > 0 && (
+                <div className="space-y-1">
+                  {nicknameError.map((err, index) => (
+                    <p key={index} className="text-sm text-red-500">
+                      {err}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {step2Errors.nickname && nicknameError.length === 0 && (
+                <p className="text-sm text-red-500">{step2Errors.nickname.message}</p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="country">국가 (선택)</Label>
-            <select
-              id="country"
-              {...register('country')}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            <div className="space-y-2">
+              <Label htmlFor="name">이름</Label>
+              <Input
+                id="name"
+                type="text"
+                {...step2Form.register('name')}
+                placeholder="이름을 입력하세요"
+                className={step2Errors.name ? 'border-red-500' : ''}
+              />
+              {step2Errors.name && (
+                <p className="text-sm text-red-500">{step2Errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">생년월일</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                {...step2Form.register('dateOfBirth')}
+                className={step2Errors.dateOfBirth ? 'border-red-500' : ''}
+              />
+              {step2Errors.dateOfBirth && (
+                <p className="text-sm text-red-500">{step2Errors.dateOfBirth.message}</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              disabled={!isStep2Valid}
             >
-              <option value="">국가 선택</option>
-              {COUNTRY_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
+              다음
+            </Button>
+          </form>
+        )}
 
-          <div className="space-y-2">
-            <label className="flex items-start space-x-2">
-              <input
-                type="checkbox"
-                {...register('termsService')}
-                className="mt-1"
-              />
-              <span className="text-sm">서비스 이용약관에 동의합니다</span>
-            </label>
-            {errors.termsService && (
-              <p className="text-sm text-red-500">{errors.termsService.message}</p>
-            )}
-            <label className="flex items-start space-x-2">
-              <input
-                type="checkbox"
-                {...register('termsPrivacy')}
-                className="mt-1"
-              />
-              <span className="text-sm">개인정보 처리방침에 동의합니다</span>
-            </label>
-            {errors.termsPrivacy && (
-              <p className="text-sm text-red-500">{errors.termsPrivacy.message}</p>
-            )}
-          </div>
+        {/* Step 3: Terms */}
+        {step === 3 && (
+          <form onSubmit={step3Form.handleSubmit(onStep3Submit)} className="space-y-4">
+            <div className="space-y-2">
+              <label className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  {...step3Form.register('termsService')}
+                  className="mt-1"
+                />
+                <span className="text-sm">
+                  서비스 이용약관에 동의합니다{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal('service')}
+                    className="text-brown-600 underline"
+                  >
+                    보기
+                  </button>
+                </span>
+              </label>
+              {step3Errors.termsService && (
+                <p className="text-sm text-red-500">{step3Errors.termsService.message}</p>
+              )}
+              <label className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  {...step3Form.register('termsPrivacy')}
+                  className="mt-1"
+                />
+                <span className="text-sm">
+                  개인정보 처리방침에 동의합니다{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal('privacy')}
+                    className="text-brown-600 underline"
+                  >
+                    보기
+                  </button>
+                </span>
+              </label>
+              {step3Errors.termsPrivacy && (
+                <p className="text-sm text-red-500">{step3Errors.termsPrivacy.message}</p>
+              )}
+            </div>
 
-          <Button 
-            className={`w-full ${isFormValid ? 'bg-[#8B4513] text-white hover:bg-[#A0522D]' : 'bg-gray-500 text-white cursor-not-allowed'}`}
-            size="lg" 
-            type="submit" 
-            disabled={signupMutation.isPending || !isFormValid}
-          >
-            {signupMutation.isPending ? '가입 중...' : '다음'}
-          </Button>
-        </form>
+            <Button
+              type="submit"
+              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              disabled={!isStep3Valid || signupMutation.isPending}
+            >
+              {signupMutation.isPending ? '가입 중...' : '가입하기'}
+            </Button>
+          </form>
+        )}
 
         <div className="text-center text-sm">
           <Link to="/login" className="text-primary hover:underline">
@@ -480,6 +627,73 @@ export function SignupPage() {
           </Link>
         </div>
       </div>
+
+      {/* Email Verification Modal */}
+      {showEmailVerificationModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end"
+          onClick={() => {
+            if (emailVerified) {
+              setShowEmailVerificationModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">인증번호 입력</h2>
+              <button
+                onClick={() => {
+                  if (emailVerified) {
+                    setShowEmailVerificationModal(false);
+                  }
+                }}
+                className="p-2 rounded-full hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="verificationCode">인증번호</Label>
+              <Input
+                id="verificationCode"
+                type="text"
+                value={emailVerificationInput}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setEmailVerificationInput(value);
+                }}
+                placeholder="인증번호 입력"
+                maxLength={6}
+                className="text-center text-lg tracking-widest"
+                disabled={emailVerified}
+              />
+              {emailVerificationCode && (
+                <p className="text-xs text-gray-500 text-center">
+                  개발 모드: 인증번호는 콘솔에 표시되었습니다 ({emailVerificationCode})
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={handleConfirmEmailVerification}
+              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              disabled={emailVerificationInput.length !== 6 || emailVerified || confirmEmailVerification.isPending}
+            >
+              {confirmEmailVerification.isPending ? '확인 중...' : '확인'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Terms Modal */}
+      {showTermsModal && (
+        <TermsModal
+          type={showTermsModal}
+          onClose={() => setShowTermsModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -12,6 +12,13 @@ export const phoneVerificationStatusEnum = pgEnum('phone_verification_status', [
   'expired',
 ]);
 
+// Email verification status enum
+export const emailVerificationStatusEnum = pgEnum('email_verification_status', [
+  'pending',
+  'verified',
+  'expired',
+]);
+
 // Auth accounts table (for OAuth)
 export const authAccounts = pgTable('auth_accounts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -32,6 +39,18 @@ export const phoneVerifications = pgTable('phone_verifications', {
   phone: varchar('phone', { length: 20 }).notNull(),
   code: varchar('code', { length: 10 }).notNull(),
   status: phoneVerificationStatusEnum('status').default('pending').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Email verifications table
+export const emailVerifications = pgTable('email_verifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 255 }).notNull(),
+  code: varchar('code', { length: 10 }).notNull(),
+  status: emailVerificationStatusEnum('status').default('pending').notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   verifiedAt: timestamp('verified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -58,6 +77,13 @@ export const authAccountsRelations = relations(authAccounts, ({ one }) => ({
 export const phoneVerificationsRelations = relations(phoneVerifications, ({ one }) => ({
   user: one(users, {
     fields: [phoneVerifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const emailVerificationsRelations = relations(emailVerifications, ({ one }) => ({
+  user: one(users, {
+    fields: [emailVerifications.userId],
     references: [users.id],
   }),
 }));

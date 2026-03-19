@@ -150,6 +150,7 @@ export class MusicService {
       durationSeconds: job.durationSeconds != null ? Math.min(job.durationSeconds, 120) : undefined,
       title: (job.songTitle ?? job.lyricalTheme) || undefined,
       titleEn: job.songTitleEn ?? undefined,
+      sourceDiaryIds: (job.sourceDiaryIds as string[]) || [],
       createdAt: job.createdAt.toISOString(),
       completedAt: job.completedAt?.toISOString() || undefined,
     };

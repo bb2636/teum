@@ -5,6 +5,8 @@ import {
   loginSchema,
   phoneVerificationRequestSchema,
   phoneVerificationConfirmSchema,
+  emailVerificationRequestSchema,
+  emailVerificationConfirmSchema,
 } from '../validations/auth';
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
@@ -191,6 +193,63 @@ export class AuthController {
     try {
       const input = phoneVerificationConfirmSchema.parse(req.body);
       const result = await authService.confirmPhoneVerification(input);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async checkEmailExists(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.query;
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'Email is required',
+          },
+        });
+      }
+      const result = await authService.checkEmailExists(email);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async requestEmailVerification(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = emailVerificationRequestSchema.parse(req.body);
+      const result = await authService.requestEmailVerification(input);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('이미 존재하는 이메일')) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMAIL_EXISTS',
+            message: error.message,
+          },
+        });
+      }
+      next(error);
+    }
+  }
+
+  async confirmEmailVerification(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = emailVerificationConfirmSchema.parse(req.body);
+      const result = await authService.confirmEmailVerification(input);
       res.json({
         success: true,
         data: result,

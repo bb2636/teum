@@ -38,6 +38,8 @@ export class MusicOrchestratorService {
     lyrics?: string;
     musicPrompt?: string;
     audioUrl?: string;
+    title?: string;
+    titleEn?: string;
   }> {
     if (diaryIds.length !== 7) {
       throw new Error('Exactly 7 diaries are required');
@@ -106,11 +108,16 @@ export class MusicOrchestratorService {
       const analysis = await lyricAnalysisService.analyzeDiaries(diaryData);
 
       // Generate music (Mureka API). 사용자 선택 장르가 있으면 프롬프트 앞에 반영.
+      // 제목도 프롬프트에 포함하여 뮤레카가 참고할 수 있도록 함
       const stylePrefix = genreTag?.trim()
         ? `${genreTag.trim()}, `
         : '';
+      const titlePrefix = analysis.titleKo
+        ? `song title: "${analysis.titleKo}"${analysis.titleEn ? ` (${analysis.titleEn})` : ''}, `
+        : '';
       const promptForMureka =
         stylePrefix +
+        titlePrefix +
         analysis.musicPrompt +
         ', up to 2 minutes total length, natural fade-out ending, complete musical phrases, no abrupt cut or mid-phrase ending';
       const musicResult = await murekaProvider.generateMusic({
@@ -160,6 +167,8 @@ export class MusicOrchestratorService {
           lyrics: analysis.lyrics,
           musicPrompt: analysis.musicPrompt,
           audioUrl: musicResult.audioUrl,
+          title: analysis.titleKo,
+          titleEn: analysis.titleEn,
         };
       } else if (musicResult.providerJobId) {
         // Asynchronous: Job ID returned, will be polled (Mureka는 폴링으로 상태 조회)
@@ -177,6 +186,8 @@ export class MusicOrchestratorService {
           lyricalTheme: analysis.lyricalTheme,
           lyrics: analysis.lyrics,
           musicPrompt: analysis.musicPrompt,
+          title: analysis.titleKo,
+          titleEn: analysis.titleEn,
         };
       } else {
         throw new Error('No audio URL or job ID returned from provider');

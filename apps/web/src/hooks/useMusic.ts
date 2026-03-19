@@ -38,6 +38,7 @@ export interface MusicJob {
   durationSeconds?: number;
   title?: string;
   titleEn?: string;
+  sourceDiaryIds: string[];
   createdAt: string;
   completedAt?: string;
 }
@@ -53,6 +54,8 @@ export interface GenerateMusicResponse {
   musicPrompt?: string;
   audioUrl?: string;
   thumbnailUrl?: string;
+  title?: string;
+  titleEn?: string;
 }
 
 export interface MusicGenre {

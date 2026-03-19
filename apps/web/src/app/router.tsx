@@ -12,6 +12,7 @@ import { DiaryDetailPage } from '../pages/diaries/DiaryDetailPage';
 import { DiaryWritePage } from '../pages/diaries/DiaryWritePage';
 import { CreateFolderPage } from '../pages/diaries/CreateFolderPage';
 import { MusicHomePage } from '../pages/music/MusicHomePage';
+import { MusicCreatePage } from '../pages/music/MusicCreatePage';
 import { MusicJobPage } from '../pages/music/MusicJobPage';
 import { MyPage } from '../pages/my/MyPage';
 import { ProfileEditPage } from '../pages/my/ProfileEditPage';
@@ -149,6 +150,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <MusicHomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/music/create"
+                element={
+                  <ProtectedRoute>
+                    <MusicCreatePage />
                   </ProtectedRoute>
                 }
               />

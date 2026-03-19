@@ -50,6 +50,17 @@ export const phoneVerificationConfirmSchema = z.object({
   code: z.string().length(6, 'Verification code must be 6 digits'),
 });
 
+// Email verification request
+export const emailVerificationRequestSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+// Email verification confirm
+export const emailVerificationConfirmSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  code: z.string().length(6, 'Verification code must be 6 digits'),
+});
+
 // Google OAuth callback
 export const googleOAuthCallbackSchema = z.object({
   code: z.string(),
@@ -73,5 +84,7 @@ export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type PhoneVerificationRequestInput = z.infer<typeof phoneVerificationRequestSchema>;
 export type PhoneVerificationConfirmInput = z.infer<typeof phoneVerificationConfirmSchema>;
+export type EmailVerificationRequestInput = z.infer<typeof emailVerificationRequestSchema>;
+export type EmailVerificationConfirmInput = z.infer<typeof emailVerificationConfirmSchema>;
 export type GoogleOAuthCallbackInput = z.infer<typeof googleOAuthCallbackSchema>;
 export type GoogleOAuthOnboardingInput = z.infer<typeof googleOAuthOnboardingSchema>;

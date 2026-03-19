@@ -51,6 +51,7 @@ export function useSignup() {
       phone?: string;
       dateOfBirth?: string;
       country?: string;
+      profileImageUrl?: string;
       termsConsents: Array<{ termsType: string; consented: boolean }>;
     }) => {
       const response = await apiRequest<{ data: { user: User } }>('/auth/signup', {

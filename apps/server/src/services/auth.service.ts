@@ -1,5 +1,6 @@
 import { userRepository } from '../repositories/user.repository';
 import { phoneVerificationRepository } from '../repositories/phone-verification.repository';
+import { emailVerificationRepository } from '../repositories/email-verification.repository';
 import { termsConsentRepository } from '../repositories/terms-consent.repository';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
@@ -9,6 +10,8 @@ import {
   LoginInput,
   PhoneVerificationRequestInput,
   PhoneVerificationConfirmInput,
+  EmailVerificationRequestInput,
+  EmailVerificationConfirmInput,
 } from '../validations/auth';
 
 export class AuthService {
@@ -212,6 +215,72 @@ export class AuthService {
 
     return {
       message: 'Phone number verified',
+      verified: true,
+    };
+  }
+
+  async checkEmailExists(email: string) {
+    const existingUser = await userRepository.findByEmail(email);
+    return {
+      exists: !!existingUser,
+    };
+  }
+
+  async requestEmailVerification(input: EmailVerificationRequestInput) {
+    // Check if email already exists
+    const existingUser = await userRepository.findByEmail(input.email);
+    if (existingUser) {
+      throw new Error('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Set expiration (10 minutes)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+    // Mark previous verifications as expired
+    await emailVerificationRepository.markAsExpired(input.email);
+
+    // Create new verification
+    const verification = await emailVerificationRepository.create({
+      email: input.email,
+      code,
+      expiresAt,
+    });
+
+    // TODO: Send email (mock for now)
+    // In development, log to logger and return code in response
+    logger.info('Email verification code generated', {
+      email: input.email,
+      code,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    return {
+      message: 'Verification code sent',
+      expiresIn: 600, // 10 minutes in seconds
+      code, // Return code in development mode
+    };
+  }
+
+  async confirmEmailVerification(input: EmailVerificationConfirmInput) {
+    // Find valid verification
+    const verification = await emailVerificationRepository.findValidCode(
+      input.email,
+      input.code
+    );
+
+    if (!verification) {
+      throw new Error('Invalid or expired verification code');
+    }
+
+    // Mark as verified
+    await emailVerificationRepository.markAsVerified(verification.id);
+
+    return {
+      message: 'Email verified',
       verified: true,
     };
   }

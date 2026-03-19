@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, XCircle, Play, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicJob } from '@/hooks/useMusic';
+import { useDiaries } from '@/hooks/useDiaries';
+import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -10,7 +12,47 @@ export function MusicJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const { data: job, isLoading, error } = useMusicJob(jobId || '');
+  const { data: diariesAll = [] } = useDiaries();
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  
+  // 일기 첫 줄 추출 함수
+  const getFirstLine = (diary: { title?: string; content?: string; type?: string; answers?: Array<{ answer?: string; question?: { question?: string } }> }) => {
+    if (diary.title?.trim()) return diary.title.trim();
+    if (diary.type === 'question_based' && diary.answers?.length) {
+      const firstQuestion = diary.answers[0].question?.question?.trim();
+      if (firstQuestion) return firstQuestion;
+      const first = diary.answers[0].answer?.trim();
+      if (first) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = first;
+        const text = tmp.textContent || tmp.innerText || '';
+        return text.split('\n')[0].trim() || text;
+      }
+      return '';
+    }
+    if (diary.content?.trim()) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = diary.content;
+      const text = tmp.textContent || tmp.innerText || '';
+      return text.trim().split('\n')[0].trim();
+    }
+    return '';
+  };
+  
+  // 곡 길이 포맷팅
+  const formatDuration = (seconds?: number) => {
+    if (seconds == null) return '00:00';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+  
+  // 해당 음악의 바탕이 된 일기 목록
+  const sourceDiaries = job?.sourceDiaryIds
+    ? job.sourceDiaryIds
+        .map((id) => diariesAll.find((d) => d.id === id))
+        .filter(Boolean)
+    : [];
 
   // 완료 시 완성 팝업 이번 세션에서 한 번만 표시
   useEffect(() => {
@@ -88,26 +130,61 @@ export function MusicJobPage() {
         {job.status === 'completed' && showCompletionPopup && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col shadow-xl">
-              <h3 className="font-semibold text-lg text-brown-900 mb-2">노래가 도착했습니다</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.
-              </p>
-              <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-brown-50/50 p-4 mb-4 min-h-[120px]">
-                <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans">
+              <div className="text-center space-y-2 mb-4">
+                <h3 className="font-semibold text-lg text-brown-900">노래가 도착했습니다</h3>
+                {title && title !== '제목 없음' && (
+                  <div className="space-y-1">
+                    <p className="font-medium text-brown-900">{title}</p>
+                    {titleEn && (
+                      <p className="text-sm text-muted-foreground">{titleEn}</p>
+                    )}
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.
+                </p>
+              </div>
+              <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-gray-100 p-4 mb-4 min-h-[120px]">
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
                   {job.lyrics || '이곳에 가사가 들어갑니다.'}
                 </pre>
               </div>
               <div className="flex gap-3">
                 <Button
                   className="flex-1 bg-brown-600 hover:bg-brown-700"
-                  onClick={() => {
-                    if (job.audioUrl) window.open(job.audioUrl, '_blank');
+                  onClick={async () => {
+                    if (job.audioUrl) {
+                      try {
+                        const response = await fetch(job.audioUrl);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣]/g, '_')}.mp3`;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (error) {
+                        console.error('Download failed:', error);
+                        window.open(job.audioUrl, '_blank');
+                      }
+                    }
                   }}
                 >
+                  <Download className="w-4 h-4 mr-2" />
                   다운로드
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={handleCloseCompletionPopup}>
-                  닫기
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => {
+                    handleCloseCompletionPopup();
+                    navigate('/music');
+                  }}
+                >
+                  담기
                 </Button>
               </div>
             </div>
@@ -156,18 +233,52 @@ export function MusicJobPage() {
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => window.open(job.audioUrl, '_blank')}
+                    onClick={async () => {
+                      if (job.audioUrl) {
+                        try {
+                          const response = await fetch(job.audioUrl);
+                          const blob = await response.blob();
+                          const blobUrl = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣]/g, '_')}.mp3`;
+                          link.download = filename;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(blobUrl);
+                        } catch (error) {
+                          console.error('Download failed:', error);
+                          window.open(job.audioUrl, '_blank');
+                        }
+                      }
+                    }}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     다운로드
                   </Button>
                   <Button
                     className="flex-1 bg-brown-600 hover:bg-brown-700"
-                    onClick={() => window.open(job.audioUrl, '_blank')}
+                    onClick={() => {
+                      if (job.audioUrl) {
+                        const audio = new Audio(job.audioUrl);
+                        audio.play();
+                      }
+                    }}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     재생
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 곡 길이 */}
+            {job.durationSeconds != null && (
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">곡 길이</span>
+                  <span className="font-medium text-brown-900">{formatDuration(job.durationSeconds)}</span>
                 </div>
               </div>
             )}
@@ -179,6 +290,49 @@ export function MusicJobPage() {
                 <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans leading-relaxed">
                   {job.lyrics}
                 </pre>
+              </div>
+            )}
+
+            {/* 일기 목록 */}
+            {sourceDiaries.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold text-brown-900 mb-4">이 곡의 바탕이 된 일기</h3>
+                <div className="space-y-3">
+                  {sourceDiaries.map((diary) => {
+                    if (!diary) return null;
+                    const firstImage = diary.images && diary.images.length > 0 ? diary.images[0].imageUrl : null;
+                    return (
+                      <button
+                        key={diary.id}
+                        type="button"
+                        onClick={() => navigate(`/diaries/${diary.id}`)}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-brown-50 transition-colors text-left"
+                      >
+                        <div className="w-16 h-16 rounded-lg bg-brown-100 flex-shrink-0 overflow-hidden">
+                          {firstImage ? (
+                            <StorageImage
+                              url={firstImage}
+                              alt="Diary"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-brown-400">
+                              <span className="text-lg">📝</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-brown-900 truncate mb-1">
+                            {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(diary.date), 'yyyy년 M월 d일 (EEE)', { locale: ko })}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

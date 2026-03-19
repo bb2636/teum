@@ -471,7 +471,7 @@ export function SignupPage() {
           <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-4">
             <div className="space-y-2">
               <Label>프로필 사진</Label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center">
                 <div className="relative shrink-0">
                   <div className="w-16 h-16 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
                     {profileImageUrl ? (
@@ -494,7 +494,6 @@ export function SignupPage() {
                     />
                   </label>
                 </div>
-                <p className="text-sm text-muted-foreground">프로필 사진을 선택하세요 (선택)</p>
               </div>
             </div>
 
@@ -565,11 +564,11 @@ export function SignupPage() {
                   step2Form.setValue('dateOfBirth', e.target.value || undefined);
                 }}
               />
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center gap-2">
                 <Input
                   id="dateOfBirth-year"
                   type="text"
-                  placeholder="년"
+                  placeholder="2000"
                   maxLength={4}
                   value={step2DateOfBirth ? step2DateOfBirth.split('-')[0] || '' : ''}
                   onChange={(e) => {
@@ -579,13 +578,13 @@ export function SignupPage() {
                     const newValue = year ? `${year}-${parts[1] || ''}-${parts[2] || ''}`.replace(/^-+|-+$/g, '') : '';
                     step2Form.setValue('dateOfBirth', newValue || undefined);
                   }}
-                  className={`w-20 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                  className={`flex-1 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
                 />
                 <span className="text-brown-600">/</span>
                 <Input
                   id="dateOfBirth-month"
                   type="text"
-                  placeholder="월"
+                  placeholder="00"
                   maxLength={2}
                   value={step2DateOfBirth ? step2DateOfBirth.split('-')[1] || '' : ''}
                   onChange={(e) => {
@@ -595,13 +594,13 @@ export function SignupPage() {
                     const newValue = month ? `${parts[0] || ''}-${month}-${parts[2] || ''}`.replace(/^-+|-+$/g, '') : '';
                     step2Form.setValue('dateOfBirth', newValue || undefined);
                   }}
-                  className={`w-16 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                  className={`flex-1 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
                 />
                 <span className="text-brown-600">/</span>
                 <Input
                   id="dateOfBirth-day"
                   type="text"
-                  placeholder="일"
+                  placeholder="00"
                   maxLength={2}
                   value={step2DateOfBirth ? step2DateOfBirth.split('-')[2] || '' : ''}
                   onChange={(e) => {
@@ -611,7 +610,7 @@ export function SignupPage() {
                     const newValue = day ? `${parts[0] || ''}-${parts[1] || ''}-${day}`.replace(/^-+|-+$/g, '') : '';
                     step2Form.setValue('dateOfBirth', newValue || undefined);
                   }}
-                  className={`w-16 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                  className={`flex-1 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
                 />
               </div>
               {step2Errors.dateOfBirth && (

@@ -114,7 +114,7 @@ export function FolderSelectModal({
 
   if (showCreateForm) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={onClose}>
+      <div className="fixed inset-0 z-[60] bg-black/50 flex items-end" onClick={onClose}>
         <div
           className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto animate-slide-up"
           onClick={(e) => e.stopPropagation()}
@@ -234,7 +234,7 @@ export function FolderSelectModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end" onClick={onClose}>
       <div
         className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto animate-slide-up"
         onClick={(e) => e.stopPropagation()}

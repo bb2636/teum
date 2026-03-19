@@ -7,6 +7,7 @@ import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useSubscriptions } from '@/hooks/usePayment';
+import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -30,6 +31,7 @@ export function HomePage() {
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const uploadImage = useUploadImage();
+  const { setHideTabBar } = useHideTabBar();
   
   // 필터 및 정렬 상태
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -41,6 +43,7 @@ export function HomePage() {
   const [editingFolderName, setEditingFolderName] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [folderToDelete, setFolderToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
   
   // 토스트 메시지 상태 (여러 개 표시 가능)
   const [toastMessages, setToastMessages] = useState<Array<{ id: string; message: string }>>([]);
@@ -65,6 +68,14 @@ export function HomePage() {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  
+  // 폴더 생성 모달이 열릴 때 하단바 숨기기
+  useEffect(() => {
+    setHideTabBar(showCreateFolderModal);
+    return () => {
+      setHideTabBar(false);
+    };
+  }, [showCreateFolderModal, setHideTabBar]);
   
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
   
@@ -187,8 +198,16 @@ export function HomePage() {
     navigate(`/diaries/new?type=${type}&date=${today}`);
   };
 
-  const handleFolderClick = (folderId: string | undefined) => {
+  const handleFolderClick = (folderId: string | undefined, e?: React.MouseEvent) => {
     setSelectedFolderId(folderId);
+    // 모바일: 폴더명 클릭 시 편집 버튼 표시
+    if (folderId && e) {
+      setHoveredFolderId(folderId);
+      // 일정 시간 후 자동으로 숨김 (선택적)
+      setTimeout(() => {
+        setHoveredFolderId((prev) => prev === folderId ? null : prev);
+      }, 3000);
+    }
   };
 
   const handleFolderNameClick = (folder: { id: string; name: string }) => {
@@ -394,7 +413,7 @@ export function HomePage() {
         </div>
 
         {/* Folder Tabs - 전체 + 폴더 목록 */}
-        <div className="flex items-center gap-4 px-4 py-3 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => handleFolderClick(undefined)}
             className="relative pb-1 flex-shrink-0"
@@ -459,8 +478,10 @@ export function HomePage() {
                 // 일반 모드
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => handleFolderClick(folder.id)}
-                    className="relative flex-1"
+                    onClick={(e) => handleFolderClick(folder.id, e)}
+                    onMouseEnter={() => setHoveredFolderId(folder.id)}
+                    onMouseLeave={() => setHoveredFolderId(null)}
+                    className="relative"
                     title={folder.name}
                   >
                     <span className={`text-sm font-medium block truncate ${
@@ -472,16 +493,20 @@ export function HomePage() {
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A2C1A]"></span>
                     )}
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFolderNameClick(folder);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-[#4A2C1A] p-0.5"
-                    title="폴더 편집"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
+                  {(hoveredFolderId === folder.id || editingFolderId === folder.id) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFolderNameClick(folder);
+                      }}
+                      onMouseEnter={() => setHoveredFolderId(folder.id)}
+                      onMouseLeave={() => setHoveredFolderId(null)}
+                      className="text-gray-500 hover:text-[#4A2C1A] p-0.5 flex-shrink-0 transition-colors"
+                      title="폴더 편집"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               )}
               
@@ -732,7 +757,7 @@ export function HomePage() {
 
       {/* 폴더 생성 모달 */}
       {showCreateFolderModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={() => setShowCreateFolderModal(false)}>
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end" onClick={() => setShowCreateFolderModal(false)}>
           <div
             className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto animate-slide-up"
             onClick={(e) => e.stopPropagation()}
@@ -850,12 +875,12 @@ export function HomePage() {
         </div>
       )}
 
-      {/* 토스트 메시지 (여러 개 표시) */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2">
+      {/* 토스트 메시지 (여러 개 표시) - 하단바 위에 표시 */}
+      <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[55] flex flex-col gap-2">
         {toastMessages.map((toast) => (
           <div
             key={toast.id}
-            className="bg-gray-700/90 text-white px-6 py-3 rounded-lg shadow-xl max-w-sm mx-4 animate-slide-up whitespace-nowrap"
+            className="bg-gray-700/90 text-white px-6 py-3 rounded-full shadow-xl max-w-sm mx-4 animate-slide-up whitespace-nowrap"
           >
             <p className="text-sm text-center">{toast.message}</p>
           </div>

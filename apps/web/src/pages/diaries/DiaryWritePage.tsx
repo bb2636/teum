@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Type, Image as ImageIcon, Camera, X } from 'lucide-react';
+import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
@@ -482,18 +482,23 @@ export function DiaryWritePage() {
     
     // Create container for image and delete button
     const container = document.createElement('div');
-    container.className = 'relative inline-block max-w-full my-2';
+    container.className = 'relative block my-2';
     container.style.display = 'block';
     container.style.margin = '8px 0';
+    container.style.width = '100%';
+    container.style.maxWidth = '100%';
+    container.style.overflow = 'hidden';
     
     // Create img element
     const img = document.createElement('img');
     img.src = getStorageImageSrc(imageUrl);
     img.alt = 'Uploaded image';
-    img.className = 'max-w-full h-auto rounded-lg';
+    img.className = 'rounded-lg';
     img.style.maxWidth = '100%';
+    img.style.width = '100%';
     img.style.height = 'auto';
     img.style.display = 'block';
+    img.style.objectFit = 'contain';
     img.dataset.imageUrl = imageUrl; // Store image URL for deletion
     
     // Create delete button
@@ -519,19 +524,37 @@ export function DiaryWritePage() {
       // Insert at cursor or at the end
       if (range) {
         range.insertNode(container);
-        // Move cursor after container
-        range.setStartAfter(container);
-        range.collapse(true);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
       } else {
         // Append at the end
         contentEditableRef.current.appendChild(container);
-        // Add a line break after container
-        const br = document.createElement('br');
-        contentEditableRef.current.appendChild(br);
       }
     }
+    
+    // Add a line break and empty text node after container to ensure text input works
+    const br = document.createTextNode('\n'); // Use text node with newline instead of <br>
+    const emptyTextNode = document.createTextNode(''); // Empty text node for cursor positioning
+    
+    if (container.nextSibling) {
+      container.parentNode?.insertBefore(br, container.nextSibling);
+      container.parentNode?.insertBefore(emptyTextNode, br.nextSibling);
+    } else {
+      container.parentNode?.appendChild(br);
+      container.parentNode?.appendChild(emptyTextNode);
+    }
+    
+    // Move cursor to the empty text node after the line break
+    setTimeout(() => {
+      const newRange = document.createRange();
+      newRange.setStart(emptyTextNode, 0);
+      newRange.collapse(true);
+      const newSelection = window.getSelection();
+      if (newSelection) {
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        // Focus the contentEditable to ensure input works
+        contentEditableRef.current?.focus();
+      }
+    }, 10);
     
     // Update content
     handleContentChange();
@@ -542,28 +565,6 @@ export function DiaryWritePage() {
     cameraInputRef.current?.click();
   };
 
-  const handleImageRemove = (indexToRemove: number) => {
-    setSelectedImages((prev) => {
-      const newImages = [...prev];
-      const removedUrl = newImages[indexToRemove];
-      
-      // Revoke blob URL if it's a blob URL
-      if (removedUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(removedUrl);
-      }
-      
-      newImages.splice(indexToRemove, 1);
-      return newImages;
-    });
-    
-    // Also remove from selectedFiles if it exists
-    setSelectedFiles((prev) => {
-      const newFiles = [...prev];
-      newFiles.splice(indexToRemove, 1);
-      return newFiles;
-    });
-  };
-
   const handleSaveClick = () => {
     // Show folder selection modal before saving
     setShowFolderModal(true);
@@ -571,6 +572,12 @@ export function DiaryWritePage() {
 
   const handleFolderSelect = (folderId: string) => {
     setShowFolderModal(false);
+    // Validate folderId
+    if (!folderId || folderId.trim() === '') {
+      console.error('Invalid folderId:', folderId);
+      alert('폴더를 선택해주세요.');
+      return;
+    }
     // Update form with selected folder
     const event = {
       target: { value: folderId },
@@ -667,11 +674,18 @@ export function DiaryWritePage() {
         finalContent = htmlToPlainText(rawContent);
       }
 
+      // Ensure folderId is properly set - validate that it's not empty string
+      const finalFolderId = (folderId !== undefined && folderId !== null && folderId !== '') 
+        ? folderId 
+        : (formData.folderId !== undefined && formData.folderId !== null && formData.folderId !== '' 
+          ? formData.folderId 
+          : undefined);
+
       const diaryData = {
         ...formData,
         title: '', // 제목 필드 제거
         content: finalContent,
-        folderId: folderId || formData.folderId,
+        folderId: finalFolderId,
         date: selectedDate,
         imageUrls,
         answers: answerArray,
@@ -824,38 +838,17 @@ export function DiaryWritePage() {
                 onFocus={updateActiveFormats}
                 onSelect={updateActiveFormats}
                 data-placeholder="글쓰기 시작..."
-                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
                   lineHeight: '24px',
                   fontSize: '16px',
                   paddingTop: '0px',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
                 }}
               />
             </div>
-
-            {/* 선택한 이미지 미리보기 (blob 또는 스토리지 URL 모두 표시) */}
-            {selectedImages.length > 0 && (
-              <div className="mx-4 mb-2 flex gap-2 overflow-x-auto pb-2">
-                {selectedImages.map((url, i) => (
-                  <div key={`${url}-${i}`} className="relative flex-shrink-0">
-                    <img
-                      src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
-                      alt={`미리보기 ${i + 1}`}
-                      className="h-20 w-20 rounded-lg object-cover border border-gray-200"
-                      loading="eager"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(i)}
-                      className="absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Floating Toolbar - Left bottom, oval shape with 3 buttons */}
             <div className="fixed bottom-6 left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4">
@@ -1048,29 +1041,6 @@ export function DiaryWritePage() {
               </div>
             )}
           </div>
-
-          {/* 선택한 이미지 미리보기 (질문기록, blob 또는 스토리지 URL 모두 표시) */}
-          {selectedImages.length > 0 && (
-            <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
-              {selectedImages.map((url, i) => (
-                <div key={`${url}-${i}`} className="relative flex-shrink-0">
-                  <img
-                    src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
-                    alt={`미리보기 ${i + 1}`}
-                    className="h-16 w-16 rounded-lg object-cover border border-gray-200"
-                    loading="eager"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleImageRemove(i)}
-                    className="absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Floating Toolbar - Left bottom, oval shape with 3 buttons, 키보드에 맞춰 이동 */}
           <div 

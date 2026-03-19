@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Sprout } from 'lucide-react';
+import { Download, Sprout, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
 import { useMusicJobs } from '@/hooks/useMusic';
@@ -78,30 +78,35 @@ export function MusicHomePage() {
 
 
   return (
-    <div className="min-h-screen bg-beige-50 pb-20">
+    <div className="min-h-screen bg-white pb-20">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* 제목 */}
+        <h1 className="text-xl font-bold text-gray-900">음악 생성</h1>
+        
         {/* 상단 Mureka 카드 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-brown-900">Mureka</span>
-            <span className="text-xs text-muted-foreground">
+        <div className="bg-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs px-3 py-1 bg-gray-200 rounded-full font-bold text-gray-700">Mureka</span>
+            <span className="text-xs text-gray-600">
               {subscriptionStartDate
-                ? `구독일 ${format(new Date(subscriptionStartDate), 'M월 d일', { locale: ko })}`
-                : '구독일'}
+                ? `결제일 ${format(new Date(subscriptionStartDate), 'M월 d일', { locale: ko })}`
+                : '결제일'}
             </span>
           </div>
-          <p className="text-sm text-brown-800 mb-1">
-            이번 달 생성 가능 <span className="font-semibold">{monthlyUsed}/{MONTHLY_LIMIT}</span>
-          </p>
-          <p className="text-xs text-muted-foreground mb-4">
+          <div className="mb-2">
+            <p className="text-sm text-gray-600 mb-2">이번 달 생성 가능</p>
+            <p className="text-3xl font-bold text-gray-900">{monthlyUsed}/{MONTHLY_LIMIT}</p>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
             일기 총 {diariesAll.length}개
           </p>
           <Button
             onClick={handleOpenCreateModal}
             disabled={!hasSubscription || monthlyUsed >= MONTHLY_LIMIT}
-            className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            음악 생성 +
+            <span>음악 생성</span>
+            <Sparkles className="w-4 h-4" />
           </Button>
           {!hasSubscription && (
             <p className="text-xs text-amber-700 mt-2 text-center">

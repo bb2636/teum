@@ -16,11 +16,13 @@ export function Layout({ children }: LayoutProps) {
   
   // Check if current route should hide tab bar
   const isEditRoute = location.pathname.match(/^\/diaries\/[^/]+\/edit$/);
+  const isDetailRoute = location.pathname.match(/^\/diaries\/[^/]+$/);
   const shouldHideTabBar =
     hideTabBar ||
     AUTH_ROUTES.includes(location.pathname) ||
     HIDE_TAB_BAR_ROUTES.some((route) => location.pathname.startsWith(route)) ||
-    isEditRoute;
+    isEditRoute ||
+    isDetailRoute;
   
   const showTabBar = !shouldHideTabBar;
 

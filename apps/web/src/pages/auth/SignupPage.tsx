@@ -10,9 +10,11 @@ import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useUploadImage } from '@/hooks/useUpload';
-import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { StorageImage } from '@/components/StorageImage';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
+import { ko } from 'date-fns/locale';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한
 const nicknameSchema = z
@@ -84,7 +86,10 @@ export function SignupPage() {
   const uploadImage = useUploadImage();
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'privacy'>(false);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const calendarButtonRef = useRef<HTMLButtonElement>(null);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Step 1 form
   const step1Form = useForm<Step1FormData>({
@@ -544,77 +549,188 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative">
                 <Label htmlFor="dateOfBirth">생년월일</Label>
                 <button
+                  ref={calendarButtonRef}
                   type="button"
-                  onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  onClick={() => {
+                    if (step2DateOfBirth) {
+                      const [year, month, day] = step2DateOfBirth.split('-');
+                      if (year && month && day) {
+                        setCalendarDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+                      }
+                    }
+                    setShowCalendar(!showCalendar);
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded relative"
                 >
                   <Calendar className="w-4 h-4 text-brown-600" />
                 </button>
+                
+                {/* 커스텀 달력 - 달력 아이콘 바로 아래에 표시 */}
+                {showCalendar && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowCalendar(false)}
+                    />
+                    <div
+                      ref={calendarRef}
+                      className="absolute left-0 top-full z-50 bg-gray-800 rounded-lg p-4 shadow-xl mt-2"
+                      style={{
+                        minWidth: '280px',
+                      }}
+                    >
+                    {/* 달력 헤더 */}
+                    <div className="flex items-center justify-between mb-4 text-white">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {format(calendarDate, 'yyyy년 MM월', { locale: ko })}
+                        </span>
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
+                          className="p-1 hover:bg-gray-700 rounded"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
+                          className="p-1 hover:bg-gray-700 rounded"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* 요일 헤더 */}
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                        <div key={day} className="text-center text-xs text-gray-400 py-1">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* 달력 그리드 */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {(() => {
+                        const monthStart = startOfMonth(calendarDate);
+                        const monthEnd = endOfMonth(calendarDate);
+                        const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+                        const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+                        const days = eachDayOfInterval({ start: startDate, end: endDate });
+                        const selectedDate = step2DateOfBirth ? new Date(step2DateOfBirth) : null;
+                        
+                        return days.map((day) => {
+                          const isCurrentMonth = isSameMonth(day, calendarDate);
+                          const isSelected = selectedDate && isSameDay(day, selectedDate);
+                          const isToday = isSameDay(day, new Date());
+                          
+                          return (
+                            <button
+                              key={day.toISOString()}
+                              type="button"
+                              onClick={() => {
+                                const dateStr = format(day, 'yyyy-MM-dd');
+                                step2Form.setValue('dateOfBirth', dateStr);
+                                setShowCalendar(false);
+                              }}
+                              className={`
+                                w-8 h-8 rounded text-xs
+                                ${!isCurrentMonth ? 'text-gray-600' : 'text-white'}
+                                ${isSelected ? 'bg-blue-500 text-white border border-white' : ''}
+                                ${!isSelected && isCurrentMonth ? 'hover:bg-gray-700' : ''}
+                                ${isToday && !isSelected ? 'border border-gray-500' : ''}
+                              `}
+                            >
+                              {getDate(day)}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                    
+                    {/* 하단 버튼 */}
+                    <div className="flex justify-between mt-4 pt-4 border-t border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          step2Form.setValue('dateOfBirth', undefined);
+                          setShowCalendar(false);
+                        }}
+                        className="text-blue-400 text-sm"
+                      >
+                        삭제
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const today = format(new Date(), 'yyyy-MM-dd');
+                          step2Form.setValue('dateOfBirth', today);
+                          setCalendarDate(new Date());
+                          setShowCalendar(false);
+                        }}
+                        className="text-blue-400 text-sm"
+                      >
+                        오늘
+                      </button>
+                    </div>
+                  </div>
+                </>
+                )}
               </div>
-              {/* 숨겨진 date input - 달력 기능용 */}
-              <input
-                ref={dateInputRef}
-                type="date"
-                className="hidden"
-                value={step2DateOfBirth || ''}
+              
+              <Input
+                id="dateOfBirth"
+                type="text"
+                placeholder="2000 / 00 / 00"
+                value={
+                  step2DateOfBirth
+                    ? step2DateOfBirth
+                        .split('-')
+                        .map((part, idx) => {
+                          if (idx === 0) return part;
+                          return part.padStart(2, '0');
+                        })
+                        .join(' / ')
+                    : ''
+                }
                 onChange={(e) => {
-                  step2Form.setValue('dateOfBirth', e.target.value || undefined);
+                  // 숫자와 공백, 슬래시만 허용
+                  let value = e.target.value.replace(/[^\d\s\/]/g, '');
+                  
+                  // 슬래시와 공백을 제거하고 숫자만 추출
+                  const numbers = value.replace(/[^\d]/g, '');
+                  
+                  // 년(4자리), 월(2자리), 일(2자리)로 분리
+                  let year = numbers.slice(0, 4);
+                  let month = numbers.slice(4, 6);
+                  let day = numbers.slice(6, 8);
+                  
+                  // 폼에 저장할 값 (ISO 형식: YYYY-MM-DD)
+                  if (year.length === 4 && month.length === 2 && day.length === 2) {
+                    const dateValue = `${year}-${month}-${day}`;
+                    step2Form.setValue('dateOfBirth', dateValue);
+                  } else if (year.length === 4 && month.length === 2) {
+                    step2Form.setValue('dateOfBirth', `${year}-${month.padStart(2, '0')}-`);
+                  } else if (year.length === 4) {
+                    step2Form.setValue('dateOfBirth', `${year}--`);
+                  } else if (year.length > 0) {
+                    step2Form.setValue('dateOfBirth', `${year}-`);
+                  } else {
+                    step2Form.setValue('dateOfBirth', undefined);
+                  }
                 }}
+                className={step2Errors.dateOfBirth ? 'border-red-500' : ''}
               />
-              <div className="flex items-center gap-2">
-                <Input
-                  id="dateOfBirth-year"
-                  type="text"
-                  placeholder="2000"
-                  maxLength={4}
-                  value={step2DateOfBirth ? step2DateOfBirth.split('-')[0] || '' : ''}
-                  onChange={(e) => {
-                    const year = e.target.value.replace(/\D/g, '');
-                    const current = step2DateOfBirth || '';
-                    const parts = current.split('-');
-                    const newValue = year ? `${year}-${parts[1] || ''}-${parts[2] || ''}`.replace(/^-+|-+$/g, '') : '';
-                    step2Form.setValue('dateOfBirth', newValue || undefined);
-                  }}
-                  className={`flex-1 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
-                />
-                <span className="text-brown-600">/</span>
-                <Input
-                  id="dateOfBirth-month"
-                  type="text"
-                  placeholder="00"
-                  maxLength={2}
-                  value={step2DateOfBirth ? step2DateOfBirth.split('-')[1] || '' : ''}
-                  onChange={(e) => {
-                    const month = e.target.value.replace(/\D/g, '').slice(0, 2);
-                    const current = step2DateOfBirth || '';
-                    const parts = current.split('-');
-                    const newValue = month ? `${parts[0] || ''}-${month}-${parts[2] || ''}`.replace(/^-+|-+$/g, '') : '';
-                    step2Form.setValue('dateOfBirth', newValue || undefined);
-                  }}
-                  className={`flex-1 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
-                />
-                <span className="text-brown-600">/</span>
-                <Input
-                  id="dateOfBirth-day"
-                  type="text"
-                  placeholder="00"
-                  maxLength={2}
-                  value={step2DateOfBirth ? step2DateOfBirth.split('-')[2] || '' : ''}
-                  onChange={(e) => {
-                    const day = e.target.value.replace(/\D/g, '').slice(0, 2);
-                    const current = step2DateOfBirth || '';
-                    const parts = current.split('-');
-                    const newValue = day ? `${parts[0] || ''}-${parts[1] || ''}-${day}`.replace(/^-+|-+$/g, '') : '';
-                    step2Form.setValue('dateOfBirth', newValue || undefined);
-                  }}
-                  className={`flex-1 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
-                />
-              </div>
               {step2Errors.dateOfBirth && (
-                <p className="text-sm text-red-500 text-center">{step2Errors.dateOfBirth.message}</p>
+                <p className="text-sm text-red-500">{step2Errors.dateOfBirth.message}</p>
               )}
             </div>
 

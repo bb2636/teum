@@ -33,7 +33,7 @@ export function SplashPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-sm h-screen bg-[#6B4423] relative overflow-visible md:overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'none' }}>
+      <div className="w-full max-w-sm h-screen bg-[#665146] relative overflow-visible md:overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'none' }}>
         {/* 카메라 이미지 - 오른쪽 위 */}
         <div className="absolute top-4 md:top-0 right-0 z-10 flex justify-end">
           <img
@@ -50,10 +50,10 @@ export function SplashPage() {
         <div className="w-full flex flex-col items-center justify-center space-y-6">
           {/* Logo and Tagline Section - 중앙 */}
           <div className="flex flex-col justify-center items-center text-center space-y-2">
-            <div className="[&_h1]:text-[#4A2C1A]">
+            <div className="[&_h1]:text-[#221813]">
               <Logo size="md" showText={true} />
             </div>
-            <p className="text-[#4A2C1A] text-sm">
+            <p className="text-[#221813] text-sm" style={{ opacity: 0.6 }}>
               기록이 곧, 당신만의 트랙이 됩니다.
             </p>
           </div>
@@ -62,7 +62,12 @@ export function SplashPage() {
           <div className="w-full space-y-4">
             {/* Email Login Button */}
             <Button
-              className="w-full bg-[#8B4513] text-white hover:bg-[#7B3F00] rounded-xl py-4 text-base font-medium"
+              className="w-full rounded-xl py-4 text-base font-medium border"
+              style={{
+                backgroundColor: 'rgba(253, 253, 253, 0.2)',
+                borderColor: 'rgba(253, 253, 253, 0.6)',
+                color: '#fdfdfd',
+              }}
               size="lg"
               onClick={() => navigate('/login')}
             >
@@ -72,10 +77,10 @@ export function SplashPage() {
             {/* Divider */}
             <div className="relative flex items-center justify-center my-3">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/30"></div>
+                <div className="w-full border-t" style={{ borderColor: 'rgba(253, 253, 253, 0.8)' }}></div>
               </div>
-              <div className="relative bg-[#6B4423] px-4">
-                <span className="text-white/80 text-sm">또는</span>
+              <div className="relative bg-[#665146] px-4">
+                <span className="text-sm" style={{ color: 'rgba(253, 253, 253, 0.8)' }}>또는</span>
               </div>
             </div>
 

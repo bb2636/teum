@@ -10,7 +10,7 @@ import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useUploadImage } from '@/hooks/useUpload';
-import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { StorageImage } from '@/components/StorageImage';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
@@ -46,9 +46,37 @@ const step2Schema = z.object({
     .string()
     .refine((val) => {
       if (!val) return false;
-      const [year, month, day] = val.split('-').map(Number);
-      return year && month && day && month >= 1 && month <= 12 && day >= 1 && day <= 31;
-    }, '생년월일을 입력해주세요.')
+      const parts = val.split('-');
+      if (parts.length !== 3) return false;
+      
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      
+      // 년도 검증 (1900 ~ 현재년도)
+      const currentYear = new Date().getFullYear();
+      if (isNaN(year) || year < 1900 || year > currentYear) {
+        return false;
+      }
+      
+      // 월 검증 (1 ~ 12)
+      if (isNaN(month) || month < 1 || month > 12) {
+        return false;
+      }
+      
+      // 일 검증 (1 ~ 31, 실제로는 월에 따라 다르지만 기본 검증)
+      if (isNaN(day) || day < 1 || day > 31) {
+        return false;
+      }
+      
+      // 실제 날짜 유효성 검증 (예: 2월 30일 같은 경우)
+      const date = new Date(year, month - 1, day);
+      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+        return false;
+      }
+      
+      return true;
+    }, '생년월일을 정확하게 입력해주세요.')
     .optional(),
   profileImageUrl: z.string().optional(),
 });
@@ -56,7 +84,8 @@ const step2Schema = z.object({
 // Step 3: Terms schema
 const step3Schema = z.object({
   termsService: z.boolean().refine((val) => val === true, '서비스 이용약관에 동의해주세요'),
-  termsPrivacy: z.boolean().refine((val) => val === true, '개인정보 처리방침에 동의해주세요'),
+  termsPayment: z.boolean().refine((val) => val === true, '정기 결제 및 자동 갱신에 동의해주세요'),
+  termsRefund: z.boolean().refine((val) => val === true, '환불/해지 정책을 확인해주세요'),
 });
 
 type Step1FormData = z.infer<typeof step1Schema>;
@@ -86,11 +115,18 @@ export function SignupPage() {
   const confirmEmailVerification = useConfirmEmailVerification();
   const uploadImage = useUploadImage();
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
-  const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'privacy'>(false);
+  const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showYearMonthPicker, setShowYearMonthPicker] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const calendarButtonRef = useRef<HTMLButtonElement>(null);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [yearPickerStartYear, setYearPickerStartYear] = useState(() => {
+    const currentYear = new Date().getFullYear();
+    return Math.floor(currentYear / 10) * 10; // 현재 연도의 10년 단위 시작 연도
+  });
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [dateDisplayValue, setDateDisplayValue] = useState('');
 
   // Step 1 form
   const step1Form = useForm<Step1FormData>({
@@ -116,8 +152,29 @@ export function SignupPage() {
   const step2Nickname = step2Form.watch('nickname');
   const step2Name = step2Form.watch('name');
   const step2DateOfBirth = step2Form.watch('dateOfBirth');
+
+  // 생년월일 표시값 동기화 (달력에서 선택한 경우에만)
+  useEffect(() => {
+    // onChange 핸들러에서 직접 업데이트하는 경우는 제외
+    // 달력에서 날짜를 선택한 경우에만 동기화
+    if (step2DateOfBirth && step2DateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = step2DateOfBirth.split('-');
+      setDateDisplayValue(`${year} / ${month} / ${day}`);
+    }
+  }, [step2DateOfBirth]);
   const step3TermsService = step3Form.watch('termsService');
-  const step3TermsPrivacy = step3Form.watch('termsPrivacy');
+  const step3TermsPayment = step3Form.watch('termsPayment');
+  const step3TermsRefund = step3Form.watch('termsRefund');
+  
+  // 전체 동의 상태
+  const agreeAll = step3TermsService && step3TermsPayment && step3TermsRefund;
+  
+  // 전체 동의 핸들러
+  const handleAgreeAll = () => {
+    step3Form.setValue('termsService', !agreeAll);
+    step3Form.setValue('termsPayment', !agreeAll);
+    step3Form.setValue('termsRefund', !agreeAll);
+  };
 
   // Check nickname availability
   const shouldCheckNickname = step2Nickname && step2Nickname.length >= 2 && step2Nickname.length <= 12 && !step2Nickname.includes(' ') && /^[a-zA-Z0-9가-힣_]+$/.test(step2Nickname);
@@ -136,6 +193,42 @@ export function SignupPage() {
 
   // Step 2 validation
   const step2Errors = step2Form.formState.errors;
+  
+  // 생년월일 형식 검증 함수
+  const isValidDateOfBirth = (dateStr: string | undefined): boolean => {
+    if (!dateStr) return false;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return false;
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    
+    // 년도 검증 (1900 ~ 현재년도)
+    const currentYear = new Date().getFullYear();
+    if (isNaN(year) || year < 1900 || year > currentYear) {
+      return false;
+    }
+    
+    // 월 검증 (1 ~ 12)
+    if (isNaN(month) || month < 1 || month > 12) {
+      return false;
+    }
+    
+    // 일 검증 (1 ~ 31)
+    if (isNaN(day) || day < 1 || day > 31) {
+      return false;
+    }
+    
+    // 실제 날짜 유효성 검증 (예: 2월 30일 같은 경우)
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return false;
+    }
+    
+    return true;
+  };
+  
   const isStep2Valid =
     step2Nickname &&
     step2Name &&
@@ -143,11 +236,12 @@ export function SignupPage() {
     !step2Errors.nickname &&
     !step2Errors.name &&
     !step2Errors.dateOfBirth &&
-    nicknameError.length === 0;
+    nicknameError.length === 0 &&
+    isValidDateOfBirth(step2DateOfBirth);
 
   // Step 3 validation
   const step3Errors = step3Form.formState.errors;
-  const isStep3Valid = step3TermsService === true && step3TermsPrivacy === true;
+  const isStep3Valid = step3TermsService === true && step3TermsPayment === true && step3TermsRefund === true;
 
   // 닉네임 실시간 유효성 검사
   useEffect(() => {
@@ -325,7 +419,8 @@ export function SignupPage() {
         profileImageUrl: formData.step2.profileImageUrl,
         termsConsents: [
           { termsType: 'service', consented: data.termsService },
-          { termsType: 'privacy', consented: data.termsPrivacy },
+          { termsType: 'payment', consented: data.termsPayment },
+          { termsType: 'refund', consented: data.termsRefund },
         ],
       },
       {
@@ -559,8 +654,15 @@ export function SignupPage() {
                     if (step2DateOfBirth) {
                       const [year, month, day] = step2DateOfBirth.split('-');
                       if (year && month && day) {
-                        setCalendarDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+                        const selectedYear = parseInt(year);
+                        setCalendarDate(new Date(selectedYear, parseInt(month) - 1, parseInt(day)));
+                        // 선택된 연도 기준으로 10년 범위 설정
+                        setYearPickerStartYear(Math.floor(selectedYear / 10) * 10);
                       }
+                    } else {
+                      // 현재 연도 기준으로 10년 범위 설정
+                      const currentYear = new Date().getFullYear();
+                      setYearPickerStartYear(Math.floor(currentYear / 10) * 10);
                     }
                     setShowCalendar(!showCalendar);
                   }}
@@ -568,46 +670,134 @@ export function SignupPage() {
                 >
                   <Calendar className="w-4 h-4 text-[#4A2C1A]" />
                 </button>
-                
-                {/* 커스텀 달력 - 달력 아이콘 바로 아래에 표시 */}
-                {showCalendar && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowCalendar(false)}
-                    />
-                    <div
-                      ref={calendarRef}
-                      className="absolute left-0 top-full z-50 bg-gray-800 rounded-lg p-4 shadow-xl mt-2"
-                      style={{
-                        minWidth: '280px',
-                      }}
-                    >
+              </div>
+              
+              {/* 커스텀 달력 - 모달 형태로 화면 중앙에 표시 */}
+              {showCalendar && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div 
+                    className="fixed inset-0 bg-black/50 z-40" 
+                    onClick={() => setShowCalendar(false)}
+                  />
+                  <div
+                    ref={calendarRef}
+                    className="relative z-50 bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {/* 달력 헤더 */}
                     <div className="flex items-center justify-between mb-4 text-white">
-                      <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowYearMonthPicker(!showYearMonthPicker)}
+                        className="flex items-center gap-2 hover:bg-gray-700 rounded px-2 py-1"
+                      >
                         <span className="text-sm font-medium">
                           {format(calendarDate, 'yyyy년 MM월', { locale: ko })}
                         </span>
-                        <ChevronDown className="w-4 h-4" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
-                          className="p-1 hover:bg-gray-700 rounded"
-                        >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
-                          className="p-1 hover:bg-gray-700 rounded"
-                        >
-                          <ChevronDown className="w-4 h-4" />
-                        </button>
-                      </div>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showYearMonthPicker ? 'rotate-180' : ''}`} />
+                      </button>
+                      {!showYearMonthPicker && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
+                            className="p-1 hover:bg-gray-700 rounded"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
+                            className="p-1 hover:bg-gray-700 rounded"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* 연도/월 선택기 */}
+                    {showYearMonthPicker && (
+                      <div className="mb-4">
+                        {/* 연도 선택 헤더 */}
+                        <div className="flex items-center justify-between mb-3">
+                          <button
+                            type="button"
+                            onClick={() => setYearPickerStartYear(yearPickerStartYear - 10)}
+                            className="p-1 hover:bg-gray-700 rounded text-white"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <span className="text-sm font-medium text-white">
+                            {yearPickerStartYear}년 - {yearPickerStartYear + 9}년
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setYearPickerStartYear(yearPickerStartYear + 10)}
+                            className="p-1 hover:bg-gray-700 rounded text-white"
+                          >
+                            <ChevronLeft className="w-4 h-4 rotate-180" />
+                          </button>
+                        </div>
+                        
+                        {/* 연도 그리드 (10년치) */}
+                        <div className="grid grid-cols-5 gap-2 mb-3">
+                          {Array.from({ length: 10 }, (_, i) => {
+                            const year = yearPickerStartYear + i;
+                            const isCurrentYear = year === calendarDate.getFullYear();
+                            return (
+                              <button
+                                key={year}
+                                type="button"
+                                onClick={() => {
+                                  // 연도만 선택하고 연도/월 선택기는 유지 (월 선택 가능하도록)
+                                  setCalendarDate(new Date(year, calendarDate.getMonth(), 1));
+                                  // setShowYearMonthPicker(false); 제거 - 연도 선택 후에도 선택기 유지
+                                }}
+                                className={`p-2 rounded text-xs ${
+                                  isCurrentYear
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-gray-700 text-white hover:bg-gray-600'
+                                }`}
+                              >
+                                {year}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* 월 그리드 */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {Array.from({ length: 12 }, (_, i) => {
+                            const month = i + 1;
+                            const isCurrentMonth = month === calendarDate.getMonth() + 1;
+                            const isCurrentYearMonth = 
+                              calendarDate.getFullYear() === new Date().getFullYear() &&
+                              month === new Date().getMonth() + 1;
+                            return (
+                              <button
+                                key={month}
+                                type="button"
+                                onClick={() => {
+                                  // 월 선택 후 달력 그리드로 이동 (일 선택 가능하도록)
+                                  setCalendarDate(new Date(calendarDate.getFullYear(), month - 1, 1));
+                                  setShowYearMonthPicker(false);
+                                }}
+                                className={`p-2 rounded text-xs ${
+                                  isCurrentMonth && isCurrentYearMonth
+                                    ? 'bg-blue-500 text-white'
+                                    : isCurrentMonth
+                                    ? 'bg-gray-600 text-white'
+                                    : 'bg-gray-700 text-white hover:bg-gray-600'
+                                }`}
+                              >
+                                {month}월
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     
                     {/* 요일 헤더 */}
                     <div className="grid grid-cols-7 gap-1 mb-2">
@@ -640,6 +830,7 @@ export function SignupPage() {
                               onClick={() => {
                                 const dateStr = format(day, 'yyyy-MM-dd');
                                 step2Form.setValue('dateOfBirth', dateStr);
+                                step2Form.trigger('dateOfBirth');
                                 setShowCalendar(false);
                               }}
                               className={`
@@ -674,6 +865,7 @@ export function SignupPage() {
                         onClick={() => {
                           const today = format(new Date(), 'yyyy-MM-dd');
                           step2Form.setValue('dateOfBirth', today);
+                          step2Form.trigger('dateOfBirth');
                           setCalendarDate(new Date());
                           setShowCalendar(false);
                         }}
@@ -683,43 +875,132 @@ export function SignupPage() {
                       </button>
                     </div>
                   </div>
-                </>
-                )}
-              </div>
+                </div>
+              )}
               
               <Input
+                ref={dateInputRef}
                 id="dateOfBirth"
                 type="text"
                 placeholder="2000 / 00 / 00"
-                value={
-                  step2DateOfBirth
-                    ? step2DateOfBirth
-                        .split('-')
-                        .map((part, idx) => {
-                          if (idx === 0) return part;
-                          return part.padStart(2, '0');
-                        })
-                        .join(' / ')
-                    : ''
-                }
+                value={dateDisplayValue}
                 onChange={(e) => {
-                  // 숫자와 공백, 슬래시만 허용
-                  let value = e.target.value.replace(/[^\d\s\/]/g, '');
+                  const input = e.target;
+                  const oldValue = dateDisplayValue;
+                  const newValue = e.target.value;
+                  const cursorPosition = input.selectionStart || 0;
                   
-                  // 슬래시와 공백을 제거하고 숫자만 추출
-                  const numbers = value.replace(/[^\d]/g, '');
+                  // 이전 숫자 개수 계산
+                  const oldNumbers = oldValue.replace(/[^\d]/g, '');
+                  // 새 숫자만 추출
+                  const newNumbers = newValue.replace(/[^\d]/g, '');
+                  
+                  // 숫자가 변경되지 않았으면 포맷팅만 수행
+                  if (oldNumbers === newNumbers && newValue !== oldValue) {
+                    // 포맷팅만 변경된 경우 (슬래시 추가/제거 등)
+                    return;
+                  }
+                  
+                  // 한 번에 하나의 숫자만 추가되도록 제한
+                  const numbersDiff = newNumbers.length - oldNumbers.length;
+                  if (numbersDiff > 1) {
+                    // 여러 숫자가 한 번에 입력된 경우, 마지막 숫자만 허용
+                    const lastNumber = newNumbers.slice(-1);
+                    const limitedNumbers = oldNumbers + lastNumber;
+                    
+                    // 제한된 숫자로 다시 처리
+                    const year = limitedNumbers.slice(0, 4);
+                    const month = limitedNumbers.slice(4, 6);
+                    const day = limitedNumbers.slice(6, 8);
+                    
+                    let displayValue = '';
+                    if (year.length > 0) {
+                      displayValue = year;
+                      if (month.length > 0) {
+                        displayValue += ` / ${month}`;
+                        if (day.length > 0) {
+                          displayValue += ` / ${day}`;
+                        }
+                      } else if (year.length === 4) {
+                        // 년도 4자리 입력 후 자동으로 " / " 추가
+                        displayValue = year + ' / ';
+                      }
+                    }
+                    
+                    setDateDisplayValue(displayValue);
+                    
+                    // 폼에 저장할 값 업데이트
+                    if (year.length === 4 && month.length === 2 && day.length === 2) {
+                      const dateValue = `${year}-${month}-${day}`;
+                      step2Form.setValue('dateOfBirth', dateValue);
+                      // 완전한 날짜가 입력되었을 때 유효성 검사 트리거
+                      step2Form.trigger('dateOfBirth');
+                    } else if (year.length === 4 && month.length === 2) {
+                      step2Form.setValue('dateOfBirth', `${year}-${month}-`);
+                    } else if (year.length === 4) {
+                      step2Form.setValue('dateOfBirth', `${year}--`);
+                    } else if (year.length > 0) {
+                      step2Form.setValue('dateOfBirth', `${year}-`);
+                    } else {
+                      step2Form.setValue('dateOfBirth', undefined);
+                    }
+                    
+                    // 커서 위치 조정
+                    requestAnimationFrame(() => {
+                      if (!dateInputRef.current) return;
+                      let newPos = 0;
+                      if (limitedNumbers.length <= 4) {
+                        newPos = limitedNumbers.length;
+                        if (limitedNumbers.length === 4) {
+                          newPos = 7; // "2000 / " = 7자리
+                        }
+                      } else if (limitedNumbers.length <= 6) {
+                        newPos = limitedNumbers.length + 3;
+                        if (limitedNumbers.length === 6) {
+                          newPos = 10; // "2000 / 12 / " = 10자리
+                        }
+                      } else {
+                        newPos = limitedNumbers.length + 6;
+                      }
+                      newPos = Math.min(newPos, displayValue.length);
+                      dateInputRef.current.setSelectionRange(newPos, newPos);
+                    });
+                    
+                    return;
+                  }
                   
                   // 년(4자리), 월(2자리), 일(2자리)로 분리
-                  let year = numbers.slice(0, 4);
-                  let month = numbers.slice(4, 6);
-                  let day = numbers.slice(6, 8);
+                  const year = newNumbers.slice(0, 4);
+                  const month = newNumbers.slice(4, 6);
+                  const day = newNumbers.slice(6, 8);
+                  
+                  // 표시값 생성 - 실제 입력된 값만 표시
+                  let displayValue = '';
+                  if (year.length > 0) {
+                    displayValue = year;
+                    // 월 부분은 실제로 입력된 경우에만 추가
+                    if (month.length > 0) {
+                      displayValue += ` / ${month}`;
+                      // 일 부분은 실제로 입력된 경우에만 추가
+                      if (day.length > 0) {
+                        displayValue += ` / ${day}`;
+                      }
+                    } else if (year.length === 4) {
+                      // 년도 4자리 입력 후 자동으로 " / " 추가
+                      displayValue = year + ' / ';
+                    }
+                  }
+                  
+                  setDateDisplayValue(displayValue);
                   
                   // 폼에 저장할 값 (ISO 형식: YYYY-MM-DD)
                   if (year.length === 4 && month.length === 2 && day.length === 2) {
                     const dateValue = `${year}-${month}-${day}`;
                     step2Form.setValue('dateOfBirth', dateValue);
+                    // 완전한 날짜가 입력되었을 때 유효성 검사 트리거
+                    step2Form.trigger('dateOfBirth');
                   } else if (year.length === 4 && month.length === 2) {
-                    step2Form.setValue('dateOfBirth', `${year}-${month.padStart(2, '0')}-`);
+                    step2Form.setValue('dateOfBirth', `${year}-${month}-`);
                   } else if (year.length === 4) {
                     step2Form.setValue('dateOfBirth', `${year}--`);
                   } else if (year.length > 0) {
@@ -727,8 +1008,123 @@ export function SignupPage() {
                   } else {
                     step2Form.setValue('dateOfBirth', undefined);
                   }
+                  
+                  // 커서 위치 계산 및 복원
+                  requestAnimationFrame(() => {
+                    if (!dateInputRef.current) return;
+                    
+                    // 숫자 입력 위치에 따라 커서 위치 조정
+                    let newCursorPos = cursorPosition;
+                    const oldNumbersCount = oldNumbers.length;
+                    const newNumbersCount = newNumbers.length;
+                    
+                    // 숫자가 추가된 경우
+                    if (newNumbersCount > oldNumbersCount) {
+                      // 년도 입력 중
+                      if (newNumbersCount <= 4) {
+                        newCursorPos = newNumbersCount;
+                        // 년도 4자리 입력 완료 시 " / " 뒤로 커서 이동
+                        if (newNumbersCount === 4) {
+                          newCursorPos = 7; // "2000 / " = 7자리
+                        }
+                      }
+                      // 월 입력 중
+                      else if (newNumbersCount <= 6) {
+                        newCursorPos = newNumbersCount + 3; // "YYYY / " = 7자리, 그 다음 숫자 위치
+                        // 월 2자리 입력 완료 시 " / " 뒤로 커서 이동
+                        if (newNumbersCount === 6) {
+                          newCursorPos = 10; // "2000 / 12 / " = 10자리
+                        }
+                      }
+                      // 일 입력 중
+                      else {
+                        newCursorPos = newNumbersCount + 6; // "YYYY / MM / " = 10자리, 그 다음 숫자 위치
+                      }
+                    }
+                    // 숫자가 삭제된 경우
+                    else if (newNumbersCount < oldNumbersCount) {
+                      // 년도 삭제 중
+                      if (newNumbersCount <= 4) {
+                        newCursorPos = newNumbersCount;
+                      }
+                      // 월 삭제 중
+                      else if (newNumbersCount <= 6) {
+                        newCursorPos = newNumbersCount + 3;
+                      }
+                      // 일 삭제 중
+                      else {
+                        newCursorPos = newNumbersCount + 6;
+                      }
+                    }
+                    
+                    newCursorPos = Math.min(newCursorPos, displayValue.length);
+                    dateInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                  });
                 }}
-                className={`bg-gray-100 ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                onKeyDown={(e) => {
+                  // 백스페이스 처리: 슬래시나 공백을 건너뛰기
+                  if (e.key === 'Backspace' && dateInputRef.current) {
+                    const input = dateInputRef.current;
+                    const cursorPos = input.selectionStart || 0;
+                    const value = input.value;
+                    
+                    // 커서가 슬래시나 공백 바로 뒤에 있으면 한 칸 더 뒤로
+                    if (cursorPos > 0 && (value[cursorPos - 1] === '/' || value[cursorPos - 1] === ' ')) {
+                      e.preventDefault();
+                      const numbers = value.replace(/[^\d]/g, '');
+                      const newNumbers = numbers.slice(0, Math.max(0, numbers.length - 1));
+                      
+                      const year = newNumbers.slice(0, 4);
+                      const month = newNumbers.slice(4, 6);
+                      const day = newNumbers.slice(6, 8);
+                      
+                      let displayValue = '';
+                      if (year.length > 0) {
+                        displayValue = year;
+                        // 월 부분은 실제로 입력된 경우에만 추가
+                        if (month.length > 0) {
+                          displayValue += ` / ${month}`;
+                          // 일 부분은 실제로 입력된 경우에만 추가
+                          if (day.length > 0) {
+                            displayValue += ` / ${day}`;
+                          }
+                        }
+                      }
+                      
+                      setDateDisplayValue(displayValue);
+                      
+                      if (year.length === 4 && month.length === 2 && day.length === 2) {
+                        const dateValue = `${year}-${month}-${day}`;
+                        step2Form.setValue('dateOfBirth', dateValue);
+                        // 완전한 날짜가 입력되었을 때 유효성 검사 트리거
+                        step2Form.trigger('dateOfBirth');
+                      } else if (year.length === 4 && month.length === 2) {
+                        step2Form.setValue('dateOfBirth', `${year}-${month}-`);
+                      } else if (year.length === 4) {
+                        step2Form.setValue('dateOfBirth', `${year}--`);
+                      } else if (year.length > 0) {
+                        step2Form.setValue('dateOfBirth', `${year}-`);
+                      } else {
+                        step2Form.setValue('dateOfBirth', undefined);
+                      }
+                      
+                      requestAnimationFrame(() => {
+                        if (!dateInputRef.current) return;
+                        let newPos = 0;
+                        if (newNumbers.length <= 4) {
+                          newPos = newNumbers.length;
+                        } else if (newNumbers.length <= 6) {
+                          newPos = newNumbers.length + 3;
+                        } else {
+                          newPos = newNumbers.length + 6;
+                        }
+                        newPos = Math.max(0, Math.min(newPos, displayValue.length));
+                        dateInputRef.current.setSelectionRange(newPos, newPos);
+                      });
+                    }
+                  }
+                }}
+                className={`bg-gray-100 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
               />
               {step2Errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{step2Errors.dateOfBirth.message}</p>
@@ -747,58 +1143,133 @@ export function SignupPage() {
 
         {/* Step 3: Terms */}
         {step === 3 && (
-          <form onSubmit={step3Form.handleSubmit(onStep3Submit)} className="space-y-4">
-            <div className="space-y-2">
-              <label className="flex items-start space-x-2">
-                <input
-                  type="checkbox"
-                  {...step3Form.register('termsService')}
-                  className="mt-1"
-                />
-                <span className="text-sm">
-                  서비스 이용약관에 동의합니다{' '}
-                  <button
-                    type="button"
-                    onClick={() => setShowTermsModal('service')}
-                    className="text-brown-600 underline"
+          <>
+            {/* 약관 동의 모달 */}
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
+              <div className="bg-white rounded-t-2xl w-full max-w-md mx-auto p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                <h2 className="text-lg font-semibold text-center">이용약관에 동의해주세요</h2>
+                
+                {/* 전체 동의 */}
+                <div className="bg-gray-100 rounded-lg p-4">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreeAll}
+                      onChange={handleAgreeAll}
+                      className="w-5 h-5 rounded border-gray-300 accent-[#665146] focus:ring-[#665146]"
+                      style={{ 
+                        accentColor: '#665146',
+                        backgroundColor: agreeAll ? '#665146' : 'white',
+                        borderColor: agreeAll ? '#665146' : '#d1d5db'
+                      }}
+                    />
+                    <span className="text-sm font-medium">전체 동의</span>
+                  </label>
+                </div>
+                
+                {/* 개별 약관 */}
+                <div className="space-y-1">
+                  {/* 서비스 이용약관 */}
+                  <label className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <input
+                        type="checkbox"
+                        {...step3Form.register('termsService')}
+                        className="w-5 h-5 rounded border-gray-300 accent-[#665146] focus:ring-[#665146]"
+                        style={{ 
+                          accentColor: '#665146',
+                          backgroundColor: step3TermsService ? '#665146' : 'white',
+                          borderColor: step3TermsService ? '#665146' : '#d1d5db'
+                        }}
+                      />
+                      <span className="text-sm">
+                        <span className="text-red-500">[필수]</span> 서비스 이용약관에 동의합니다.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal('service')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </label>
+                  {step3Errors.termsService && (
+                    <p className="text-sm text-red-500 ml-8">{step3Errors.termsService.message}</p>
+                  )}
+                  
+                  {/* 정기 결제 및 자동 갱신 */}
+                  <label className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <input
+                        type="checkbox"
+                        {...step3Form.register('termsPayment')}
+                        className="w-5 h-5 rounded border-gray-300 accent-[#665146] focus:ring-[#665146]"
+                        style={{ 
+                          accentColor: '#665146',
+                          backgroundColor: step3TermsPayment ? '#665146' : 'white',
+                          borderColor: step3TermsPayment ? '#665146' : '#d1d5db'
+                        }}
+                      />
+                      <span className="text-sm">
+                        <span className="text-red-500">[필수]</span> 정기 결제 및 자동 갱신에 동의합니다.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal('payment')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </label>
+                  {step3Errors.termsPayment && (
+                    <p className="text-sm text-red-500 ml-8">{step3Errors.termsPayment.message}</p>
+                  )}
+                  
+                  {/* 환불/해지 정책 */}
+                  <label className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <input
+                        type="checkbox"
+                        {...step3Form.register('termsRefund')}
+                        className="w-5 h-5 rounded border-gray-300 accent-[#665146] focus:ring-[#665146]"
+                        style={{ 
+                          accentColor: '#665146',
+                          backgroundColor: step3TermsRefund ? '#665146' : 'white',
+                          borderColor: step3TermsRefund ? '#665146' : '#d1d5db'
+                        }}
+                      />
+                      <span className="text-sm">
+                        <span className="text-red-500">[필수]</span> 환불/해지 정책을 확인했습니다.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal('refund')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </label>
+                  {step3Errors.termsRefund && (
+                    <p className="text-sm text-red-500 ml-8">{step3Errors.termsRefund.message}</p>
+                  )}
+                </div>
+                
+                {/* 동의하기 버튼 */}
+                <form onSubmit={step3Form.handleSubmit(onStep3Submit)}>
+                  <Button
+                    type="submit"
+                    className="w-full bg-[#665146] hover:bg-[#5A453A] text-white rounded-lg py-3"
+                    disabled={!isStep3Valid || signupMutation.isPending}
                   >
-                    보기
-                  </button>
-                </span>
-              </label>
-              {step3Errors.termsService && (
-                <p className="text-sm text-red-500">{step3Errors.termsService.message}</p>
-              )}
-              <label className="flex items-start space-x-2">
-                <input
-                  type="checkbox"
-                  {...step3Form.register('termsPrivacy')}
-                  className="mt-1"
-                />
-                <span className="text-sm">
-                  개인정보 처리방침에 동의합니다{' '}
-                  <button
-                    type="button"
-                    onClick={() => setShowTermsModal('privacy')}
-                    className="text-brown-600 underline"
-                  >
-                    보기
-                  </button>
-                </span>
-              </label>
-              {step3Errors.termsPrivacy && (
-                <p className="text-sm text-red-500">{step3Errors.termsPrivacy.message}</p>
-              )}
+                    {signupMutation.isPending ? '가입 중...' : '동의하기'}
+                  </Button>
+                </form>
+              </div>
             </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
-              disabled={!isStep3Valid || signupMutation.isPending}
-            >
-              {signupMutation.isPending ? '가입 중...' : '가입하기'}
-            </Button>
-          </form>
+          </>
         )}
 
         <div className="text-center text-sm">

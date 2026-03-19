@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Pencil, ChevronDown } from 'lucide-react';
+import { X, User, Pencil, ChevronDown, Calendar, ChevronUp, ChevronDown as ChevronDownIcon, ChevronLeft } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,26 +28,6 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
-function formatDateForInput(dateStr?: string | null) {
-  if (!dateStr) return { year: '', month: '', day: '' };
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return { year: '', month: '', day: '' };
-  return {
-    year: String(d.getFullYear()),
-    month: String(d.getMonth() + 1).padStart(2, '0'),
-    day: String(d.getDate()).padStart(2, '0'),
-  };
-}
-
-function toISODate(year: string, month: string, day: string) {
-  if (!year || !month || !day) return undefined;
-  const y = parseInt(year, 10);
-  const m = parseInt(month, 10);
-  const d = parseInt(day, 10);
-  if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return undefined;
-  const date = new Date(y, m - 1, d);
-  return date.toISOString().split('T')[0];
-}
 
 export function ProfileEditPage() {
   const navigate = useNavigate();
@@ -57,9 +39,20 @@ export function ProfileEditPage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showCountryList, setShowCountryList] = useState(false);
-  const [birthYear, setBirthYear] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthDay, setBirthDay] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showYearMonthPicker, setShowYearMonthPicker] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [yearPickerStartYear, setYearPickerStartYear] = useState(() => {
+    const currentYear = new Date().getFullYear();
+    return Math.floor(currentYear / 10) * 10; // 현재 연도의 10년 단위 시작 연도
+  });
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const calendarButtonRef = useRef<HTMLButtonElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [dateDisplayValue, setDateDisplayValue] = useState('');
+  
+  // 생년월일을 단일 문자열로 관리
+  const [dateOfBirthISO, setDateOfBirthISO] = useState<string | undefined>(undefined);
 
   const {
     register,
@@ -83,18 +76,34 @@ export function ProfileEditPage() {
       setValue('name', user.profile.name || '');
       setValue('phone', user.profile.phone || '');
       setValue('country', user.profile.country || '');
-      const b = formatDateForInput(user.profile.dateOfBirth);
-      setBirthYear(b.year);
-      setBirthMonth(b.month);
-      setBirthDay(b.day);
+      if (user.profile.dateOfBirth) {
+        setDateOfBirthISO(user.profile.dateOfBirth);
+      }
     }
   }, [user, setValue]);
 
+  // dateOfBirthISO 변경 시 표시값 동기화
+  useEffect(() => {
+    if (dateOfBirthISO) {
+      const [year, month, day] = dateOfBirthISO.split('-');
+      if (year && month && day) {
+        setDateDisplayValue(`${year} / ${month.padStart(2, '0')} / ${day.padStart(2, '0')}`);
+      } else if (year && month) {
+        setDateDisplayValue(`${year} / ${month.padStart(2, '0')} / `);
+      } else if (year) {
+        setDateDisplayValue(`${year} / `);
+      } else {
+        setDateDisplayValue('');
+      }
+    } else {
+      setDateDisplayValue('');
+    }
+  }, [dateOfBirthISO]);
+
   const onSubmit = async (data: ProfileFormData) => {
     try {
-      const dateOfBirth = toISODate(birthYear, birthMonth, birthDay);
       const { name: _name, ...rest } = data;
-      await updateProfile.mutateAsync({ ...rest, dateOfBirth });
+      await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO });
       await refetch();
       
       // 국가가 변경된 경우 언어도 업데이트
@@ -204,37 +213,480 @@ export function ProfileEditPage() {
               />
             </div>
 
-            {/* 생년월일 - 가운데 정렬 */}
+            {/* 생년월일 */}
             <div className="space-y-2">
-              <Label className="text-brown-900">생년월일</Label>
-              <div className="flex items-center justify-center gap-2 bg-gray-50 rounded-md border border-input px-3 py-2">
-                <input
-                  type="text"
-                  placeholder="YYYY"
-                  maxLength={4}
-                  value={birthYear}
-                  onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  className="w-14 bg-transparent outline-none text-center"
-                />
-                <span className="text-muted-foreground">/</span>
-                <input
-                  type="text"
-                  placeholder="MM"
-                  maxLength={2}
-                  value={birthMonth}
-                  onChange={(e) => setBirthMonth(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                  className="w-8 bg-transparent outline-none text-center"
-                />
-                <span className="text-muted-foreground">/</span>
-                <input
-                  type="text"
-                  placeholder="DD"
-                  maxLength={2}
-                  value={birthDay}
-                  onChange={(e) => setBirthDay(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                  className="w-8 bg-transparent outline-none text-center"
-                />
+              <div className="flex items-center gap-2">
+                <Label htmlFor="dateOfBirth" className="text-brown-900">생년월일</Label>
+                <button
+                  ref={calendarButtonRef}
+                  type="button"
+                  onClick={() => {
+                    if (dateOfBirthISO) {
+                      const [year, month, day] = dateOfBirthISO.split('-');
+                      if (year && month && day) {
+                        const selectedYear = parseInt(year);
+                        setCalendarDate(new Date(selectedYear, parseInt(month) - 1, parseInt(day)));
+                        // 선택된 연도 기준으로 10년 범위 설정
+                        setYearPickerStartYear(Math.floor(selectedYear / 10) * 10);
+                      }
+                    } else {
+                      // 현재 연도 기준으로 10년 범위 설정
+                      const currentYear = new Date().getFullYear();
+                      setYearPickerStartYear(Math.floor(currentYear / 10) * 10);
+                    }
+                    setShowCalendar(!showCalendar);
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <Calendar className="w-4 h-4 text-[#4A2C1A]" />
+                </button>
+                
+                {/* 커스텀 달력 - 모달 형태로 화면 중앙에 표시 */}
+                {showCalendar && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div 
+                      className="fixed inset-0 bg-black/50 z-40" 
+                      onClick={() => setShowCalendar(false)}
+                    />
+                    <div
+                      ref={calendarRef}
+                      className="relative z-50 bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* 달력 헤더 */}
+                      <div className="flex items-center justify-between mb-4 text-white">
+                        <button
+                          type="button"
+                          onClick={() => setShowYearMonthPicker(!showYearMonthPicker)}
+                          className="flex items-center gap-2 hover:bg-gray-700 rounded px-2 py-1"
+                        >
+                          <span className="text-sm font-medium">
+                            {format(calendarDate, 'yyyy년 MM월', { locale: ko })}
+                          </span>
+                          <ChevronDownIcon className={`w-4 h-4 transition-transform ${showYearMonthPicker ? 'rotate-180' : ''}`} />
+                        </button>
+                        {!showYearMonthPicker && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
+                              className="p-1 hover:bg-gray-700 rounded"
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
+                              className="p-1 hover:bg-gray-700 rounded"
+                            >
+                              <ChevronDownIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* 연도/월 선택기 */}
+                      {showYearMonthPicker && (
+                        <div className="mb-4">
+                          {/* 연도 선택 헤더 */}
+                          <div className="flex items-center justify-between mb-3">
+                            <button
+                              type="button"
+                              onClick={() => setYearPickerStartYear(yearPickerStartYear - 10)}
+                              className="p-1 hover:bg-gray-700 rounded text-white"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <span className="text-sm font-medium text-white">
+                              {yearPickerStartYear}년 - {yearPickerStartYear + 9}년
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setYearPickerStartYear(yearPickerStartYear + 10)}
+                              className="p-1 hover:bg-gray-700 rounded text-white"
+                            >
+                              <ChevronLeft className="w-4 h-4 rotate-180" />
+                            </button>
+                          </div>
+                          
+                          {/* 연도 그리드 (10년치) */}
+                          <div className="grid grid-cols-5 gap-2 mb-3">
+                            {Array.from({ length: 10 }, (_, i) => {
+                              const year = yearPickerStartYear + i;
+                              const isCurrentYear = year === calendarDate.getFullYear();
+                              return (
+                                <button
+                                  key={year}
+                                  type="button"
+                                  onClick={() => {
+                                    // 연도만 선택하고 연도/월 선택기는 유지 (월 선택 가능하도록)
+                                    setCalendarDate(new Date(year, calendarDate.getMonth(), 1));
+                                    // setShowYearMonthPicker(false); 제거 - 연도 선택 후에도 선택기 유지
+                                  }}
+                                  className={`p-2 rounded text-xs ${
+                                    isCurrentYear
+                                      ? 'bg-blue-500 text-white'
+                                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                                  }`}
+                                >
+                                  {year}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* 월 그리드 */}
+                          <div className="grid grid-cols-3 gap-2">
+                            {Array.from({ length: 12 }, (_, i) => {
+                              const month = i + 1;
+                              const isCurrentMonth = month === calendarDate.getMonth() + 1;
+                              const isCurrentYearMonth = 
+                                calendarDate.getFullYear() === new Date().getFullYear() &&
+                                month === new Date().getMonth() + 1;
+                              return (
+                                <button
+                                  key={month}
+                                  type="button"
+                                  onClick={() => {
+                                    setCalendarDate(new Date(calendarDate.getFullYear(), month - 1, 1));
+                                    setShowYearMonthPicker(false);
+                                  }}
+                                  className={`p-2 rounded text-xs ${
+                                    isCurrentMonth && isCurrentYearMonth
+                                      ? 'bg-blue-500 text-white'
+                                      : isCurrentMonth
+                                      ? 'bg-gray-600 text-white'
+                                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                                  }`}
+                                >
+                                  {month}월
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* 요일 헤더 */}
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                          <div key={day} className="text-center text-xs text-gray-400 py-1">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* 달력 그리드 */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {(() => {
+                          const monthStart = startOfMonth(calendarDate);
+                          const monthEnd = endOfMonth(calendarDate);
+                          const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+                          const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+                          const days = eachDayOfInterval({ start: startDate, end: endDate });
+                          const selectedDate = dateOfBirthISO ? new Date(dateOfBirthISO) : null;
+                          
+                          return days.map((day) => {
+                            const isCurrentMonth = isSameMonth(day, calendarDate);
+                            const isSelected = selectedDate && isSameDay(day, selectedDate);
+                            const isToday = isSameDay(day, new Date());
+                            
+                            return (
+                              <button
+                                key={day.toISOString()}
+                                type="button"
+                                onClick={() => {
+                                  const dateStr = format(day, 'yyyy-MM-dd');
+                                  setDateOfBirthISO(dateStr);
+                                  setShowCalendar(false);
+                                }}
+                                className={`
+                                  w-8 h-8 rounded text-xs
+                                  ${!isCurrentMonth ? 'text-gray-600' : 'text-white'}
+                                  ${isSelected ? 'bg-blue-500 text-white border border-white' : ''}
+                                  ${!isSelected && isCurrentMonth ? 'hover:bg-gray-700' : ''}
+                                  ${isToday && !isSelected ? 'border border-gray-500' : ''}
+                                `}
+                              >
+                                {getDate(day)}
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+                      
+                      {/* 하단 버튼 */}
+                      <div className="flex justify-between mt-4 pt-4 border-t border-gray-700">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDateOfBirthISO(undefined);
+                            setShowCalendar(false);
+                          }}
+                          className="text-blue-400 text-sm"
+                        >
+                          삭제
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const today = format(new Date(), 'yyyy-MM-dd');
+                            setDateOfBirthISO(today);
+                            setCalendarDate(new Date());
+                            setShowCalendar(false);
+                          }}
+                          className="text-blue-400 text-sm"
+                        >
+                          오늘
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
+              
+              <Input
+                ref={dateInputRef}
+                id="dateOfBirth"
+                type="text"
+                placeholder="2000 / 00 / 00"
+                value={dateDisplayValue}
+                onChange={(e) => {
+                  const input = e.target;
+                  const oldValue = dateDisplayValue;
+                  const newValue = e.target.value;
+                  const cursorPosition = input.selectionStart || 0;
+                  
+                  // 이전 숫자 개수 계산
+                  const oldNumbers = oldValue.replace(/[^\d]/g, '');
+                  // 새 숫자만 추출
+                  const newNumbers = newValue.replace(/[^\d]/g, '');
+                  
+                  // 숫자가 변경되지 않았으면 포맷팅만 수행
+                  if (oldNumbers === newNumbers && newValue !== oldValue) {
+                    // 포맷팅만 변경된 경우 (슬래시 추가/제거 등)
+                    return;
+                  }
+                  
+                  // 한 번에 하나의 숫자만 추가되도록 제한
+                  const numbersDiff = newNumbers.length - oldNumbers.length;
+                  if (numbersDiff > 1) {
+                    // 여러 숫자가 한 번에 입력된 경우, 마지막 숫자만 허용
+                    const lastNumber = newNumbers.slice(-1);
+                    const limitedNumbers = oldNumbers + lastNumber;
+                    
+                    // 제한된 숫자로 다시 처리
+                    const year = limitedNumbers.slice(0, 4);
+                    const month = limitedNumbers.slice(4, 6);
+                    const day = limitedNumbers.slice(6, 8);
+                    
+                    let displayValue = '';
+                    if (year.length > 0) {
+                      displayValue = year;
+                      if (month.length > 0) {
+                        displayValue += ` / ${month}`;
+                        if (day.length > 0) {
+                          displayValue += ` / ${day}`;
+                        }
+                      } else if (year.length === 4) {
+                        // 년도 4자리 입력 후 자동으로 " / " 추가
+                        displayValue = year + ' / ';
+                      }
+                    }
+                    
+                    setDateDisplayValue(displayValue);
+                    
+                    // 폼에 저장할 값 업데이트
+                    if (year.length === 4 && month.length === 2 && day.length === 2) {
+                      setDateOfBirthISO(`${year}-${month}-${day}`);
+                    } else if (year.length === 4 && month.length === 2) {
+                      setDateOfBirthISO(`${year}-${month}-`);
+                    } else if (year.length === 4) {
+                      setDateOfBirthISO(`${year}--`);
+                    } else if (year.length > 0) {
+                      setDateOfBirthISO(`${year}-`);
+                    } else {
+                      setDateOfBirthISO(undefined);
+                    }
+                    
+                    // 커서 위치 조정
+                    requestAnimationFrame(() => {
+                      if (!dateInputRef.current) return;
+                      let newPos = 0;
+                      if (limitedNumbers.length <= 4) {
+                        newPos = limitedNumbers.length;
+                        if (limitedNumbers.length === 4) {
+                          newPos = 7; // "2000 / " = 7자리
+                        }
+                      } else if (limitedNumbers.length <= 6) {
+                        newPos = limitedNumbers.length + 3;
+                        if (limitedNumbers.length === 6) {
+                          newPos = 10; // "2000 / 12 / " = 10자리
+                        }
+                      } else {
+                        newPos = limitedNumbers.length + 6;
+                      }
+                      newPos = Math.min(newPos, displayValue.length);
+                      dateInputRef.current.setSelectionRange(newPos, newPos);
+                    });
+                    
+                    return;
+                  }
+                  
+                  // 년(4자리), 월(2자리), 일(2자리)로 분리
+                  const year = newNumbers.slice(0, 4);
+                  const month = newNumbers.slice(4, 6);
+                  const day = newNumbers.slice(6, 8);
+                  
+                  // 표시값 생성 - 실제 입력된 값만 표시
+                  let displayValue = '';
+                  if (year.length > 0) {
+                    displayValue = year;
+                    // 월 부분은 실제로 입력된 경우에만 추가
+                    if (month.length > 0) {
+                      displayValue += ` / ${month}`;
+                      // 일 부분은 실제로 입력된 경우에만 추가
+                      if (day.length > 0) {
+                        displayValue += ` / ${day}`;
+                      }
+                    } else if (year.length === 4) {
+                      // 년도 4자리 입력 후 자동으로 " / " 추가
+                      displayValue = year + ' / ';
+                    }
+                  }
+                  
+                  setDateDisplayValue(displayValue);
+                  
+                  // 폼에 저장할 값 (ISO 형식: YYYY-MM-DD)
+                  if (year.length === 4 && month.length === 2 && day.length === 2) {
+                    setDateOfBirthISO(`${year}-${month}-${day}`);
+                  } else if (year.length === 4 && month.length === 2) {
+                    setDateOfBirthISO(`${year}-${month}-`);
+                  } else if (year.length === 4) {
+                    setDateOfBirthISO(`${year}--`);
+                  } else if (year.length > 0) {
+                    setDateOfBirthISO(`${year}-`);
+                  } else {
+                    setDateOfBirthISO(undefined);
+                  }
+                  
+                  // 커서 위치 계산 및 복원
+                  requestAnimationFrame(() => {
+                    if (!dateInputRef.current) return;
+                    
+                    // 숫자 입력 위치에 따라 커서 위치 조정
+                    let newCursorPos = cursorPosition;
+                    const oldNumbersCount = oldNumbers.length;
+                    const newNumbersCount = newNumbers.length;
+                    
+                    // 숫자가 추가된 경우
+                    if (newNumbersCount > oldNumbersCount) {
+                      // 년도 입력 중
+                      if (newNumbersCount <= 4) {
+                        newCursorPos = newNumbersCount;
+                        // 년도 4자리 입력 완료 시 " / " 뒤로 커서 이동
+                        if (newNumbersCount === 4) {
+                          newCursorPos = 7; // "2000 / " = 7자리
+                        }
+                      }
+                      // 월 입력 중
+                      else if (newNumbersCount <= 6) {
+                        newCursorPos = newNumbersCount + 3; // "YYYY / " = 7자리, 그 다음 숫자 위치
+                        // 월 2자리 입력 완료 시 " / " 뒤로 커서 이동
+                        if (newNumbersCount === 6) {
+                          newCursorPos = 10; // "2000 / 12 / " = 10자리
+                        }
+                      }
+                      // 일 입력 중
+                      else {
+                        newCursorPos = newNumbersCount + 6; // "YYYY / MM / " = 10자리, 그 다음 숫자 위치
+                      }
+                    }
+                    // 숫자가 삭제된 경우
+                    else if (newNumbersCount < oldNumbersCount) {
+                      // 년도 삭제 중
+                      if (newNumbersCount <= 4) {
+                        newCursorPos = newNumbersCount;
+                      }
+                      // 월 삭제 중
+                      else if (newNumbersCount <= 6) {
+                        newCursorPos = newNumbersCount + 3;
+                      }
+                      // 일 삭제 중
+                      else {
+                        newCursorPos = newNumbersCount + 6;
+                      }
+                    }
+                    
+                    newCursorPos = Math.min(newCursorPos, displayValue.length);
+                    dateInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                  });
+                }}
+                onKeyDown={(e) => {
+                  // 백스페이스 처리: 슬래시나 공백을 건너뛰기
+                  if (e.key === 'Backspace' && dateInputRef.current) {
+                    const input = dateInputRef.current;
+                    const cursorPos = input.selectionStart || 0;
+                    const value = input.value;
+                    
+                    // 커서가 슬래시나 공백 바로 뒤에 있으면 한 칸 더 뒤로
+                    if (cursorPos > 0 && (value[cursorPos - 1] === '/' || value[cursorPos - 1] === ' ')) {
+                      e.preventDefault();
+                      const numbers = value.replace(/[^\d]/g, '');
+                      const newNumbers = numbers.slice(0, Math.max(0, numbers.length - 1));
+                      
+                      const year = newNumbers.slice(0, 4);
+                      const month = newNumbers.slice(4, 6);
+                      const day = newNumbers.slice(6, 8);
+                      
+                      let displayValue = '';
+                      if (year.length > 0) {
+                        displayValue = year;
+                        // 월 부분은 실제로 입력된 경우에만 추가
+                        if (month.length > 0) {
+                          displayValue += ` / ${month}`;
+                          // 일 부분은 실제로 입력된 경우에만 추가
+                          if (day.length > 0) {
+                            displayValue += ` / ${day}`;
+                          }
+                        } else if (year.length === 4) {
+                          // 년도 4자리 입력 후 자동으로 " / " 추가
+                          displayValue = year + ' / ';
+                        }
+                      }
+                      
+                      setDateDisplayValue(displayValue);
+                      
+                      if (year.length === 4 && month.length === 2 && day.length === 2) {
+                        setDateOfBirthISO(`${year}-${month}-${day}`);
+                      } else if (year.length === 4 && month.length === 2) {
+                        setDateOfBirthISO(`${year}-${month}-`);
+                      } else if (year.length === 4) {
+                        setDateOfBirthISO(`${year}--`);
+                      } else if (year.length > 0) {
+                        setDateOfBirthISO(`${year}-`);
+                      } else {
+                        setDateOfBirthISO(undefined);
+                      }
+                      
+                      requestAnimationFrame(() => {
+                        if (!dateInputRef.current) return;
+                        let newPos = 0;
+                        if (newNumbers.length <= 4) {
+                          newPos = newNumbers.length;
+                        } else if (newNumbers.length <= 6) {
+                          newPos = newNumbers.length + 3;
+                        } else {
+                          newPos = newNumbers.length + 6;
+                        }
+                        newPos = Math.max(0, Math.min(newPos, displayValue.length));
+                        dateInputRef.current.setSelectionRange(newPos, newPos);
+                      });
+                    }
+                  }
+                }}
+                className={`bg-gray-100 text-center ${errors.dateOfBirth ? 'border-red-500' : ''}`}
+              />
             </div>
 
             {/* 국가 선택 - 팝업 스타일 토글 목록 (다른 팝업과 UI 통일) */}

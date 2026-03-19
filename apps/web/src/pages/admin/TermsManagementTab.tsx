@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   useServiceTerms, 
-  usePrivacyPolicy, 
   usePaymentTerms,
   useRefundTerms,
   useUpdateServiceTerms, 
-  useUpdatePrivacyPolicy,
   useUpdatePaymentTerms,
   useUpdateRefundTerms,
 } from '@/hooks/useTerms';
@@ -14,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-type TermsType = 'service' | 'privacy' | 'payment' | 'refund';
+type TermsType = 'service' | 'payment' | 'refund';
 
 export function TermsManagementTab() {
   const [selectedType, setSelectedType] = useState<TermsType>('service');
@@ -28,23 +26,19 @@ export function TermsManagementTab() {
   const lastContentRef = useRef('');
 
   const serviceTerms = useServiceTerms();
-  const privacyPolicy = usePrivacyPolicy();
   const paymentTerms = usePaymentTerms();
   const refundTerms = useRefundTerms();
   const updateServiceTerms = useUpdateServiceTerms();
-  const updatePrivacyPolicy = useUpdatePrivacyPolicy();
   const updatePaymentTerms = useUpdatePaymentTerms();
   const updateRefundTerms = useUpdateRefundTerms();
 
   const currentTerms = 
     selectedType === 'service' ? serviceTerms :
-    selectedType === 'privacy' ? privacyPolicy :
     selectedType === 'payment' ? paymentTerms :
     refundTerms;
   
   const updateMutation = 
     selectedType === 'service' ? updateServiceTerms :
-    selectedType === 'privacy' ? updatePrivacyPolicy :
     selectedType === 'payment' ? updatePaymentTerms :
     updateRefundTerms;
 
@@ -107,8 +101,6 @@ export function TermsManagementTab() {
       // Refresh to get updated version
       if (selectedType === 'service') {
         serviceTerms.refetch();
-      } else if (selectedType === 'privacy') {
-        privacyPolicy.refetch();
       } else if (selectedType === 'payment') {
         paymentTerms.refetch();
       } else {
@@ -132,8 +124,6 @@ export function TermsManagementTab() {
     switch (type) {
       case 'service':
         return '서비스 이용약관';
-      case 'privacy':
-        return '개인정보 처리방침';
       case 'payment':
         return '정기결제/자동갱신';
       case 'refund':
@@ -153,7 +143,7 @@ export function TermsManagementTab() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[#4A2C1A] mb-2">약관 관리</h2>
-          <p className="text-sm text-gray-600">서비스 이용약관 및 개인정보 처리방침을 관리합니다.</p>
+          <p className="text-sm text-gray-600">서비스 이용약관, 정기결제/자동갱신, 환불/취소 정책을 관리합니다.</p>
         </div>
       </div>
 
@@ -178,28 +168,6 @@ export function TermsManagementTab() {
             {serviceTerms.data?.updatedAt && (
               <p className="text-xs text-gray-500">
                 최종 수정: {format(new Date(serviceTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
-              </p>
-            )}
-          </button>
-
-          {/* Privacy Policy Card */}
-          <button
-            onClick={() => setSelectedType('privacy')}
-            className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
-              selectedType === 'privacy'
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`${selectedType === 'privacy' ? 'text-purple-600' : 'text-gray-400'}`}>
-                {getTermsIcon()}
-              </div>
-              <h3 className="font-semibold text-[#4A2C1A]">개인정보 처리방침</h3>
-            </div>
-            {privacyPolicy.data?.updatedAt && (
-              <p className="text-xs text-gray-500">
-                최종 수정: {format(new Date(privacyPolicy.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
               </p>
             )}
           </button>

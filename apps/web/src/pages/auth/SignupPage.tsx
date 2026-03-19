@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,9 +10,9 @@ import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useUploadImage } from '@/hooks/useUpload';
-import { Logo } from '@/components/Logo';
-import { ChevronLeft, Eye, EyeOff, X, User, Pencil } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
+import { StorageImage } from '@/components/StorageImage';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한
 const nicknameSchema = z
@@ -84,6 +84,7 @@ export function SignupPage() {
   const uploadImage = useUploadImage();
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'privacy'>(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Step 1 form
   const step1Form = useForm<Step1FormData>({
@@ -333,22 +334,23 @@ export function SignupPage() {
     <div className="min-h-screen flex flex-col px-4 py-8 bg-beige-50">
       <div className="w-full max-w-sm mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div className="relative">
           {step > 1 && (
             <button
               onClick={() => setStep((prev) => (prev === 2 ? 1 : 2) as 1 | 2 | 3)}
-              className="absolute left-4 top-8 p-2 rounded-full hover:bg-gray-100"
+              className="absolute left-0 top-0 p-2 rounded-full hover:bg-gray-100 -ml-2"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
           )}
-          <Logo size="sm" showText={false} />
-          <h1 className="text-2xl font-bold">회원가입</h1>
-          <p className="text-sm text-muted-foreground">
-            {step === 1 && '사용하실 계정 정보를 입력해주세요.'}
-            {step === 2 && '회원 정보를 입력해주세요.'}
-            {step === 3 && '약관에 동의해주세요.'}
-          </p>
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold">회원가입</h1>
+            <p className="text-sm text-muted-foreground">
+              {step === 1 && '사용하실 계정 정보를 입력해주세요.'}
+              {step === 2 && '회원 정보를 입력해주세요.'}
+              {step === 3 && '약관에 동의해주세요.'}
+            </p>
+          </div>
         </div>
 
         {/* Progress indicator */}
@@ -473,8 +475,8 @@ export function SignupPage() {
                 <div className="relative shrink-0">
                   <div className="w-16 h-16 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
                     {profileImageUrl ? (
-                      <img
-                        src={profileImageUrl}
+                      <StorageImage
+                        url={profileImageUrl}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -543,15 +545,77 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">생년월일</Label>
-              <Input
-                id="dateOfBirth"
+              <div className="flex items-center gap-2">
+                <Label htmlFor="dateOfBirth">생년월일</Label>
+                <button
+                  type="button"
+                  onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <Calendar className="w-4 h-4 text-brown-600" />
+                </button>
+              </div>
+              {/* 숨겨진 date input - 달력 기능용 */}
+              <input
+                ref={dateInputRef}
                 type="date"
-                {...step2Form.register('dateOfBirth')}
-                className={step2Errors.dateOfBirth ? 'border-red-500' : ''}
+                className="hidden"
+                value={step2DateOfBirth || ''}
+                onChange={(e) => {
+                  step2Form.setValue('dateOfBirth', e.target.value || undefined);
+                }}
               />
+              <div className="flex items-center justify-center gap-2">
+                <Input
+                  id="dateOfBirth-year"
+                  type="text"
+                  placeholder="년"
+                  maxLength={4}
+                  value={step2DateOfBirth ? step2DateOfBirth.split('-')[0] || '' : ''}
+                  onChange={(e) => {
+                    const year = e.target.value.replace(/\D/g, '');
+                    const current = step2DateOfBirth || '';
+                    const parts = current.split('-');
+                    const newValue = year ? `${year}-${parts[1] || ''}-${parts[2] || ''}`.replace(/^-+|-+$/g, '') : '';
+                    step2Form.setValue('dateOfBirth', newValue || undefined);
+                  }}
+                  className={`w-20 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                />
+                <span className="text-brown-600">/</span>
+                <Input
+                  id="dateOfBirth-month"
+                  type="text"
+                  placeholder="월"
+                  maxLength={2}
+                  value={step2DateOfBirth ? step2DateOfBirth.split('-')[1] || '' : ''}
+                  onChange={(e) => {
+                    const month = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    const current = step2DateOfBirth || '';
+                    const parts = current.split('-');
+                    const newValue = month ? `${parts[0] || ''}-${month}-${parts[2] || ''}`.replace(/^-+|-+$/g, '') : '';
+                    step2Form.setValue('dateOfBirth', newValue || undefined);
+                  }}
+                  className={`w-16 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                />
+                <span className="text-brown-600">/</span>
+                <Input
+                  id="dateOfBirth-day"
+                  type="text"
+                  placeholder="일"
+                  maxLength={2}
+                  value={step2DateOfBirth ? step2DateOfBirth.split('-')[2] || '' : ''}
+                  onChange={(e) => {
+                    const day = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    const current = step2DateOfBirth || '';
+                    const parts = current.split('-');
+                    const newValue = day ? `${parts[0] || ''}-${parts[1] || ''}-${day}`.replace(/^-+|-+$/g, '') : '';
+                    step2Form.setValue('dateOfBirth', newValue || undefined);
+                  }}
+                  className={`w-16 text-center ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                />
+              </div>
               {step2Errors.dateOfBirth && (
-                <p className="text-sm text-red-500">{step2Errors.dateOfBirth.message}</p>
+                <p className="text-sm text-red-500 text-center">{step2Errors.dateOfBirth.message}</p>
               )}
             </div>
 

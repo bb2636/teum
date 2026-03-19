@@ -12,9 +12,8 @@ export class PasswordResetService {
     // Find user by email
     const user = await passwordResetRepository.findUserByEmail(email);
     if (!user) {
-      // Don't reveal if user exists or not (security best practice)
       logger.warn('Password reset requested for non-existent email', { email });
-      return { success: true }; // Always return success
+      throw new Error('존재하지 않는 이메일입니다.');
     }
 
     // Generate reset token
@@ -33,16 +32,24 @@ export class PasswordResetService {
     
     // Send email
     const emailEnabled = process.env.EMAIL_ENABLED === 'true';
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    let emailSent = false;
+    
     if (emailEnabled) {
       try {
         await emailService.sendPasswordResetEmail(user.email, token);
         logger.info('Password reset email sent', { email });
+        emailSent = true;
       } catch (error) {
         logger.error('Failed to send password reset email', {
           email,
           error: error instanceof Error ? error.message : String(error),
         });
-        // Continue even if email fails - don't reveal if user exists
+        // In production, don't return token if email fails (security)
+        if (!isDevelopment) {
+          // Still return success to not reveal if user exists
+          return { success: true };
+        }
       }
     } else {
       // Development mode: log token
@@ -53,11 +60,12 @@ export class PasswordResetService {
       });
     }
 
-    // In development, return token for testing (only if email is disabled)
-    const isDevelopment = process.env.NODE_ENV !== 'production' && !emailEnabled;
+    // Return token only in development mode or if email was sent successfully
+    const shouldReturnToken = isDevelopment || (emailEnabled && emailSent);
+    
     return {
       success: true,
-      ...(isDevelopment && { token, resetLink }),
+      ...(shouldReturnToken && { token, resetLink }),
     };
   }
 

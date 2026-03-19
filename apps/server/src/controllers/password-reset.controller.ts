@@ -8,7 +8,6 @@ export class PasswordResetController {
       const input = requestPasswordResetSchema.parse(req.body);
       const result = await passwordResetService.requestPasswordReset(input.email);
 
-      // Always return success (don't reveal if user exists)
       // In development, include token for testing
       res.json({
         success: true,
@@ -16,6 +15,15 @@ export class PasswordResetController {
         ...(result.token && { token: result.token, resetLink: result.resetLink }),
       });
     } catch (error) {
+      if (error instanceof Error && error.message === '존재하지 않는 이메일입니다.') {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMAIL_NOT_FOUND',
+            message: '존재하지 않는 이메일입니다.',
+          },
+        });
+      }
       next(error);
     }
   }

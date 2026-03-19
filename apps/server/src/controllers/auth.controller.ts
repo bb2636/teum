@@ -258,6 +258,28 @@ export class AuthController {
     }
   }
 
+  async requestEmailVerificationForPasswordReset(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = emailVerificationRequestSchema.parse(req.body);
+      const result = await authService.requestEmailVerificationForPasswordReset(input);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('존재하지 않는 이메일')) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMAIL_NOT_FOUND',
+            message: error.message,
+          },
+        });
+      }
+      next(error);
+    }
+  }
+
   async confirmEmailVerification(req: Request, res: Response, next: NextFunction) {
     try {
       const input = emailVerificationConfirmSchema.parse(req.body);

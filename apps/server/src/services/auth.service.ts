@@ -265,6 +265,46 @@ export class AuthService {
     };
   }
 
+  async requestEmailVerificationForPasswordReset(input: EmailVerificationRequestInput) {
+    // Check if email exists (for password reset, email must exist)
+    const existingUser = await userRepository.findByEmail(input.email);
+    if (!existingUser) {
+      throw new Error('존재하지 않는 이메일입니다.');
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Set expiration (10 minutes)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+    // Mark previous verifications as expired
+    await emailVerificationRepository.markAsExpired(input.email);
+
+    // Create new verification
+    const verification = await emailVerificationRepository.create({
+      userId: existingUser.id,
+      email: input.email,
+      code,
+      expiresAt,
+    });
+
+    // TODO: Send email (mock for now)
+    // In development, log to logger and return code in response
+    logger.info('Email verification code generated for password reset', {
+      email: input.email,
+      code,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    return {
+      message: 'Verification code sent',
+      expiresIn: 600, // 10 minutes in seconds
+      code, // Return code in development mode
+    };
+  }
+
   async confirmEmailVerification(input: EmailVerificationConfirmInput) {
     // Find valid verification
     const verification = await emailVerificationRepository.findValidCode(

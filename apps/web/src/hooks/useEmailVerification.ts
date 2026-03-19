@@ -44,6 +44,22 @@ export function useRequestEmailVerification() {
   });
 }
 
+// Request email verification code for password reset (email must exist)
+export function useRequestEmailVerificationForPasswordReset() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const response = await apiRequest<{ data: RequestEmailVerificationResponse }>(
+        '/auth/email/request-for-password-reset',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        }
+      );
+      return response.data;
+    },
+  });
+}
+
 // Confirm email verification code
 export function useConfirmEmailVerification() {
   return useMutation({

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,17 @@ export function HomePage() {
   
   // 일기 작성 타입 선택 모달
   const [showTypeModal, setShowTypeModal] = useState(false);
+
+  // BottomTabBar의 + 버튼 클릭 이벤트 리스너
+  useEffect(() => {
+    const handleOpenModal = () => {
+      setShowTypeModal(true);
+    };
+    window.addEventListener('openDiaryTypeModal', handleOpenModal);
+    return () => {
+      window.removeEventListener('openDiaryTypeModal', handleOpenModal);
+    };
+  }, []);
   
   // 폴더 생성 모달 상태
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -172,7 +183,8 @@ export function HomePage() {
 
   const handleTypeSelect = (type: 'free_form' | 'question_based') => {
     setShowTypeModal(false);
-    navigate(`/diaries/new?type=${type}`);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    navigate(`/diaries/new?type=${type}&date=${today}`);
   };
 
   const handleFolderClick = (folderId: string | undefined) => {
@@ -238,7 +250,15 @@ export function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div 
+      className="min-h-screen bg-white pb-20"
+      onClick={(e) => {
+        // 편집 모드일 때 바깥 영역 클릭 시 수정 취소
+        if (editingFolderId && !(e.target as HTMLElement).closest('[data-folder-id]')) {
+          handleFolderNameCancel();
+        }
+      }}
+    >
       <div className="max-w-md mx-auto">
         {/* Header - First Row */}
         <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white">
@@ -396,7 +416,10 @@ export function HomePage() {
             >
               {editingFolderId === folder.id ? (
                 // 편집 모드
-                <div className="flex items-center gap-1">
+                <div 
+                  className="flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <input
                     type="text"
                     value={editingFolderName}
@@ -420,15 +443,6 @@ export function HomePage() {
                     className="text-[#4A2C1A] hover:text-[#5A3C2A]"
                   >
                     ✓
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFolderNameCancel();
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-3 h-3" />
                   </button>
                   <button
                     onClick={(e) => {
@@ -548,14 +562,13 @@ export function HomePage() {
                 return (
                   <div key={dateKey} className="space-y-3">
                     {/* 날짜 헤더 */}
-                    <h3 className="text-sm font-medium text-gray-700 px-1">{dateLabel}</h3>
+                    <h3 className="text-sm font-medium text-gray-700 text-center">{dateLabel}</h3>
                     
-                    {/* 해당 날짜의 일기 목록 */}
-                    <div className="space-y-3">
+                    {/* 해당 날짜의 일기 목록 - 2열 그리드 */}
+                    <div className="grid grid-cols-2 gap-3">
                       {dateDiaries.map((diary) => {
-                        // 일기 첫 줄 추출
-                        const getFirstLine = (diary: typeof dateDiaries[0]) => {
-                          if (diary.title?.trim()) return diary.title.trim();
+                        // 일기 전체 내용 추출 (줄바꿈 포함)
+                        const getDiaryContent = (diary: typeof dateDiaries[0]) => {
                           if (diary.type === 'question_based' && diary.answers?.length) {
                             const firstQuestion = diary.answers[0].question?.question?.trim();
                             if (firstQuestion) return firstQuestion;
@@ -564,58 +577,73 @@ export function HomePage() {
                               const tmp = document.createElement('div');
                               tmp.innerHTML = first;
                               const text = tmp.textContent || tmp.innerText || '';
-                              return text.split('\n')[0].trim() || text;
+                              return text.trim();
                             }
                             return '';
                           }
                           if (diary.content?.trim()) {
                             const textContent = stripHTML(diary.content);
-                            return textContent.trim().split('\n')[0].trim();
+                            return textContent.trim();
                           }
                           return '';
                         };
                         
-                        const firstLine = getFirstLine(diary);
+                        const diaryContent = getDiaryContent(diary);
                         const hasImage = diary.images && diary.images.length > 0;
                         
                         return (
                           <Link
                             key={diary.id}
                             to={`/diaries/${diary.id}`}
-                            className="block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                            className="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow aspect-square"
                           >
                             {hasImage && diary.images && diary.images.length > 0 ? (
-                              <div className="relative">
-                                <StorageImage
-                                  url={diary.images[0].imageUrl}
-                                  className="w-full h-48 object-cover"
-                                />
-                                {firstLine && (
-                                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3">
-                                    <p className="text-sm font-medium line-clamp-1">{firstLine}</p>
+                              // 썸네일이 있는 경우: 정사각형 이미지 + 밑에 내용
+                              <div className="flex flex-col h-full">
+                                <div className="relative flex-1 aspect-square overflow-hidden">
+                                  <StorageImage
+                                    url={diary.images[0].imageUrl}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                {diaryContent && (
+                                  <div className="p-2 bg-white min-h-0">
+                                    <p className="text-xs font-medium text-gray-900 line-clamp-2 break-words">
+                                      {diaryContent}
+                                    </p>
                                   </div>
                                 )}
                               </div>
-                            ) : (
-                              <div className="p-4">
-                                {diary.type === 'question_based' ? (
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                      <span className="text-2xl">📝</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      {firstLine ? (
-                                        <p className="text-sm text-gray-700 line-clamp-2">{firstLine}</p>
-                                      ) : (
-                                        <p className="text-sm text-gray-400">이 곳에 질문이 들어갑니다.</p>
-                                      )}
-                                    </div>
+                            ) : diary.type === 'question_based' ? (
+                              // 문답형식: 정사각형 카드에 내용 전체 표시
+                              <div className="h-full flex flex-col p-3 bg-gray-50 overflow-hidden">
+                                <div className="flex-shrink-0 flex items-center justify-center mb-2">
+                                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <span className="text-2xl">📝</span>
                                   </div>
-                                ) : (
-                                  <p className="text-sm text-gray-700 line-clamp-2">
-                                    {firstLine || '이 곳에 제목이 들어갑니다.'}
-                                  </p>
-                                )}
+                                </div>
+                                <div className="flex-1 min-h-0 overflow-hidden">
+                                  {diaryContent ? (
+                                    <p className="text-xs font-medium text-gray-900 break-words whitespace-pre-wrap line-clamp-[6]">
+                                      {diaryContent}
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs text-gray-400">이 곳에 질문이 들어갑니다.</p>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              // 자유형식 (썸네일 없음): 정사각형 카드에 내용 전체 표시
+                              <div className="h-full flex flex-col p-3 bg-white overflow-hidden">
+                                <div className="flex-1 min-h-0 overflow-hidden">
+                                  {diaryContent ? (
+                                    <p className="text-xs font-medium text-gray-900 break-words whitespace-pre-wrap line-clamp-[8]">
+                                      {diaryContent}
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs text-gray-400">이 곳에 제목이 들어갑니다.</p>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </Link>

@@ -38,7 +38,9 @@ export class MusicController {
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === 'SUBSCRIPTION_REQUIRED') {
+        const err = error as Error & { code?: string };
+        
+        if (error.message === 'SUBSCRIPTION_REQUIRED' || err.code === 'SUBSCRIPTION_REQUIRED') {
           return res.status(403).json({
             success: false,
             error: {
@@ -47,12 +49,21 @@ export class MusicController {
             },
           });
         }
-        if (error.message === 'MONTHLY_LIMIT_EXCEEDED') {
+        if (error.message === 'MONTHLY_LIMIT_EXCEEDED' || err.code === 'MONTHLY_LIMIT_EXCEEDED') {
           return res.status(403).json({
             success: false,
             error: {
               code: 'MONTHLY_LIMIT_EXCEEDED',
               message: '이번 달 생성 한도(5곡)를 모두 사용했습니다.',
+            },
+          });
+        }
+        if (err.code === 'MUREKA_QUOTA_EXCEEDED' || error.message.includes('quota exceeded')) {
+          return res.status(429).json({
+            success: false,
+            error: {
+              code: 'MUREKA_QUOTA_EXCEEDED',
+              message: 'Mureka API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.',
             },
           });
         }

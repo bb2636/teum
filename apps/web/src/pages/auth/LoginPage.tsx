@@ -123,7 +123,7 @@ export function LoginPage() {
             )}
           </div>
           <Button 
-            className={`w-full ${isFormValid ? 'bg-[#6B4423] text-white hover:bg-[#7B3F00]' : 'bg-gray-500 text-white cursor-not-allowed'}`}
+            className={`w-full ${isFormValid ? 'bg-[#6B4423] text-white' : 'bg-gray-500 text-white cursor-not-allowed'}`}
             size="lg" 
             type="submit" 
             disabled={loginMutation.isPending || !isFormValid}

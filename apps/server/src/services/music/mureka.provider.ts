@@ -101,7 +101,18 @@ export class MurekaProvider {
       if (!response.ok) {
         const msg = data.error?.message || response.statusText;
         logger.error('Mureka API error', { status: response.status, error: msg });
-        throw new Error(`Mureka API error: ${response.status} - ${msg}`);
+        
+        // 429 에러 (quota 초과)를 명확한 에러 코드로 변환
+        if (response.status === 429) {
+          const error = new Error(`Mureka API quota exceeded: ${msg}`) as Error & { code?: string; statusCode?: number };
+          error.code = 'MUREKA_QUOTA_EXCEEDED';
+          error.statusCode = 429;
+          throw error;
+        }
+        
+        const error = new Error(`Mureka API error: ${response.status} - ${msg}`) as Error & { code?: string; statusCode?: number };
+        error.statusCode = response.status;
+        throw error;
       }
 
       const taskId = data.id;

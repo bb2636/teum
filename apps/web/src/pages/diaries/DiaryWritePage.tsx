@@ -749,16 +749,16 @@ export function DiaryWritePage() {
             </div>
           </div>
         )}
-        <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden">
+        <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden bg-white">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-white">
+          <div className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-30">
             <button 
               onClick={handleBackClick} 
               className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
             </button>
-            <h1 className="text-base font-medium text-[#4A2C1A]">{formattedDate}</h1>
+            <h1 className="text-sm font-normal text-gray-600">{formattedDate}</h1>
             <button
               onClick={handleSaveClick}
               disabled={uploading || createDiary.isPending}
@@ -769,23 +769,51 @@ export function DiaryWritePage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            {/* Note-style content area with lined paper background */}
+            {/* Note-style content area with staff paper background (5 lines per group with spacing) */}
             <div 
-              className="flex-1 mx-4 my-4 rounded-lg shadow-sm p-4 relative overflow-hidden"
-              style={{
-                backgroundColor: '#F9F9F5',
-                backgroundImage: `
-                  repeating-linear-gradient(
-                    transparent,
-                    transparent 31px,
-                    #E8E8E0 31px,
-                    #E8E8E0 32px
-                  )
-                `,
-                backgroundSize: '100% 32px',
-                backgroundPosition: '0 0',
-              }}
+              className="flex-1 mx-4 my-4 rounded-lg shadow-sm p-4 relative overflow-hidden bg-white"
             >
+              {/* 배경 악보지 형식 - z-index 낮게 설정 */}
+              <div
+                className="absolute inset-0 z-0"
+                style={{
+                  backgroundImage: `
+                    /* 공백 영역 마스크 (각 staff 사이 공백) - 패턴: 80px (32px 5줄 + 48px 공백) */
+                    repeating-linear-gradient(
+                      to bottom,
+                      transparent 0px,
+                      transparent 31px,
+                      white 31px,
+                      white 79px
+                    ),
+                    /* 5줄 묶음 구분선 (각 staff의 첫 줄과 마지막 줄) */
+                    repeating-linear-gradient(
+                      to bottom,
+                      transparent 0px,
+                      transparent 0px,
+                      #D0D0D0 0px,
+                      #D0D0D0 1px,
+                      transparent 1px,
+                      transparent 31px,
+                      #D0D0D0 31px,
+                      #D0D0D0 32px,
+                      transparent 32px,
+                      transparent 79px
+                    ),
+                    /* 기본 줄 (매 8px마다, 촘촘한 악보지 형식 - 5줄 = 32px) */
+                    repeating-linear-gradient(
+                      to bottom,
+                      transparent 0px,
+                      transparent 7px,
+                      #D0D0D0 7px,
+                      #D0D0D0 8px
+                    )
+                  `,
+                  backgroundSize: '100% 80px, 100% 80px, 100% 8px',
+                  backgroundPosition: '0 0, 0 0, 0 0',
+                }}
+              />
+              {/* 내용 입력 영역 - z-index 높게 설정 */}
               <div
                 ref={contentEditableRef}
                 contentEditable
@@ -799,9 +827,9 @@ export function DiaryWritePage() {
                 className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
-                  lineHeight: '32px',
+                  lineHeight: '24px',
                   fontSize: '16px',
-                  paddingTop: '4px',
+                  paddingTop: '0px',
                 }}
               />
             </div>
@@ -921,9 +949,9 @@ export function DiaryWritePage() {
           </div>
         </div>
       )}
-      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
+      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative bg-white">
         {/* Header - 자유작성과 동일 */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-30">
           <button 
             onClick={handleBackClick} 
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"

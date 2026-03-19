@@ -132,17 +132,34 @@ export function MusicCreatePage() {
       }
     } catch (error) {
       setShowProcessingModal(false);
-      const err = error as Error & { code?: string };
+      const err = error as Error & { code?: string; message?: string };
+      
+      // 에러 메시지에서 Mureka quota 에러 감지
+      const errorMessage = err.message || '';
+      const isQuotaError = 
+        err.code === 'MUREKA_QUOTA_EXCEEDED' ||
+        errorMessage.includes('429') ||
+        errorMessage.toLowerCase().includes('quota') ||
+        errorMessage.toLowerCase().includes('exceeded');
+      
       if (err.code === 'SUBSCRIPTION_REQUIRED') {
         navigate('/payment');
         return;
       }
       if (err.code === 'MONTHLY_LIMIT_EXCEEDED') {
-        alert('이번 달 생성 한도(5곡)를 모두 사용했습니다.');
+        setToastMessage('이번 달 생성 한도(5곡)를 모두 사용했습니다.');
+        setTimeout(() => setToastMessage(null), 3000);
         return;
       }
+      if (isQuotaError) {
+        setToastMessage('Mureka API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      
       console.error('Failed to generate music:', error);
-      alert('음악 생성에 실패했습니다. 다시 시도해주세요.');
+      setToastMessage('음악 생성에 실패했습니다. 다시 시도해주세요.');
+      setTimeout(() => setToastMessage(null), 3000);
     }
   };
 

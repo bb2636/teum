@@ -150,31 +150,33 @@ export function TermsManagementTab() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#4A2C1A] mb-2">약관 관리</h2>
-        <p className="text-sm text-gray-600">서비스 이용약관, 개인정보 처리방침, 정기결제/자동갱신, 환불/취소 정책을 관리합니다.</p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-[#4A2C1A] mb-2">약관 관리</h2>
+          <p className="text-sm text-gray-600">서비스 이용약관 및 개인정보 처리방침을 관리합니다.</p>
+        </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-8">
         {/* Left Navigation */}
-        <div className="w-64 flex-shrink-0 space-y-3">
+        <div className="w-72 flex-shrink-0 space-y-4">
           {/* Service Terms Card */}
           <button
             onClick={() => setSelectedType('service')}
-            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+            className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'service'
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div className={`${selectedType === 'service' ? 'text-purple-600' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">서비스 이용약관</h3>
             </div>
             {serviceTerms.data?.updatedAt && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500">
                 최종 수정: {format(new Date(serviceTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
               </p>
             )}
@@ -183,20 +185,20 @@ export function TermsManagementTab() {
           {/* Privacy Policy Card */}
           <button
             onClick={() => setSelectedType('privacy')}
-            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+            className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'privacy'
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div className={`${selectedType === 'privacy' ? 'text-purple-600' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">개인정보 처리방침</h3>
             </div>
             {privacyPolicy.data?.updatedAt && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500">
                 최종 수정: {format(new Date(privacyPolicy.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
               </p>
             )}
@@ -205,20 +207,20 @@ export function TermsManagementTab() {
           {/* Payment Terms Card */}
           <button
             onClick={() => setSelectedType('payment')}
-            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+            className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'payment'
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div className={`${selectedType === 'payment' ? 'text-purple-600' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">정기결제/자동갱신</h3>
             </div>
             {paymentTerms.data?.updatedAt && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500">
                 최종 수정: {format(new Date(paymentTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
               </p>
             )}
@@ -227,20 +229,20 @@ export function TermsManagementTab() {
           {/* Refund Terms Card */}
           <button
             onClick={() => setSelectedType('refund')}
-            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+            className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'refund'
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div className={`${selectedType === 'refund' ? 'text-purple-600' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">환불/취소 정책</h3>
             </div>
             {refundTerms.data?.updatedAt && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500">
                 최종 수정: {format(new Date(refundTerms.data.updatedAt), 'yyyy.MM.dd', { locale: ko })}
               </p>
             )}
@@ -248,14 +250,14 @@ export function TermsManagementTab() {
         </div>
 
         {/* Right Content Area */}
-        <div className="flex-1 bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex-1 bg-white rounded-lg border border-gray-200 p-8">
           {currentTerms.isLoading ? (
             <div className="text-center py-12 text-gray-500">로딩 중...</div>
           ) : (
             <>
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
                   <h3 className="text-lg font-semibold text-[#4A2C1A]">
                     {getTermsTitle(selectedType)} {currentTerms.data?.version ? `v${currentTerms.data.version}` : 'v1.0'}
                   </h3>
@@ -274,9 +276,9 @@ export function TermsManagementTab() {
                 <Button
                   onClick={handleSave}
                   disabled={!content.trim() || !hasChanges || updateMutation.isPending}
-                  className={`${
+                  className={`rounded-lg ${
                     content.trim() && hasChanges && !updateMutation.isPending
-                      ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2215]'
+                      ? 'bg-black text-white hover:bg-gray-800'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -289,7 +291,7 @@ export function TermsManagementTab() {
                 value={content}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="약관 내용을 입력하세요"
-                className="w-full h-[600px] px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] focus:border-transparent font-mono text-sm"
+                className="w-full h-[600px] px-5 py-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] focus:border-transparent font-mono text-sm leading-relaxed"
               />
             </>
           )}

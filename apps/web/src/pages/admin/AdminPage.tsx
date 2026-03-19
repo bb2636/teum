@@ -139,7 +139,7 @@ export function AdminPage() {
   const formatDateOfBirth = (date: string | Date | null | undefined) => {
     if (!date) return '-';
     try {
-      return format(new Date(date), 'yyyy.MM.dd');
+      return format(new Date(date), 'yy.MM.dd');
     } catch {
       return '-';
     }
@@ -801,46 +801,44 @@ export function AdminPage() {
 
             {/* User Profile Header */}
             <div className="px-6 py-6 border-b border-gray-200">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                   {selectedUser.profile?.profileImageUrl ? (
-                    <img
-                      src={selectedUser.profile.profileImageUrl}
+                    <StorageImage
+                      url={selectedUser.profile.profileImageUrl}
                       alt={selectedUser.profile.name || selectedUser.email}
-                      className="w-16 h-16 rounded-full object-cover"
+                      className="w-20 h-20 rounded-full object-cover"
                     />
                   ) : (
-                    <User className="w-8 h-8 text-gray-500" />
+                    <User className="w-10 h-10 text-gray-500" />
                   )}
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {selectedUser.profile?.name || selectedUser.email}
-                  </h2>
-                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {selectedUser.profile?.name || selectedUser.email}
+                </h2>
               </div>
 
               {/* Tabs */}
               <div className="flex gap-2 mt-6">
                 <button
                   onClick={() => setUserDetailTab('profile')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     userDetailTab === 'profile'
                       ? 'bg-gray-200 text-gray-900'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'bg-white text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   프로필
                 </button>
                 <button
                   onClick={() => setUserDetailTab('subscription')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     userDetailTab === 'subscription'
                       ? 'bg-gray-200 text-gray-900'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'bg-white text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  구독 이력
+                  구독이력
                 </button>
               </div>
             </div>
@@ -848,39 +846,31 @@ export function AdminPage() {
             {/* Content */}
             <div className="px-6 py-6">
               {userDetailTab === 'profile' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">메일 주소</label>
-                    <p className="mt-1 text-gray-900">{selectedUser.email}</p>
+                <div className="space-y-0">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-900">메일 주소</label>
+                    <p className="text-sm text-gray-900">{selectedUser.email}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">이름</label>
-                    <p className="mt-1 text-gray-900">{selectedUser.profile?.name || '-'}</p>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-900">이름</label>
+                    <p className="text-sm text-gray-900">{selectedUser.profile?.name || '-'}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">닉네임</label>
-                    <p className="mt-1 text-gray-900">{selectedUser.profile?.nickname || '-'}</p>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-900">닉네임</label>
+                    <p className="text-sm text-gray-900">{selectedUser.profile?.nickname || '-'}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">생년월일</label>
-                    <p className="mt-1 text-gray-900">{formatDateOfBirth(selectedUser.profile?.dateOfBirth)}</p>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-900">생년월일</label>
+                    <p className="text-sm text-gray-900">{formatDateOfBirth(selectedUser.profile?.dateOfBirth)}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">생성일</label>
-                    <p className="mt-1 text-gray-900">{formatDate(selectedUser.createdAt)}</p>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-900">생성일</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedUser.createdAt)}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">구독유무</label>
-                    <p className="mt-1">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          selectedUser.hasActiveSubscription
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {selectedUser.hasActiveSubscription ? '구독' : '미구독'}
-                      </span>
+                  <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-900">구독유무</label>
+                    <p className="text-sm text-gray-900">
+                      {selectedUser.hasActiveSubscription ? '구독' : '미구독'}
                     </p>
                   </div>
                 </div>
@@ -889,67 +879,73 @@ export function AdminPage() {
               {userDetailTab === 'subscription' && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">구독 상세 내역</h3>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 border-b border-gray-200">
-                      <div className="grid grid-cols-5 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
-                        <div className="text-center">구독일</div>
-                        <div className="text-center">다음 결제일</div>
-                        <div className="text-center">상품명</div>
-                        <div className="text-center">결제금액</div>
-                        <div className="text-center">상태</div>
+                  <div className="space-y-0">
+                    <div className="grid grid-cols-4 gap-4 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 border-b border-gray-200">
+                      <div>결제일</div>
+                      <div>상품명</div>
+                      <div>결제금액</div>
+                      <div>상세보기</div>
+                    </div>
+                    {userPayments.length === 0 ? (
+                      <div className="px-4 py-8 text-sm text-center text-gray-500">
+                        구독 이력이 없습니다.
                       </div>
-                    </div>
-                    <div className="divide-y divide-gray-200">
-                      {userPayments.length === 0 ? (
-                        <div className="px-4 py-8 text-sm text-center text-gray-500">
-                          구독 이력이 없습니다.
-                        </div>
-                      ) : (
-                        userPayments.map((payment) => {
-                          const isExpired = payment.status === 'completed' && payment.paidAt 
-                            ? new Date(payment.paidAt) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-                            : payment.status !== 'completed';
+                    ) : (
+                      userPayments.map((payment) => {
+                        // 결제일 = paidAt 또는 createdAt
+                        const paymentDate = payment.paidAt || payment.createdAt;
+                        
+                        // 상태 결정 로직
+                        let status: '결제완료' | '취소됨' | '만료됨' = '만료됨';
+                        let statusClass = 'bg-gray-100 text-gray-600';
+                        
+                        if (payment.status === 'completed' && payment.subscription) {
+                          const subscription = payment.subscription;
+                          const now = new Date();
+                          const endDate = subscription.endDate ? new Date(subscription.endDate) : null;
                           
-                          // 구독일 = 결제일 (paidAt 또는 createdAt)
-                          const subscriptionDate = payment.paidAt || payment.createdAt;
-                          
-                          // 다음 결제일 = 구독일 + 1개월
-                          const nextPaymentDate = (() => {
-                            const date = new Date(subscriptionDate);
-                            date.setMonth(date.getMonth() + 1);
-                            return date;
-                          })();
-                          
-                          return (
-                            <div key={payment.id} className="grid grid-cols-5 gap-4 px-4 py-3 text-sm">
-                              <div className="text-center text-gray-900">
-                                {formatDate(subscriptionDate)}
-                              </div>
-                              <div className="text-center text-gray-900">
-                                {payment.status === 'completed' && !isExpired
-                                  ? formatDate(nextPaymentDate.toISOString())
-                                  : '-'}
-                              </div>
-                              <div className="text-center text-gray-900">Monthly Plan</div>
-                              <div className="text-center text-gray-900">
-                                {parseFloat(payment.amount).toLocaleString('ko-KR')}원
-                              </div>
-                              <div className="text-center">
-                                <span
-                                  className={`px-3 py-1 rounded text-xs ${
-                                    payment.status === 'completed' && !isExpired
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-gray-100 text-gray-600'
-                                  }`}
-                                >
-                                  {payment.status === 'completed' && !isExpired ? '결제완료' : '만료됨'}
-                                </span>
-                              </div>
+                          if (subscription.status === 'cancelled') {
+                            status = '취소됨';
+                            statusClass = 'bg-red-100 text-red-800';
+                          } else if (subscription.status === 'active' && (!endDate || endDate >= now)) {
+                            status = '결제완료';
+                            statusClass = 'bg-green-100 text-green-800';
+                          } else if (endDate && endDate < now) {
+                            status = '만료됨';
+                            statusClass = 'bg-gray-100 text-gray-600';
+                          } else if (subscription.status === 'expired') {
+                            status = '만료됨';
+                            statusClass = 'bg-gray-100 text-gray-600';
+                          }
+                        } else if (payment.status === 'completed' && !payment.subscription) {
+                          // 구독 정보가 없으면 결제일 기준으로 30일 지났는지 확인
+                          const paymentDateObj = new Date(paymentDate);
+                          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                          if (paymentDateObj >= thirtyDaysAgo) {
+                            status = '결제완료';
+                            statusClass = 'bg-green-100 text-green-800';
+                          } else {
+                            status = '만료됨';
+                            statusClass = 'bg-gray-100 text-gray-600';
+                          }
+                        }
+                        
+                        return (
+                          <div key={payment.id} className="grid grid-cols-4 gap-4 px-4 py-3 text-sm border-b border-gray-200">
+                            <div className="text-gray-900">{formatDate(paymentDate)}</div>
+                            <div className="text-gray-900">Monthly Plan</div>
+                            <div className="text-gray-900">
+                              {parseFloat(payment.amount).toLocaleString('ko-KR')}원
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
+                            <div>
+                              <span className={`px-3 py-1 rounded-full text-xs ${statusClass}`}>
+                                {status}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}

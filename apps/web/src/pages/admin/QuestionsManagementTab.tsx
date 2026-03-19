@@ -205,16 +205,16 @@ export function QuestionsManagementTab() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-16">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 w-20">
                 순서
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
                 질문내용
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 w-32">
                 생성일
               </th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 w-24">
+              <th className="px-6 py-4 text-center text-sm font-medium text-gray-700 w-24">
                 관리
               </th>
             </tr>
@@ -222,7 +222,7 @@ export function QuestionsManagementTab() {
           <tbody>
             {sortedQuestions.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                   등록된 질문이 없습니다.
                 </td>
               </tr>
@@ -248,7 +248,7 @@ export function QuestionsManagementTab() {
                   }}
                   onMouseLeave={handleMouseLeave}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <div
                       className={`flex items-center justify-center ${
                         isDragging ? 'cursor-move' : 'cursor-grab'
@@ -272,20 +272,20 @@ export function QuestionsManagementTab() {
                       }`} />
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="text-gray-900">{question.question}</span>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-gray-900">{question.question}</span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600">
                     {format(new Date(question.createdAt), 'yy.MM.dd', { locale: ko })}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-3">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(question);
                         }}
-                        className="p-1 text-gray-600 hover:text-[#4A2C1A] transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-[#4A2C1A] transition-colors"
                         disabled={isDragging || (editingId !== null && editingId !== question.id)}
                       >
                         <Pencil className="w-4 h-4" />
@@ -295,7 +295,7 @@ export function QuestionsManagementTab() {
                           e.stopPropagation();
                           setDeletingId(question.id);
                         }}
-                        className="p-1 text-gray-600 hover:text-red-600 transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-red-600 transition-colors"
                         disabled={isDragging || deleteQuestion.isPending}
                       >
                         <Trash2 className="w-4 h-4" />

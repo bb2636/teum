@@ -211,10 +211,20 @@ export class UserController {
 
       const { paymentService } = await import('../services/payment.service');
       const payments = await paymentService.getPayments(userId);
+      const subscriptions = await paymentService.getSubscriptions(userId);
+      
+      // 결제와 구독을 연결
+      const paymentsWithSubscriptions = payments.map((payment) => {
+        const subscription = subscriptions.find((sub) => sub.id === payment.subscriptionId);
+        return {
+          ...payment,
+          subscription: subscription || null,
+        };
+      });
       
       res.json({
         success: true,
-        data: { payments },
+        data: { payments: paymentsWithSubscriptions },
       });
     } catch (error) {
       next(error);

@@ -10,7 +10,7 @@ import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useUploadImage } from '@/hooks/useUpload';
-import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { StorageImage } from '@/components/StorageImage';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
@@ -467,12 +467,13 @@ export function SignupPage() {
 
         {/* Step 2: Profile Info */}
         {step === 2 && (
-          <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-4">
+          <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-6">
+            {/* 프로필 이미지 */}
             <div className="space-y-2">
-              <Label>프로필 사진</Label>
+              <Label>프로필 이미지</Label>
               <div className="flex items-center">
                 <div className="relative shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     {profileImageUrl ? (
                       <StorageImage
                         url={profileImageUrl}
@@ -480,10 +481,10 @@ export function SignupPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="w-8 h-8 text-brown-600" />
+                      <User className="w-10 h-10 text-gray-400" />
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center cursor-pointer hover:bg-[#5A453A]">
+                  <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center cursor-pointer hover:bg-[#5A453A] shadow-sm">
                     <Pencil className="w-3 h-3 text-white" />
                     <input
                       type="file"
@@ -496,21 +497,25 @@ export function SignupPage() {
               </div>
             </div>
 
+            {/* 닉네임 */}
             <div className="space-y-2">
               <Label htmlFor="nickname">닉네임</Label>
-              <div className="flex items-center gap-2">
+              <div className="relative">
                 <Input
                   id="nickname"
                   type="text"
                   {...step2Form.register('nickname')}
                   placeholder="닉네임을 입력하세요"
-                  className={
+                  className={`pr-10 bg-gray-100 ${
                     step2Errors.nickname || nicknameError.length > 0 ? 'border-red-500' : ''
-                  }
+                  }`}
                 />
-                {step2Nickname && nicknameError.length === 0 && !step2Errors.nickname && (
-                  <div className="w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs">✓</span>
+                {step2Nickname && 
+                 nicknameError.length === 0 && 
+                 !step2Errors.nickname && 
+                 nicknameCheck.data?.available && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <CheckCircle2 className="w-5 h-5 text-[#665146]" />
                   </div>
                 )}
               </div>
@@ -528,6 +533,7 @@ export function SignupPage() {
               )}
             </div>
 
+            {/* 이름 */}
             <div className="space-y-2">
               <Label htmlFor="name">이름</Label>
               <Input
@@ -535,15 +541,16 @@ export function SignupPage() {
                 type="text"
                 {...step2Form.register('name')}
                 placeholder="이름을 입력하세요"
-                className={step2Errors.name ? 'border-red-500' : ''}
+                className={`bg-gray-100 ${step2Errors.name ? 'border-red-500' : ''}`}
               />
               {step2Errors.name && (
                 <p className="text-sm text-red-500">{step2Errors.name.message}</p>
               )}
             </div>
 
+            {/* 생년월일 */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-2">
                 <Label htmlFor="dateOfBirth">생년월일</Label>
                 <button
                   ref={calendarButtonRef}
@@ -557,9 +564,9 @@ export function SignupPage() {
                     }
                     setShowCalendar(!showCalendar);
                   }}
-                  className="p-1 hover:bg-gray-100 rounded relative"
+                  className="p-1 hover:bg-gray-100 rounded"
                 >
-                  <Calendar className="w-4 h-4 text-brown-600" />
+                  <Calendar className="w-4 h-4 text-[#4A2C1A]" />
                 </button>
                 
                 {/* 커스텀 달력 - 달력 아이콘 바로 아래에 표시 */}
@@ -721,7 +728,7 @@ export function SignupPage() {
                     step2Form.setValue('dateOfBirth', undefined);
                   }
                 }}
-                className={step2Errors.dateOfBirth ? 'border-red-500' : ''}
+                className={`bg-gray-100 ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
               />
               {step2Errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{step2Errors.dateOfBirth.message}</p>

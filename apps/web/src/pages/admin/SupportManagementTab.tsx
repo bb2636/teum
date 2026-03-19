@@ -94,16 +94,16 @@ export function SupportManagementTab() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 w-32">
                 상태
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
                 제목
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-64">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 w-64">
                 작성자
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-32">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 w-32">
                 작성일
               </th>
             </tr>
@@ -111,7 +111,7 @@ export function SupportManagementTab() {
           <tbody>
             {filteredInquiries.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                   등록된 문의가 없습니다.
                 </td>
               </tr>
@@ -122,16 +122,16 @@ export function SupportManagementTab() {
                   onClick={() => setSelectedInquiryId(inquiry.id)}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(inquiry.status)}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor(inquiry.status)}`} />
                       {getStatusLabel(inquiry.status)}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="text-gray-900">{inquiry.subject}</span>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-gray-900">{inquiry.subject}</span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {inquiry.user?.profile?.profileImageUrl ? (
                         <img
@@ -156,7 +156,7 @@ export function SupportManagementTab() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600">
                     {format(new Date(inquiry.createdAt), 'yy.MM.dd', { locale: ko })}
                   </td>
                 </tr>

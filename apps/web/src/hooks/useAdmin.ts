@@ -39,6 +39,14 @@ export interface Payment {
   paidAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  subscription?: {
+    id: string;
+    status: 'active' | 'cancelled' | 'expired' | 'pending';
+    planName: string;
+    startDate: string;
+    endDate?: string | null;
+    cancelledAt?: string | null;
+  } | null;
 }
 
 export function useUserPayments(userId: string | null) {

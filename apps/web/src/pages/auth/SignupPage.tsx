@@ -13,7 +13,7 @@ import { useUploadImage } from '@/hooks/useUpload';
 import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { StorageImage } from '@/components/StorageImage';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -64,6 +64,7 @@ type Step2FormData = z.infer<typeof step2Schema>;
 type Step3FormData = z.infer<typeof step3Schema>;
 
 export function SignupPage() {
+  const navigate = useNavigate();
   const signupMutation = useSignup();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState<string | null>(null);
@@ -336,18 +337,22 @@ export function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 py-8 bg-beige-50">
+    <div className="min-h-screen flex flex-col px-4 py-8 bg-white">
       <div className="w-full max-w-sm mx-auto space-y-6">
         {/* Header */}
         <div className="relative">
-          {step > 1 && (
-            <button
-              onClick={() => setStep((prev) => (prev === 2 ? 1 : 2) as 1 | 2 | 3)}
-              className="absolute left-0 top-0 p-2 rounded-full hover:bg-gray-100 -ml-2"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (step === 1) {
+                navigate('/splash');
+              } else {
+                setStep((prev) => (prev === 2 ? 1 : 2) as 1 | 2 | 3);
+              }
+            }}
+            className="absolute left-0 top-0 w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 shadow-sm -ml-2"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
           <div className="text-center space-y-4">
             <h1 className="text-2xl font-bold">회원가입</h1>
             <p className="text-sm text-muted-foreground">
@@ -356,18 +361,6 @@ export function SignupPage() {
               {step === 3 && '약관에 동의해주세요.'}
             </p>
           </div>
-        </div>
-
-        {/* Progress indicator */}
-        <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`h-2 w-8 rounded-full ${
-                s <= step ? 'bg-brown-600' : 'bg-gray-200'
-              }`}
-            />
-          ))}
         </div>
 
         {error && (
@@ -381,20 +374,21 @@ export function SignupPage() {
           <form onSubmit={step1Form.handleSubmit(onStep1Submit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">이메일</Label>
-              <div className="flex gap-2">
+              <div className="relative">
                 <Input
                   id="email"
                   type="email"
                   {...step1Form.register('email')}
                   placeholder="이메일을 입력해주세요"
-                  className={step1Errors.email ? 'border-red-500' : ''}
+                  className={`pr-32 ${step1Errors.email ? 'border-red-500' : ''}`}
                   disabled={emailVerified}
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleRequestEmailVerification}
                   disabled={requestEmailVerification.isPending || emailVerified}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
                 >
                   {emailVerified ? '인증완료' : '인증번호 보내기'}
                 </Button>
@@ -463,7 +457,7 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
               disabled={!isStep1Valid}
             >
               다음
@@ -489,7 +483,7 @@ export function SignupPage() {
                       <User className="w-8 h-8 text-brown-600" />
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center cursor-pointer hover:bg-brown-700">
+                  <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center cursor-pointer hover:bg-[#5A453A]">
                     <Pencil className="w-3 h-3 text-white" />
                     <input
                       type="file"
@@ -515,7 +509,7 @@ export function SignupPage() {
                   }
                 />
                 {step2Nickname && nicknameError.length === 0 && !step2Errors.nickname && (
-                  <div className="w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-xs">✓</span>
                   </div>
                 )}
@@ -736,7 +730,7 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
               disabled={!isStep2Valid}
             >
               다음
@@ -792,7 +786,7 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
               disabled={!isStep3Valid || signupMutation.isPending}
             >
               {signupMutation.isPending ? '가입 중...' : '가입하기'}
@@ -857,7 +851,7 @@ export function SignupPage() {
             </div>
             <Button
               onClick={handleConfirmEmailVerification}
-              className="w-full bg-brown-600 hover:bg-brown-700 text-white"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
               disabled={emailVerificationInput.length !== 6 || emailVerified || confirmEmailVerification.isPending}
             >
               {confirmEmailVerification.isPending ? '확인 중...' : '확인'}

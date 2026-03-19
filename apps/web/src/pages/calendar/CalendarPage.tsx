@@ -40,6 +40,14 @@ function getFirstLine(diary: Diary): string {
   return '';
 }
 
+/** 일기 첫 내용을 3~4글자로 자르기 */
+function getDiaryPreviewText(diary: Diary): string {
+  const firstLine = getFirstLine(diary);
+  if (!firstLine) return '';
+  // 3~4글자로 자르기 (한글 기준)
+  return firstLine.length > 4 ? firstLine.substring(0, 4) : firstLine;
+}
+
 interface DiarySlideProps {
   date: Date;
   diaries: Diary[];
@@ -307,6 +315,7 @@ export function CalendarPage() {
   };
 
   const selectedDateDiaries = selectedDate ? getDiariesForDate(selectedDate) : [];
+  const today = new Date();
 
   // Check if current month has 6 weeks
   const hasSixWeeks = weeks.length === 6;
@@ -382,7 +391,8 @@ export function CalendarPage() {
             week.map((day, dayIndex) => {
               const dayDiaries = getDiariesForDate(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
-              const isToday = isSameDay(day, new Date());
+              const isToday = isSameDay(day, today);
+              const isSelected = selectedDate && isSameDay(day, selectedDate);
               const dayNumber = getDate(day);
               const isSunday = getDay(day) === 0;
               const isSaturday = getDay(day) === 6;
@@ -394,7 +404,11 @@ export function CalendarPage() {
                   className={`relative border-b border-gray-200 flex flex-col items-center justify-start ${
                     hasSixWeeks ? 'py-0.5 px-0.5' : 'p-1'
                   } ${
-                    !isCurrentMonth ? 'opacity-30 bg-gray-50' : 'bg-white'
+                    !isCurrentMonth 
+                      ? 'opacity-30 bg-gray-50' 
+                      : isToday || isSelected
+                      ? 'bg-pink-50'
+                      : 'bg-white'
                   }`}
                 >
                   <span
@@ -413,17 +427,22 @@ export function CalendarPage() {
                     {dayNumber}
                   </span>
                   {dayDiaries.length > 0 && (
-                    <div className={`${hasSixWeeks ? 'mt-0.5' : 'mt-1'} flex flex-wrap gap-0.5 justify-center w-full`}>
-                      {dayDiaries.slice(0, 2).map((diary) => (
-                        <div
-                          key={diary.id}
-                          className={`${hasSixWeeks ? 'w-1 h-1' : 'w-1.5 h-1.5'} rounded-full bg-[#D4A574]`}
-                        />
-                      ))}
+                    <div className={`${hasSixWeeks ? 'mt-0.5' : 'mt-1'} flex flex-col gap-0.5 justify-center w-full px-0.5`}>
+                      {dayDiaries.slice(0, 2).map((diary) => {
+                        const previewText = getDiaryPreviewText(diary);
+                        return previewText ? (
+                          <div
+                            key={diary.id}
+                            className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded truncate text-center"
+                          >
+                            {previewText}
+                          </div>
+                        ) : null;
+                      })}
                       {dayDiaries.length > 2 && (
-                        <span className={`${hasSixWeeks ? 'text-[7px]' : 'text-[8px]'} text-gray-500`}>
+                        <div className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded text-center">
                           +{dayDiaries.length - 2}
-                        </span>
+                        </div>
                       )}
                     </div>
                   )}

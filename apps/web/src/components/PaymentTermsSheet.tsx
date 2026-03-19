@@ -91,10 +91,9 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreeService}
                     onChange={(e) => handleServiceChange(e.target.checked)}
-                    className="w-5 h-5 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
+                    className="w-5 h-5 text-[#665146] focus:ring-[#665146] rounded"
                   />
-                  <span className="text-sm text-gray-700">서비스 이용약관</span>
-                  <span className="text-xs text-red-500">[필수]</span>
+                  <span className="text-sm text-gray-700">[필수] 서비스 이용약관에 동의합니다.</span>
                 </label>
                 <button
                   type="button"
@@ -112,10 +111,9 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreePayment}
                     onChange={(e) => handlePaymentChange(e.target.checked)}
-                    className="w-5 h-5 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
+                    className="w-5 h-5 text-[#665146] focus:ring-[#665146] rounded"
                   />
-                  <span className="text-sm text-gray-700">정기결제/자동갱신</span>
-                  <span className="text-xs text-red-500">[필수]</span>
+                  <span className="text-sm text-gray-700">[필수] 정기 결제 및 자동 갱신에 동의합니다.</span>
                 </label>
                 <button
                   type="button"
@@ -133,10 +131,9 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreeRefund}
                     onChange={(e) => handleRefundChange(e.target.checked)}
-                    className="w-5 h-5 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
+                    className="w-5 h-5 text-[#665146] focus:ring-[#665146] rounded"
                   />
-                  <span className="text-sm text-gray-700">환불/취소 정책</span>
-                  <span className="text-xs text-red-500">[필수]</span>
+                  <span className="text-sm text-gray-700">[필수] 환불/해지 정책을 확인했습니다.</span>
                 </label>
                 <button
                   type="button"
@@ -156,9 +153,9 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                 }
               }}
               disabled={!allRequiredAgreed}
-              className="w-full py-3 px-4 rounded-lg bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              결제하기
+              월 4,900원으로 시작하기
             </button>
           </div>
         </div>

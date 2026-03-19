@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Loader2, Download, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useGenerateMusic, useMusicGenres } from '@/hooks/useMusic';
+import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { apiRequest } from '@/lib/api';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -11,6 +12,7 @@ import { StorageImage } from '@/components/StorageImage';
 
 export function MusicCreatePage() {
   const navigate = useNavigate();
+  const { setHideTabBar } = useHideTabBar();
   const { data: genresData } = useMusicGenres();
   const { data: diariesAll = [] } = useDiaries();
   const { data: folders = [] } = useFolders();
@@ -26,6 +28,15 @@ export function MusicCreatePage() {
   const [completedLyrics, setCompletedLyrics] = useState<string>('');
   const [completedTitle, setCompletedTitle] = useState<string>('');
   const [completedTitleEn, setCompletedTitleEn] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // 하단바 숨기기
+  useEffect(() => {
+    setHideTabBar(true);
+    return () => {
+      setHideTabBar(false);
+    };
+  }, [setHideTabBar]);
 
   const diaries = selectedFolderId
     ? diariesAll.filter((d) => d.folderId === selectedFolderId)
@@ -85,7 +96,16 @@ export function MusicCreatePage() {
   };
 
   const handleGenerate = async () => {
-    if (!canGenerate) return;
+    if (!canGenerate) {
+      if (selectedCount < 7) {
+        setToastMessage('음악을 생성하려면 일기를 7개 선택해주세요.');
+        setTimeout(() => setToastMessage(null), 3000);
+      } else if (selectedGenres.length === 0) {
+        setToastMessage('장르를 선택해주세요.');
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+      return;
+    }
 
     setShowProcessingModal(true);
 
@@ -346,7 +366,7 @@ export function MusicCreatePage() {
                     size="sm"
                     onClick={() => toggleDiarySelection(diary.id)}
                     disabled={!isSelected && selectedCount >= 7}
-                    className={isSelected ? 'bg-brown-600 hover:bg-brown-700' : ''}
+                    className={isSelected ? 'bg-[#665146] hover:bg-[#5A453A]' : ''}
                   >
                     {isSelected ? '해제' : '선택'}
                   </Button>
@@ -358,19 +378,12 @@ export function MusicCreatePage() {
       </div>
 
       {/* 하단 고정 영역 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-brown-100 p-4 space-y-2">
-        {/* 토스트 메시지 */}
-        {selectedCount < 7 && (
-          <div className="bg-gray-800 text-white text-sm px-4 py-2 rounded-lg text-center">
-            음악을 생성하려면 일기를 7개 선택해주세요.
-          </div>
-        )}
-
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-brown-100 p-4">
         {/* 생성 버튼 */}
         <Button
           onClick={handleGenerate}
           disabled={!canGenerate || generateMusic.isPending}
-          className="w-full bg-brown-600 hover:bg-brown-700 text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {generateMusic.isPending ? (
             <>
@@ -382,6 +395,15 @@ export function MusicCreatePage() {
           )}
         </Button>
       </div>
+
+      {/* 토스트 메시지 */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-gray-800 text-white text-sm px-6 py-3 rounded-lg shadow-xl max-w-sm mx-4 animate-slide-up whitespace-nowrap">
+            <p className="text-center">{toastMessage}</p>
+          </div>
+        </div>
+      )}
 
       {/* 처리 중 모달 */}
       {showProcessingModal && (
@@ -430,7 +452,7 @@ export function MusicCreatePage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleDownload}
-                className="flex-1 bg-brown-600 hover:bg-brown-700 text-white"
+                className="flex-1 bg-[#665146] hover:bg-[#5A453A] text-white"
               >
                 <Download className="w-4 h-4 mr-2" />
                 다운로드

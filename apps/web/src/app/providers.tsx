@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useHideTabBar } from '../contexts/HideTabBarContext';
 
 const AUTH_ROUTES = ['/splash', '/login', '/signup', '/forgot-password'];
-const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin', '/my/profile-edit', '/my/payment-history', '/payment', '/payment/success', '/music', '/music/create'];
+const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin', '/my/profile-edit', '/my/payment-history', '/my/support/inquiry', '/payment', '/payment/success', '/music', '/music/create'];
 
 interface LayoutProps {
   children: ReactNode;

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Smartphone, Building2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, CreditCard, Smartphone, Building2, ChevronDown, BookOpen, FileText, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useProcessPayment } from '@/hooks/usePayment';
@@ -34,6 +34,17 @@ export function PaymentPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const processPayment = useProcessPayment();
+
+  // 다음 결제일 계산 (현재 날짜 + 1개월)
+  const nextPaymentDate = useMemo(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 1);
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).replace(/\./g, '.').replace(/\s/g, '');
+  }, []);
 
   // 결제 수단 선택 시 유효성 검사
   const isPaymentMethodValid = () => {
@@ -117,82 +128,135 @@ export function PaymentPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-beige-50 pb-20">
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+    <div className="min-h-screen bg-white pb-32">
+      <div className="max-w-md mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-bold text-brown-900">구독 결제</h1>
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
+          </button>
+          <h1 className="text-lg font-semibold text-[#4A2C1A]">구독 결제</h1>
           <div className="w-10" /> {/* Spacer */}
         </div>
 
-        {/* Plan Benefits */}
-        <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
-          <div className="mb-3">
-            <span className="font-semibold text-brown-900">Mureka</span>
-          </div>
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li>• 무제한 일기 작성 및 저장</li>
-            <li>• AI 분석 기반 가사 생성</li>
-            <li>• 음악 생성 (Mureka)</li>
-          </ul>
-        </div>
-
-        {/* Payment Info */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">다음 결제일</span>
-            <span className="text-sm text-muted-foreground">2026.00.00</span>
-          </div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">플랜</span>
-            <span className="font-semibold text-brown-900">{planName}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">결제 금액</span>
-            <span className="text-lg font-bold text-brown-900">
-              {parseInt(amount).toLocaleString()}원
-            </span>
-          </div>
-        </div>
-
-        {/* Payment Method Selection */}
-        <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-brown-900">결제수단</h2>
-
-          {/* Credit/Debit Card */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="card"
-                checked={paymentMethod === 'card'}
-                onChange={(e) => {
-                  setPaymentMethod(e.target.value as PaymentMethod);
-                  setCardCompany(''); // 카드사 초기화
-                }}
-                className="w-5 h-5 text-brown-600 focus:ring-brown-500"
-              />
+        <div className="px-4 py-6 space-y-6">
+          {/* Plan Benefits */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-700">플랜혜택</span>
               <div className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-brown-600" />
-                <span className="font-medium text-brown-900">신용/체크카드</span>
+                <img
+                  src="/mureka_logo.png"
+                  alt="Mureka"
+                  className="h-3 w-auto"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <span className="text-gray-600 text-xs">Mureka</span>
               </div>
-            </label>
+            </div>
 
-            {paymentMethod === 'card' && (
-              <div className="ml-8 space-y-2">
-                <Label htmlFor="cardCompany" className="text-sm text-muted-foreground">
-                  카드사 선택
-                </Label>
-                <div className="relative">
+            <div className="space-y-4">
+              {/* Benefit 1 */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-[#4A2C1A] mb-1">
+                    일기 무제한 작성 · 저장
+                  </h3>
+                </div>
+              </div>
+
+              {/* Benefit 2 */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-[#4A2C1A] mb-1">
+                    Ai 분석 기반 가사 생성
+                  </h3>
+                </div>
+              </div>
+
+              {/* Benefit 3 */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Headphones className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-[#4A2C1A] mb-1">
+                    음악 생성 (Mureka)
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Info */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-[#4A2C1A]">결제정보</h2>
+              <span className="text-sm text-gray-600">다음 결제일 : {nextPaymentDate}</span>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">플랜</span>
+                <span className="text-sm font-medium text-[#4A2C1A]">{planName}</span>
+              </div>
+              <div className="border-t border-gray-200"></div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">금액</span>
+                <span className="text-base font-bold text-[#4A2C1A]">
+                  {parseInt(amount).toLocaleString()}원
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-3">
+              구독은 매월 자동 갱신되며, 다음 결제일 전까지 언제든지 해지할 수 있습니다.
+            </p>
+          </div>
+
+          {/* Payment Method Selection */}
+          <div>
+            <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">결제수단</h2>
+
+            {/* Credit/Debit Card */}
+            <div className="space-y-3 mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked={paymentMethod === 'card'}
+                  onChange={(e) => {
+                    setPaymentMethod(e.target.value as PaymentMethod);
+                    setCardCompany(''); // 카드사 초기화
+                  }}
+                  className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
+                />
+                <span className="font-medium text-[#4A2C1A]">신용/체크카드</span>
+              </label>
+
+              {paymentMethod === 'card' && (
+                <div className="ml-8 relative">
+                  <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">
+                    <span className="text-sm text-gray-600">
+                      {cardCompany || '카드사 선택'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </div>
                   <select
                     id="cardCompany"
                     value={cardCompany}
                     onChange={(e) => setCardCompany(e.target.value)}
-                    className="w-full px-3 py-2 border border-brown-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brown-500 appearance-none bg-white"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
                   >
                     <option value="">카드사 선택</option>
                     {cardCompanies.map((company) => (
@@ -201,113 +265,66 @@ export function PaymentPage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* Easy Payment */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="easy_pay"
-                checked={paymentMethod === 'easy_pay'}
-                onChange={(e) => {
-                  setPaymentMethod(e.target.value as PaymentMethod);
-                  setEasyPayProvider(null); // 간편결제 초기화
-                }}
-                className="w-5 h-5 text-brown-600 focus:ring-brown-500"
-              />
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-brown-600" />
-                <span className="font-medium text-brown-900">간편결제</span>
-              </div>
-            </label>
+            {/* Easy Payment */}
+            <div className="space-y-3 mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="easy_pay"
+                  checked={paymentMethod === 'easy_pay'}
+                  onChange={(e) => {
+                    setPaymentMethod(e.target.value as PaymentMethod);
+                    setEasyPayProvider(null); // 간편결제 초기화
+                  }}
+                  className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
+                />
+                <span className="font-medium text-[#4A2C1A]">간편결제</span>
+              </label>
+            </div>
 
-            {paymentMethod === 'easy_pay' && (
-              <div className="ml-8 space-y-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEasyPayProvider('toss')}
-                    className={`px-3 py-3 rounded-lg border-2 transition-colors ${
-                      easyPayProvider === 'toss'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-brown-200 bg-white hover:bg-brown-50'
-                    }`}
-                  >
-                    <div className="text-xs font-medium text-center">toss pay</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEasyPayProvider('npay')}
-                    className={`px-3 py-3 rounded-lg border-2 transition-colors ${
-                      easyPayProvider === 'npay'
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-brown-200 bg-white hover:bg-brown-50'
-                    }`}
-                  >
-                    <div className="text-xs font-medium text-center">N pay</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEasyPayProvider('apple')}
-                    className={`px-3 py-3 rounded-lg border-2 transition-colors ${
-                      easyPayProvider === 'apple'
-                        ? 'border-gray-800 bg-gray-50'
-                        : 'border-brown-200 bg-white hover:bg-brown-50'
-                    }`}
-                  >
-                    <div className="text-xs font-medium text-center">Pay</div>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bank Transfer */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="bank_transfer"
-                checked={paymentMethod === 'bank_transfer'}
-                onChange={(e) => {
-                  setPaymentMethod(e.target.value as PaymentMethod);
-                  setCardCompany(''); // 초기화
-                  setEasyPayProvider(null); // 초기화
-                }}
-                className="w-5 h-5 text-brown-600 focus:ring-brown-500"
-              />
-              <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-brown-600" />
-                <span className="font-medium text-brown-900">실시간 계좌이체</span>
-              </div>
-            </label>
+            {/* Bank Transfer */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="bank_transfer"
+                  checked={paymentMethod === 'bank_transfer'}
+                  onChange={(e) => {
+                    setPaymentMethod(e.target.value as PaymentMethod);
+                    setCardCompany(''); // 초기화
+                    setEasyPayProvider(null); // 초기화
+                  }}
+                  className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
+                />
+                <span className="font-medium text-[#4A2C1A]">계좌이체</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        {/* Test Payment Notice */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-xs text-yellow-800">
-            ⚠️ 현재 테스트 모드입니다. 실제 결제가 발생하지 않습니다.
-          </p>
+        {/* Bottom Fixed Section */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
+          <div className="max-w-md mx-auto">
+            <p className="text-xs text-gray-600 text-center mb-3">
+              결제 버튼을 누르면 구독이 시작되며, 매월 자동 결제됩니다.
+            </p>
+            <button
+              onClick={handlePaymentClick}
+              disabled={isProcessing || processPayment.isPending || !isButtonEnabled}
+              className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing || processPayment.isPending
+                ? '결제 처리 중...'
+                : `월 ${parseInt(amount).toLocaleString()}원으로 시작하기`}
+            </button>
+          </div>
         </div>
-
-        {/* Payment Button */}
-        <Button
-          onClick={handlePaymentClick}
-          disabled={isProcessing || processPayment.isPending || !isButtonEnabled}
-          className="w-full bg-brown-600 hover:bg-brown-700 text-white py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isProcessing || processPayment.isPending
-            ? '결제 처리 중...'
-            : `월 ${parseInt(amount).toLocaleString()}원으로 시작하기`}
-        </Button>
       </div>
 
       {/* Terms Sheet */}

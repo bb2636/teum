@@ -100,7 +100,7 @@ export function CreateFolderPage() {
             <label className="text-sm font-medium text-[#4A2C1A]">폴더 사진</label>
             <div className="relative">
               {coverImagePreview ? (
-                <div className="relative w-full aspect-square rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
                   <img
                     src={coverImagePreview}
                     alt="Cover preview"
@@ -109,14 +109,14 @@ export function CreateFolderPage() {
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-2 right-2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center"
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
               ) : (
-                <label className="block w-full aspect-square rounded-lg border-2 border-gray-200 border-dashed bg-gray-50 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors">
-                  <Plus className="w-8 h-8 text-gray-400" />
+                <label className="block w-24 h-24 rounded-lg border border-gray-300 bg-white flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
+                  <Plus className="w-6 h-6 text-gray-400" />
                   <input
                     type="file"
                     accept="image/*"

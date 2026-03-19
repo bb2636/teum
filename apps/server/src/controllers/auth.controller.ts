@@ -10,6 +10,7 @@ import {
 } from '../validations/auth';
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
+import { getClientIp, detectCountryFromIp } from '../utils/ip-geolocation';
 
 export class AuthController {
   async signup(req: Request, res: Response, next: NextFunction) {
@@ -17,8 +18,19 @@ export class AuthController {
       // Validate input
       const input = signupSchema.parse(req.body);
 
-      // Create user
-      const result = await authService.signup(input);
+      // IP 기반 국가 감지 (country가 제공되지 않은 경우)
+      let detectedCountry = input.country;
+      if (!detectedCountry) {
+        const clientIp = getClientIp(req);
+        detectedCountry = await detectCountryFromIp(clientIp) || undefined;
+        logger.info('Detected country from IP', { ip: clientIp, country: detectedCountry });
+      }
+
+      // Create user with detected country
+      const result = await authService.signup({
+        ...input,
+        country: detectedCountry,
+      });
 
       // Set httpOnly cookies (path: '/' so cookie is sent for all /api/* requests)
       res.cookie('accessToken', result.accessToken, {

@@ -151,7 +151,7 @@ export function MusicJobPage() {
               </div>
               <div className="flex gap-3">
                 <Button
-                  className="flex-1 bg-brown-600 hover:bg-brown-700"
+                  className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
                   onClick={async () => {
                     if (job.audioUrl) {
                       try {
@@ -258,7 +258,7 @@ export function MusicJobPage() {
                     다운로드
                   </Button>
                   <Button
-                    className="flex-1 bg-brown-600 hover:bg-brown-700"
+                    className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
                     onClick={() => {
                       if (job.audioUrl) {
                         const audio = new Audio(job.audioUrl);

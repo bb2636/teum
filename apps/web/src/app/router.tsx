@@ -16,6 +16,7 @@ import { MusicCreatePage } from '../pages/music/MusicCreatePage';
 import { MusicJobPage } from '../pages/music/MusicJobPage';
 import { MyPage } from '../pages/my/MyPage';
 import { ProfileEditPage } from '../pages/my/ProfileEditPage';
+import { PaymentIntroPage } from '../pages/payment/PaymentIntroPage';
 import { PaymentPage } from '../pages/payment/PaymentPage';
 import { PaymentSuccessPage } from '../pages/payment/PaymentSuccessPage';
 import { PaymentHistoryPage } from '../pages/my/PaymentHistoryPage';
@@ -173,6 +174,14 @@ export default function App() {
                 path="/payment"
                 element={
                   <ProtectedRoute>
+                    <PaymentIntroPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment/checkout"
+                element={
+                  <ProtectedRoute>
                     <PaymentPage />
                   </ProtectedRoute>
                 }
@@ -206,6 +215,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <PaymentHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my/support"
+                element={
+                  <ProtectedRoute>
+                    <SupportPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my/support/inquiry"
+                element={
+                  <ProtectedRoute>
+                    <SupportInquiryPage />
                   </ProtectedRoute>
                 }
               />

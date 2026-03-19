@@ -20,6 +20,8 @@ export function useCreateFolder() {
         if (!old) return [newFolder];
         return [...old, newFolder];
       });
+      // Invalidate to ensure all components get the updated list
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
     },
   });
 }

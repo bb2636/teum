@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 
 export const app: Express = express();
 
+// Trust proxy for accurate IP detection (behind reverse proxy/load balancer)
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors({
   origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',

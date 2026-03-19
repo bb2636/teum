@@ -1,21 +1,32 @@
-interface ExitConfirmModalProps {
+interface SubscriptionStartModalProps {
+  isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  amount: number;
 }
 
-export function ExitConfirmModal({ onClose, onConfirm }: ExitConfirmModalProps) {
+export function SubscriptionStartModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: SubscriptionStartModalProps) {
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4"
+        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center space-y-4">
           <h2 className="text-lg font-semibold text-[#4A2C1A]">
-            작성 중인 일기를 종료할까요?
+            월 4,900원 구독을 시작하시겠습니까?
           </h2>
           <p className="text-sm text-gray-600">
-            지금 나가면 입력한 내용이 저장되지 않습니다.
+            빠르게 쓰거나, 질문에 따라 차근히 정리할 수 있습니다.
           </p>
         </div>
 
@@ -30,7 +41,7 @@ export function ExitConfirmModal({ onClose, onConfirm }: ExitConfirmModalProps) 
             onClick={onConfirm}
             className="flex-1 py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
           >
-            나가기
+            구독하기
           </button>
         </div>
       </div>

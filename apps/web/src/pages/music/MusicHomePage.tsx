@@ -99,7 +99,7 @@ export function MusicHomePage() {
           <Button
             onClick={handleOpenCreateModal}
             disabled={!hasSubscription || monthlyUsed >= MONTHLY_LIMIT}
-            className="w-full bg-brown-600 hover:bg-brown-700 text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             음악 생성 +
           </Button>
@@ -117,7 +117,7 @@ export function MusicHomePage() {
             <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
               <div className="flex justify-center mb-4">
                 <img
-                  src="/music-empty.png"
+                  src="/music_logo.png"
                   alt=""
                   className="w-24 h-24 object-contain"
                   onError={(e) => {

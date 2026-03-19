@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { X, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { X, Sparkles } from 'lucide-react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useEffect } from 'react';
 
@@ -16,25 +15,28 @@ export function PaymentSuccessPage() {
   }, [setHideTabBar]);
 
   return (
-    <div className="min-h-screen bg-beige-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
       <div className="flex justify-end p-4">
         <button
           onClick={() => navigate('/home')}
-          className="p-2 rounded-full hover:bg-gray-100"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5 text-[#4A2C1A]" />
         </button>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-[#4A2C1A]">
-            구독이 시작되었습니다.
+      <div className="flex-1 flex items-center px-4">
+        <div className="text-left space-y-2">
+          <h1 className="text-2xl font-bold text-black leading-tight">
+            구독이<br />
+            시작되었습니다.
           </h1>
-          <p className="text-sm text-gray-600">
-            일기를 분석해 가사를 만들고, 음악까지 생성해 보세요.
+          <p className="text-base text-gray-600 leading-relaxed mt-4">
+            일기를 분석해<br />
+            가사를 만들고,<br />
+            음악까지 생성해 보세요.
           </p>
         </div>
       </div>
@@ -47,13 +49,13 @@ export function PaymentSuccessPage() {
         >
           홈으로
         </button>
-        <Button
+        <button
           onClick={() => navigate('/music')}
-          className="w-full bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white py-3 font-medium"
+          className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
         >
-          <Star className="w-4 h-4 mr-2" />
+          <Sparkles className="w-4 h-4" />
           음악 생성하기
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
+import { ArrowLeft, Check, Type, Image as ImageIcon, Camera, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
@@ -70,6 +70,7 @@ export function DiaryWritePage() {
   const [textColor, setTextColor] = useState('#4A2C1A');
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const {
     register,
@@ -149,6 +150,31 @@ export function DiaryWritePage() {
     
     return text.trim();
   };
+
+  // 키보드 높이 감지 (모바일)
+  useEffect(() => {
+    const handleResize = () => {
+      // 모바일에서 키보드가 올라오면 viewport height가 줄어듦
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const windowHeight = window.innerHeight;
+      const heightDiff = windowHeight - viewportHeight;
+      setKeyboardHeight(heightDiff > 50 ? heightDiff : 0); // 50px 이상 차이나면 키보드로 간주
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
 
   // 스크롤 방지
   useEffect(() => {
@@ -454,33 +480,54 @@ export function DiaryWritePage() {
     const selection = window.getSelection();
     const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
     
+    // Create container for image and delete button
+    const container = document.createElement('div');
+    container.className = 'relative inline-block max-w-full my-2';
+    container.style.display = 'block';
+    container.style.margin = '8px 0';
+    
     // Create img element
     const img = document.createElement('img');
     img.src = getStorageImageSrc(imageUrl);
     img.alt = 'Uploaded image';
-    img.className = 'max-w-full h-auto rounded-lg my-2';
+    img.className = 'max-w-full h-auto rounded-lg';
     img.style.maxWidth = '100%';
     img.style.height = 'auto';
     img.style.display = 'block';
-    img.style.margin = '8px 0';
+    img.dataset.imageUrl = imageUrl; // Store image URL for deletion
     
-    // Insert image at cursor position or at the end
+    // Create delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors';
+    deleteBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+    deleteBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      container.remove();
+      handleContentChange();
+    };
+    
+    container.appendChild(img);
+    container.appendChild(deleteBtn);
+    
+    // Insert container at cursor position or at the end
     if (range && !range.collapsed) {
       range.deleteContents();
-      range.insertNode(img);
+      range.insertNode(container);
     } else {
       // Insert at cursor or at the end
       if (range) {
-        range.insertNode(img);
-        // Move cursor after image
-        range.setStartAfter(img);
+        range.insertNode(container);
+        // Move cursor after container
+        range.setStartAfter(container);
         range.collapse(true);
         selection?.removeAllRanges();
         selection?.addRange(range);
       } else {
         // Append at the end
-        contentEditableRef.current.appendChild(img);
-        // Add a line break after image
+        contentEditableRef.current.appendChild(container);
+        // Add a line break after container
         const br = document.createElement('br');
         contentEditableRef.current.appendChild(br);
       }
@@ -493,6 +540,28 @@ export function DiaryWritePage() {
 
   const handleCameraClick = () => {
     cameraInputRef.current?.click();
+  };
+
+  const handleImageRemove = (indexToRemove: number) => {
+    setSelectedImages((prev) => {
+      const newImages = [...prev];
+      const removedUrl = newImages[indexToRemove];
+      
+      // Revoke blob URL if it's a blob URL
+      if (removedUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(removedUrl);
+      }
+      
+      newImages.splice(indexToRemove, 1);
+      return newImages;
+    });
+    
+    // Also remove from selectedFiles if it exists
+    setSelectedFiles((prev) => {
+      const newFiles = [...prev];
+      newFiles.splice(indexToRemove, 1);
+      return newFiles;
+    });
   };
 
   const handleSaveClick = () => {
@@ -682,29 +751,39 @@ export function DiaryWritePage() {
         )}
         <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-            <button onClick={handleBackClick} className="p-2">
+          <div className="flex items-center justify-between px-4 py-3 bg-white">
+            <button 
+              onClick={handleBackClick} 
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
+            >
               <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
             </button>
             <h1 className="text-base font-medium text-[#4A2C1A]">{formattedDate}</h1>
             <button
               onClick={handleSaveClick}
               disabled={uploading || createDiary.isPending}
-              className="p-2"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
             >
               <Check className="w-5 h-5 text-[#4A2C1A]" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col">
-            {/* Note-style content area */}
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+            {/* Note-style content area with lined paper background */}
             <div 
-              className="flex-1 mx-4 my-4 rounded-lg shadow-sm p-4 relative overflow-hidden bg-white"
+              className="flex-1 mx-4 my-4 rounded-lg shadow-sm p-4 relative overflow-hidden"
               style={{
-                backgroundImage: 'url(/note.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
+                backgroundColor: '#F9F9F5',
+                backgroundImage: `
+                  repeating-linear-gradient(
+                    transparent,
+                    transparent 31px,
+                    #E8E8E0 31px,
+                    #E8E8E0 32px
+                  )
+                `,
+                backgroundSize: '100% 32px',
+                backgroundPosition: '0 0',
               }}
             >
               <div
@@ -717,11 +796,12 @@ export function DiaryWritePage() {
                 onFocus={updateActiveFormats}
                 onSelect={updateActiveFormats}
                 data-placeholder="글쓰기 시작..."
-                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono"
+                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
-                  color: '#4A2C1A', // Default color, individual spans will have their own colors
-                  lineHeight: '1.5em',
-                  fontSize: '16px', // Default font size, individual elements will have their own sizes
+                  color: '#4A2C1A',
+                  lineHeight: '32px',
+                  fontSize: '16px',
+                  paddingTop: '4px',
                 }}
               />
             </div>
@@ -730,30 +810,38 @@ export function DiaryWritePage() {
             {selectedImages.length > 0 && (
               <div className="mx-4 mb-2 flex gap-2 overflow-x-auto pb-2">
                 {selectedImages.map((url, i) => (
-                  <img
-                    key={`${url}-${i}`}
-                    src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
-                    alt={`미리보기 ${i + 1}`}
-                    className="h-20 w-20 flex-shrink-0 rounded-lg object-cover border border-gray-200"
-                    loading="eager"
-                  />
+                  <div key={`${url}-${i}`} className="relative flex-shrink-0">
+                    <img
+                      src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
+                      alt={`미리보기 ${i + 1}`}
+                      className="h-20 w-20 rounded-lg object-cover border border-gray-200"
+                      loading="eager"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleImageRemove(i)}
+                      className="absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
 
-            {/* Toolbar */}
-            <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-center gap-6">
+            {/* Floating Toolbar - Left bottom, oval shape with 3 buttons */}
+            <div className="fixed bottom-6 left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4">
               <button
                 type="button"
                 onClick={() => setShowFormatMenu(true)}
-                className="cursor-pointer"
+                className="cursor-pointer p-1"
               >
                 <Type className="w-6 h-6 text-gray-600" />
               </button>
               <button
                 type="button"
                 onClick={handleCameraClick}
-                className="cursor-pointer"
+                className="cursor-pointer p-1"
               >
                 <Camera className="w-6 h-6 text-gray-600" />
               </button>
@@ -765,7 +853,7 @@ export function DiaryWritePage() {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <label className="cursor-pointer">
+              <label className="cursor-pointer p-1">
                 <ImageIcon className="w-6 h-6 text-gray-600" />
                 <input
                   type="file"
@@ -821,9 +909,9 @@ export function DiaryWritePage() {
     );
   }
 
-  // Question-based Diary - 2번 이미지 스타일
+  // Question-based Diary
   return (
-    <div className="min-h-screen bg-[#F5F5F0] pb-24 overflow-hidden relative" style={{ touchAction: 'none' }}>
+    <div className="min-h-screen bg-white pb-24 overflow-hidden relative" style={{ touchAction: 'none' }}>
       {(uploading || createDiary.isPending || updateDiary.isPending) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg">
@@ -834,15 +922,15 @@ export function DiaryWritePage() {
         </div>
       )}
       <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
-        {/* Header - 2번: 원형 뒤로가기, 중앙 날짜, 체크 저장 */}
+        {/* Header - 자유작성과 동일 */}
         <div className="flex items-center justify-between px-4 py-3 bg-white">
-          <button
-            onClick={handleBackClick}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          <button 
+            onClick={handleBackClick} 
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
-          <h1 className="text-lg font-medium text-[#4A2C1A]">{formattedDate}</h1>
+          <h1 className="text-base font-medium text-[#4A2C1A]">{formattedDate}</h1>
           <button
             onClick={handleSaveClick}
             disabled={uploading || createDiary.isPending}
@@ -863,8 +951,8 @@ export function DiaryWritePage() {
                 {randomQuestions.map((question) => (
                   <div
                     key={question.id}
-                    className={`w-full text-left bg-white rounded-2xl shadow-sm border border-gray-100 transition-all ${
-                      expandedQuestionId === question.id ? 'p-5 flex flex-col' : 'p-4'
+                    className={`w-full text-left bg-gray-100 rounded-xl transition-all ${
+                      expandedQuestionId === question.id ? 'p-4 flex flex-col' : 'p-4'
                     }`}
                     style={
                       expandedQuestionId === question.id
@@ -911,7 +999,15 @@ export function DiaryWritePage() {
                           }
                           onClick={(e) => e.stopPropagation()}
                           placeholder="글쓰기 시작..."
-                          className="flex-1 w-full min-h-[200px] mt-3 bg-transparent resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto"
+                          className="flex-1 w-full min-h-[200px] mt-3 bg-gray-100 rounded-lg resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto p-3"
+                          style={{
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            hyphens: 'auto',
+                          }}
+                          wrap="soft"
                         />
                       </>
                     )}
@@ -929,19 +1025,33 @@ export function DiaryWritePage() {
           {selectedImages.length > 0 && (
             <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
               {selectedImages.map((url, i) => (
-                <img
-                  key={`${url}-${i}`}
-                  src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
-                  alt={`미리보기 ${i + 1}`}
-                  className="h-16 w-16 flex-shrink-0 rounded-lg object-cover border border-gray-200"
-                  loading="eager"
-                />
+                <div key={`${url}-${i}`} className="relative flex-shrink-0">
+                  <img
+                    src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
+                    alt={`미리보기 ${i + 1}`}
+                    className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                    loading="eager"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleImageRemove(i)}
+                    className="absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
 
-          {/* 포맷 툴바 - 2번: 둥근 모서리 플로팅 스타일 */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 mx-4 bg-white rounded-full shadow-lg px-6 py-3 flex items-center justify-center gap-8">
+          {/* Floating Toolbar - Left bottom, oval shape with 3 buttons, 키보드에 맞춰 이동 */}
+          <div 
+            className="fixed left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4" 
+            style={{
+              bottom: keyboardHeight > 0 ? `${keyboardHeight + 24}px` : '24px',
+              transition: 'bottom 0.3s ease-out',
+            }}
+          >
             <button
               type="button"
               onClick={() => setShowFormatMenu(true)}

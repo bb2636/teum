@@ -117,7 +117,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-brown-600 hover:bg-brown-700"
+                className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >
@@ -135,7 +135,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
             <p className="text-brown-900 mb-6">회원탈퇴가 완료되었습니다.</p>
             <Button
               type="button"
-              className="w-full bg-brown-600 hover:bg-brown-700"
+              className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleCompleteClose}
             >
               확인

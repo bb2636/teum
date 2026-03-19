@@ -146,7 +146,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                     <User className="w-8 h-8 text-brown-600" />
                   )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center">
+                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center">
                   <Pencil className="w-3 h-3 text-white" />
                 </div>
               </div>
@@ -265,7 +265,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
             {/* 저장 버튼 */}
             <Button
               type="submit"
-              className="w-full bg-brown-700 hover:bg-brown-800 text-white py-3"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3"
               disabled={updateProfile.isPending}
             >
               {updateProfile.isPending ? '저장 중...' : '저장'}
@@ -281,7 +281,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
             <p className="text-brown-900 mb-6">저장되었습니다</p>
             <Button
               type="button"
-              className="w-full bg-brown-600 hover:bg-brown-700"
+              className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleSaveSuccessClose}
             >
               확인
@@ -306,7 +306,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-brown-600 hover:bg-brown-700"
+                className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
                 onClick={handleLogoutConfirm}
               >
                 확인

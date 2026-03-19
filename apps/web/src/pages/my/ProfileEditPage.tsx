@@ -11,6 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { WithdrawModal } from './WithdrawModal';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
+import { setLanguageFromCountry } from '@/lib/i18n';
 
 const profileSchema = z.object({
   nickname: z
@@ -95,6 +96,12 @@ export function ProfileEditPage() {
       const { name: _name, ...rest } = data;
       await updateProfile.mutateAsync({ ...rest, dateOfBirth });
       await refetch();
+      
+      // 국가가 변경된 경우 언어도 업데이트
+      if (data.country) {
+        setLanguageFromCountry(data.country);
+      }
+      
       setShowSaveSuccess(true);
     } catch (error) {
       console.error('Failed to update profile:', error);
@@ -152,7 +159,7 @@ export function ProfileEditPage() {
                     <User className="w-8 h-8 text-brown-600" />
                   )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-brown-600 flex items-center justify-center">
+                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center">
                   <Pencil className="w-3 h-3 text-white" />
                 </div>
               </div>
@@ -250,7 +257,17 @@ export function ProfileEditPage() {
             {/* 국가 선택 팝업 - 약관 보기 등과 동일한 스타일 */}
             {showCountryList && (
               <div
-                className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+                className="fixed z-50 flex items-end justify-center bg-black/50"
+                style={{ 
+                  position: 'fixed', 
+                  top: 0, 
+                  left: 0, 
+                  right: 0, 
+                  bottom: 0,
+                  width: '100%',
+                  height: '100%',
+                  minHeight: '100vh',
+                }}
                 onClick={() => setShowCountryList(false)}
               >
                 <div
@@ -312,7 +329,7 @@ export function ProfileEditPage() {
             {/* 저장 버튼 */}
             <Button
               type="submit"
-              className="w-full bg-brown-700 hover:bg-brown-800 text-white py-3"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3"
               disabled={updateProfile.isPending}
             >
               {updateProfile.isPending ? '저장 중...' : '저장'}
@@ -328,7 +345,7 @@ export function ProfileEditPage() {
             <p className="text-brown-900 mb-6">저장되었습니다</p>
             <Button
               type="button"
-              className="w-full bg-brown-600 hover:bg-brown-700"
+              className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleSaveSuccessClose}
             >
               확인
@@ -353,7 +370,7 @@ export function ProfileEditPage() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-brown-600 hover:bg-brown-700"
+                className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
                 onClick={handleLogoutConfirm}
               >
                 확인

@@ -40,7 +40,7 @@ export function PaymentConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 px-4 rounded-lg bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white font-medium transition-colors"
+            className="flex-1 py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
           >
             결제하기
           </button>

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/lib/api';
+import { setLanguageFromCountry } from '@/lib/i18n';
 
 export interface User {
   id: string;
@@ -50,7 +51,6 @@ export function useSignup() {
       name: string;
       phone?: string;
       dateOfBirth?: string;
-      country?: string;
       profileImageUrl?: string;
       termsConsents: Array<{ termsType: string; consented: boolean }>;
     }) => {
@@ -60,9 +60,15 @@ export function useSignup() {
       });
       return response.data.user;
     },
-    onSuccess: () => {
+    onSuccess: (user) => {
       // Clear all cache on signup
       queryClient.clear();
+      
+      // 사용자 프로필의 국가 정보로 언어 설정
+      if (user?.profile?.country) {
+        setLanguageFromCountry(user.profile.country);
+      }
+      
       navigate('/home');
     },
   });

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -15,8 +15,8 @@ import { useMe } from '@/hooks/useProfile';
 import { useSubscriptions } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useLogout } from '@/hooks/useAuth';
-import { SupportModal } from './SupportModal';
 import { TermsModal } from './TermsModal';
+import { setLanguageFromCountry } from '@/lib/i18n';
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -25,7 +25,6 @@ export function MyPage() {
   const { data: inquiries = [] } = useSupportInquiries();
   const logout = useLogout();
 
-  const [showSupport, setShowSupport] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showTermsList, setShowTermsList] = useState(false);
   const [termsType, setTermsType] = useState<'service' | 'privacy'>('service');
@@ -43,6 +42,13 @@ export function MyPage() {
   };
 
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  
+  // 사용자 프로필의 국가 정보로 언어 설정
+  useEffect(() => {
+    if (user?.profile?.country) {
+      setLanguageFromCountry(user.profile.country);
+    }
+  }, [user?.profile?.country]);
   
   // 다음 결제일 (endDate = 한 달 뒤)
   const nextPaymentDateStr = activeSubscription?.endDate
@@ -168,7 +174,7 @@ export function MyPage() {
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
           <button
-            onClick={() => setShowSupport(true)}
+            onClick={() => navigate('/my/support')}
             className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
@@ -191,12 +197,6 @@ export function MyPage() {
       </div>
 
       {/* Modals */}
-      {showSupport && (
-        <SupportModal
-          inquiries={inquiries}
-          onClose={() => setShowSupport(false)}
-        />
-      )}
       {showTermsList && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowTermsList(false)}>
           <div

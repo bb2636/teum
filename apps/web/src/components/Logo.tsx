@@ -27,7 +27,7 @@ export function Logo({ size = 'md', showText = true, className = '' }: LogoProps
         <h1 className={`font-bold mt-1 ${
           size === 'lg' 
             ? 'text-4xl sm:text-5xl text-white' 
-            : 'text-3xl text-[#8B4513]'
+            : 'text-3xl text-[#46342c]'
         }`}>teum</h1>
       )}
     </div>

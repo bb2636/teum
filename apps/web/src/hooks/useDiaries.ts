@@ -165,6 +165,9 @@ export function useCreateDiary() {
       // Invalidate all diary queries
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
       
+      // Invalidate folders to update diary counts
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      
       // Invalidate calendar queries for the specific year/month of the new diary
       const diaryDate = new Date(newDiary.date);
       const year = diaryDate.getFullYear();

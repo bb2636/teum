@@ -388,6 +388,8 @@ export function DiaryWritePage() {
     if (document.queryCommandState('italic')) formats.add('italic');
     if (document.queryCommandState('underline')) formats.add('underline');
     if (document.queryCommandState('strikethrough')) formats.add('strikethrough');
+    if (document.queryCommandState('insertUnorderedList')) formats.add('unorderedList');
+    if (document.queryCommandState('insertOrderedList')) formats.add('orderedList');
     setActiveFormats(formats);
   };
 
@@ -838,7 +840,7 @@ export function DiaryWritePage() {
                 onFocus={updateActiveFormats}
                 onSelect={updateActiveFormats}
                 data-placeholder="글쓰기 시작..."
-                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
                   lineHeight: '24px',

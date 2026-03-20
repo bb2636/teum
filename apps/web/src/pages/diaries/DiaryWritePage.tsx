@@ -795,13 +795,33 @@ export function DiaryWritePage() {
                     repeating-linear-gradient(
                       to bottom,
                       transparent 0px,
-                      transparent 39px,
-                      #E0E0E0 39px,
-                      #E0E0E0 40px
+                      transparent 31px,
+                      white 31px,
+                      white 79px
+                    ),
+                    repeating-linear-gradient(
+                      to bottom,
+                      transparent 0px,
+                      transparent 0px,
+                      #D0D0D0 0px,
+                      #D0D0D0 1px,
+                      transparent 1px,
+                      transparent 31px,
+                      #D0D0D0 31px,
+                      #D0D0D0 32px,
+                      transparent 32px,
+                      transparent 79px
+                    ),
+                    repeating-linear-gradient(
+                      to bottom,
+                      transparent 0px,
+                      transparent 7px,
+                      #D0D0D0 7px,
+                      #D0D0D0 8px
                     )
                   `,
-                  backgroundSize: '100% 40px',
-                  backgroundPosition: '0 0',
+                  backgroundSize: '100% 80px, 100% 80px, 100% 8px',
+                  backgroundPosition: '0 0, 0 0, 0 0',
                 }}
               />
               <div
@@ -817,7 +837,7 @@ export function DiaryWritePage() {
                 className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
-                  lineHeight: '40px',
+                  lineHeight: '24px',
                   fontSize: '16px',
                   paddingTop: '0px',
                   wordWrap: 'break-word',

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Sprout, Sparkles, ChevronRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,145 @@ import { ko } from 'date-fns/locale';
 import type { Diary } from '@/hooks/useDiaries';
 
 const MONTHLY_LIMIT = 5;
+
+interface MusicCardCarouselProps {
+  jobs: MusicJobListItem[];
+  diaryMap: Map<string, Diary>;
+  onCardClick: (jobId: string) => void;
+  onDownload: (e: React.MouseEvent, job: MusicJobListItem) => void;
+  formatDuration: (seconds?: number) => string;
+}
+
+function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDuration }: MusicCardCarouselProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = el.firstElementChild?.getBoundingClientRect().width ?? 280;
+    const gap = 16;
+    const idx = Math.round(el.scrollLeft / (cardWidth + gap));
+    setActiveIndex(Math.min(idx, jobs.length - 1));
+  }, [jobs.length]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  const scrollToIndex = (idx: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = el.firstElementChild?.getBoundingClientRect().width ?? 280;
+    const gap = 16;
+    el.scrollTo({ left: idx * (cardWidth + gap), behavior: 'smooth' });
+  };
+
+  return (
+    <div>
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto px-4 pb-3 snap-x snap-mandatory scrollbar-hide"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {jobs.map((job, index) => {
+          const isLyricsOnly = job.status === 'lyrics_only';
+          const sourceDiaries = (job.sourceDiaryIds || [])
+            .map((id) => diaryMap.get(id))
+            .filter(Boolean) as Diary[];
+
+          return (
+            <div
+              key={job.jobId}
+              className="flex-shrink-0 w-[calc(100vw-48px)] max-w-[340px] rounded-2xl overflow-hidden snap-center cursor-pointer animate-slide-up"
+              style={{ background: 'linear-gradient(145deg, #8B7355 0%, #6B5B45 50%, #4A3C2A 100%)', animationDelay: `${index * 100}ms` }}
+              onClick={() => onCardClick(job.jobId)}
+            >
+              <div className="p-5 flex flex-col" style={{ height: '380px' }}>
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-white font-bold text-lg leading-tight flex-1 mr-3 line-clamp-2">
+                    {job.title || '노래 제목이 들어갑니다.'}
+                  </h3>
+                  <span className="text-white/70 text-sm flex-shrink-0 mt-0.5">
+                    {isLyricsOnly ? '가사' : formatDuration(job.durationSeconds)}
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 min-h-0 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.2) transparent' }}>
+                  {sourceDiaries.map((diary) => {
+                    const firstImage = diary.images && diary.images.length > 0 ? diary.images[0].imageUrl : null;
+                    return (
+                      <div
+                        key={diary.id}
+                        className="flex items-center gap-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white/20 flex-shrink-0 overflow-hidden">
+                          {firstImage ? (
+                            <StorageImage
+                              url={firstImage}
+                              alt="Diary"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/40">
+                              <span className="text-sm">📝</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm truncate">
+                            {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
+                          </p>
+                          <p className="text-white/50 text-xs">
+                            {format(new Date(diary.date), 'M월 d일 (EEE)', { locale: ko })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {sourceDiaries.length === 0 && (
+                    <p className="text-white/40 text-sm">연결된 일기가 없습니다.</p>
+                  )}
+                </div>
+
+                {job.status === 'completed' && job.audioUrl && (
+                  <div className="flex justify-end mt-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => onDownload(e, job)}
+                      className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                    >
+                      <Download className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {jobs.length > 1 && (
+        <div className="flex justify-center gap-1.5 mt-1">
+          {jobs.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => scrollToIndex(idx)}
+              className={`rounded-full transition-all duration-300 ${
+                idx === activeIndex
+                  ? 'w-5 h-2 bg-[#8B7355]'
+                  : 'w-2 h-2 bg-gray-300'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function getFirstLine(diary: Diary): string {
   if (diary.title?.trim()) return diary.title.trim();
@@ -168,84 +307,13 @@ export function MusicHomePage() {
             </p>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {completedJobs.map((job, index) => {
-              const isLyricsOnly = job.status === 'lyrics_only';
-              const sourceDiaries = (job.sourceDiaryIds || [])
-                .map((id) => diaryMap.get(id))
-                .filter(Boolean) as Diary[];
-
-              return (
-                <div
-                  key={job.jobId}
-                  className="flex-shrink-0 w-[280px] rounded-2xl overflow-hidden snap-start cursor-pointer animate-slide-up"
-                  style={{ background: 'linear-gradient(145deg, #8B7355 0%, #6B5B45 50%, #4A3C2A 100%)', animationDelay: `${index * 100}ms` }}
-                  onClick={() => navigate(`/music/jobs/${job.jobId}`)}
-                >
-                  <div className="p-5 flex flex-col" style={{ height: '380px' }}>
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-white font-bold text-lg leading-tight flex-1 mr-3 line-clamp-2">
-                        {job.title || '노래 제목이 들어갑니다.'}
-                      </h3>
-                      <span className="text-white/70 text-sm flex-shrink-0 mt-0.5">
-                        {isLyricsOnly ? '가사' : formatDuration(job.durationSeconds)}
-                      </span>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-3 min-h-0 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.2) transparent' }}>
-                      {sourceDiaries.map((diary) => {
-                        const firstImage = diary.images && diary.images.length > 0 ? diary.images[0].imageUrl : null;
-                        return (
-                          <div
-                            key={diary.id}
-                            className="flex items-center gap-3"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="w-10 h-10 rounded-lg bg-white/20 flex-shrink-0 overflow-hidden">
-                              {firstImage ? (
-                                <StorageImage
-                                  url={firstImage}
-                                  alt="Diary"
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-white/40">
-                                  <span className="text-sm">📝</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white text-sm truncate">
-                                {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
-                              </p>
-                              <p className="text-white/50 text-xs">
-                                {format(new Date(diary.date), 'M월 d일 (EEE)', { locale: ko })}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {sourceDiaries.length === 0 && (
-                        <p className="text-white/40 text-sm">연결된 일기가 없습니다.</p>
-                      )}
-                    </div>
-
-                    {job.status === 'completed' && job.audioUrl && (
-                      <div className="flex justify-end mt-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={(e) => handleDownload(e, job)}
-                          className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
-                        >
-                          <Download className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <MusicCardCarousel
+            jobs={completedJobs}
+            diaryMap={diaryMap}
+            onCardClick={(jobId) => navigate(`/music/jobs/${jobId}`)}
+            onDownload={handleDownload}
+            formatDuration={formatDuration}
+          />
         )}
       </section>
 

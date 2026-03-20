@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Sprout, Sparkles } from 'lucide-react';
+import { Download, Sprout, Sparkles, FileText, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
 import { useMusicJobs } from '@/hooks/useMusic';
 import { useSubscriptions } from '@/hooks/usePayment';
-import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -13,14 +12,14 @@ const MONTHLY_LIMIT = 5;
 
 export function MusicHomePage() {
   const navigate = useNavigate();
-  const { data: jobsData } = useMusicJobs();
+  const { data: jobsData, refetch: refetchJobs } = useMusicJobs();
   const { data: diariesAll = [] } = useDiaries();
   const { data: subscriptions = [], refetch: refetchSubscriptions } = useSubscriptions();
 
-  // 페이지 마운트 시 구독 정보 갱신 (결제 성공 후 바로 반영되도록)
   useEffect(() => {
     refetchSubscriptions();
-  }, [refetchSubscriptions]);
+    refetchJobs();
+  }, [refetchSubscriptions, refetchJobs]);
 
 
   const jobs = jobsData?.jobs ?? [];
@@ -35,34 +34,6 @@ export function MusicHomePage() {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // 일기 첫 줄 추출 함수
-  const getFirstLine = (diary: { title?: string; content?: string; type?: string; answers?: Array<{ answer?: string; question?: { question?: string } }> }) => {
-    if (diary.title?.trim()) return diary.title.trim();
-    if (diary.type === 'question_based' && diary.answers?.length) {
-      // 질문기록일 때는 먼저 첫 번째 질문 제목을 확인
-      const firstQuestion = diary.answers[0].question?.question?.trim();
-      if (firstQuestion) return firstQuestion;
-      // 질문 제목이 없으면 답변 내용 확인
-      const first = diary.answers[0].answer?.trim();
-      if (first) {
-        // HTML 태그 제거
-        const tmp = document.createElement('div');
-        tmp.innerHTML = first;
-        const text = tmp.textContent || tmp.innerText || '';
-        return text.split('\n')[0].trim() || text;
-      }
-      return '';
-    }
-    if (diary.content?.trim()) {
-      // HTML 태그 제거
-      const tmp = document.createElement('div');
-      tmp.innerHTML = diary.content;
-      const text = tmp.textContent || tmp.innerText || '';
-      return text.trim().split('\n')[0].trim();
-    }
-    return '';
   };
 
   const handleOpenCreateModal = () => {
@@ -140,75 +111,48 @@ export function MusicHomePage() {
               </p>
             </div>
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <div className="space-y-3">
               {completedJobs.map((job) => {
-                const sourceDiaries = job.sourceDiaryIds
-                  ? job.sourceDiaryIds
-                      .map((id) => diariesAll.find((d) => d.id === id))
-                      .filter(Boolean)
-                      .slice(0, 3) // 최대 3개만 표시
-                  : [];
-                
+                const isLyricsOnly = job.status === 'lyrics_only';
                 return (
                   <button
                     key={job.jobId}
                     type="button"
                     onClick={() => navigate(`/music/jobs/${job.jobId}`)}
-                    className="relative flex-shrink-0 w-72 bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition-shadow"
+                    className="w-full flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm text-left hover:shadow-md transition-shadow"
                   >
-                    {/* 노래 제목 */}
-                    <p className="font-bold text-brown-900 text-lg mb-0.5 line-clamp-1">
-                      {job.title || '노래 제목이 들어갑니다.'}
-                    </p>
-                    {job.titleEn && (
-                      <p className="text-xs text-muted-foreground truncate mb-2">
-                        {job.titleEn}
-                      </p>
-                    )}
-                    
-                    <p className="text-xs text-muted-foreground mb-3 text-right">
-                      {job.status === 'lyrics_only' ? '가사만' : formatDuration(job.durationSeconds)}
-                    </p>
-                    
-                    {/* 구분선 */}
-                    <div className="border-t border-brown-100 mb-3" />
-                    
-                    {/* 일기 목록 */}
-                    <div className="space-y-2">
-                      {sourceDiaries.map((diary, idx) => {
-                        if (!diary) return null;
-                        const firstImage = diary.images && diary.images.length > 0 ? diary.images[0].imageUrl : null;
-                        return (
-                          <div key={diary.id || idx} className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded bg-brown-100 flex-shrink-0 overflow-hidden">
-                              {firstImage ? (
-                                <StorageImage
-                                  url={firstImage}
-                                  alt="Diary"
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-brown-400">
-                                  <span className="text-xs">📝</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-brown-900 truncate">
-                                {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {format(new Date(diary.date), 'M월 d일 (EEE)', { locale: ko })}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className={`w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center ${
+                      isLyricsOnly ? 'bg-amber-50' : 'bg-brown-100'
+                    }`}>
+                      {isLyricsOnly ? (
+                        <FileText className="w-6 h-6 text-amber-600" />
+                      ) : (
+                        <Play className="w-6 h-6 text-brown-600" />
+                      )}
                     </div>
-                    
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-brown-900 truncate">
+                        {job.title || '노래 제목이 들어갑니다.'}
+                      </p>
+                      {job.titleEn && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {job.titleEn}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {isLyricsOnly ? (
+                          <span className="text-xs text-amber-600 font-medium">가사만</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{formatDuration(job.durationSeconds)}</span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(job.createdAt), 'M월 d일', { locale: ko })}
+                        </span>
+                      </div>
+                    </div>
                     {job.status === 'completed' && job.audioUrl && (
-                      <button
-                        type="button"
+                      <div
+                        role="button"
                         onClick={async (e) => {
                           e.stopPropagation();
                           try {
@@ -228,10 +172,10 @@ export function MusicHomePage() {
                             window.open(job.audioUrl, '_blank');
                           }
                         }}
-                        className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-white border border-brown-200 flex items-center justify-center hover:bg-brown-50 shadow-sm"
+                        className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 flex-shrink-0"
                       >
                         <Download className="w-4 h-4 text-brown-600" />
-                      </button>
+                      </div>
                     )}
                   </button>
                 );

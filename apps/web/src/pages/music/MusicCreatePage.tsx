@@ -439,7 +439,7 @@ export function MusicCreatePage() {
             </div>
             <h2 className="text-lg font-semibold text-brown-900">음악을 만들고 있습니다.</h2>
             <p className="text-sm text-muted-foreground">
-              선택한 일기의 감정을 분석하고 선율로 바꾸는 중입니다.
+              선택한 일기의 감정을 분석하고<br />선율로 바꾸는 중입니다.
             </p>
           </div>
         </div>

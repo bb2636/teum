@@ -213,7 +213,7 @@ export function SupportInquiryDetailModal({
               <Button
                 onClick={handleClose}
                 variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="border-0 text-gray-700 hover:bg-gray-50 rounded-full"
               >
                 취소
               </Button>

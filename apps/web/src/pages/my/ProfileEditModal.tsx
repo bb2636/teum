@@ -751,7 +751,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-brown-300 text-brown-700"
+                className="flex-1 border-0 text-brown-700 rounded-full hover:bg-gray-100"
                 onClick={() => setShowLogoutConfirm(false)}
               >
                 취소

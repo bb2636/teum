@@ -486,7 +486,7 @@ export function MusicCreatePage() {
               <Button
                 onClick={handleAddToMyMusic}
                 variant="outline"
-                className={`${isLyricsOnly ? 'w-full' : 'flex-1'} border-brown-200 text-brown-700 hover:bg-brown-50`}
+                className={`${isLyricsOnly ? 'w-full' : 'flex-1'} border-0 text-brown-700 hover:bg-brown-50 rounded-full`}
               >
                 담기
               </Button>

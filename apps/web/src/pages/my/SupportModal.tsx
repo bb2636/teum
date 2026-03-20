@@ -151,7 +151,7 @@ export function SupportModal({ inquiries: initialInquiries, onClose }: SupportMo
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 border-0 rounded-full hover:bg-gray-100"
                   onClick={() => {
                     setShowForm(false);
                     reset();

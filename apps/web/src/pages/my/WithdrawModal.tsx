@@ -90,7 +90,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
             <Button
               type="button"
               variant="outline"
-              className="w-full mt-6 border-brown-300 text-brown-700 hover:bg-brown-50"
+              className="w-full mt-6 border-0 text-brown-700 hover:bg-brown-50 rounded-full"
               disabled={!agreed}
               onClick={handleDelete}
             >
@@ -111,7 +111,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-brown-300 text-brown-700"
+                className="flex-1 border-0 text-brown-700 rounded-full hover:bg-gray-100"
                 onClick={() => setShowConfirm(false)}
                 disabled={isDeleting}
               >

@@ -51,7 +51,7 @@ export function SubscriptionCancelModal({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-6 py-3 rounded-lg border border-gray-300 text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="px-6 py-3 rounded-full text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             {isLoading ? '취소 중...' : '구독취소'}
           </button>

@@ -210,7 +210,7 @@ export function FolderSelectModal({
                     setCoverImagePreview(null);
                   }
                 }}
-                className="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 rounded-full text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors"
               >
                 취소
               </button>

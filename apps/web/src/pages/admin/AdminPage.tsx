@@ -262,7 +262,7 @@ export function AdminPage() {
               <Button
                 variant="outline"
                 onClick={() => setShowLogoutModal(false)}
-                className="px-4"
+                className="px-4 border-0 rounded-full"
               >
                 취소
               </Button>

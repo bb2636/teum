@@ -183,7 +183,7 @@ export function MusicJobPage() {
                 )}
                 <Button 
                   variant="outline" 
-                  className={job.status === 'lyrics_only' ? 'w-full' : 'flex-1'}
+                  className={`${job.status === 'lyrics_only' ? 'w-full' : 'flex-1'} border-0 rounded-full`}
                   onClick={() => {
                     handleCloseCompletionPopup();
                     navigate('/music');
@@ -205,7 +205,7 @@ export function MusicJobPage() {
             <p className="text-sm text-red-700 mb-4">
               {job.errorMessage || '음악 생성에 실패했습니다'}
             </p>
-            <Button variant="outline" onClick={() => navigate('/music')}>
+            <Button variant="outline" className="border-0 rounded-full" onClick={() => navigate('/music')}>
               목록으로
             </Button>
           </div>
@@ -279,7 +279,7 @@ export function MusicJobPage() {
               </div>
             )}
 
-            <Button variant="outline" className="w-full" onClick={() => navigate('/music')}>
+            <Button variant="outline" className="w-full border-0 rounded-full" onClick={() => navigate('/music')}>
               목록으로
             </Button>
           </>
@@ -307,7 +307,7 @@ export function MusicJobPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 border-0 rounded-full"
                     onClick={async () => {
                       if (job.audioUrl) {
                         try {
@@ -408,7 +408,7 @@ export function MusicJobPage() {
               </div>
             )}
 
-            <Button variant="outline" className="w-full" onClick={() => navigate('/music')}>
+            <Button variant="outline" className="w-full border-0 rounded-full" onClick={() => navigate('/music')}>
               다시 만들기
             </Button>
           </>

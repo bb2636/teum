@@ -743,48 +743,7 @@ export function ProfileEditPage() {
               </button>
             </div>
 
-            {/* 국가 선택 팝업 - 약관 보기 등과 동일한 스타일 */}
-            {showCountryList && (
-              <div
-                className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 animate-overlay-fade"
-                onClick={() => setShowCountryList(false)}
-              >
-                <div
-                  className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
-                    <h2 className="text-lg font-semibold text-brown-900">국가 선택</h2>
-                    <button
-                      type="button"
-                      onClick={() => setShowCountryList(false)}
-                      className="p-1 rounded-full hover:bg-gray-100"
-                      aria-label="닫기"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
-                    {COUNTRY_OPTIONS.map(({ value, label }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => {
-                          setValue('country', value);
-                          setShowCountryList(false);
-                        }}
-                        className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
-                      >
-                        <span className="font-medium text-brown-900">{label}</span>
-                        {watch('country') === value && (
-                          <span className="text-brown-600 text-sm">선택됨</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* 국가 선택 팝업은 form 바깥 fragment 레벨에서 렌더링 */}
 
             {/* 로그아웃 | 회원탈퇴 */}
             <div className="flex items-center justify-center gap-2 py-2">
@@ -808,7 +767,7 @@ export function ProfileEditPage() {
             {/* 저장 버튼 */}
             <Button
               type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 rounded-full"
               disabled={updateProfile.isPending}
             >
               {updateProfile.isPending ? '저장 중...' : '저장'}
@@ -824,7 +783,7 @@ export function ProfileEditPage() {
             <p className="text-brown-900 mb-6">저장되었습니다</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] rounded-full"
               onClick={handleSaveSuccessClose}
             >
               확인
@@ -840,7 +799,7 @@ export function ProfileEditPage() {
             <p className="text-brown-900 mb-6">프로필 업데이트에 실패했습니다.</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] rounded-full"
               onClick={() => setShowSaveError(false)}
             >
               확인
@@ -858,14 +817,14 @@ export function ProfileEditPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-brown-300 text-brown-700"
+                className="flex-1 border-brown-300 text-brown-700 rounded-full"
                 onClick={() => setShowLogoutConfirm(false)}
               >
                 취소
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
+                className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
                 onClick={handleLogoutConfirm}
               >
                 확인
@@ -893,6 +852,48 @@ export function ProfileEditPage() {
         onDeleteImage={handleProfileImageDelete}
         hasImage={!!profileImageUrl}
       />
+
+      {showCountryList && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 animate-overlay-fade"
+          onClick={() => setShowCountryList(false)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col animate-modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-semibold text-brown-900">국가 선택</h2>
+              <button
+                type="button"
+                onClick={() => setShowCountryList(false)}
+                className="p-1 rounded-full hover:bg-gray-100"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
+              {COUNTRY_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setValue('country', value);
+                    setShowCountryList(false);
+                  }}
+                  className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
+                >
+                  <span className="font-medium text-brown-900">{label}</span>
+                  {watch('country') === value && (
+                    <span className="text-brown-600 text-sm">선택됨</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

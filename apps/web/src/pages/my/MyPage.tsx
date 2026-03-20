@@ -2,15 +2,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
-  Edit,
-  CreditCard,
-  MessageCircle,
+  Pencil,
   FileText,
+  ClipboardList,
+  HelpCircle,
   LogOut,
   ChevronRight,
   X,
 } from 'lucide-react';
-import { Logo } from '@/components/Logo';
 import { useMe } from '@/hooks/useProfile';
 import { useSubscriptions } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
@@ -101,11 +100,17 @@ export function MyPage() {
           </div>
         </div>
 
-        {/* 기록이 곧~ 팝업 카드 (닫기 전) */}
         {showPromo && (
           <div className="bg-gray-100 rounded-xl p-4 shadow-sm relative">
             <div className="flex items-start justify-between gap-2">
-              <Logo size="sm" showText={false} className="shrink-0" />
+              <img
+                src="/mureka_logo.png"
+                alt="Mureka"
+                className="h-4 w-auto shrink-0"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
               <button
                 type="button"
                 onClick={dismissPromo}
@@ -119,7 +124,8 @@ export function MyPage() {
               기록이 곧, 당신만의 트랙이 됩니다.
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              일기의 감정이 그대로 담긴 단 하나의 선물입니다. 기록하는 순간, 새로운 음악이 태어납니다.
+              일기의 감정이 그대로 담긴 단 하나의 선율입니다.<br />
+              기록하는 순간, 새로운 음악이 태어납니다.
             </p>
           </div>
         )}
@@ -148,7 +154,7 @@ export function MyPage() {
             className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
-              <Edit className="w-5 h-5 text-brown-600" />
+              <Pencil className="w-5 h-5 text-brown-600" />
               <span className="font-medium text-brown-900">프로필 편집</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -158,7 +164,7 @@ export function MyPage() {
             className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
-              <CreditCard className="w-5 h-5 text-brown-600" />
+              <ClipboardList className="w-5 h-5 text-brown-600" />
               <span className="font-medium text-brown-900">결제 내역</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -178,7 +184,7 @@ export function MyPage() {
             className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
-              <MessageCircle className="w-5 h-5 text-brown-600" />
+              <HelpCircle className="w-5 h-5 text-brown-600" />
               <span className="font-medium text-brown-900">고객 지원</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -191,7 +197,6 @@ export function MyPage() {
               <LogOut className="w-5 h-5 text-brown-600" />
               <span className="font-medium text-brown-900">로그아웃</span>
             </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
       </div>

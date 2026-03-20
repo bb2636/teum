@@ -745,17 +745,7 @@ export function ProfileEditPage() {
             {/* 국가 선택 팝업 - 약관 보기 등과 동일한 스타일 */}
             {showCountryList && (
               <div
-                className="fixed z-50 flex items-end justify-center bg-black/50"
-                style={{ 
-                  position: 'fixed', 
-                  top: 0, 
-                  left: 0, 
-                  right: 0, 
-                  bottom: 0,
-                  width: '100%',
-                  height: '100%',
-                  minHeight: '100vh',
-                }}
+                className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 animate-overlay-fade"
                 onClick={() => setShowCountryList(false)}
               >
                 <div

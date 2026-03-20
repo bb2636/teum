@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useSupportInquiries } from '@/hooks/useSupport';
+import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -9,6 +10,14 @@ export function SupportPage() {
   const navigate = useNavigate();
   const { data: inquiries = [], isLoading } = useSupportInquiries();
   const [expandedInquiryId, setExpandedInquiryId] = useState<string | null>(null);
+  const { setHideTabBar } = useHideTabBar();
+
+  useEffect(() => {
+    setHideTabBar(true);
+    return () => {
+      setHideTabBar(false);
+    };
+  }, [setHideTabBar]);
 
   const getStatusText = (status: string) => {
     switch (status) {

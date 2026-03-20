@@ -298,7 +298,7 @@ export function MusicCreatePage() {
             <button
               type="button"
               onClick={() => setSelectedFolderId(undefined)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap relative ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 ${
                 selectedFolderId === undefined
                   ? 'bg-brown-900 text-white'
                   : 'bg-brown-100 text-brown-700'
@@ -306,7 +306,7 @@ export function MusicCreatePage() {
             >
               전체
               {selectedFolderId === undefined && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-brown-600 text-white text-xs rounded-full flex items-center justify-center">
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-brown-600 text-white text-[10px] rounded-full leading-none">
                   {diariesAll.length}
                 </span>
               )}
@@ -319,7 +319,7 @@ export function MusicCreatePage() {
                   key={f.id}
                   type="button"
                   onClick={() => setSelectedFolderId(f.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap relative ${
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 ${
                     isSelected
                       ? 'bg-brown-900 text-white'
                       : 'bg-brown-100 text-brown-700'
@@ -327,7 +327,7 @@ export function MusicCreatePage() {
                 >
                   {f.name}
                   {isSelected && count > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-brown-600 text-white text-xs rounded-full flex items-center justify-center">
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-brown-600 text-white text-[10px] rounded-full leading-none">
                       {count}
                     </span>
                   )}

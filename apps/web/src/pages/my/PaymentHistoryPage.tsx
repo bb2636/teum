@@ -17,6 +17,7 @@ export function PaymentHistoryPage() {
   const cancelSubscription = useCancelSubscription();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('구독이 취소되었습니다.');
 
   if (subscriptionsLoading || paymentsLoading) {
     return (
@@ -158,10 +159,18 @@ export function PaymentHistoryPage() {
             try {
               await cancelSubscription.mutateAsync(activeSubscription.id);
               setShowCancelModal(false);
+              setToastMessage('구독이 취소되었습니다.');
               setShowToast(true);
-            } catch (error) {
+            } catch (error: any) {
               console.error('Failed to cancel subscription:', error);
-              alert('구독 취소에 실패했습니다.');
+              setShowCancelModal(false);
+              const msg = error?.message || '';
+              if (msg.includes('active') || msg.includes('cancelled')) {
+                setToastMessage('이미 취소된 구독입니다.');
+              } else {
+                setToastMessage('구독 취소에 실패했습니다.');
+              }
+              setShowToast(true);
             }
           }}
           isLoading={cancelSubscription.isPending}
@@ -170,7 +179,7 @@ export function PaymentHistoryPage() {
 
       {/* 토스트 메시지 */}
       <Toast
-        message="구독이 취소되었습니다."
+        message={toastMessage}
         isVisible={showToast}
         onClose={() => setShowToast(false)}
       />

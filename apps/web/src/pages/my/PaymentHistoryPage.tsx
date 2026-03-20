@@ -183,7 +183,7 @@ export function PaymentHistoryPage() {
             <p className="text-[#4A2C1A] mb-6">구독이 취소되었습니다.</p>
             <button
               onClick={() => setShowCancelSuccess(false)}
-              className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+              className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
             >
               확인
             </button>
@@ -198,7 +198,7 @@ export function PaymentHistoryPage() {
             <p className="text-[#4A2C1A] mb-6">{cancelErrorMessage}</p>
             <button
               onClick={() => setShowCancelError(false)}
-              className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+              className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
             >
               확인
             </button>

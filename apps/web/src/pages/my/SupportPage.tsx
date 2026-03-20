@@ -139,7 +139,7 @@ export function SupportPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
           <button
             onClick={() => navigate('/my/support/inquiry')}
-            className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+            className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
           >
             1:1 문의
           </button>

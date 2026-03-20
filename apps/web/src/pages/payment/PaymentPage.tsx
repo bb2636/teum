@@ -314,7 +314,7 @@ export function PaymentPage() {
             <button
               onClick={handlePaymentClick}
               disabled={isProcessing || processPayment.isPending || !isButtonEnabled}
-              className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing || processPayment.isPending
                 ? '결제 처리 중...'

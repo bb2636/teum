@@ -58,7 +58,7 @@ export function SubscriptionCancelModal({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-6 py-3 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50"
+            className="px-6 py-3 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50"
           >
             유지하기
           </button>

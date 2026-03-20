@@ -1257,7 +1257,7 @@ export function SignupPage() {
                 <form onSubmit={step3Form.handleSubmit(onStep3Submit)}>
                   <Button
                     type="submit"
-                    className="w-full bg-[#665146] hover:bg-[#5A453A] text-white rounded-lg py-3"
+                    className="w-full bg-[#665146] hover:bg-[#5A453A] text-white rounded-full py-3"
                     disabled={!isStep3Valid || signupMutation.isPending}
                   >
                     {signupMutation.isPending ? '가입 중...' : '동의하기'}

@@ -142,7 +142,7 @@ export function PaymentIntroPage() {
             </div>
             <button
               onClick={handleStartClick}
-              className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
             >
               월 4,900원으로 시작하기
             </button>

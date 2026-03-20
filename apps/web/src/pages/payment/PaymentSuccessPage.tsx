@@ -51,7 +51,7 @@ export function PaymentSuccessPage() {
         </button>
         <button
           onClick={() => navigate('/music')}
-          className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
+          className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
         >
           음악 생성하기
           <Sparkles className="w-4 h-4" />

@@ -153,7 +153,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                 }
               }}
               disabled={!allRequiredAgreed}
-              className="w-full py-4 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               월 4,900원으로 시작하기
             </button>

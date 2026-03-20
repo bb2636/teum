@@ -720,7 +720,7 @@ export function HomePage() {
               <button
                 onClick={handleFolderDeleteConfirm}
                 disabled={deleteFolder.isPending}
-                className="flex-1 py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleteFolder.isPending ? '삭제 중...' : '삭제'}
               </button>

@@ -122,7 +122,7 @@ export function SupportInquiryPage() {
             <button
               type="submit"
               disabled={createInquiry.isPending}
-              className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createInquiry.isPending ? '등록 중...' : '등록하기'}
             </button>
@@ -140,7 +140,7 @@ export function SupportInquiryPage() {
                 <p className="text-[#4A2C1A] mb-6">정상적으로 등록되었습니다.</p>
                 <button
                   onClick={handleSuccessClose}
-                  className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+                  className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
                 >
                   확인
                 </button>
@@ -160,7 +160,7 @@ export function SupportInquiryPage() {
                 <p className="text-[#4A2C1A] mb-6">{errorMessage}</p>
                 <button
                   onClick={handleErrorClose}
-                  className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+                  className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
                 >
                   확인
                 </button>

@@ -60,13 +60,9 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 animate-overlay-fade" onClick={onClose}>
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-modal-sheet flex flex-col"
+        className="absolute inset-0 bg-white animate-modal-sheet flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 드래그 핸들 */}
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden />
-        </div>
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-10">
           <h2 className="text-lg font-semibold text-[#4A2C1A]">
             {dateLabel}
@@ -80,7 +76,7 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
             ✕
           </button>
         </div>
-        <div className="px-4 py-4 space-y-4 pb-safe">
+        <div className="px-4 py-4 space-y-4 pb-safe overflow-y-auto flex-1">
           {diaries.map((diary) => {
             const firstLine = getFirstLine(diary);
             const diaryDate = diary.date ? format(new Date(diary.date), 'M월 d일 (E)', { locale: ko }) : dateLabel;

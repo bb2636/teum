@@ -36,9 +36,16 @@ export function BottomTabBar() {
         <div className="flex items-end justify-between h-20 relative">
           {/* Main tabs grouped in oval with shadow */}
           <div className="flex items-center justify-center flex-[3] relative h-16">
-            {/* Gradient border effect with shadow */}
-            <div className="absolute inset-0 rounded-full p-[1px] bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200 shadow-md">
-              <div className="w-full h-full bg-white rounded-full"></div>
+            {/* Gradient border effect with soft shadow */}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.03) 40%, rgba(0,0,0,0.08) 100%)',
+                padding: '1.5px',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 0 4px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div className="w-full h-full bg-white rounded-full" />
             </div>
             <div className="flex items-center justify-around w-full relative z-10 px-2">
               {mainTabs.map((tab) => {

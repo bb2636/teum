@@ -580,18 +580,22 @@ export function HomePage() {
                   ? new Date(dateB).getTime() - new Date(dateA).getTime()
                   : new Date(dateA).getTime() - new Date(dateB).getTime();
               })
-              .map(([dateKey, dateDiaries]) => {
+              .map(([dateKey, dateDiaries], groupIndex) => {
                 const date = new Date(dateKey);
                 const dateLabel = format(date, 'M월 d일 (E)', { locale: ko });
                 
                 return (
-                  <div key={dateKey} className="space-y-3">
+                  <div
+                    key={dateKey}
+                    className="space-y-3 animate-slide-up"
+                    style={{ animationDelay: `${groupIndex * 100}ms` }}
+                  >
                     {/* 날짜 헤더 */}
                     <h3 className="text-sm font-medium text-gray-700 text-center">{dateLabel}</h3>
                     
                     {/* 해당 날짜의 일기 목록 - 2열 그리드 */}
                     <div className="grid grid-cols-2 gap-3">
-                      {dateDiaries.map((diary) => {
+                      {dateDiaries.map((diary, diaryIndex) => {
                         // 일기 전체 내용 추출 (줄바꿈 포함)
                         const getDiaryContent = (diary: typeof dateDiaries[0]) => {
                           if (diary.type === 'question_based' && diary.answers?.length) {
@@ -620,7 +624,8 @@ export function HomePage() {
                           <Link
                             key={diary.id}
                             to={`/diaries/${diary.id}`}
-                            className="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow aspect-square"
+                            className="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow aspect-square animate-slide-up"
+                            style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
                           >
                             {hasImage && diary.images && diary.images.length > 0 ? (
                               // 썸네일이 있는 경우: 정사각형 이미지 + 밑에 내용

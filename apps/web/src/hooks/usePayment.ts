@@ -83,6 +83,7 @@ export function useSubscriptions() {
       return response.data.subscriptions;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: 'always',
   });
 }
 
@@ -115,12 +116,19 @@ export function useCancelSubscription() {
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, subscriptionId) => {
+      queryClient.setQueryData<Subscription[]>(['subscriptions'], (old) => {
+        if (!old) return old;
+        return old.map((s) =>
+          s.id === subscriptionId
+            ? { ...s, status: 'cancelled' as const, cancelledAt: new Date().toISOString() }
+            : s
+        );
+      });
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
       queryClient.invalidateQueries({ queryKey: ['me'] });
-      // 즉시 refetch하여 구독 상태 반영
       queryClient.refetchQueries({ queryKey: ['music', 'jobs'] });
       queryClient.refetchQueries({ queryKey: ['subscriptions'] });
     },

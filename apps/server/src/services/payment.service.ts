@@ -57,8 +57,8 @@ export class PaymentService {
   }> {
     logger.info('Processing payment', { userId, input, mock: this.isPaymentMockSuccess() });
 
-    // 중복 구독 방지: 이미 활성 구독이 있으면 에러
-    if (input.planName) {
+    const isRenewal = !!(input as any).isRenewal;
+    if (input.planName && !isRenewal) {
       const activeSubscription = await this.getActiveSubscription(userId);
       if (activeSubscription) {
         logger.warn('User already has active subscription', { userId, existingSubscriptionId: activeSubscription.id });
@@ -169,6 +169,24 @@ export class PaymentService {
           paidAt: null,
         })
         .returning();
+
+      if (paymentMethodStr.startsWith('card') || paymentMethodStr.startsWith('easy_pay')) {
+        const activeSubscription = await this.getActiveSubscription(userId);
+        if (activeSubscription) {
+          await db
+            .update(subscriptions)
+            .set({
+              status: 'cancelled',
+              cancelledAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(subscriptions.id, activeSubscription.id));
+          logger.info('Subscription auto-cancelled due to payment failure', {
+            subscriptionId: activeSubscription.id,
+            paymentId: payment.id,
+          });
+        }
+      }
 
       return {
         success: false,
@@ -347,6 +365,13 @@ export class PaymentService {
 
     if (!subscription || subscription.userId !== userId) {
       throw new Error('Subscription not found or unauthorized');
+    }
+
+    if (subscription.status === 'cancelled') {
+      return {
+        success: true,
+        message: '이미 취소된 구독입니다.',
+      };
     }
 
     if (subscription.status !== 'active') {

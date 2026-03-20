@@ -785,51 +785,25 @@ export function DiaryWritePage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            {/* Note-style content area with staff paper background (5 lines per group with spacing) */}
             <div 
-              className="flex-1 mx-4 my-4 rounded-lg shadow-sm p-4 relative overflow-hidden bg-white"
+              className="flex-1 relative overflow-hidden bg-white"
             >
-              {/* 배경 악보지 형식 - z-index 낮게 설정 */}
               <div
                 className="absolute inset-0 z-0"
                 style={{
                   backgroundImage: `
-                    /* 공백 영역 마스크 (각 staff 사이 공백) - 패턴: 80px (32px 5줄 + 48px 공백) */
                     repeating-linear-gradient(
                       to bottom,
                       transparent 0px,
-                      transparent 31px,
-                      white 31px,
-                      white 79px
-                    ),
-                    /* 5줄 묶음 구분선 (각 staff의 첫 줄과 마지막 줄) */
-                    repeating-linear-gradient(
-                      to bottom,
-                      transparent 0px,
-                      transparent 0px,
-                      #D0D0D0 0px,
-                      #D0D0D0 1px,
-                      transparent 1px,
-                      transparent 31px,
-                      #D0D0D0 31px,
-                      #D0D0D0 32px,
-                      transparent 32px,
-                      transparent 79px
-                    ),
-                    /* 기본 줄 (매 8px마다, 촘촘한 악보지 형식 - 5줄 = 32px) */
-                    repeating-linear-gradient(
-                      to bottom,
-                      transparent 0px,
-                      transparent 7px,
-                      #D0D0D0 7px,
-                      #D0D0D0 8px
+                      transparent 39px,
+                      #E0E0E0 39px,
+                      #E0E0E0 40px
                     )
                   `,
-                  backgroundSize: '100% 80px, 100% 80px, 100% 8px',
-                  backgroundPosition: '0 0, 0 0, 0 0',
+                  backgroundSize: '100% 40px',
+                  backgroundPosition: '0 0',
                 }}
               />
-              {/* 내용 입력 영역 - z-index 높게 설정 */}
               <div
                 ref={contentEditableRef}
                 contentEditable
@@ -840,10 +814,10 @@ export function DiaryWritePage() {
                 onFocus={updateActiveFormats}
                 onSelect={updateActiveFormats}
                 data-placeholder="글쓰기 시작..."
-                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
-                  lineHeight: '24px',
+                  lineHeight: '40px',
                   fontSize: '16px',
                   paddingTop: '0px',
                   wordWrap: 'break-word',

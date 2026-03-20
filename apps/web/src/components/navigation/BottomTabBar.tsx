@@ -93,7 +93,7 @@ export function BottomTabBar() {
           {/* Right side: FAB and Profile */}
           <div className="flex flex-col items-center justify-end flex-1 relative h-full">
             {/* FAB Button - Floating above profile (hidden on music page) */}
-            {location.pathname !== '/music' && (
+            {location.pathname !== '/music' && location.pathname !== '/my' && (
               <div className="absolute bottom-16 right-0 z-50">
                 <button
                   onClick={(e) => {

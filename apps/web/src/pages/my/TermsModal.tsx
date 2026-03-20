@@ -3,8 +3,15 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api';
 
+const TERMS_TITLE_MAP: Record<string, string> = {
+  service: '서비스 이용약관',
+  privacy: '개인정보 처리방침',
+  payment: '정기결제/자동갱신',
+  refund: '환불/취소 정책',
+};
+
 interface TermsModalProps {
-  type: 'service' | 'privacy' | 'payment' | 'refund';
+  type: string;
   onClose: () => void;
 }
 
@@ -34,10 +41,7 @@ export function TermsModal({ type, onClose }: TermsModalProps) {
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-pop">
         <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-brown-900">
-            {type === 'service' ? '서비스 이용약관' :
-             type === 'privacy' ? '개인정보 처리방침' :
-             type === 'payment' ? '정기결제/자동갱신' :
-             '환불/취소 정책'}
+            {TERMS_TITLE_MAP[type] || type}
           </h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />

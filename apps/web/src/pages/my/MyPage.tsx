@@ -14,8 +14,17 @@ import { useMe } from '@/hooks/useProfile';
 import { useSubscriptions } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useLogout } from '@/hooks/useAuth';
+import { useHideTabBar } from '@/contexts/HideTabBarContext';
+import { apiRequest } from '@/lib/api';
 import { TermsModal } from './TermsModal';
 import { setLanguageFromCountry } from '@/lib/i18n';
+
+type TermsItem = {
+  type: string;
+  title: string;
+  version: string;
+  updatedAt: string | null;
+};
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -23,10 +32,13 @@ export function MyPage() {
   const { data: subscriptions = [] } = useSubscriptions();
   useSupportInquiries();
   const logout = useLogout();
+  const { setHideTabBar } = useHideTabBar();
 
   const [showTerms, setShowTerms] = useState(false);
   const [showTermsList, setShowTermsList] = useState(false);
-  const [termsType, setTermsType] = useState<'service' | 'privacy'>('service');
+  const [termsType, setTermsType] = useState<string>('service');
+  const [termsList, setTermsList] = useState<TermsItem[]>([]);
+  const [termsLoading, setTermsLoading] = useState(false);
 
   const promoDismissed = useMemo(() => {
     if (typeof window === 'undefined') return true;
@@ -42,6 +54,10 @@ export function MyPage() {
 
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
   
+  useEffect(() => {
+    return () => setHideTabBar(false);
+  }, [setHideTabBar]);
+
   // 사용자 프로필의 국가 정보로 언어 설정
   useEffect(() => {
     if (user?.profile?.country) {
@@ -58,6 +74,25 @@ export function MyPage() {
           : `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
       })()
     : null;
+
+  const openTermsList = async () => {
+    setShowTermsList(true);
+    setHideTabBar(true);
+    setTermsLoading(true);
+    try {
+      const res = await apiRequest<{ data: TermsItem[] }>('/terms/all');
+      setTermsList(res.data);
+    } catch {
+      setTermsList([]);
+    } finally {
+      setTermsLoading(false);
+    }
+  };
+
+  const closeTermsList = () => {
+    setShowTermsList(false);
+    setHideTabBar(false);
+  };
 
   const handleLogout = async () => {
     if (confirm('로그아웃 하시겠습니까?')) {
@@ -170,7 +205,7 @@ export function MyPage() {
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
           <button
-            onClick={() => setShowTermsList(true)}
+            onClick={openTermsList}
             className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
           >
             <div className="flex items-center gap-3">
@@ -203,42 +238,39 @@ export function MyPage() {
 
       {/* Modals */}
       {showTermsList && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 animate-overlay-fade" onClick={() => setShowTermsList(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 animate-overlay-fade" onClick={closeTermsList}>
           <div
             className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
               <h2 className="text-lg font-semibold text-brown-900">약관 보기</h2>
-              <button type="button" onClick={() => setShowTermsList(false)} className="p-1" aria-label="닫기">
+              <button type="button" onClick={closeTermsList} className="p-1" aria-label="닫기">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setTermsType('service');
-                  setShowTermsList(false);
-                  setShowTerms(true);
-                }}
-                className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
-              >
-                <span className="font-medium text-brown-900">서비스 이용약관</span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTermsType('privacy');
-                  setShowTermsList(false);
-                  setShowTerms(true);
-                }}
-                className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
-              >
-                <span className="font-medium text-brown-900">개인정보 처리방침</span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-              </button>
+              {termsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
+              ) : termsList.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">등록된 약관이 없습니다</div>
+              ) : (
+                termsList.map((item) => (
+                  <button
+                    key={item.type}
+                    type="button"
+                    onClick={() => {
+                      setTermsType(item.type);
+                      closeTermsList();
+                      setShowTerms(true);
+                    }}
+                    className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
+                  >
+                    <span className="font-medium text-brown-900">{item.title}</span>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/auth';
 const router: Router = Router();
 
 // Public routes
+router.get('/all', termsController.getAllTerms.bind(termsController));
 router.get('/service', termsController.getServiceTerms.bind(termsController));
 router.get('/privacy', termsController.getPrivacyPolicy.bind(termsController));
 router.get('/payment', termsController.getPaymentTerms.bind(termsController));

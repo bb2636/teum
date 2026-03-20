@@ -3,6 +3,14 @@ import { db } from '../db';
 import { terms } from '../db/schema';
 
 export class TermsRepository {
+  async findAll() {
+    return db
+      .select()
+      .from(terms)
+      .where(isNull(terms.deletedAt))
+      .orderBy(desc(terms.updatedAt));
+  }
+
   async findByType(type: 'service' | 'privacy' | 'payment' | 'refund') {
     const [term] = await db
       .select()

@@ -8,6 +8,15 @@ const updateTermsSchema = z.object({
 });
 
 export class TermsController {
+  async getAllTerms(req: Request, res: Response, next: NextFunction) {
+    try {
+      const allTerms = await termsService.getAllTerms();
+      res.json({ success: true, data: allTerms });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // Get service terms (public)
   async getServiceTerms(req: Request, res: Response, next: NextFunction) {
     try {

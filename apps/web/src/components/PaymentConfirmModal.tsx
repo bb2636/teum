@@ -23,7 +23,7 @@ export function PaymentConfirmModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center space-y-4">
-          <h2 className="text-lg font-semibold text-[#4A2C1A]">
+          <h2 className="text-lg font-semibold text-black">
             결제를 진행할까요?
           </h2>
           <p className="text-sm text-gray-600">

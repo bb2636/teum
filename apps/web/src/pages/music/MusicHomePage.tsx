@@ -20,6 +20,40 @@ interface MusicCardCarouselProps {
   formatDuration: (seconds?: number) => string;
 }
 
+const CARD_GRADIENTS = [
+  'linear-gradient(145deg, #8B7355 0%, #6B5B45 50%, #4A3C2A 100%)',
+  'linear-gradient(145deg, #5B7B6A 0%, #3D5E4D 50%, #2A4235 100%)',
+  'linear-gradient(145deg, #7B6B8A 0%, #5D4D6B 50%, #3E334D 100%)',
+  'linear-gradient(145deg, #7A6A5A 0%, #5A4A3A 50%, #3A2A1A 100%)',
+  'linear-gradient(145deg, #6A7B8B 0%, #4D5E6B 50%, #33424D 100%)',
+  'linear-gradient(145deg, #8B6B6B 0%, #6B4D4D 50%, #4D3333 100%)',
+  'linear-gradient(145deg, #6B7B5B 0%, #4D5E3D 50%, #33422A 100%)',
+  'linear-gradient(145deg, #7B7565 0%, #5E5845 50%, #423C2A 100%)',
+];
+
+const CARD_DOT_COLORS = [
+  '#8B7355',
+  '#5B7B6A',
+  '#7B6B8A',
+  '#7A6A5A',
+  '#6A7B8B',
+  '#8B6B6B',
+  '#6B7B5B',
+  '#7B7565',
+];
+
+function getCardColorIndex(index: number): number {
+  return index % CARD_GRADIENTS.length;
+}
+
+function getCardGradient(index: number): string {
+  return CARD_GRADIENTS[getCardColorIndex(index)];
+}
+
+function getCardDotColor(index: number): string {
+  return CARD_DOT_COLORS[getCardColorIndex(index)];
+}
+
 function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDuration }: MusicCardCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -65,7 +99,7 @@ function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDura
             <div
               key={job.jobId}
               className="flex-shrink-0 w-[calc(100vw-48px)] max-w-[340px] rounded-2xl overflow-hidden snap-center cursor-pointer animate-slide-up"
-              style={{ background: 'linear-gradient(145deg, #8B7355 0%, #6B5B45 50%, #4A3C2A 100%)', animationDelay: `${index * 100}ms` }}
+              style={{ background: getCardGradient(index), animationDelay: `${index * 100}ms` }}
               onClick={() => onCardClick(job.jobId)}
             >
               <div className="p-5 flex flex-col" style={{ height: '380px' }}>
@@ -140,9 +174,10 @@ function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDura
               onClick={() => scrollToIndex(idx)}
               className={`rounded-full transition-all duration-300 ${
                 idx === activeIndex
-                  ? 'w-5 h-2 bg-[#8B7355]'
+                  ? 'w-5 h-2'
                   : 'w-2 h-2 bg-gray-300'
               }`}
+              style={idx === activeIndex ? { backgroundColor: getCardDotColor(idx) } : undefined}
             />
           ))}
         </div>

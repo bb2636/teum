@@ -3,7 +3,7 @@ import { apiRequest } from '@/lib/api';
 
 export interface MusicJobListItem {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'lyrics_only';
   title?: string;
   titleEn?: string;
   lyrics?: string;
@@ -25,7 +25,7 @@ export interface MusicJobsResponse {
 
 export interface MusicJob {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'lyrics_only';
   overallEmotion?: string;
   mood?: string;
   keywords?: string[];
@@ -45,7 +45,7 @@ export interface MusicJob {
 
 export interface GenerateMusicResponse {
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'lyrics_only';
   overallEmotion?: string;
   mood?: string;
   keywords?: string[];

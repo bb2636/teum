@@ -54,9 +54,9 @@ export function MusicJobPage() {
         .filter(Boolean)
     : [];
 
-  // 완료 시 완성 팝업 이번 세션에서 한 번만 표시
   useEffect(() => {
-    if (job?.status !== 'completed' || !jobId) return;
+    if (!jobId) return;
+    if (job?.status !== 'completed' && job?.status !== 'lyrics_only') return;
     const key = `music_completion_seen_${jobId}`;
     if (sessionStorage.getItem(key)) return;
     setShowCompletionPopup(true);
@@ -126,12 +126,13 @@ export function MusicJobPage() {
           </div>
         )}
 
-        {/* 완성 팝업: 노래 도착 + 가사 + 다운로드/닫기 */}
-        {job.status === 'completed' && showCompletionPopup && (
+        {(job.status === 'completed' || job.status === 'lyrics_only') && showCompletionPopup && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col shadow-xl">
               <div className="text-center space-y-2 mb-4">
-                <h3 className="font-semibold text-lg text-brown-900">노래가 도착했습니다</h3>
+                <h3 className="font-semibold text-lg text-brown-900">
+                  {job.status === 'lyrics_only' ? '가사가 완성되었습니다' : '노래가 도착했습니다'}
+                </h3>
                 {title && title !== '제목 없음' && (
                   <div className="space-y-1">
                     <p className="font-medium text-brown-900">{title}</p>
@@ -141,44 +142,48 @@ export function MusicJobPage() {
                   </div>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.
+                  {job.status === 'lyrics_only'
+                    ? '멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.'
+                    : '완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.'}
                 </p>
               </div>
-              <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-gray-100 p-4 mb-4 min-h-[120px]">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+              <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-gray-50 p-4 mb-4 min-h-[120px]">
+                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
                   {job.lyrics || '이곳에 가사가 들어갑니다.'}
                 </pre>
               </div>
               <div className="flex gap-3">
-                <Button
-                  className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
-                  onClick={async () => {
-                    if (job.audioUrl) {
-                      try {
-                        const response = await fetch(job.audioUrl);
-                        const blob = await response.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = blobUrl;
-                        const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣]/g, '_')}.mp3`;
-                        link.download = filename;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        window.URL.revokeObjectURL(blobUrl);
-                      } catch (error) {
-                        console.error('Download failed:', error);
-                        window.open(job.audioUrl, '_blank');
+                {job.status === 'completed' && job.audioUrl && (
+                  <Button
+                    className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
+                    onClick={async () => {
+                      if (job.audioUrl) {
+                        try {
+                          const response = await fetch(job.audioUrl);
+                          const blob = await response.blob();
+                          const blobUrl = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣]/g, '_')}.mp3`;
+                          link.download = filename;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(blobUrl);
+                        } catch (error) {
+                          console.error('Download failed:', error);
+                          window.open(job.audioUrl, '_blank');
+                        }
                       }
-                    }
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  다운로드
-                </Button>
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    다운로드
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
-                  className="flex-1" 
+                  className={job.status === 'lyrics_only' ? 'w-full' : 'flex-1'}
                   onClick={() => {
                     handleCloseCompletionPopup();
                     navigate('/music');
@@ -191,7 +196,6 @@ export function MusicJobPage() {
           </div>
         )}
 
-        {/* 실패 시 */}
         {job.status === 'failed' && (
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-4">
@@ -207,10 +211,82 @@ export function MusicJobPage() {
           </div>
         )}
 
-        {/* 완료 시: 멜론 스타일 제목 + 가사 상세 */}
+        {job.status === 'lyrics_only' && (
+          <>
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-brown-900 mb-0.5">{title}</h2>
+              {titleEn && (
+                <p className="text-sm text-muted-foreground mb-1">{titleEn}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(job.createdAt), 'yyyy.MM.dd', { locale: ko })}
+              </p>
+              <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs text-amber-700">
+                  멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.
+                </p>
+              </div>
+            </div>
+
+            {job.lyrics && (
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold text-brown-900 mb-4">가사</h3>
+                <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans leading-relaxed">
+                  {job.lyrics}
+                </pre>
+              </div>
+            )}
+
+            {sourceDiaries.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold text-brown-900 mb-4">이 곡의 바탕이 된 일기</h3>
+                <div className="space-y-3">
+                  {sourceDiaries.map((diary) => {
+                    if (!diary) return null;
+                    const firstImage = diary.images && diary.images.length > 0 ? diary.images[0].imageUrl : null;
+                    return (
+                      <button
+                        key={diary.id}
+                        type="button"
+                        onClick={() => navigate(`/diaries/${diary.id}`)}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-brown-50 transition-colors text-left"
+                      >
+                        <div className="w-16 h-16 rounded-lg bg-brown-100 flex-shrink-0 overflow-hidden">
+                          {firstImage ? (
+                            <StorageImage
+                              url={firstImage}
+                              alt="Diary"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-brown-400">
+                              <span className="text-lg">📝</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-brown-900 truncate mb-1">
+                            {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(diary.date), 'yyyy년 M월 d일 (EEE)', { locale: ko })}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <Button variant="outline" className="w-full" onClick={() => navigate('/music')}>
+              목록으로
+            </Button>
+          </>
+        )}
+
         {job.status === 'completed' && (
           <>
-            {/* 노래 제목 (멜론 스타일) - 한국어 + 영어 */}
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h2 className="text-xl font-bold text-brown-900 mb-0.5">{title}</h2>
               {titleEn && (
@@ -221,7 +297,6 @@ export function MusicJobPage() {
               </p>
             </div>
 
-            {/* 오디오 + 재생/다운로드 */}
             {job.audioUrl && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <audio controls className="w-full mb-4">
@@ -273,7 +348,6 @@ export function MusicJobPage() {
               </div>
             )}
 
-            {/* 곡 길이 */}
             {job.durationSeconds != null && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <div className="flex items-center justify-between">
@@ -283,7 +357,6 @@ export function MusicJobPage() {
               </div>
             )}
 
-            {/* 가사 (멜론 스타일) */}
             {job.lyrics && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <h3 className="font-semibold text-brown-900 mb-4">가사</h3>
@@ -293,7 +366,6 @@ export function MusicJobPage() {
               </div>
             )}
 
-            {/* 일기 목록 */}
             {sourceDiaries.length > 0 && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <h3 className="font-semibold text-brown-900 mb-4">이 곡의 바탕이 된 일기</h3>

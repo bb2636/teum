@@ -63,7 +63,7 @@ export class MusicController {
             success: false,
             error: {
               code: 'MUREKA_QUOTA_EXCEEDED',
-              message: 'Mureka API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+              message: 'Mureka API 할당량이 초과되었습니다.',
             },
           });
         }

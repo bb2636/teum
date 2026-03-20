@@ -28,6 +28,7 @@ export function MusicCreatePage() {
   const [completedLyrics, setCompletedLyrics] = useState<string>('');
   const [completedTitle, setCompletedTitle] = useState<string>('');
   const [completedTitleEn, setCompletedTitleEn] = useState<string>('');
+  const [isLyricsOnly, setIsLyricsOnly] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // 하단바 숨기기
@@ -118,16 +119,21 @@ export function MusicCreatePage() {
 
       setShowProcessingModal(false);
       
-      // 완료된 경우 (동기 처리) 또는 처리 중인 경우 (비동기 처리)
       if (result.status === 'completed' && result.audioUrl) {
-        // 동기 처리 완료: 완료 모달 표시
         setCompletedJobId(result.jobId);
         setCompletedLyrics(result.lyrics || '이곳에 가사가 들어갑니다.');
         setCompletedTitle(result.title || '');
         setCompletedTitleEn(result.titleEn || '');
+        setIsLyricsOnly(false);
+        setShowCompletionModal(true);
+      } else if (result.status === 'lyrics_only') {
+        setCompletedJobId(result.jobId);
+        setCompletedLyrics(result.lyrics || '이곳에 가사가 들어갑니다.');
+        setCompletedTitle(result.title || '');
+        setCompletedTitleEn(result.titleEn || '');
+        setIsLyricsOnly(true);
         setShowCompletionModal(true);
       } else {
-        // 비동기 처리 중: MusicJobPage로 이동하여 폴링
         navigate(`/music/jobs/${result.jobId}`);
       }
     } catch (error) {
@@ -439,12 +445,13 @@ export function MusicCreatePage() {
         </div>
       )}
 
-      {/* 완료 모달 */}
       {showCompletionModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4">
-            <div className="text-center space-y-2">
-              <h2 className="text-lg font-semibold text-brown-900">노래가 도착했습니다</h2>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col">
+            <div className="text-center space-y-2 mb-4">
+              <h2 className="text-lg font-semibold text-brown-900">
+                {isLyricsOnly ? '가사가 완성되었습니다' : '노래가 도착했습니다'}
+              </h2>
               {completedTitle && (
                 <div className="space-y-1">
                   <p className="font-medium text-brown-900">{completedTitle}</p>
@@ -454,30 +461,32 @@ export function MusicCreatePage() {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.
+                {isLyricsOnly
+                  ? '멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.'
+                  : '완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.'}
               </p>
             </div>
 
-            {/* 가사 영역 */}
-            <div className="bg-gray-100 rounded-lg p-4 max-h-48 overflow-y-auto">
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-gray-50 p-4 mb-4 min-h-[120px]">
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
                 {completedLyrics || '이곳에 가사가 들어갑니다.'}
-              </p>
+              </pre>
             </div>
 
-            {/* 버튼 */}
             <div className="flex gap-2">
-              <Button
-                onClick={handleDownload}
-                className="flex-1 bg-[#665146] hover:bg-[#5A453A] text-white"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                다운로드
-              </Button>
+              {!isLyricsOnly && (
+                <Button
+                  onClick={handleDownload}
+                  className="flex-1 bg-[#665146] hover:bg-[#5A453A] text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  다운로드
+                </Button>
+              )}
               <Button
                 onClick={handleAddToMyMusic}
                 variant="outline"
-                className="flex-1 border-brown-200 text-brown-700 hover:bg-brown-50"
+                className={`${isLyricsOnly ? 'w-full' : 'flex-1'} border-brown-200 text-brown-700 hover:bg-brown-50`}
               >
                 담기
               </Button>

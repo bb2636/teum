@@ -43,7 +43,7 @@ teum/
 1. **Diary Management**: Rich text entries organized into folders
 2. **Calendar View**: Track entries and emotions on a calendar
 3. **AI Feedback**: OpenAI-generated encouraging messages
-4. **AI Music**: Mureka API generates custom music from diary content
+4. **AI Music**: Mureka API generates custom music from diary content; on quota/rate-limit failure, saves AI-generated lyrics with `lyrics_only` status (Melon-style popup, download disabled, "담기" enabled)
 5. **Gamification**: Daily random questions to prompt writing
 6. **Admin Panel**: Manage users, diaries, questions, and legal terms
 7. **Payments**: Nice Payments integration for subscriptions

@@ -30,7 +30,7 @@ export class MusicOrchestratorService {
     genreTag?: string
   ): Promise<{
     jobId: string;
-    status: 'queued' | 'processing' | 'completed' | 'failed';
+    status: 'queued' | 'processing' | 'completed' | 'failed' | 'lyrics_only';
     overallEmotion?: string;
     mood?: string;
     keywords?: string[];
@@ -107,26 +107,7 @@ export class MusicOrchestratorService {
       // Analyze with AI
       const analysis = await lyricAnalysisService.analyzeDiaries(diaryData);
 
-      // Generate music (Mureka API). 사용자 선택 장르가 있으면 프롬프트 앞에 반영.
-      // 제목도 프롬프트에 포함하여 뮤레카가 참고할 수 있도록 함
-      const stylePrefix = genreTag?.trim()
-        ? `${genreTag.trim()}, `
-        : '';
-      const titlePrefix = analysis.titleKo
-        ? `song title: "${analysis.titleKo}"${analysis.titleEn ? ` (${analysis.titleEn})` : ''}, `
-        : '';
-      const promptForMureka =
-        stylePrefix +
-        titlePrefix +
-        analysis.musicPrompt +
-        ', up to 2 minutes total length, natural fade-out ending, complete musical phrases, no abrupt cut or mid-phrase ending';
-      const musicResult = await murekaProvider.generateMusic({
-        prompt: promptForMureka,
-        lyrics: analysis.lyrics,
-        durationSeconds: 120,
-      });
-
-      // Save analysis results immediately (AI 노래 제목 포함)
+      // Save analysis results immediately BEFORE calling Mureka
       await db
         .update(musicJobs)
         .set({
@@ -138,6 +119,74 @@ export class MusicOrchestratorService {
           musicPrompt: analysis.musicPrompt,
           songTitle: analysis.titleKo,
           songTitleEn: analysis.titleEn,
+        })
+        .where(eq(musicJobs.id, jobId));
+
+      // Generate music (Mureka API). 사용자 선택 장르가 있으면 프롬프트 앞에 반영.
+      const stylePrefix = genreTag?.trim()
+        ? `${genreTag.trim()}, `
+        : '';
+      const titlePrefix = analysis.titleKo
+        ? `song title: "${analysis.titleKo}"${analysis.titleEn ? ` (${analysis.titleEn})` : ''}, `
+        : '';
+      const promptForMureka =
+        stylePrefix +
+        titlePrefix +
+        analysis.musicPrompt +
+        ', up to 2 minutes total length, natural fade-out ending, complete musical phrases, no abrupt cut or mid-phrase ending';
+
+      let musicResult;
+      try {
+        musicResult = await murekaProvider.generateMusic({
+          prompt: promptForMureka,
+          lyrics: analysis.lyrics,
+          durationSeconds: 120,
+        });
+      } catch (murekaError) {
+        const murekaMsg = murekaError instanceof Error ? murekaError.message : String(murekaError);
+        const isQuotaOrLimit =
+          murekaMsg.includes('429') ||
+          murekaMsg.toLowerCase().includes('quota') ||
+          murekaMsg.toLowerCase().includes('exceeded') ||
+          murekaMsg.toLowerCase().includes('limit') ||
+          murekaMsg.toLowerCase().includes('rate');
+
+        if (!isQuotaOrLimit) {
+          throw murekaError;
+        }
+
+        logger.warn('Mureka quota/rate limit exceeded, saving as lyrics_only', {
+          jobId,
+          error: murekaMsg,
+        });
+
+        await db
+          .update(musicJobs)
+          .set({
+            status: 'lyrics_only',
+            errorMessage: murekaMsg,
+            completedAt: new Date(),
+          })
+          .where(eq(musicJobs.id, jobId));
+
+        return {
+          jobId,
+          status: 'lyrics_only' as const,
+          overallEmotion: analysis.overallEmotion,
+          mood: analysis.mood,
+          keywords: analysis.keywords,
+          lyricalTheme: analysis.lyricalTheme,
+          lyrics: analysis.lyrics,
+          musicPrompt: analysis.musicPrompt,
+          title: analysis.titleKo,
+          titleEn: analysis.titleEn,
+        };
+      }
+
+      // Save Mureka provider info
+      await db
+        .update(musicJobs)
+        .set({
           provider: musicResult.provider,
           providerJobId: musicResult.providerJobId,
         })
@@ -145,7 +194,6 @@ export class MusicOrchestratorService {
 
       // Handle async vs sync generation
       if (musicResult.audioUrl) {
-        // Synchronous: Audio is ready immediately
         await db
           .update(musicJobs)
           .set({
@@ -159,7 +207,7 @@ export class MusicOrchestratorService {
 
         return {
           jobId,
-          status: 'completed',
+          status: 'completed' as const,
           overallEmotion: analysis.overallEmotion,
           mood: analysis.mood,
           keywords: analysis.keywords,
@@ -171,7 +219,6 @@ export class MusicOrchestratorService {
           titleEn: analysis.titleEn,
         };
       } else if (musicResult.providerJobId) {
-        // Asynchronous: Job ID returned, will be polled (Mureka는 폴링으로 상태 조회)
         logger.info('Music generation started (asynchronous)', {
           jobId,
           providerJobId: musicResult.providerJobId,
@@ -179,7 +226,7 @@ export class MusicOrchestratorService {
 
         return {
           jobId,
-          status: 'processing',
+          status: 'processing' as const,
           overallEmotion: analysis.overallEmotion,
           mood: analysis.mood,
           keywords: analysis.keywords,
@@ -193,7 +240,6 @@ export class MusicOrchestratorService {
         throw new Error('No audio URL or job ID returned from provider');
       }
     } catch (error) {
-      // Mark job as failed
       const errorMessage = error instanceof Error ? error.message : String(error);
       await db
         .update(musicJobs)

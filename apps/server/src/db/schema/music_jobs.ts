@@ -8,6 +8,7 @@ export const musicJobStatusEnum = pgEnum('music_job_status', [
   'processing',
   'completed',
   'failed',
+  'lyrics_only',
 ]);
 
 // Music jobs table

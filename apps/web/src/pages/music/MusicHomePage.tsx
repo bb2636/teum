@@ -28,7 +28,7 @@ export function MusicHomePage() {
   const hasSubscription = jobsData?.hasSubscription ?? false;
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
   const subscriptionStartDate = activeSubscription?.startDate;
-  const completedJobs = jobs.filter((j) => j.status === 'completed');
+  const completedJobs = jobs.filter((j) => j.status === 'completed' || j.status === 'lyrics_only');
 
   const formatDuration = (seconds?: number) => {
     if (seconds == null) return '00:00';
@@ -166,9 +166,8 @@ export function MusicHomePage() {
                       </p>
                     )}
                     
-                    {/* 재생 시간 */}
                     <p className="text-xs text-muted-foreground mb-3 text-right">
-                      {formatDuration(job.durationSeconds)}
+                      {job.status === 'lyrics_only' ? '가사만' : formatDuration(job.durationSeconds)}
                     </p>
                     
                     {/* 구분선 */}
@@ -207,8 +206,7 @@ export function MusicHomePage() {
                       })}
                     </div>
                     
-                    {/* 다운로드 버튼 */}
-                    {job.audioUrl && (
+                    {job.status === 'completed' && job.audioUrl && (
                       <button
                         type="button"
                         onClick={async (e) => {

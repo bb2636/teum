@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Calendar, Music, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMe } from '@/hooks/useProfile';
+import { useRef, useEffect } from 'react';
 
 const mainTabs = [
   { path: '/home', label: '홈', icon: Home },
@@ -13,8 +14,19 @@ export function BottomTabBar() {
   const location = useLocation();
   const { data: user } = useMe();
   const profilePath = '/my';
+  const prevPathRef = useRef(location.pathname);
+  const activeTabRef = useRef<HTMLDivElement | null>(null);
 
   const isProfileActive = location.pathname === profilePath;
+
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname && activeTabRef.current) {
+      activeTabRef.current.classList.remove('animate-tab-bounce');
+      void activeTabRef.current.offsetWidth;
+      activeTabRef.current.classList.add('animate-tab-bounce');
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname]);
 
   // Get user initial for default avatar
   const getUserInitial = () => {
@@ -63,7 +75,10 @@ export function BottomTabBar() {
                     {isActive && (
                       <div className="absolute inset-0 bg-gray-200 rounded-full"></div>
                     )}
-                    <div className="relative z-10 flex flex-col items-center justify-center">
+                    <div
+                      ref={isActive ? activeTabRef : undefined}
+                      className="relative z-10 flex flex-col items-center justify-center"
+                    >
                       <Icon className={cn('w-6 h-6 mb-1', isActive ? 'text-[#4A2C1A]' : 'text-gray-400')} />
                       <span className={cn('text-xs font-medium', isActive ? 'text-[#4A2C1A]' : 'text-gray-400')}>
                         {tab.label}
@@ -108,19 +123,21 @@ export function BottomTabBar() {
                 isProfileActive ? 'text-[#4A2C1A]' : 'text-gray-400'
               )}
             >
-              {user?.profile?.profileImageUrl ? (
-                <img
-                  src={user.profile.profileImageUrl}
-                  alt="Profile"
-                  className="w-8 h-8 mb-1 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 mb-1 rounded-full bg-[#665146] flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">
-                    {getUserInitial()}
-                  </span>
-                </div>
-              )}
+              <div ref={isProfileActive ? activeTabRef : undefined}>
+                {user?.profile?.profileImageUrl ? (
+                  <img
+                    src={user.profile.profileImageUrl}
+                    alt="Profile"
+                    className="w-8 h-8 mb-1 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 mb-1 rounded-full bg-[#665146] flex items-center justify-center">
+                    <span className="text-white text-xs font-medium">
+                      {getUserInitial()}
+                    </span>
+                  </div>
+                )}
+              </div>
               <span className={cn('text-xs font-medium', isProfileActive ? 'text-[#4A2C1A]' : 'text-gray-400')}>
                 프로필
               </span>

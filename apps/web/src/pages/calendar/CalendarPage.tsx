@@ -397,7 +397,7 @@ export function CalendarPage() {
                 <button
                   key={`${weekIndex}-${dayIndex}`}
                   onClick={() => handleDateClick(day)}
-                  className={`relative border-b border-gray-200 flex flex-col items-center justify-start ${
+                  className={`relative border-b border-gray-200 flex flex-col items-center justify-start calendar-cell-tap ${
                     hasSixWeeks ? 'py-0.5 px-0.5' : 'p-1'
                   } ${
                     !isCurrentMonth 

@@ -48,6 +48,16 @@ teum/
 6. **Admin Panel**: Manage users, diaries, questions, and legal terms
 7. **Payments**: Nice Payments integration for subscriptions
 
+## UI Animations
+
+Custom CSS animations defined in `apps/web/src/styles/globals.css`:
+- **Page fade-in**: `animate-page-in` — subtle fade + slide-up on route changes (keyed on `location.pathname` in `providers.tsx`)
+- **Tab bounce**: `animate-tab-bounce` — active tab icon bounces on navigation (all tabs including profile)
+- **Calendar cell tap**: `calendar-cell-tap` — scale-down on `:active` for date cells
+- **Menu item tap**: `menu-item-tap` — press feedback on MyPage menu buttons
+- **Staggered slide-up**: `animate-slide-up` with per-item `animationDelay` on music cards
+- All animations respect `prefers-reduced-motion: reduce`
+
 ## Database
 
 Uses Drizzle ORM with PostgreSQL. Run migrations with:

@@ -166,3 +166,62 @@ input[type="radio"],
 input[type="checkbox"] {
   accent-color: #665146;
 }
+
+/* 페이지 전환 페이드 */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-in {
+  animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 탭바 아이콘 바운스 */
+@keyframes tab-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.85); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.animate-tab-bounce {
+  animation: tab-bounce 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 캘린더 날짜 탭 효과 */
+.calendar-cell-tap {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-cell-tap:active {
+  transform: scale(0.92);
+}
+
+/* 메뉴 항목 탭 효과 */
+.menu-item-tap {
+  transition: transform 0.12s ease, background-color 0.2s ease;
+}
+
+.menu-item-tap:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in,
+  .animate-tab-bounce,
+  .animate-slide-up {
+    animation: none !important;
+  }
+
+  .calendar-cell-tap,
+  .menu-item-tap {
+    transition: none !important;
+  }
+}

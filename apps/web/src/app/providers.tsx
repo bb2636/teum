@@ -32,7 +32,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <main className={showTabBar ? 'pb-20' : ''}>{children}</main>
+      <main key={location.pathname} className={`${showTabBar ? 'pb-20' : ''} animate-page-in`}>{children}</main>
       {showTabBar && <BottomTabBar />}
     </div>
   );

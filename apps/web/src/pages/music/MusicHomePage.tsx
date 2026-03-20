@@ -164,7 +164,7 @@ export function MusicHomePage() {
           </div>
         ) : (
           <div className="flex gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {completedJobs.map((job) => {
+            {completedJobs.map((job, index) => {
               const isLyricsOnly = job.status === 'lyrics_only';
               const sourceDiaries = (job.sourceDiaryIds || [])
                 .map((id) => diaryMap.get(id))
@@ -173,8 +173,8 @@ export function MusicHomePage() {
               return (
                 <div
                   key={job.jobId}
-                  className="flex-shrink-0 w-[280px] rounded-2xl overflow-hidden snap-start cursor-pointer"
-                  style={{ background: 'linear-gradient(145deg, #8B7355 0%, #6B5B45 50%, #4A3C2A 100%)' }}
+                  className="flex-shrink-0 w-[280px] rounded-2xl overflow-hidden snap-start cursor-pointer animate-slide-up"
+                  style={{ background: 'linear-gradient(145deg, #8B7355 0%, #6B5B45 50%, #4A3C2A 100%)', animationDelay: `${index * 100}ms` }}
                   onClick={() => navigate(`/music/jobs/${job.jobId}`)}
                 >
                   <div className="p-5 flex flex-col" style={{ height: '380px' }}>
@@ -248,7 +248,7 @@ export function MusicHomePage() {
         <section className="max-w-md mx-auto px-4 mt-6 pb-4 space-y-3">
           <h2 className="text-lg font-semibold text-gray-900">빠른 선곡</h2>
           <div className="space-y-2">
-            {completedJobs.map((job) => {
+            {completedJobs.map((job, index) => {
               const isLyricsOnly = job.status === 'lyrics_only';
               const firstDiary = (job.sourceDiaryIds || []).map((id) => diaryMap.get(id)).find(Boolean);
               const firstImage = firstDiary?.images?.[0]?.imageUrl;
@@ -258,7 +258,8 @@ export function MusicHomePage() {
                   key={job.jobId}
                   type="button"
                   onClick={() => navigate(`/music/jobs/${job.jobId}`)}
-                  className="w-full flex items-center gap-3 bg-white rounded-xl p-3 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 bg-white rounded-xl p-3 text-left hover:bg-gray-50 transition-colors animate-slide-up menu-item-tap"
+                  style={{ animationDelay: `${index * 80}ms` }}
                 >
                   <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden bg-[#E8DDD3]">
                     {firstImage ? (

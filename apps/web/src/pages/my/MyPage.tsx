@@ -186,7 +186,7 @@ export function MyPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => navigate('/my/profile-edit')}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100 menu-item-tap"
           >
             <div className="flex items-center gap-3">
               <Pencil className="w-5 h-5 text-brown-600" />
@@ -196,7 +196,7 @@ export function MyPage() {
           </button>
           <button
             onClick={() => navigate('/my/payment-history')}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100 menu-item-tap"
           >
             <div className="flex items-center gap-3">
               <ClipboardList className="w-5 h-5 text-brown-600" />
@@ -206,7 +206,7 @@ export function MyPage() {
           </button>
           <button
             onClick={openTermsList}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100 menu-item-tap"
           >
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-brown-600" />
@@ -216,7 +216,7 @@ export function MyPage() {
           </button>
           <button
             onClick={() => navigate('/my/support')}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100 menu-item-tap"
           >
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-brown-600" />
@@ -226,7 +226,7 @@ export function MyPage() {
           </button>
           <button
             onClick={handleLogout}
-            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors"
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors menu-item-tap"
           >
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5 text-brown-600" />

@@ -26,6 +26,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
   const [showConfirm, setShowConfirm] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteError, setShowDeleteError] = useState(false);
 
   const handleDelete = async () => {
     setShowConfirm(true);
@@ -38,7 +39,8 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
       setShowConfirm(false);
       setShowComplete(true);
     } catch (e) {
-      alert('계정 삭제에 실패했습니다.');
+      setShowConfirm(false);
+      setShowDeleteError(true);
     } finally {
       setIsDeleting(false);
     }
@@ -137,6 +139,22 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleCompleteClose}
+            >
+              확인
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 삭제 실패 팝업 */}
+      {showDeleteError && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
+            <p className="text-brown-900 mb-6">계정 삭제에 실패했습니다.</p>
+            <Button
+              type="button"
+              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              onClick={() => setShowDeleteError(false)}
             >
               확인
             </Button>

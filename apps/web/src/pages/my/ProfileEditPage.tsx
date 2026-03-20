@@ -42,6 +42,7 @@ export function ProfileEditPage() {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [showSaveError, setShowSaveError] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showCountryList, setShowCountryList] = useState(false);
@@ -146,7 +147,7 @@ export function ProfileEditPage() {
       setShowSaveSuccess(true);
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('프로필 업데이트에 실패했습니다.');
+      setShowSaveError(true);
     }
   };
 
@@ -825,6 +826,22 @@ export function ProfileEditPage() {
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleSaveSuccessClose}
+            >
+              확인
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 저장 실패 팝업 */}
+      {showSaveError && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
+            <p className="text-brown-900 mb-6">프로필 업데이트에 실패했습니다.</p>
+            <Button
+              type="button"
+              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              onClick={() => setShowSaveError(false)}
             >
               확인
             </Button>

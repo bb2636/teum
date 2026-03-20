@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { useSubscriptions, usePayments, useCancelSubscription } from '@/hooks/usePayment';
 import { useMe } from '@/hooks/useProfile';
 import { SubscriptionCancelModal } from '@/components/SubscriptionCancelModal';
-import { Toast } from '@/components/Toast';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -13,11 +12,12 @@ export function PaymentHistoryPage() {
   const navigate = useNavigate();
   const { data: subscriptions = [], isLoading: subscriptionsLoading } = useSubscriptions();
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
-  const { data: user } = useMe();
+  useMe();
   const cancelSubscription = useCancelSubscription();
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('구독이 취소되었습니다.');
+  const [showCancelSuccess, setShowCancelSuccess] = useState(false);
+  const [showCancelError, setShowCancelError] = useState(false);
+  const [cancelErrorMessage, setCancelErrorMessage] = useState('');
 
   if (subscriptionsLoading || paymentsLoading) {
     return (
@@ -159,30 +159,52 @@ export function PaymentHistoryPage() {
             try {
               await cancelSubscription.mutateAsync(activeSubscription.id);
               setShowCancelModal(false);
-              setToastMessage('구독이 취소되었습니다.');
-              setShowToast(true);
+              setShowCancelSuccess(true);
             } catch (error: any) {
               console.error('Failed to cancel subscription:', error);
               setShowCancelModal(false);
               const msg = error?.message || '';
               if (msg.includes('active') || msg.includes('cancelled')) {
-                setToastMessage('이미 취소된 구독입니다.');
+                setCancelErrorMessage('이미 취소된 구독입니다.');
               } else {
-                setToastMessage('구독 취소에 실패했습니다.');
+                setCancelErrorMessage('구독 취소에 실패했습니다.');
               }
-              setShowToast(true);
+              setShowCancelError(true);
             }
           }}
           isLoading={cancelSubscription.isPending}
         />
       )}
 
-      {/* 토스트 메시지 */}
-      <Toast
-        message={toastMessage}
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-      />
+      {/* 구독 취소 성공 모달 */}
+      {showCancelSuccess && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
+            <p className="text-[#4A2C1A] mb-6">구독이 취소되었습니다.</p>
+            <button
+              onClick={() => setShowCancelSuccess(false)}
+              className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 구독 취소 실패 모달 */}
+      {showCancelError && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
+            <p className="text-[#4A2C1A] mb-6">{cancelErrorMessage}</p>
+            <button
+              onClick={() => setShowCancelError(false)}
+              className="w-full py-3 px-4 rounded-lg bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

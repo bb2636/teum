@@ -31,7 +31,7 @@ export function Layout({ children }: LayoutProps) {
   const showTabBar = !shouldHideTabBar;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <main className={showTabBar ? 'pb-20' : ''}>{children}</main>
       {showTabBar && <BottomTabBar />}
     </div>

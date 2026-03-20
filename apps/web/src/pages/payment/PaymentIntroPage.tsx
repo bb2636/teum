@@ -50,7 +50,6 @@ export function PaymentIntroPage() {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
-            <span className="text-gray-600 text-sm">Mureka</span>
           </div>
         </div>
 
@@ -77,7 +76,6 @@ export function PaymentIntroPage() {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-gray-600 text-xs">Mureka</span>
             </div>
           </div>
 

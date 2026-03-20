@@ -26,7 +26,7 @@ export function SubscriptionStartModal({
             월 4,900원 구독을 시작하시겠습니까?
           </h2>
           <p className="text-sm text-gray-600">
-            빠르게 쓰거나, 질문에 따라 차근히 정리할 수 있습니다.
+            빠르게 쓰거나, 질문에 따라 차근히 정리할 수 있<br />습니다.
           </p>
         </div>
 

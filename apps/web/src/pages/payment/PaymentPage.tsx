@@ -154,7 +154,6 @@ export function PaymentPage() {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
-                <span className="text-gray-600 text-xs">Mureka</span>
               </div>
             </div>
 

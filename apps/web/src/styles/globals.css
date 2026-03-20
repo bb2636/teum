@@ -161,3 +161,8 @@ body.admin-page {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #665146;
+}

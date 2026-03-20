@@ -105,7 +105,7 @@ export function FormatMenu({
                   : 'bg-white text-black'
               }`}
             >
-              주
+              T
             </button>
           </div>
 

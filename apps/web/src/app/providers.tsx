@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { BottomTabBar } from '../components/navigation/BottomTabBar';
 import { useLocation } from 'react-router-dom';
 import { useHideTabBar } from '../contexts/HideTabBarContext';
@@ -13,6 +13,10 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { hideTabBar } = useHideTabBar();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
   
   // Check if current route should hide tab bar
   const isEditRoute = location.pathname.match(/^\/diaries\/[^/]+\/edit$/);

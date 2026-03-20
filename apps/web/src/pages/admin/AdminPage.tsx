@@ -258,7 +258,7 @@ export function AdminPage() {
               </button>
             </div>
             <p className="text-gray-600 mb-6">정말 로그아웃 하시겠습니까?</p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-3 justify-center">
               <Button
                 variant="outline"
                 onClick={() => setShowLogoutModal(false)}

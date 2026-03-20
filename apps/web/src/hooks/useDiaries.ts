@@ -94,6 +94,7 @@ export function useCalendarDiaries(year: number, month: number) {
     },
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30,
+    refetchOnMount: 'always',
   });
 }
 

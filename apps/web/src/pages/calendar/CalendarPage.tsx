@@ -424,17 +424,28 @@ export function CalendarPage() {
                   </span>
                   {dayDiaries.length > 0 && (
                     <div className={`${hasSixWeeks ? 'mt-0.5' : 'mt-1'} flex flex-col gap-0.5 justify-center w-full px-0.5`}>
-                      {dayDiaries.slice(0, 2).map((diary) => {
-                        const previewText = getDiaryPreviewText(diary);
-                        return previewText ? (
-                          <div
-                            key={diary.id}
-                            className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded truncate text-center"
-                          >
-                            {previewText}
+                      {(() => {
+                        const previewDiaries = dayDiaries.slice(0, 2);
+                        const hasAnyPreview = previewDiaries.some(d => getDiaryPreviewText(d));
+                        if (hasAnyPreview) {
+                          return previewDiaries.map((diary) => {
+                            const previewText = getDiaryPreviewText(diary);
+                            return previewText ? (
+                              <div
+                                key={diary.id}
+                                className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded truncate text-center"
+                              >
+                                {previewText}
+                              </div>
+                            ) : null;
+                          });
+                        }
+                        return (
+                          <div className="flex justify-center">
+                            <div className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
                           </div>
-                        ) : null;
-                      })}
+                        );
+                      })()}
                       {dayDiaries.length > 2 && (
                         <div className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded text-center">
                           +{dayDiaries.length - 2}

@@ -127,18 +127,64 @@ export class DiaryRepository {
   }
 
   async findByDateRange(userId: string, startDate: Date, endDate: Date) {
-    return db
-      .select()
-      .from(diaries)
-      .where(
-        and(
+    const results = await db.query.diaries.findMany({
+      where: (diaries, { eq, and: andFn, isNull: isNullFn, gte: gteFn, lte: lteFn }) =>
+        andFn(
           eq(diaries.userId, userId),
-          gte(diaries.date, startDate),
-          lte(diaries.date, endDate),
-          isNull(diaries.deletedAt)
-        )
-      )
-      .orderBy(desc(diaries.date));
+          gteFn(diaries.date, startDate),
+          lteFn(diaries.date, endDate),
+          isNullFn(diaries.deletedAt)
+        ),
+      orderBy: (diaries, { desc: descFn }) => [descFn(diaries.date)],
+      with: {
+        images: {
+          orderBy: (images, { asc }) => [asc(images.sortOrder)],
+        },
+        answers: {
+          with: {
+            question: true,
+          },
+        },
+      },
+    });
+
+    const questionIdsToFetch: string[] = [];
+    for (const diary of results) {
+      if (diary.answers && diary.answers.length > 0) {
+        for (const answer of diary.answers) {
+          if (!answer.question && answer.questionId) {
+            questionIdsToFetch.push(answer.questionId);
+          }
+        }
+      }
+    }
+
+    let questionsMap = new Map<string, typeof questions.$inferSelect>();
+    if (questionIdsToFetch.length > 0) {
+      const uniqueIds = [...new Set(questionIdsToFetch)];
+      const fetchedQuestions = await db
+        .select()
+        .from(questions)
+        .where(and(inArray(questions.id, uniqueIds), isNull(questions.deletedAt)));
+      for (const q of fetchedQuestions) {
+        questionsMap.set(q.id, q);
+      }
+    }
+
+    for (const diary of results) {
+      if (diary.answers && diary.answers.length > 0) {
+        for (const answer of diary.answers) {
+          if (!answer.question && answer.questionId) {
+            const question = questionsMap.get(answer.questionId);
+            if (question) {
+              (answer as any).question = question;
+            }
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   async findById(id: string) {

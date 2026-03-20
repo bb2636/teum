@@ -48,20 +48,6 @@ export function HomePage() {
   // 토스트 메시지 상태 (여러 개 표시 가능)
   const [toastMessages, setToastMessages] = useState<Array<{ id: string; message: string }>>([]);
   
-  // 일기 작성 타입 선택 모달
-  const [showTypeModal, setShowTypeModal] = useState(false);
-
-  // BottomTabBar의 + 버튼 클릭 이벤트 리스너
-  useEffect(() => {
-    const handleOpenModal = () => {
-      setShowTypeModal(true);
-    };
-    window.addEventListener('openDiaryTypeModal', handleOpenModal);
-    return () => {
-      window.removeEventListener('openDiaryTypeModal', handleOpenModal);
-    };
-  }, []);
-  
   // 폴더 생성 모달 상태
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -192,11 +178,7 @@ export function HomePage() {
     }
   };
 
-  const handleTypeSelect = (type: 'free_form' | 'question_based') => {
-    setShowTypeModal(false);
-    const today = format(new Date(), 'yyyy-MM-dd');
-    navigate(`/diaries/new?type=${type}&date=${today}`);
-  };
+
 
   const handleFolderClick = (folderId: string | undefined, e?: React.MouseEvent) => {
     setSelectedFolderId(folderId);
@@ -730,36 +712,6 @@ export function HomePage() {
       )}
 
       {/* 일기 작성 타입 선택 모달 */}
-      {showTypeModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShowTypeModal(false)}>
-          <div
-            className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 animate-modal-pop"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">
-              오늘은 어떤 방식으로 남기시겠습니까?
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              빠르게 쓰거나, 질문에 따라<br />차근히 정리할 수 있습니다.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => handleTypeSelect('free_form')}
-                className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-[#4A2C1A] font-medium transition-colors"
-              >
-                자유작성
-              </button>
-              <button
-                onClick={() => handleTypeSelect('question_based')}
-                className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-[#4A2C1A] font-medium transition-colors"
-              >
-                질문기록
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 폴더 생성 모달 */}
       {showCreateFolderModal && (
         <div className="fixed inset-0 z-[60] bg-black/50 flex items-end animate-overlay-fade" onClick={() => setShowCreateFolderModal(false)}>

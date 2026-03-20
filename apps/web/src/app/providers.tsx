@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { BottomTabBar } from '../components/navigation/BottomTabBar';
+import { DiaryTypeModal } from '../components/DiaryTypeModal';
 import { useLocation } from 'react-router-dom';
 import { useHideTabBar } from '../contexts/HideTabBarContext';
 
@@ -34,6 +35,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-white">
       <main key={location.pathname} className={`${showTabBar ? 'pb-20' : ''} animate-page-in`}>{children}</main>
       {showTabBar && <BottomTabBar />}
+      <DiaryTypeModal />
     </div>
   );
 }

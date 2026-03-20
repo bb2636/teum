@@ -94,25 +94,15 @@ export function BottomTabBar() {
           <div className="flex flex-col items-center justify-end flex-1 relative h-full">
             {/* FAB Button - Floating above profile */}
             <div className="absolute bottom-16 right-0 z-50">
-              {location.pathname === '/home' ? (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // 홈 화면에서는 모달을 열기 위해 커스텀 이벤트 발생
-                    window.dispatchEvent(new CustomEvent('openDiaryTypeModal'));
-                  }}
-                  className="w-14 h-14 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white shadow-lg flex items-center justify-center transition-colors"
-                >
-                  <Plus className="w-6 h-6" />
-                </button>
-              ) : (
-                <Link
-                  to="/diaries/new?type=free_form"
-                  className="w-14 h-14 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white shadow-lg flex items-center justify-center transition-colors"
-                >
-                  <Plus className="w-6 h-6" />
-                </Link>
-              )}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent('openDiaryTypeModal'));
+                }}
+                className="w-14 h-14 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white shadow-lg flex items-center justify-center transition-colors"
+              >
+                <Plus className="w-6 h-6" />
+              </button>
             </div>
 
             {/* Profile tab (below FAB) */}

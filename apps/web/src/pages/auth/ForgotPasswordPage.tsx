@@ -358,7 +358,7 @@ export function ForgotPasswordPage() {
       {/* Email Verification Modal */}
       {showEmailVerificationModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end"
+          className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade"
           onClick={() => {
             if (emailVerified) {
               setShowEmailVerificationModal(false);
@@ -366,7 +366,7 @@ export function ForgotPasswordPage() {
           }}
         >
           <div
-            className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4"
+            className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4 animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

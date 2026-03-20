@@ -25,9 +25,9 @@ const colorPalette = [
 
 export function ColorPicker({ onClose, onColorSelect, selectedColor }: ColorPickerProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={onClose}>
       <div
-        className="bg-gradient-to-b from-gray-200 to-gray-100 rounded-t-3xl w-full max-w-md mx-auto animate-slide-up"
+        className="bg-gradient-to-b from-gray-200 to-gray-100 rounded-t-3xl w-full max-w-md mx-auto animate-modal-sheet"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

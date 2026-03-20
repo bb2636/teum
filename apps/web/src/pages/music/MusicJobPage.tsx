@@ -111,8 +111,8 @@ export function MusicJobPage() {
 
         {/* 로딩 팝업: 생성 중일 때 */}
         {isProcessing && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+            <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl animate-modal-pop">
               <div className="flex justify-center gap-1 mb-4">
                 <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:0ms]" />
                 <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:150ms]" />
@@ -127,8 +127,8 @@ export function MusicJobPage() {
         )}
 
         {(job.status === 'completed' || job.status === 'lyrics_only') && showCompletionPopup && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col shadow-xl">
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col shadow-xl animate-modal-pop">
               <div className="text-center space-y-2 mb-4">
                 <h3 className="font-semibold text-lg text-brown-900">
                   {job.status === 'lyrics_only' ? '가사가 완성되었습니다' : '노래가 도착했습니다'}

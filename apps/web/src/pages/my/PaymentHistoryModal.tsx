@@ -16,8 +16,8 @@ export function PaymentHistoryModal({
   onClose,
 }: PaymentHistoryModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-overlay-fade">
+      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-pop">
         <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-brown-900">결제 내역</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>

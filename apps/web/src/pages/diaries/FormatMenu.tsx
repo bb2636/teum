@@ -31,9 +31,9 @@ export function FormatMenu({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={onClose}>
       <div
-        className="bg-gray-200 rounded-t-3xl w-full max-w-md mx-auto animate-slide-up"
+        className="bg-gray-200 rounded-t-3xl w-full max-w-md mx-auto animate-modal-sheet"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

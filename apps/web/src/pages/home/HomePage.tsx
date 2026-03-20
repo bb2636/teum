@@ -691,11 +691,11 @@ export function HomePage() {
       {/* 폴더 삭제 확인 모달 */}
       {showDeleteModal && folderToDelete && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade"
           onClick={() => setShowDeleteModal(false)}
         >
           <div
-            className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl"
+            className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center space-y-4">
@@ -731,9 +731,9 @@ export function HomePage() {
 
       {/* 일기 작성 타입 선택 모달 */}
       {showTypeModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setShowTypeModal(false)}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShowTypeModal(false)}>
           <div
-            className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4"
+            className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">
@@ -762,9 +762,9 @@ export function HomePage() {
 
       {/* 폴더 생성 모달 */}
       {showCreateFolderModal && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end" onClick={() => setShowCreateFolderModal(false)}>
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end animate-overlay-fade" onClick={() => setShowCreateFolderModal(false)}>
           <div
-            className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto animate-slide-up"
+            className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 드래그 핸들 */}

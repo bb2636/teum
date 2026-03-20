@@ -5,9 +5,9 @@ interface ExitConfirmModalProps {
 
 export function ExitConfirmModal({ onClose, onConfirm }: ExitConfirmModalProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4"
+        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 animate-modal-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center space-y-4">

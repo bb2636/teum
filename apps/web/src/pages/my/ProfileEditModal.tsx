@@ -126,8 +126,8 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-overlay-fade">
+        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-pop">
           <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between z-10">
             <h2 className="text-xl font-bold text-brown-900">프로필 편집</h2>
             <button
@@ -232,14 +232,14 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                 
                 {/* 커스텀 달력 - 모달 형태로 화면 중앙에 표시 */}
                 {showCalendar && (
-                  <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                  <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-overlay-fade">
                     <div 
                       className="fixed inset-0 bg-black/50 z-[60]" 
                       onClick={() => setShowCalendar(false)}
                     />
                     <div
                       ref={calendarRef}
-                      className="relative z-[70] bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm"
+                      className="relative z-[70] bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm animate-modal-pop"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* 달력 헤더 */}
@@ -728,8 +728,8 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
       {/* 저장되었습니다 팝업 */}
       {showSaveSuccess && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
             <p className="text-brown-900 mb-6">저장되었습니다</p>
             <Button
               type="button"
@@ -744,8 +744,8 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
       {/* 로그아웃 확인 팝업 */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
             <p className="text-brown-900 mb-6">정말 로그아웃 하시겠습니까?</p>
             <div className="flex gap-3">
               <Button

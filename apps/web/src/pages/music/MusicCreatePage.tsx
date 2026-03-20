@@ -430,8 +430,8 @@ export function MusicCreatePage() {
 
       {/* 처리 중 모달 */}
       {showProcessingModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4 animate-modal-pop">
             <div className="flex justify-center space-x-1">
               <div className="w-2 h-2 bg-brown-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
               <div className="w-2 h-2 bg-brown-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -446,8 +446,8 @@ export function MusicCreatePage() {
       )}
 
       {showCompletionModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col animate-modal-pop">
             <div className="text-center space-y-2 mb-4">
               <h2 className="text-lg font-semibold text-brown-900">
                 {isLyricsOnly ? '가사가 완성되었습니다' : '노래가 도착했습니다'}

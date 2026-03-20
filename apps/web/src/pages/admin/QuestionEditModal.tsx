@@ -58,14 +58,14 @@ export function QuestionEditModal({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 z-40"
+        className="fixed inset-0 bg-black/50 z-40 animate-overlay-fade"
         onClick={handleClose}
       />
       
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
         <div
-          className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 pointer-events-auto"
+          className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 pointer-events-auto animate-modal-pop"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

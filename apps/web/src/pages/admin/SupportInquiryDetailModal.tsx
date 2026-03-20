@@ -86,9 +86,9 @@ export function SupportInquiryDetailModal({
   if (isLoading) {
     return (
       <>
-        <div className="fixed inset-0 bg-black/50 z-40" onClick={handleClose} />
+        <div className="fixed inset-0 bg-black/50 z-40 animate-overlay-fade" onClick={handleClose} />
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 p-6 pointer-events-auto">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 p-6 pointer-events-auto animate-modal-pop">
             <div className="text-center text-gray-500">로딩 중...</div>
           </div>
         </div>
@@ -109,14 +109,14 @@ export function SupportInquiryDetailModal({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 z-40"
+        className="fixed inset-0 bg-black/50 z-40 animate-overlay-fade"
         onClick={handleClose}
       />
       
       {/* Main Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
         <div
-          className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto"
+          className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto animate-modal-pop"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -236,10 +236,10 @@ export function SupportInquiryDetailModal({
       {/* Confirm Modal */}
       {showConfirmModal && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowConfirmModal(false)} />
+          <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={() => setShowConfirmModal(false)} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-[#F5F5F0] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 pointer-events-auto flex flex-col items-center text-center"
+              className="bg-[#F5F5F0] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 pointer-events-auto flex flex-col items-center text-center animate-modal-pop"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-base font-medium text-gray-900 mb-8">
@@ -269,10 +269,10 @@ export function SupportInquiryDetailModal({
       {/* Success Modal */}
       {showSuccessModal && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={handleSuccessClose} />
+          <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={handleSuccessClose} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-[#F5F5F0] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 pointer-events-auto flex flex-col items-center text-center"
+              className="bg-[#F5F5F0] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 pointer-events-auto flex flex-col items-center text-center animate-modal-pop"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-base font-medium text-gray-900 mb-8">

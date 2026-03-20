@@ -53,8 +53,8 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
+        <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-modal-pop">
           <div className="flex items-center justify-between p-4 border-b border-brown-200 shrink-0">
             <h2 className="text-xl font-bold text-brown-900">회원탈퇴</h2>
             <button
@@ -100,8 +100,8 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
 
       {/* 계정 삭제 확인 팝업 */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg animate-modal-pop">
             <p className="text-center text-brown-900 mb-6">
               계정 삭제 시 음악, 일기가 소멸됩니다. 정말 동의 하십니까?
             </p>
@@ -130,8 +130,8 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
 
       {/* 회원탈퇴 완료 팝업 */}
       {showComplete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
             <p className="text-brown-900 mb-6">회원탈퇴가 완료되었습니다.</p>
             <Button
               type="button"

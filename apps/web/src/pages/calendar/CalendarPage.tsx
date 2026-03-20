@@ -58,9 +58,9 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
   const dateLabel = `${format(date, 'M월 d일', { locale: ko })} (${format(date, 'E', { locale: ko })})`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/50 animate-overlay-fade" onClick={onClose}>
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up flex flex-col"
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-modal-sheet flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 드래그 핸들 */}
@@ -138,9 +138,9 @@ interface DiaryTypeModalProps {
 
 function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4"
+        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 animate-modal-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">

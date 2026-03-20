@@ -177,8 +177,8 @@ export function AdminPage() {
     <div className="w-full h-screen bg-white overflow-hidden flex flex-col">
       {/* Delete User Modal */}
       {deleteUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl text-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-overlay-fade">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl text-center animate-modal-pop">
             {deleteStatus === 'confirm' && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">삭제하시겠습니까?</h3>
@@ -246,8 +246,8 @@ export function AdminPage() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-overlay-fade">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl animate-modal-pop">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">로그아웃</h3>
               <button
@@ -674,12 +674,12 @@ export function AdminPage() {
       {selectedDiary && (
         <>
           <div
-            className="fixed inset-0 bg-black/30 z-40"
+            className="fixed inset-0 bg-black/30 z-40 animate-overlay-fade"
             onClick={() => setSelectedDiary(null)}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
             <div
-              className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto"
+              className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto animate-modal-pop"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -782,7 +782,7 @@ export function AdminPage() {
         <>
           {/* Overlay Background */}
           <div
-            className="fixed inset-0 bg-black/30 z-40"
+            className="fixed inset-0 bg-black/30 z-40 animate-overlay-fade"
             onClick={() => setSelectedUserId(null)}
           />
           

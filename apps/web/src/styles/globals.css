@@ -80,8 +80,22 @@ body.admin-page {
   box-shadow: none !important;
 }
 
-/* Slide up animation */
-@keyframes slide-up {
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modal-sheet-up {
   from {
     transform: translateY(100%);
   }
@@ -90,8 +104,32 @@ body.admin-page {
   }
 }
 
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+.animate-modal-sheet {
+  animation: modal-sheet-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-pop {
+  animation: modal-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modal-overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-overlay-fade {
+  animation: modal-overlay-fade 0.25s ease-out both;
 }
 
 /* Slide in from right animation */
@@ -113,22 +151,6 @@ body.admin-page {
   content: attr(data-placeholder);
   color: #9CA3AF;
   pointer-events: none;
-}
-
-/* Hide scrollbar */
-@keyframes slide-up-fade {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .scrollbar-hide {

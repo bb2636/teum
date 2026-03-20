@@ -755,8 +755,8 @@ export function DiaryWritePage() {
     return (
       <div className="min-h-screen bg-[#F5F5F0] pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
         {(uploading || createDiary.isPending || updateDiary.isPending) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
+            <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
               <div className="w-8 h-8 border-[3px] border-amber-300 border-t-amber-600 rounded-full animate-spin" />
               <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>응원 메시지 준비 중...</p>
               <p className="text-xs text-gray-400">일기를 저장하고 있어요</p>
@@ -934,8 +934,8 @@ export function DiaryWritePage() {
   return (
     <div className="min-h-screen bg-white pb-24 overflow-hidden relative" style={{ touchAction: 'none' }}>
       {(uploading || createDiary.isPending || updateDiary.isPending) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
+          <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
             <div className="w-8 h-8 border-[3px] border-amber-300 border-t-amber-600 rounded-full animate-spin" />
             <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>응원 메시지 준비 중...</p>
             <p className="text-xs text-gray-400">일기를 저장하고 있어요</p>

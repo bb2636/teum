@@ -198,9 +198,9 @@ export function MyPage() {
 
       {/* Modals */}
       {showTermsList && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowTermsList(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 animate-overlay-fade" onClick={() => setShowTermsList(false)}>
           <div
-            className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col"
+            className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">

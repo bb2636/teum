@@ -54,11 +54,11 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/50 flex items-end"
+        className="fixed inset-0 z-40 bg-black/50 flex items-end animate-overlay-fade"
         onClick={onClose}
       >
         <div
-          className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto animate-slide-up"
+          className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto animate-modal-sheet"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">

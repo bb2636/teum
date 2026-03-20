@@ -29,14 +29,14 @@ export function QuestionDeleteModal({
     <>
       {/* Overlay - 밝은 베이지/미색 배경 */}
       <div
-        className="fixed inset-0 bg-black/40 z-40"
+        className="fixed inset-0 bg-black/40 z-40 animate-overlay-fade"
         onClick={handleClose}
       />
 
       {/* Modal - 이미지와 동일한 스타일 */}
       <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
         <div
-          className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 pointer-events-auto"
+          className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 pointer-events-auto animate-modal-pop"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Content - 중앙 정렬 */}

@@ -269,10 +269,10 @@ export function TermsManagementTab() {
       {/* Save Confirmation Modal */}
       {showSaveModal && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSaveModal} />
+          <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={handleCloseSaveModal} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto text-center"
+              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto text-center animate-modal-pop"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-base font-medium text-[#4A2C1A] mb-6">
@@ -302,10 +302,10 @@ export function TermsManagementTab() {
       {/* Success Modal */}
       {showSuccessModal && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSuccessModal} />
+          <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={handleCloseSuccessModal} />
           <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto"
+              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto animate-modal-pop"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">

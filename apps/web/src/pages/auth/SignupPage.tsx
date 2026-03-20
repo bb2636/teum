@@ -674,14 +674,14 @@ export function SignupPage() {
               
               {/* 커스텀 달력 - 모달 형태로 화면 중앙에 표시 */}
               {showCalendar && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-overlay-fade">
                   <div 
                     className="fixed inset-0 bg-black/50 z-40" 
                     onClick={() => setShowCalendar(false)}
                   />
                   <div
                     ref={calendarRef}
-                    className="relative z-50 bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm"
+                    className="relative z-50 bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm animate-modal-pop"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* 달력 헤더 */}
@@ -1145,8 +1145,8 @@ export function SignupPage() {
         {step === 3 && (
           <>
             {/* 약관 동의 모달 */}
-            <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
-              <div className="bg-white rounded-t-2xl w-full max-w-md mx-auto p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade">
+              <div className="bg-white rounded-t-2xl w-full max-w-md mx-auto p-6 space-y-4 max-h-[80vh] overflow-y-auto animate-modal-sheet">
                 <h2 className="text-lg font-semibold text-center">이용약관에 동의해주세요</h2>
                 
                 {/* 전체 동의 */}
@@ -1282,7 +1282,7 @@ export function SignupPage() {
       {/* Email Verification Modal */}
       {showEmailVerificationModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end"
+          className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade"
           onClick={() => {
             if (emailVerified) {
               setShowEmailVerificationModal(false);
@@ -1290,7 +1290,7 @@ export function SignupPage() {
           }}
         >
           <div
-            className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4"
+            className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4 animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

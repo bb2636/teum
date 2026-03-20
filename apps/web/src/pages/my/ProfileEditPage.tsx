@@ -82,10 +82,10 @@ export function ProfileEditPage() {
     }
   }, [user, setValue]);
 
-  // dateOfBirthISO 변경 시 표시값 동기화
   useEffect(() => {
     if (dateOfBirthISO) {
-      const [year, month, day] = dateOfBirthISO.split('-');
+      const dateOnly = dateOfBirthISO.includes('T') ? dateOfBirthISO.split('T')[0] : dateOfBirthISO;
+      const [year, month, day] = dateOnly.split('-');
       if (year && month && day) {
         setDateDisplayValue(`${year} / ${month.padStart(2, '0')} / ${day.padStart(2, '0')}`);
       } else if (year && month) {

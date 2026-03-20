@@ -28,11 +28,25 @@ export function PaymentHistoryPage() {
 
   const activeSubscription = subscriptions.find((s) => s.status === 'active');
 
+  const formatPaymentMethod = (method?: string): string => {
+    if (!method) return '결제 수단 미확인';
+    if (method.startsWith('card_')) return method.replace('card_', '') + ' 카드결제';
+    if (method.startsWith('easy_pay_')) {
+      const provider = method.replace('easy_pay_', '');
+      const names: Record<string, string> = { npay: '네이버페이', toss: '토스페이', apple: 'Apple Pay', kakao: '카카오페이' };
+      return names[provider] || provider;
+    }
+    if (method === 'card') return '카드결제';
+    if (method === 'easy_pay') return '간편결제';
+    if (method === 'bank_transfer') return '계좌이체';
+    return method;
+  };
+
   return (
     <div className="min-h-screen bg-white pb-20">
       <div className="max-w-md mx-auto">
         {/* Header - 고정 */}
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 z-30 bg-white px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-[#4A2C1A]">결제 내역</h1>
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <X className="w-5 h-5" />
@@ -112,20 +126,13 @@ export function PaymentHistoryPage() {
                               </p>
                             </div>
                             {associatedSubscription && (
-                              <>
-                                <p className="text-sm text-gray-500">
-                                  {periodStart}~{periodEnd} 기간 동안의 멤버십
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  {user?.email || '이메일 없음'}
-                                </p>
-                              </>
-                            )}
-                            {!associatedSubscription && (
                               <p className="text-sm text-gray-500">
-                                {payment.paymentMethod || '결제 수단 미확인'}
+                                {periodStart}~{periodEnd} 기간 동안의 멤버십
                               </p>
                             )}
+                            <p className="text-sm text-gray-500">
+                              {formatPaymentMethod(payment.paymentMethod)}
+                            </p>
                           </div>
                         </div>
                       </div>

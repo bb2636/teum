@@ -13,7 +13,6 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): Response | void {
-  // Log error details
   const errorDetails = {
     error: err.message,
     stack: err.stack,
@@ -22,13 +21,7 @@ export function errorHandler(
     name: err.name,
   };
   
-  console.error('Error Handler:', errorDetails);
-  
-  try {
-    logger.error('Error:', errorDetails);
-  } catch (logError) {
-    console.error('Failed to log error:', logError);
-  }
+  logger.error(errorDetails, 'Unhandled error');
 
   // Ensure response hasn't been sent
   if (res.headersSent) {

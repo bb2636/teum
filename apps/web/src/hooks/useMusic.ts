@@ -87,7 +87,8 @@ export function useMusicJobs() {
       const response = await apiRequest<{ data: MusicJobsResponse }>('/music/jobs');
       return response.data;
     },
-    staleTime: 0, // 구독 상태 변경 시 즉시 반영되도록
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 

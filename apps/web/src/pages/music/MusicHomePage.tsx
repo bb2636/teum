@@ -137,7 +137,12 @@ export function MusicHomePage() {
         <div className="flex items-center justify-between px-4">
           <h2 className="text-lg font-semibold text-gray-900">내 음악</h2>
           {completedJobs.length > 0 && (
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <button
+              onClick={() => navigate('/music/list')}
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
           )}
         </div>
 

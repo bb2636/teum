@@ -83,7 +83,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
               <span className="font-medium text-[#4A2C1A]">전체 동의</span>
             </label>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-2 pl-3">
               {/* 서비스 이용약관 */}
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-3 flex-1 cursor-pointer">
@@ -91,14 +91,14 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreeService}
                     onChange={(e) => handleServiceChange(e.target.checked)}
-                    className="w-5 h-5 text-[#665146] focus:ring-[#665146] rounded"
+                    className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
                   />
                   <span className="text-sm text-gray-700">[필수] 서비스 이용약관에 동의합니다.</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowServiceTerms(true)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -111,14 +111,14 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreePayment}
                     onChange={(e) => handlePaymentChange(e.target.checked)}
-                    className="w-5 h-5 text-[#665146] focus:ring-[#665146] rounded"
+                    className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
                   />
                   <span className="text-sm text-gray-700">[필수] 정기 결제 및 자동 갱신에 동의합니다.</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPaymentTerms(true)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -131,14 +131,14 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreeRefund}
                     onChange={(e) => handleRefundChange(e.target.checked)}
-                    className="w-5 h-5 text-[#665146] focus:ring-[#665146] rounded"
+                    className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
                   />
                   <span className="text-sm text-gray-700">[필수] 환불/해지 정책을 확인했습니다.</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowRefundTerms(true)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

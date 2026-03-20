@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorageImage } from '@/components/StorageImage';
@@ -22,7 +22,6 @@ type SortOrder = 'newest' | 'oldest';
 type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';
 
 export function HomePage() {
-  const navigate = useNavigate();
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const { data: diaries = [], isLoading: diariesLoading } = useDiaries(selectedFolderId);

@@ -13,6 +13,7 @@ import { useUploadImage } from '@/hooks/useUpload';
 import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { StorageImage } from '@/components/StorageImage';
+import { ProfileImagePickerModal } from '@/components/ProfileImagePickerModal';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -115,6 +116,7 @@ export function SignupPage() {
   const confirmEmailVerification = useConfirmEmailVerification();
   const uploadImage = useUploadImage();
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
+  const [showImagePicker, setShowImagePicker] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showYearMonthPicker, setShowYearMonthPicker] = useState(false);
@@ -360,23 +362,15 @@ export function SignupPage() {
     setError(null);
   };
 
-  // Handle profile image upload
-  const handleProfileImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
+  const handleProfileImageSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setError('이미지 파일만 업로드 가능합니다');
       return;
     }
-
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError('이미지 크기는 5MB 이하여야 합니다');
       return;
     }
-
     try {
       const uploadedUrl = await uploadImage.mutateAsync(file);
       setProfileImageUrl(uploadedUrl);
@@ -384,9 +378,13 @@ export function SignupPage() {
     } catch (err) {
       setError('이미지 업로드에 실패했습니다');
     }
+    setShowImagePicker(false);
+  };
 
-    // Reset input
-    e.target.value = '';
+  const handleProfileImageDelete = () => {
+    setProfileImageUrl(undefined);
+    step2Form.setValue('profileImageUrl', '');
+    setShowImagePicker(false);
   };
 
   // Step 2 submit
@@ -567,7 +565,11 @@ export function SignupPage() {
             <div className="space-y-2">
               <Label>프로필 이미지</Label>
               <div className="flex items-center">
-                <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker(true)}
+                  className="relative shrink-0"
+                >
                   <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     {profileImageUrl ? (
                       <StorageImage
@@ -579,16 +581,10 @@ export function SignupPage() {
                       <User className="w-10 h-10 text-gray-400" />
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center cursor-pointer hover:bg-[#5A453A] shadow-sm">
+                  <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center shadow-sm">
                     <Pencil className="w-3 h-3 text-white" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileImageSelect}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -1345,6 +1341,14 @@ export function SignupPage() {
           onClose={() => setShowTermsModal(false)}
         />
       )}
+
+      <ProfileImagePickerModal
+        open={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        onSelectImage={handleProfileImageSelect}
+        onDeleteImage={handleProfileImageDelete}
+        hasImage={!!profileImageUrl}
+      />
     </div>
   );
 }

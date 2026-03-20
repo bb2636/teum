@@ -30,9 +30,15 @@ export function PaymentIntroPage() {
     <div className="min-h-screen bg-white">
       <div className="max-w-md mx-auto">
         {/* Header */}
-        <div className="flex justify-end p-4">
+        <div className="sticky top-0 z-30 flex justify-end p-4 bg-white">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5 text-[#4A2C1A]" />

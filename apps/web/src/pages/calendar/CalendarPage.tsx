@@ -184,7 +184,7 @@ export function CalendarPage() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
 
-  const { data: diaries = [] } = useCalendarDiaries(year, month);
+  const { data: diaries = [], isError, refetch } = useCalendarDiaries(year, month);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -373,6 +373,14 @@ export function CalendarPage() {
             </div>
           ))}
         </div>
+
+        {isError && (
+          <div className="text-center py-2">
+            <button onClick={() => refetch()} className="text-sm text-[#4A2C1A] underline">
+              일기를 불러오지 못했습니다. 다시 시도
+            </button>
+          </div>
+        )}
 
         {/* Calendar Grid */}
         <div

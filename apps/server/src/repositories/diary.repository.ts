@@ -137,6 +137,7 @@ export class DiaryRepository {
         ),
       orderBy: (diaries, { desc: descFn }) => [descFn(diaries.date)],
       with: {
+        folder: true,
         images: {
           orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },

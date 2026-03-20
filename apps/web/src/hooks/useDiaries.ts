@@ -92,9 +92,11 @@ export function useCalendarDiaries(year: number, month: number) {
       );
       return response.data.diaries;
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
 }
 

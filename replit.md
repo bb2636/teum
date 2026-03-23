@@ -68,8 +68,10 @@ pnpm --filter server db:migrate
 ## User Account Management
 
 - **Soft Delete (탈퇴)**: `softDeleteUser` sets `deletedAt` + `isActive = false`; data retained for 1 year
-- **Re-registration Block**: `findByEmailIncludingDeleted` checks all users including withdrawn; signup, email check, and email verification all reject withdrawn emails with "탈퇴한 계정" message
+- **Re-registration Block**: 탈퇴 후 1년간 동일 이메일 재가입 차단; 1년 경과 시 데이터 자동 삭제 후 재가입 허용
+- **Auto Purge**: `node-cron` 스케줄러가 매일 03:00에 1년 경과 탈퇴 유저 데이터 완전 삭제 (`apps/server/src/jobs/cleanup-withdrawn-users.ts`); DB cascade로 관련 데이터 일괄 삭제
 - **Admin User List**: Shows all users including withdrawn; `status` field: `active` / `suspended` / `withdrawn`; withdrawn users have disabled status dropdown
+- **Admin Subscription Cancel**: `/api/payments/admin/subscriptions/cancel` 관리자 전용 구독 취소 엔드포인트
 - **Subscription Grace Period**: Cancelled subscriptions remain active until `endDate`; `getEffectiveSubscription` helper in `usePayment.ts`
 
 ## Deployment

@@ -159,8 +159,8 @@ export function SplashPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-sm h-screen bg-[#665146] relative overflow-visible md:overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'none' }}>
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#665146]">
+      <div className="w-full h-screen bg-[#665146] relative overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'none' }}>
         <div className="w-full flex flex-col items-center justify-center space-y-6">
           <div className="flex flex-col justify-center items-center text-center space-y-2">
             <div className="[&_h1]:text-[#221813]">

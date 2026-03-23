@@ -36,6 +36,9 @@ lerna-debug.log*
 # OS
 Thumbs.db
 
+# Attached assets (chat uploads)
+attached_assets/
+
 # Database
 *.db
 *.sqlite

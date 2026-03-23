@@ -56,71 +56,135 @@ interface DiarySlideProps {
 
 function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
   const dateLabel = `${format(date, 'M월 d일', { locale: ko })} (${format(date, 'E', { locale: ko })})`;
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
+  const dragCurrentY = useRef<number>(0);
+  const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const PEEK_HEIGHT = 360;
+
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(onClose, 250);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null) return;
+    dragCurrentY.current = e.touches[0].clientY - dragStartY.current;
+
+    if (!expanded && dragCurrentY.current < -40) {
+      setExpanded(true);
+      dragStartY.current = null;
+      return;
+    }
+
+    if (expanded && dragCurrentY.current > 0 && sheetRef.current) {
+      const scrollTop = sheetRef.current.querySelector('.sheet-scroll')?.scrollTop || 0;
+      if (scrollTop <= 0) {
+        if (dragCurrentY.current > 80) {
+          setExpanded(false);
+          dragStartY.current = null;
+          return;
+        }
+      }
+    }
+
+    if (!expanded && dragCurrentY.current > 60) {
+      handleClose();
+      dragStartY.current = null;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    dragStartY.current = null;
+    dragCurrentY.current = 0;
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 animate-overlay-fade" onClick={onClose}>
+    <div
+      className={`fixed inset-0 z-50 transition-colors duration-250 ${closing ? 'bg-black/0' : 'bg-black/50'}`}
+      onClick={handleClose}
+    >
       <div
-        className="absolute inset-0 bg-white animate-modal-sheet flex flex-col"
+        ref={sheetRef}
+        className={`absolute left-0 right-0 bg-white rounded-t-2xl flex flex-col transition-all duration-300 ease-out ${closing ? 'translate-y-full' : ''}`}
+        style={{
+          top: expanded ? 0 : `calc(100% - ${PEEK_HEIGHT}px)`,
+          bottom: 0,
+          borderTopLeftRadius: expanded ? 0 : '1rem',
+          borderTopRightRadius: expanded ? 0 : '1rem',
+        }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-10">
-          <h2 className="text-lg font-semibold text-[#4A2C1A]">
-            {dateLabel}
-          </h2>
+        <div className="flex-shrink-0 pt-3 pb-1 flex justify-center cursor-grab">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+
+        <div className="flex-shrink-0 px-4 pb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#4A2C1A]">{dateLabel}</h2>
           <button
             type="button"
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 p-1"
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 p-1 text-lg"
             aria-label="닫기"
           >
             ✕
           </button>
         </div>
-        <div className="px-4 py-4 space-y-4 pb-safe overflow-y-auto flex-1">
-          {diaries.map((diary) => {
-            const firstLine = getFirstLine(diary);
-            const diaryDate = diary.date ? format(new Date(diary.date), 'M월 d일 (E)', { locale: ko }) : dateLabel;
-            return (
-              <Link
-                key={diary.id}
-                to={`/diaries/${diary.id}`}
-                onClick={onClose}
-                className="block bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-gray-500">
-                    {diary.folder 
-                      ? (diary.folder.isDefault || diary.folder.name === 'All' ? '전체' : diary.folder.name)
-                      : '전체'}
-                  </span>
-                  {diary.type === 'question_based' && (
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      질문기록
+
+        <div className="sheet-scroll flex-1 overflow-y-auto px-4 pb-safe">
+          <div className="space-y-3 pb-6">
+            {diaries.map((diary) => {
+              const firstLine = getFirstLine(diary);
+              return (
+                <Link
+                  key={diary.id}
+                  to={`/diaries/${diary.id}`}
+                  onClick={onClose}
+                  className="block bg-white rounded-xl p-4 border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs text-gray-500">
+                      {diary.folder
+                        ? (diary.folder.isDefault || diary.folder.name === 'All' ? '전체' : diary.folder.name)
+                        : '전체'}
                     </span>
-                  )}
-                  <span className="ml-auto text-gray-400">⋯</span>
-                </div>
-                <p className="text-sm text-[#4A2C1A] font-medium mb-1">{diaryDate}</p>
-                {firstLine && (
-                  <p className="text-sm text-gray-700 line-clamp-2">{firstLine}</p>
-                )}
-                {diary.images && diary.images.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto mt-3">
-                    {diary.images.slice(0, 4).map((img, idx) => (
-                      <StorageImage
-                        key={idx}
-                        url={img.imageUrl}
-                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                      />
-                    ))}
-                    {diary.images.length > 4 && (
-                      <span className="flex items-center text-gray-400 text-sm">+{diary.images.length - 4}</span>
+                    {diary.type === 'question_based' && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">질문기록</span>
                     )}
                   </div>
-                )}
-              </Link>
-            );
-          })}
+                  <p className="text-sm font-semibold text-[#4A2C1A] truncate">{firstLine || '제목 없음'}</p>
+                  {diary.content?.trim() && firstLine !== stripHTML(diary.content).trim() && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{stripHTML(diary.content).trim()}</p>
+                  )}
+                  {diary.images && diary.images.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto mt-2.5">
+                      {diary.images.slice(0, 4).map((img, idx) => (
+                        <StorageImage
+                          key={idx}
+                          url={img.imageUrl}
+                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ))}
+                      {diary.images.length > 4 && (
+                        <span className="flex items-center text-gray-400 text-xs">+{diary.images.length - 4}</span>
+                      )}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+            {diaries.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-8">이 날에 작성된 일기가 없습니다.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

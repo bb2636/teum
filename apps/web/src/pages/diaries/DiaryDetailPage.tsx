@@ -100,7 +100,7 @@ export function DiaryDetailPage() {
 
           {/* Title */}
           {diary.title && (
-            <h1 className="text-2xl font-bold text-brown-900">{diary.title}</h1>
+            <h1 className="text-2xl font-bold text-[#4A2C1A]">{diary.title}</h1>
           )}
 
           {/* Images */}

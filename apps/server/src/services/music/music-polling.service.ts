@@ -3,6 +3,7 @@ import { musicJobs } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { murekaProvider } from './mureka.provider';
 import { logger } from '../../config/logger';
+import { pushNotificationService } from '../push-notification.service';
 
 /**
  * Music Polling Service
@@ -55,6 +56,15 @@ export class MusicPollingService {
           .where(eq(musicJobs.id, jobId));
 
         logger.info('Music job completed via polling', { jobId, providerJobId: job.providerJobId });
+
+        pushNotificationService.sendToUser(job.userId, {
+          title: '음악이 완성되었습니다! 🎵',
+          body: job.songTitle || '새로운 트랙이 준비되었습니다',
+          data: { type: 'music_completed', jobId },
+        }).catch((err) => {
+          logger.error('Failed to send music completion push', { jobId, error: err });
+        });
+
         return true;
       } else if (status.status === 'failed') {
         // Job failed

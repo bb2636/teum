@@ -86,6 +86,20 @@ pnpm --filter server db:migrate
 - **Auth Accounts**: `auth_accounts` 테이블에 provider별 계정 연결 (email/google/apple)
 - **Endpoints**: `POST /api/auth/google/login`, `POST /api/auth/apple/login`, `POST /api/auth/social/onboarding`
 
+## Capacitor (Android/iOS)
+
+- **Config**: `apps/web/capacitor.config.ts` - appId: `com.teum.app`
+- **PWA Manifest**: `apps/web/public/manifest.json`
+- **Push Notifications**: Firebase Cloud Messaging (FCM) 사용
+  - 서버: `firebase-admin` SDK → `pushNotificationService.sendToUser()`
+  - 디바이스 토큰 등록: `POST /api/push/register` (token, platform)
+  - 디바이스 토큰 해제: `POST /api/push/unregister`
+  - 트리거: 관리자 문의 답변 시, 음악 생성 완료 시 자동 발송
+  - DB: `device_tokens` 테이블 (userId, token, platform)
+- **Camera**: `@capacitor/camera` 사용, 네이티브에서는 Capacitor Camera, 웹에서는 file input 자동 감지
+- **필요 환경변수**: `FIREBASE_SERVICE_ACCOUNT` (Firebase 서비스 계정 JSON)
+- **Android 빌드**: 로컬에서 `npx cap add android` → Android Studio로 빌드
+
 ## Deployment
 
 Configured for autoscale deployment:

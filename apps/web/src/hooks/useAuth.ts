@@ -81,12 +81,13 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
+      const { unregisterPushNotifications } = await import('@/lib/push-notifications');
+      await unregisterPushNotifications();
       await apiRequest('/auth/logout', {
         method: 'POST',
       });
     },
     onSuccess: () => {
-      // Clear all cache and cookies
       queryClient.clear();
       navigate('/login');
     },

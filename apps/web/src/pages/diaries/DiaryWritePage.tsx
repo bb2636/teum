@@ -4,6 +4,8 @@ import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
+import { Capacitor } from '@capacitor/core';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useRandomQuestions } from '@/hooks/useQuestions';
 import { FolderSelectModal } from './FolderSelectModal';
 import { FormatMenu } from './FormatMenu';
@@ -563,8 +565,30 @@ export function DiaryWritePage() {
   };
 
 
-  const handleCameraClick = () => {
-    cameraInputRef.current?.click();
+  const handleCameraClick = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const photo = await CapCamera.getPhoto({
+          quality: 80,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+        });
+        if (photo.webPath) {
+          const response = await fetch(photo.webPath);
+          const blob = await response.blob();
+          const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          const fakeEvent = {
+            target: { files: [file] },
+          } as unknown as React.ChangeEvent<HTMLInputElement>;
+          handleImageSelect(fakeEvent);
+        }
+      } catch (err) {
+        console.log('Camera cancelled or error:', err);
+      }
+    } else {
+      cameraInputRef.current?.click();
+    }
   };
 
   const handleSaveClick = () => {

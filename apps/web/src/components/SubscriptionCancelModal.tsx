@@ -43,7 +43,7 @@ export function SubscriptionCancelModal({
             구독을 취소하시겠습니까?
           </h2>
           <p className="text-sm text-gray-600">
-            취소 후에도 결제 기간이 끝날 때까지 플랜 혜택을 이용할 수 있습니다.
+            취소 후에도 결제 기간이 끝날 때까지<br />플랜 혜택을 이용할 수 있습니다.
           </p>
         </div>
 

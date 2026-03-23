@@ -10,12 +10,11 @@ import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useUploadImage } from '@/hooks/useUpload';
-import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronUp, ChevronDown, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileImagePickerModal } from '@/components/ProfileImagePickerModal';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한
 const nicknameSchema = z
@@ -119,14 +118,7 @@ export function SignupPage() {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showYearMonthPicker, setShowYearMonthPicker] = useState(false);
-  const calendarRef = useRef<HTMLDivElement>(null);
   const calendarButtonRef = useRef<HTMLButtonElement>(null);
-  const [calendarDate, setCalendarDate] = useState(new Date());
-  const [yearPickerStartYear, setYearPickerStartYear] = useState(() => {
-    const currentYear = new Date().getFullYear();
-    return Math.floor(currentYear / 10) * 10; // 현재 연도의 10년 단위 시작 연도
-  });
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [dateDisplayValue, setDateDisplayValue] = useState('');
 
@@ -646,233 +638,35 @@ export function SignupPage() {
                 <button
                   ref={calendarButtonRef}
                   type="button"
-                  onClick={() => {
-                    if (step2DateOfBirth) {
-                      const [year, month, day] = step2DateOfBirth.split('-');
-                      if (year && month && day) {
-                        const selectedYear = parseInt(year);
-                        setCalendarDate(new Date(selectedYear, parseInt(month) - 1, parseInt(day)));
-                        // 선택된 연도 기준으로 10년 범위 설정
-                        setYearPickerStartYear(Math.floor(selectedYear / 10) * 10);
-                      }
-                    } else {
-                      // 현재 연도 기준으로 10년 범위 설정
-                      const currentYear = new Date().getFullYear();
-                      setYearPickerStartYear(Math.floor(currentYear / 10) * 10);
-                    }
-                    setShowCalendar(!showCalendar);
-                  }}
+                  onClick={() => setShowCalendar(!showCalendar)}
                   className="p-1 hover:bg-gray-100 rounded"
                 >
                   <Calendar className="w-4 h-4 text-[#4A2C1A]" />
                 </button>
               </div>
               
-              {/* 커스텀 달력 - 모달 형태로 화면 중앙에 표시 */}
-              {showCalendar && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-overlay-fade">
-                  <div 
-                    className="fixed inset-0 bg-black/50 z-40" 
-                    onClick={() => setShowCalendar(false)}
+              {showCalendar && (() => {
+                const isValidDate = step2DateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(step2DateOfBirth);
+                const selectedDate = isValidDate ? new Date(step2DateOfBirth) : new Date();
+                return (
+                  <ScrollYearMonthPicker
+                    selectedYear={selectedDate.getFullYear()}
+                    selectedMonth={selectedDate.getMonth() + 1}
+                    selectedDay={isValidDate ? selectedDate.getDate() : undefined}
+                    onSelect={() => {}}
+                    onClose={() => setShowCalendar(false)}
+                    mode="year-month-day"
+                    onSelectDay={(year, month, day) => {
+                      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      step2Form.setValue('dateOfBirth', dateStr);
+                      step2Form.trigger('dateOfBirth');
+                    }}
+                    onDelete={() => {
+                      step2Form.setValue('dateOfBirth', undefined);
+                    }}
                   />
-                  <div
-                    ref={calendarRef}
-                    className="relative z-50 bg-gray-800 rounded-lg p-4 shadow-xl w-full max-w-sm animate-modal-pop"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* 달력 헤더 */}
-                    <div className="flex items-center justify-between mb-4 text-white">
-                      <button
-                        type="button"
-                        onClick={() => setShowYearMonthPicker(!showYearMonthPicker)}
-                        className="flex items-center gap-2 hover:bg-gray-700 rounded px-2 py-1"
-                      >
-                        <span className="text-sm font-medium">
-                          {format(calendarDate, 'yyyy년 MM월', { locale: ko })}
-                        </span>
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showYearMonthPicker ? 'rotate-180' : ''}`} />
-                      </button>
-                      {!showYearMonthPicker && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
-                            className="p-1 hover:bg-gray-700 rounded"
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
-                            className="p-1 hover:bg-gray-700 rounded"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* 연도/월 선택기 */}
-                    {showYearMonthPicker && (
-                      <div className="mb-4">
-                        {/* 연도 선택 헤더 */}
-                        <div className="flex items-center justify-between mb-3">
-                          <button
-                            type="button"
-                            onClick={() => setYearPickerStartYear(yearPickerStartYear - 10)}
-                            className="p-1 hover:bg-gray-700 rounded text-white"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </button>
-                          <span className="text-sm font-medium text-white">
-                            {yearPickerStartYear}년 - {yearPickerStartYear + 9}년
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setYearPickerStartYear(yearPickerStartYear + 10)}
-                            className="p-1 hover:bg-gray-700 rounded text-white"
-                          >
-                            <ChevronLeft className="w-4 h-4 rotate-180" />
-                          </button>
-                        </div>
-                        
-                        {/* 연도 그리드 (10년치) */}
-                        <div className="grid grid-cols-5 gap-2 mb-3">
-                          {Array.from({ length: 10 }, (_, i) => {
-                            const year = yearPickerStartYear + i;
-                            const isCurrentYear = year === calendarDate.getFullYear();
-                            return (
-                              <button
-                                key={year}
-                                type="button"
-                                onClick={() => {
-                                  // 연도만 선택하고 연도/월 선택기는 유지 (월 선택 가능하도록)
-                                  setCalendarDate(new Date(year, calendarDate.getMonth(), 1));
-                                  // setShowYearMonthPicker(false); 제거 - 연도 선택 후에도 선택기 유지
-                                }}
-                                className={`p-2 rounded text-xs ${
-                                  isCurrentYear
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                                }`}
-                              >
-                                {year}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        
-                        {/* 월 그리드 */}
-                        <div className="grid grid-cols-3 gap-2">
-                          {Array.from({ length: 12 }, (_, i) => {
-                            const month = i + 1;
-                            const isCurrentMonth = month === calendarDate.getMonth() + 1;
-                            const isCurrentYearMonth = 
-                              calendarDate.getFullYear() === new Date().getFullYear() &&
-                              month === new Date().getMonth() + 1;
-                            return (
-                              <button
-                                key={month}
-                                type="button"
-                                onClick={() => {
-                                  // 월 선택 후 달력 그리드로 이동 (일 선택 가능하도록)
-                                  setCalendarDate(new Date(calendarDate.getFullYear(), month - 1, 1));
-                                  setShowYearMonthPicker(false);
-                                }}
-                                className={`p-2 rounded text-xs ${
-                                  isCurrentMonth && isCurrentYearMonth
-                                    ? 'bg-blue-500 text-white'
-                                    : isCurrentMonth
-                                    ? 'bg-gray-600 text-white'
-                                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                                }`}
-                              >
-                                {month}월
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* 요일 헤더 */}
-                    <div className="grid grid-cols-7 gap-1 mb-2">
-                      {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
-                        <div key={day} className="text-center text-xs text-gray-400 py-1">
-                          {day}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* 달력 그리드 */}
-                    <div className="grid grid-cols-7 gap-1">
-                      {(() => {
-                        const monthStart = startOfMonth(calendarDate);
-                        const monthEnd = endOfMonth(calendarDate);
-                        const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
-                        const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
-                        const days = eachDayOfInterval({ start: startDate, end: endDate });
-                        const selectedDate = step2DateOfBirth ? new Date(step2DateOfBirth) : null;
-                        
-                        return days.map((day) => {
-                          const isCurrentMonth = isSameMonth(day, calendarDate);
-                          const isSelected = selectedDate && isSameDay(day, selectedDate);
-                          const isToday = isSameDay(day, new Date());
-                          
-                          return (
-                            <button
-                              key={day.toISOString()}
-                              type="button"
-                              onClick={() => {
-                                const dateStr = format(day, 'yyyy-MM-dd');
-                                step2Form.setValue('dateOfBirth', dateStr);
-                                step2Form.trigger('dateOfBirth');
-                                setShowCalendar(false);
-                              }}
-                              className={`
-                                w-8 h-8 rounded text-xs
-                                ${!isCurrentMonth ? 'text-gray-600' : 'text-white'}
-                                ${isSelected ? 'bg-blue-500 text-white border border-white' : ''}
-                                ${!isSelected && isCurrentMonth ? 'hover:bg-gray-700' : ''}
-                                ${isToday && !isSelected ? 'border border-gray-500' : ''}
-                              `}
-                            >
-                              {getDate(day)}
-                            </button>
-                          );
-                        });
-                      })()}
-                    </div>
-                    
-                    {/* 하단 버튼 */}
-                    <div className="flex justify-between mt-4 pt-4 border-t border-gray-700">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          step2Form.setValue('dateOfBirth', undefined);
-                          setShowCalendar(false);
-                        }}
-                        className="text-blue-400 text-sm"
-                      >
-                        삭제
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const today = format(new Date(), 'yyyy-MM-dd');
-                          step2Form.setValue('dateOfBirth', today);
-                          step2Form.trigger('dateOfBirth');
-                          setCalendarDate(new Date());
-                          setShowCalendar(false);
-                        }}
-                        className="text-blue-400 text-sm"
-                      >
-                        오늘
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               
               <Input
                 ref={dateInputRef}

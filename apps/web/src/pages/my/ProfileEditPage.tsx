@@ -1,19 +1,16 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Pencil, ChevronDown, Calendar } from 'lucide-react';
+import { X, ChevronDown, Calendar } from 'lucide-react';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useMe, useUpdateProfile } from '@/hooks/useProfile';
 import { useLogout } from '@/hooks/useAuth';
-import { useUploadImage } from '@/hooks/useUpload';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { WithdrawModal } from './WithdrawModal';
-import { ProfileImagePickerModal } from '@/components/ProfileImagePickerModal';
-import { StorageImage } from '@/components/StorageImage';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import { setLanguageFromCountry } from '@/lib/i18n';
 
@@ -36,10 +33,6 @@ export function ProfileEditPage() {
   const { data: user, isLoading, refetch } = useMe();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
-  const uploadImage = useUploadImage();
-
-  const [showImagePicker, setShowImagePicker] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showSaveError, setShowSaveError] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -78,7 +71,6 @@ export function ProfileEditPage() {
       if (user.profile.dateOfBirth) {
         setDateOfBirthISO(user.profile.dateOfBirth);
       }
-      setProfileImageUrl(user.profile.profileImageUrl || undefined);
     }
   }, [user, setValue]);
 
@@ -100,35 +92,10 @@ export function ProfileEditPage() {
     }
   }, [dateOfBirthISO]);
 
-  const handleProfileImageSelect = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) return;
-    try {
-      const uploadedUrl = await uploadImage.mutateAsync(file);
-      setProfileImageUrl(uploadedUrl);
-      await updateProfile.mutateAsync({ profileImageUrl: uploadedUrl });
-      await refetch();
-    } catch (err) {
-      console.error('이미지 업로드 실패:', err);
-    }
-    setShowImagePicker(false);
-  };
-
-  const handleProfileImageDelete = async () => {
-    try {
-      setProfileImageUrl(undefined);
-      await updateProfile.mutateAsync({ profileImageUrl: '' });
-      await refetch();
-    } catch (err) {
-      console.error('이미지 삭제 실패:', err);
-    }
-    setShowImagePicker(false);
-  };
-
   const onSubmit = async (data: ProfileFormData) => {
     try {
       const { name: _name, ...rest } = data;
-      await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO, profileImageUrl: profileImageUrl || '' });
+      await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO });
       await refetch();
       
       // 국가가 변경된 경우 언어도 업데이트
@@ -179,29 +146,18 @@ export function ProfileEditPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* 프로필 이미지 */}
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setShowImagePicker(true)}
-                className="relative shrink-0"
-              >
-                <div className="w-16 h-16 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
-                  {profileImageUrl ? (
-                    <StorageImage
-                      url={profileImageUrl}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-brown-600" />
-                  )}
-                </div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center">
-                  <Pencil className="w-3 h-3 text-white" />
-                </div>
-              </button>
-              <Label className="text-brown-900">프로필 이미지</Label>
+              <div className="w-16 h-16 rounded-full bg-[#665146] flex items-center justify-center shrink-0">
+                <span className="text-white text-xl font-medium">
+                  {user?.profile?.nickname
+                    ? user.profile.nickname.charAt(0).toUpperCase()
+                    : user?.profile?.name
+                    ? user.profile.name.charAt(0).toUpperCase()
+                    : user?.email
+                    ? user.email.charAt(0).toUpperCase()
+                    : 'U'}
+                </span>
+              </div>
             </div>
 
             {/* 이메일 (읽기 전용) */}
@@ -640,14 +596,6 @@ export function ProfileEditPage() {
           }}
         />
       )}
-
-      <ProfileImagePickerModal
-        open={showImagePicker}
-        onClose={() => setShowImagePicker(false)}
-        onSelectImage={handleProfileImageSelect}
-        onDeleteImage={handleProfileImageDelete}
-        hasImage={!!profileImageUrl}
-      />
 
       {showCountryList && (
         <div

@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User,
   Pencil,
   FileText,
   ClipboardList,
@@ -118,16 +117,16 @@ export function MyPage() {
         {/* Profile Section - 가운데 정렬 (아바타 + 닉네임) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-brown-200 flex items-center justify-center overflow-hidden">
-              {user?.profile?.profileImageUrl ? (
-                <img
-                  src={user.profile.profileImageUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-10 h-10 text-brown-600" />
-              )}
+            <div className="w-20 h-20 rounded-full bg-[#665146] flex items-center justify-center">
+              <span className="text-white text-2xl font-medium">
+                {user?.profile?.nickname
+                  ? user.profile.nickname.charAt(0).toUpperCase()
+                  : user?.profile?.name
+                  ? user.profile.name.charAt(0).toUpperCase()
+                  : user?.email
+                  ? user.email.charAt(0).toUpperCase()
+                  : 'U'}
+              </span>
             </div>
             <h2 className="font-semibold text-brown-900 mt-2">
               {user?.profile?.nickname || user?.email}

@@ -578,68 +578,105 @@ export function HomePage() {
                     {/* 날짜 헤더 */}
                     <h3 className="text-sm font-medium text-gray-700 text-center">{dateLabel}</h3>
                     
-                    {/* 해당 날짜의 일기 목록 - 2열 그리드 */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {dateDiaries.map((diary, diaryIndex) => {
-                        const getDiaryTitle = (d: typeof dateDiaries[0]) => {
-                          if (d.type === 'question_based' && d.answers?.length) {
-                            return d.answers[0].question?.question?.trim() || '제목 없음';
-                          }
-                          return d.title?.trim() || '제목 없음';
-                        };
+                    {/* 일기 목록 */}
+                    {(() => {
+                      const getDiaryTitle = (d: typeof dateDiaries[0]) => {
+                        if (d.type === 'question_based' && d.answers?.length) {
+                          return d.answers[0].question?.question?.trim() || '제목 없음';
+                        }
+                        return d.title?.trim() || '제목 없음';
+                      };
 
-                        const getDiaryPreview = (d: typeof dateDiaries[0]) => {
-                          if (d.type === 'question_based' && d.answers?.length) {
-                            const first = d.answers[0].answer?.trim();
-                            if (first) {
-                              const tmp = document.createElement('div');
-                              tmp.innerHTML = first;
-                              return (tmp.textContent || tmp.innerText || '').trim();
-                            }
-                            return '';
+                      const getDiaryPreview = (d: typeof dateDiaries[0]) => {
+                        if (d.type === 'question_based' && d.answers?.length) {
+                          const first = d.answers[0].answer?.trim();
+                          if (first) {
+                            const tmp = document.createElement('div');
+                            tmp.innerHTML = first;
+                            return (tmp.textContent || tmp.innerText || '').trim();
                           }
-                          if (d.content?.trim()) return stripHTML(d.content).trim();
                           return '';
-                        };
+                        }
+                        if (d.content?.trim()) return stripHTML(d.content).trim();
+                        return '';
+                      };
 
-                        const diaryTitle = getDiaryTitle(diary);
-                        const diaryPreview = getDiaryPreview(diary);
-                        const hasImage = diary.images && diary.images.length > 0;
-                        
+                      const hasAnyImage = dateDiaries.some((d) => d.images && d.images.length > 0);
+                      const useGrid = hasAnyImage || dateDiaries.length >= 3;
+
+                      if (useGrid) {
                         return (
-                          <Link
-                            key={diary.id}
-                            to={`/diaries/${diary.id}`}
-                            className="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow aspect-square animate-slide-up"
-                            style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
-                          >
-                            {hasImage && diary.images && diary.images.length > 0 ? (
-                              <div className="flex flex-col h-full">
-                                <div className="relative flex-1 overflow-hidden">
-                                  <StorageImage
-                                    url={diary.images[0].imageUrl}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="p-2 bg-white min-h-0">
-                                  <p className="text-xs font-semibold text-gray-900 truncate">{diaryTitle}</p>
-                                  {diaryPreview && (
-                                    <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {dateDiaries.map((diary, diaryIndex) => {
+                              const diaryTitle = getDiaryTitle(diary);
+                              const diaryPreview = getDiaryPreview(diary);
+                              const hasImage = diary.images && diary.images.length > 0;
+
+                              return (
+                                <Link
+                                  key={diary.id}
+                                  to={`/diaries/${diary.id}`}
+                                  className="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow aspect-square animate-slide-up"
+                                  style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
+                                >
+                                  {hasImage ? (
+                                    <div className="flex flex-col h-full">
+                                      <div className="relative flex-1 overflow-hidden">
+                                        <StorageImage
+                                          url={diary.images![0].imageUrl}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="p-2 bg-white min-h-0">
+                                        <p className="text-xs font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                        {diaryPreview && (
+                                          <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col h-full">
+                                      <div className="relative flex-1 overflow-hidden bg-[#f5f0eb] flex items-center justify-center">
+                                        <img src="/home_logo.png" alt="teum" className="w-16 h-16 object-contain opacity-30" />
+                                      </div>
+                                      <div className="p-2 bg-white min-h-0">
+                                        <p className="text-xs font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                        {diaryPreview && (
+                                          <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
+                                        )}
+                                      </div>
+                                    </div>
                                   )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="h-full flex flex-col p-3 bg-white overflow-hidden">
-                                <p className="text-sm font-semibold text-gray-900 truncate flex-shrink-0">{diaryTitle}</p>
-                                {diaryPreview && (
-                                  <p className="text-xs text-gray-500 mt-1.5 break-words whitespace-pre-wrap line-clamp-[6] flex-1 min-h-0 overflow-hidden">{diaryPreview}</p>
-                                )}
-                              </div>
-                            )}
-                          </Link>
+                                </Link>
+                              );
+                            })}
+                          </div>
                         );
-                      })}
-                    </div>
+                      }
+
+                      return (
+                        <div className="space-y-3">
+                          {dateDiaries.map((diary, diaryIndex) => {
+                            const diaryTitle = getDiaryTitle(diary);
+                            const diaryPreview = getDiaryPreview(diary);
+
+                            return (
+                              <Link
+                                key={diary.id}
+                                to={`/diaries/${diary.id}`}
+                                className="block bg-white rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow animate-slide-up"
+                                style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
+                              >
+                                <p className="text-sm font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                {diaryPreview && (
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{diaryPreview}</p>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

@@ -204,8 +204,8 @@ export class DiaryService {
       throw new Error('Failed to retrieve updated diary');
     }
 
-    // Regenerate encouragement message on update if content changed
-    if (data.content !== undefined || data.title !== undefined) {
+    // Regenerate encouragement message on update only if content changed (not title-only edits)
+    if (data.content !== undefined) {
       // For question-based diaries, fetch answers to include in AI analysis
       let questionAnswers: Array<{ question: string; answer: string }> = [];
       if (updatedDiary.type === 'question_based' && updatedDiary.answers && updatedDiary.answers.length > 0) {

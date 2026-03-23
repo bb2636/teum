@@ -1,0 +1,81 @@
+api/users/me:1  Failed to load resource: the server responded with a status of 401 ()Understand this error
+music/jobs/b432b4fe-0239-4b27-ab4e-e55ec235ded5:1 Access to fetch at 'https://cdn.mureka.ai/cos-prod/open/song/20260323/128362144333825-MircGb6wAANCPvmCmN2Nvf.mp3' from origin 'https://teum.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+cdn.mureka.ai/cos-prod/open/song/20260323/128362144333825-MircGb6wAANCPvmCmN2Nvf.mp3:1  Failed to load resource: net::ERR_FAILEDUnderstand this error
+index-Cp3xBt6L.js:275 Download failed: TypeError: Failed to fetch
+    at onClick (index-Cp3xBt6L.js:275:3978)
+    at Object.F0 (index-Cp3xBt6L.js:37:9855)
+    at L0 (index-Cp3xBt6L.js:37:10009)
+    at I0 (index-Cp3xBt6L.js:37:10066)
+    at wm (index-Cp3xBt6L.js:37:31446)
+    at Bx (index-Cp3xBt6L.js:37:31863)
+    at index-Cp3xBt6L.js:37:36776
+    at df (index-Cp3xBt6L.js:40:36935)
+    at mx (index-Cp3xBt6L.js:37:8991)
+    at Fc (index-Cp3xBt6L.js:37:33150)
+onClick @ index-Cp3xBt6L.js:275Understand this error
+api/payments/subscriptions:1  Failed to load resource: the server responded with a status of 401 ()Understand this error
+api/music/jobs:1  Failed to load resource: the server responded with a status of 401 ()Understand this error
+api/payments/subscriptions:1  Failed to load resource: the server responded with a status of 401 ()Understand this error
+api/music/jobs:1  Failed to load resource: the server responded with a status of 401 ()Understand this error
+api/users/me:1  Failed to load resource: the server responded with a status of 401 ()Understand this error
+VM7 client:81 [GSI_LOGGER]: google.accounts.id.initialize() is called multiple times. This could cause unexpected behavior and only the last initialized instance will be used.
+_.G @ VM7 client:81Understand this warning
+5The request has been aborted.Understand this error
+5VM7 client:82 [GSI_LOGGER]: FedCM get() rejects with AbortError: signal is aborted without reason
+_.H @ VM7 client:82Understand this error
+VM7 client:81 [GSI_LOGGER]: google.accounts.id.initialize() is called multiple times. This could cause unexpected behavior and only the last initialized instance will be used.
+_.G @ VM7 client:81Understand this warning
+api/auth/google/login:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+index-Cp3xBt6L.js:262 Google login error: Error: jwt.sign is not a function
+    at me (index-Cp3xBt6L.js:262:48011)
+    at async Object.mutationFn (index-Cp3xBt6L.js:262:60967)
+(anonymous) @ index-Cp3xBt6L.js:262Understand this error
+VM7 client:81 [GSI_LOGGER]: google.accounts.id.initialize() is called multiple times. This could cause unexpected behavior and only the last initialized instance will be used.
+_.G @ VM7 client:81Understand this warning
+/_/gsi/_/js/k=gsi.gsi.ko._DtQP1gEKbc.O/am=AAAAJAgwBQE/d=1/rs=AF0KOtXRXWXgP9FF6Ffc2fER4oFVfaVGww/m=credential_server_library:444 credential relayed
+VM13 client:81 [GSI_LOGGER]: google.accounts.id.initialize() is called multiple times. This could cause unexpected behavior and only the last initialized instance will be used.
+_.G @ VM13 client:81
+Js @ VM13 client:283
+o.onload @ index-Cp3xBt6L.js:262
+script
+(anonymous) @ index-Cp3xBt6L.js:262
+tc @ index-Cp3xBt6L.js:40
+Na @ index-Cp3xBt6L.js:40
+xw @ index-Cp3xBt6L.js:40
+ys @ index-Cp3xBt6L.js:40
+Zm @ index-Cp3xBt6L.js:40
+hs @ index-Cp3xBt6L.js:38
+(anonymous) @ index-Cp3xBt6L.js:40
+setTimeout
+Mb @ index-Cp3xBt6L.js:67
+l @ index-Cp3xBt6L.js:67
+batch @ index-Cp3xBt6L.js:67
+Er @ index-Cp3xBt6L.js:67
+execute @ index-Cp3xBt6L.js:67
+mutate @ index-Cp3xBt6L.js:67
+(anonymous) @ index-Cp3xBt6L.js:262
+_.iu.Pa @ VM7 client:363
+Fs.Pa @ VM7 client:373
+c.port1.onmessage @ VM7 client:361Understand this warning
+index-Cp3xBt6L.js:262  POST https://teum.replit.app/api/auth/google/login 500 (Internal Server Error)
+me @ index-Cp3xBt6L.js:262
+mutationFn @ index-Cp3xBt6L.js:262
+fn @ index-Cp3xBt6L.js:67
+w @ index-Cp3xBt6L.js:67
+start @ index-Cp3xBt6L.js:67
+execute @ index-Cp3xBt6L.js:67
+await in execute
+mutate @ index-Cp3xBt6L.js:67
+(anonymous) @ index-Cp3xBt6L.js:262
+_.iu.Pa @ VM7 client:363
+Fs.Pa @ VM7 client:373
+c.port1.onmessage @ VM7 client:361Understand this error
+index-Cp3xBt6L.js:262 Google login error: Error: jwt.sign is not a function
+    at me (index-Cp3xBt6L.js:262:48011)
+    at async Object.mutationFn (index-Cp3xBt6L.js:262:60967)
+(anonymous) @ index-Cp3xBt6L.js:262
+await in (anonymous)
+_.iu.Pa @ VM7 client:363
+Fs.Pa @ VM7 client:373
+c.port1.onmessage @ VM7 client:361Understand this error
+client:81 [GSI_LOGGER]: google.accounts.id.initialize() is called multiple times. This could cause unexpected behavior and only the last initialized instance will be used.

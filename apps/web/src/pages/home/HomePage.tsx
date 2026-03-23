@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorageImage } from '@/components/StorageImage';
+import { ProfileButton } from '@/components/ProfileButton';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
@@ -270,24 +271,27 @@ export function HomePage() {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-          {activeSubscription ? (
-            <Button
-              variant="outline"
-              className="bg-gray-100 text-gray-700 border-0 rounded-lg px-4 py-2 h-auto cursor-default"
-              disabled
-            >
-              구독중
-            </Button>
-          ) : (
-            <Link to="/payment">
+          <div className="flex items-center gap-2">
+            {activeSubscription ? (
               <Button
                 variant="outline"
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
+                className="bg-gray-100 text-gray-700 border-0 rounded-lg px-4 py-2 h-auto cursor-default"
+                disabled
               >
-                구독하기
+                구독중
               </Button>
-            </Link>
-          )}
+            ) : (
+              <Link to="/payment">
+                <Button
+                  variant="outline"
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
+                >
+                  구독하기
+                </Button>
+              </Link>
+            )}
+            <ProfileButton />
+          </div>
         </div>
 
         {/* Header - Second Row */}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
+import { ProfileButton } from '@/components/ProfileButton';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { MonthPickerModal } from './MonthPickerModal';
@@ -351,12 +352,15 @@ export function CalendarPage() {
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-          <button
-            onClick={goToToday}
-            className="text-sm text-[#4A2C1A] font-medium px-3 py-1.5 rounded-lg border border-[#4A2C1A] hover:bg-gray-100 transition-colors"
-          >
-            오늘
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToToday}
+              className="text-sm text-[#4A2C1A] font-medium px-3 py-1.5 rounded-lg border border-[#4A2C1A] hover:bg-gray-100 transition-colors"
+            >
+              오늘
+            </button>
+            <ProfileButton />
+          </div>
         </div>
 
         {/* Day labels */}

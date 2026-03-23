@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text, pgEnum, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, pgEnum, boolean, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 
@@ -39,6 +39,8 @@ export const phoneVerifications = pgTable('phone_verifications', {
   phone: varchar('phone', { length: 20 }).notNull(),
   code: varchar('code', { length: 10 }).notNull(),
   status: phoneVerificationStatusEnum('status').default('pending').notNull(),
+  failedAttempts: integer('failed_attempts').default(0).notNull(),
+  lockedUntil: timestamp('locked_until'),
   expiresAt: timestamp('expires_at').notNull(),
   verifiedAt: timestamp('verified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

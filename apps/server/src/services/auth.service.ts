@@ -177,14 +177,18 @@ export class AuthService {
   }
 
   async requestPhoneVerification(input: PhoneVerificationRequestInput) {
-    // Generate 6-digit code
+    const lockStatus = await phoneVerificationRepository.isPhoneLocked(input.phone);
+    if (lockStatus.locked) {
+      const lockedUntil = lockStatus.lockedUntil!;
+      const remainingMinutes = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+      throw new Error(`인증번호 입력 횟수를 초과했습니다. ${remainingMinutes}분 후에 다시 시도해주세요.`);
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Set expiration (10 minutes)
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
-    // Mark previous verifications as expired
     await phoneVerificationRepository.markAsExpired(input.phone);
 
     // Create new verification
@@ -209,17 +213,32 @@ export class AuthService {
   }
 
   async confirmPhoneVerification(input: PhoneVerificationConfirmInput) {
-    // Find valid verification
+    const lockStatus = await phoneVerificationRepository.isPhoneLocked(input.phone);
+    if (lockStatus.locked) {
+      const lockedUntil = lockStatus.lockedUntil!;
+      const remainingMinutes = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
+      throw new Error(`인증번호 입력 횟수를 초과했습니다. ${remainingMinutes}분 후에 다시 시도해주세요.`);
+    }
+
     const verification = await phoneVerificationRepository.findValidCode(
       input.phone,
       input.code
     );
 
     if (!verification) {
-      throw new Error('Invalid or expired verification code');
+      const pending = await phoneVerificationRepository.findPendingByPhone(input.phone);
+      if (pending) {
+        const updated = await phoneVerificationRepository.incrementFailedAttempts(pending.id);
+        if (updated && updated.failedAttempts >= 5) {
+          await phoneVerificationRepository.lockVerification(pending.id);
+          throw new Error('인증번호 입력 횟수를 초과했습니다. 1시간 후에 다시 시도해주세요.');
+        }
+        const remaining = 5 - (updated?.failedAttempts || 0);
+        throw new Error(`인증번호가 올바르지 않습니다. (남은 시도 횟수: ${remaining}회)`);
+      }
+      throw new Error('인증번호가 올바르지 않거나 만료되었습니다.');
     }
 
-    // Mark as verified
     await phoneVerificationRepository.markAsVerified(verification.id);
 
     return {

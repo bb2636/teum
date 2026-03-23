@@ -34,19 +34,6 @@ export function SplashPage() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-sm h-screen bg-[#665146] relative overflow-visible md:overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'none' }}>
-        {/* 카메라 이미지 - 오른쪽 위 */}
-        <div className="absolute top-4 md:top-0 right-0 z-10 flex justify-end">
-          <img
-            src="/camera.png"
-            alt="camera"
-            className="w-1/2 h-auto object-contain"
-            onError={(e) => {
-              // Fallback if camera image doesn't exist - hide the image
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        </div>
-
         <div className="w-full flex flex-col items-center justify-center space-y-6">
           {/* Logo and Tagline Section - 중앙 */}
           <div className="flex flex-col justify-center items-center text-center space-y-2">

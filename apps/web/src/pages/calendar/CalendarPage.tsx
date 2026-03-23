@@ -500,32 +500,42 @@ export function CalendarPage() {
                   {dayDiaries.length > 0 && (
                     <div className={`${hasSixWeeks ? 'mt-0.5' : 'mt-1'} flex flex-col gap-0.5 justify-center w-full px-0.5`}>
                       {(() => {
-                        const previewDiaries = dayDiaries.slice(0, 2);
-                        const hasAnyPreview = previewDiaries.some(d => getDiaryPreviewText(d));
-                        if (hasAnyPreview) {
-                          return previewDiaries.map((diary) => {
-                            const previewText = getDiaryPreviewText(diary);
-                            return previewText ? (
+                        const folderCounts = new Map<string, number>();
+                        dayDiaries.forEach((d) => {
+                          const name = getDiaryPreviewText(d);
+                          folderCounts.set(name, (folderCounts.get(name) || 0) + 1);
+                        });
+                        const groups = Array.from(folderCounts.entries());
+
+                        if (!groups.some(([name]) => name)) {
+                          return (
+                            <div className="flex justify-center">
+                              <div className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
+                            </div>
+                          );
+                        }
+
+                        const visibleGroups = groups.slice(0, 2);
+                        const remainingCount = groups.slice(2).reduce((sum, [, c]) => sum + c, 0);
+
+                        return (
+                          <>
+                            {visibleGroups.map(([name, count]) => (
                               <div
-                                key={diary.id}
+                                key={name}
                                 className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded truncate text-center"
                               >
-                                {previewText}
+                                {name}{count > 1 ? ` +${count - 1}` : ''}
                               </div>
-                            ) : null;
-                          });
-                        }
-                        return (
-                          <div className="flex justify-center">
-                            <div className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
-                          </div>
+                            ))}
+                            {remainingCount > 0 && (
+                              <div className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded text-center">
+                                +{remainingCount}
+                              </div>
+                            )}
+                          </>
                         );
                       })()}
-                      {dayDiaries.length > 2 && (
-                        <div className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded text-center">
-                          +{dayDiaries.length - 2}
-                        </div>
-                      )}
                     </div>
                   )}
                 </button>

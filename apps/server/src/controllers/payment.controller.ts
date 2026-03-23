@@ -115,6 +115,32 @@ export class PaymentController {
       next(error);
     }
   }
+  async adminCancelSubscription(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const { userId, subscriptionId } = req.body;
+      if (!userId || !subscriptionId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'userId and subscriptionId are required' },
+        });
+      }
+
+      const result = await paymentService.cancelSubscription(userId, subscriptionId);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const paymentController = new PaymentController();

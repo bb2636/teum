@@ -9,11 +9,8 @@ import { Label } from '@/components/ui/label';
 import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useCheckEmailExists, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
-import { useUploadImage } from '@/hooks/useUpload';
-import { ChevronLeft, Eye, EyeOff, X, User, Pencil, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
-import { StorageImage } from '@/components/StorageImage';
-import { ProfileImagePickerModal } from '@/components/ProfileImagePickerModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 
 // 닉네임 유효성 검사: 2~12자, 공백 불가, 특수문자 제한
@@ -78,7 +75,6 @@ const step2Schema = z.object({
       return true;
     }, '생년월일을 정확하게 입력해주세요.')
     .optional(),
-  profileImageUrl: z.string().optional(),
 });
 
 // Step 3: Terms schema
@@ -113,9 +109,6 @@ export function SignupPage() {
   const checkEmailExists = useCheckEmailExists();
   const requestEmailVerification = useRequestEmailVerification();
   const confirmEmailVerification = useConfirmEmailVerification();
-  const uploadImage = useUploadImage();
-  const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
-  const [showImagePicker, setShowImagePicker] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarButtonRef = useRef<HTMLButtonElement>(null);
@@ -354,31 +347,6 @@ export function SignupPage() {
     setError(null);
   };
 
-  const handleProfileImageSelect = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setError('이미지 파일만 업로드 가능합니다');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('이미지 크기는 5MB 이하여야 합니다');
-      return;
-    }
-    try {
-      const uploadedUrl = await uploadImage.mutateAsync(file);
-      setProfileImageUrl(uploadedUrl);
-      step2Form.setValue('profileImageUrl', uploadedUrl);
-    } catch (err) {
-      setError('이미지 업로드에 실패했습니다');
-    }
-    setShowImagePicker(false);
-  };
-
-  const handleProfileImageDelete = () => {
-    setProfileImageUrl(undefined);
-    step2Form.setValue('profileImageUrl', '');
-    setShowImagePicker(false);
-  };
-
   // Step 2 submit
   const onStep2Submit = async (data: Step2FormData) => {
     if (nicknameError.length > 0) {
@@ -386,7 +354,7 @@ export function SignupPage() {
       return;
     }
 
-    setFormData((prev) => ({ ...prev, step2: { ...data, profileImageUrl } }));
+    setFormData((prev) => ({ ...prev, step2: data }));
     setStep(3);
     setError(null);
   };
@@ -406,7 +374,6 @@ export function SignupPage() {
         nickname: formData.step2.nickname,
         name: formData.step2.name,
         dateOfBirth: formData.step2.dateOfBirth,
-        profileImageUrl: formData.step2.profileImageUrl,
         termsConsents: [
           { termsType: 'service', consented: data.termsService },
           { termsType: 'payment', consented: data.termsPayment },
@@ -553,33 +520,6 @@ export function SignupPage() {
         {/* Step 2: Profile Info */}
         {step === 2 && (
           <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-6">
-            {/* 프로필 이미지 */}
-            <div className="space-y-2">
-              <Label>프로필 이미지</Label>
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowImagePicker(true)}
-                  className="relative shrink-0"
-                >
-                  <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                    {profileImageUrl ? (
-                      <StorageImage
-                        url={profileImageUrl}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-10 h-10 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center shadow-sm">
-                    <Pencil className="w-3 h-3 text-white" />
-                  </div>
-                </button>
-              </div>
-            </div>
-
             {/* 닉네임 */}
             <div className="space-y-2">
               <Label htmlFor="nickname">닉네임</Label>
@@ -1136,13 +1076,6 @@ export function SignupPage() {
         />
       )}
 
-      <ProfileImagePickerModal
-        open={showImagePicker}
-        onClose={() => setShowImagePicker(false)}
-        onSelectImage={handleProfileImageSelect}
-        onDeleteImage={handleProfileImageDelete}
-        hasImage={!!profileImageUrl}
-      />
     </div>
   );
 }

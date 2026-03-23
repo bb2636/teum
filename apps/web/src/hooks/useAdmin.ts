@@ -139,6 +139,21 @@ export interface AdminDiary {
   updatedAt: string;
 }
 
+export function useAdminCancelSubscription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, subscriptionId }: { userId: string; subscriptionId: string }) => {
+      return apiRequest('/payments/admin/subscriptions/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ userId, subscriptionId }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+}
+
 export function useAllDiaries() {
   return useQuery<AdminDiary[]>({
     queryKey: ['admin', 'diaries'],

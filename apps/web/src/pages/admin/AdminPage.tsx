@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMe } from '@/hooks/useProfile';
-import { useAllUsers, useUserPayments, useDeleteUser, useUpdateUserStatus, useAllDiaries, AdminDiary, AdminUser } from '@/hooks/useAdmin';
+import { useAllUsers, useUserPayments, useDeleteUser, useUpdateUserStatus, useAllDiaries, useAdminCancelSubscription, AdminDiary, AdminUser } from '@/hooks/useAdmin';
 import { useLogout } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Search, User, X, ChevronDown, ArrowLeft, Trash2, Calendar } from 'lucide-react';
@@ -23,6 +23,7 @@ export function AdminPage() {
   const logout = useLogout();
   const deleteUserMutation = useDeleteUser();
   const updateUserStatusMutation = useUpdateUserStatus();
+  const adminCancelSubscription = useAdminCancelSubscription();
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -886,7 +887,7 @@ export function AdminPage() {
                       <div>결제일</div>
                       <div>상품명</div>
                       <div>결제금액</div>
-                      <div>상세보기</div>
+                      <div>상태/관리</div>
                     </div>
                     {userPayments.length === 0 ? (
                       <div className="px-4 py-8 text-sm text-center text-gray-500">
@@ -939,10 +940,31 @@ export function AdminPage() {
                             <div className="text-gray-900">
                               {parseFloat(payment.amount).toLocaleString('ko-KR')}원
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                               <span className={`px-3 py-1 rounded-full text-xs ${statusClass}`}>
                                 {status}
                               </span>
+                              {payment.subscription && payment.subscription.status === 'active' && (
+                                <button
+                                  onClick={async () => {
+                                    if (!selectedUserId || !payment.subscription) return;
+                                    if (!confirm('해당 유저의 구독을 취소하시겠습니까?')) return;
+                                    try {
+                                      await adminCancelSubscription.mutateAsync({
+                                        userId: selectedUserId,
+                                        subscriptionId: payment.subscription.id,
+                                      });
+                                      alert('구독이 취소되었습니다.');
+                                    } catch (err) {
+                                      alert(err instanceof Error ? err.message : '구독 취소에 실패했습니다.');
+                                    }
+                                  }}
+                                  disabled={adminCancelSubscription.isPending}
+                                  className="px-2 py-1 rounded text-xs bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                >
+                                  {adminCancelSubscription.isPending ? '취소 중...' : '구독 취소'}
+                                </button>
+                              )}
                             </div>
                           </div>
                         );

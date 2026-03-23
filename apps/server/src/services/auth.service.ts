@@ -20,9 +20,15 @@ export class AuthService {
     const existingUser = await userRepository.findByEmailIncludingDeleted(input.email);
     if (existingUser) {
       if (existingUser.deletedAt) {
-        throw new Error('탈퇴한 계정의 이메일로는 재가입이 불가합니다.');
+        const deletedAt = new Date(existingUser.deletedAt);
+        const oneYearLater = new Date(deletedAt);
+        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+        if (new Date() < oneYearLater) {
+          throw new Error('탈퇴한 계정의 이메일로는 1년간 재가입이 불가합니다.');
+        }
+      } else {
+        throw new Error('User with this email already exists');
       }
-      throw new Error('User with this email already exists');
     }
 
     // Hash password
@@ -224,9 +230,18 @@ export class AuthService {
 
   async checkEmailExists(email: string) {
     const existingUser = await userRepository.findByEmailIncludingDeleted(email);
+    if (existingUser && existingUser.deletedAt) {
+      const deletedAt = new Date(existingUser.deletedAt);
+      const oneYearLater = new Date(deletedAt);
+      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+      if (new Date() >= oneYearLater) {
+        return { exists: false, isWithdrawn: false };
+      }
+      return { exists: true, isWithdrawn: true };
+    }
     return {
       exists: !!existingUser,
-      isWithdrawn: existingUser ? !!existingUser.deletedAt : false,
+      isWithdrawn: false,
     };
   }
 
@@ -234,9 +249,15 @@ export class AuthService {
     const existingUser = await userRepository.findByEmailIncludingDeleted(input.email);
     if (existingUser) {
       if (existingUser.deletedAt) {
-        throw new Error('탈퇴한 계정의 이메일로는 재가입이 불가합니다.');
+        const deletedAt = new Date(existingUser.deletedAt);
+        const oneYearLater = new Date(deletedAt);
+        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+        if (new Date() < oneYearLater) {
+          throw new Error('탈퇴한 계정의 이메일로는 1년간 재가입이 불가합니다.');
+        }
+      } else {
+        throw new Error('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
       }
-      throw new Error('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
     }
 
     // Generate 6-digit code

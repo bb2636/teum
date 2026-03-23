@@ -14,6 +14,7 @@ export class DiaryRepository {
           orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
+          orderBy: (answers, { asc }) => [asc(answers.createdAt)],
           with: {
             question: true, // May be null if question is from questions table
           },
@@ -93,6 +94,7 @@ export class DiaryRepository {
           orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
+          orderBy: (answers, { asc }) => [asc(answers.createdAt)],
           with: {
             question: true, // May be null if question is from questions table
           },
@@ -142,6 +144,7 @@ export class DiaryRepository {
           orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
+          orderBy: (answers, { asc }) => [asc(answers.createdAt)],
           with: {
             question: true,
           },
@@ -197,6 +200,7 @@ export class DiaryRepository {
           orderBy: (images, { asc }) => [asc(images.sortOrder)],
         },
         answers: {
+          orderBy: (answers, { asc }) => [asc(answers.createdAt)],
           with: {
             question: true, // May be null if question is from questions table
           },

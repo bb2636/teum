@@ -94,7 +94,7 @@ export function DiaryWritePage() {
       setSelectedDate(diaryDate);
       
       reset({
-        title: '', // 제목 필드 제거
+        title: existingDiary.title || '',
         content: existingDiary.content || '',
         type: existingDiary.type,
         date: diaryDate,
@@ -685,7 +685,7 @@ export function DiaryWritePage() {
 
       const diaryData = {
         ...formData,
-        title: '', // 제목 필드 제거
+        title: type === 'free_form' ? (formData.title || '').trim() : '',
         content: finalContent,
         folderId: finalFolderId,
         date: selectedDate,
@@ -788,26 +788,36 @@ export function DiaryWritePage() {
             <div 
               className="flex-1 relative overflow-hidden bg-white"
             >
-              <div
-                ref={contentEditableRef}
-                contentEditable
-                onInput={handleContentChange}
-                onPaste={handlePaste}
-                onKeyDown={handleContentKeyDown}
-                onBlur={updateActiveFormats}
-                onFocus={updateActiveFormats}
-                onSelect={updateActiveFormats}
-                data-placeholder="글쓰기 시작..."
-                className="w-full h-full resize-none outline-none bg-white overflow-y-auto overflow-x-hidden min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
-                style={{ 
-                  color: '#4A2C1A',
-                  lineHeight: '24px',
-                  fontSize: '16px',
-                  paddingTop: '0px',
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word',
-                }}
-              />
+              <div className="overflow-y-auto overflow-x-hidden h-full">
+                <input
+                  {...register('title')}
+                  type="text"
+                  placeholder="제목을 입력하세요"
+                  className="w-full px-4 pt-4 pb-2 text-lg font-semibold outline-none bg-white border-b border-gray-100"
+                  style={{ color: '#4A2C1A' }}
+                  maxLength={100}
+                />
+                <div
+                  ref={contentEditableRef}
+                  contentEditable
+                  onInput={handleContentChange}
+                  onPaste={handlePaste}
+                  onKeyDown={handleContentKeyDown}
+                  onBlur={updateActiveFormats}
+                  onFocus={updateActiveFormats}
+                  onSelect={updateActiveFormats}
+                  data-placeholder="글쓰기 시작..."
+                  className="w-full resize-none outline-none bg-white min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                  style={{ 
+                    color: '#4A2C1A',
+                    lineHeight: '24px',
+                    fontSize: '16px',
+                    paddingTop: '12px',
+                    wordWrap: 'break-word',
+                    overflowWrap: 'break-word',
+                  }}
+                />
+              </div>
             </div>
 
             {/* Floating Toolbar - Left bottom, oval shape with 3 buttons */}

@@ -581,28 +581,29 @@ export function HomePage() {
                     {/* 해당 날짜의 일기 목록 - 2열 그리드 */}
                     <div className="grid grid-cols-2 gap-3">
                       {dateDiaries.map((diary, diaryIndex) => {
-                        // 일기 전체 내용 추출 (줄바꿈 포함)
-                        const getDiaryContent = (diary: typeof dateDiaries[0]) => {
-                          if (diary.type === 'question_based' && diary.answers?.length) {
-                            const firstQuestion = diary.answers[0].question?.question?.trim();
-                            if (firstQuestion) return firstQuestion;
-                            const first = diary.answers[0].answer?.trim();
+                        const getDiaryTitle = (d: typeof dateDiaries[0]) => {
+                          if (d.type === 'question_based' && d.answers?.length) {
+                            return d.answers[0].question?.question?.trim() || '제목 없음';
+                          }
+                          return d.title?.trim() || '제목 없음';
+                        };
+
+                        const getDiaryPreview = (d: typeof dateDiaries[0]) => {
+                          if (d.type === 'question_based' && d.answers?.length) {
+                            const first = d.answers[0].answer?.trim();
                             if (first) {
                               const tmp = document.createElement('div');
                               tmp.innerHTML = first;
-                              const text = tmp.textContent || tmp.innerText || '';
-                              return text.trim();
+                              return (tmp.textContent || tmp.innerText || '').trim();
                             }
                             return '';
                           }
-                          if (diary.content?.trim()) {
-                            const textContent = stripHTML(diary.content);
-                            return textContent.trim();
-                          }
+                          if (d.content?.trim()) return stripHTML(d.content).trim();
                           return '';
                         };
-                        
-                        const diaryContent = getDiaryContent(diary);
+
+                        const diaryTitle = getDiaryTitle(diary);
+                        const diaryPreview = getDiaryPreview(diary);
                         const hasImage = diary.images && diary.images.length > 0;
                         
                         return (
@@ -613,52 +614,26 @@ export function HomePage() {
                             style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
                           >
                             {hasImage && diary.images && diary.images.length > 0 ? (
-                              // 썸네일이 있는 경우: 정사각형 이미지 + 밑에 내용
                               <div className="flex flex-col h-full">
-                                <div className="relative flex-1 aspect-square overflow-hidden">
+                                <div className="relative flex-1 overflow-hidden">
                                   <StorageImage
                                     url={diary.images[0].imageUrl}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
-                                {diaryContent && (
-                                  <div className="p-2 bg-white min-h-0">
-                                    <p className="text-xs font-medium text-gray-900 line-clamp-2 break-words">
-                                      {diaryContent}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            ) : diary.type === 'question_based' ? (
-                              // 문답형식: 정사각형 카드에 내용 전체 표시
-                              <div className="h-full flex flex-col p-3 bg-gray-50 overflow-hidden">
-                                <div className="flex-shrink-0 flex items-center justify-center mb-2">
-                                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                    <span className="text-2xl">📝</span>
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-h-0 overflow-hidden">
-                                  {diaryContent ? (
-                                    <p className="text-xs font-medium text-gray-900 break-words whitespace-pre-wrap line-clamp-[6]">
-                                      {diaryContent}
-                                    </p>
-                                  ) : (
-                                    <p className="text-xs text-gray-400">이 곳에 질문이 들어갑니다.</p>
+                                <div className="p-2 bg-white min-h-0">
+                                  <p className="text-xs font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                  {diaryPreview && (
+                                    <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
                                   )}
                                 </div>
                               </div>
                             ) : (
-                              // 자유형식 (썸네일 없음): 정사각형 카드에 내용 전체 표시
                               <div className="h-full flex flex-col p-3 bg-white overflow-hidden">
-                                <div className="flex-1 min-h-0 overflow-hidden">
-                                  {diaryContent ? (
-                                    <p className="text-xs font-medium text-gray-900 break-words whitespace-pre-wrap line-clamp-[8]">
-                                      {diaryContent}
-                                    </p>
-                                  ) : (
-                                    <p className="text-xs text-gray-400">이 곳에 제목이 들어갑니다.</p>
-                                  )}
-                                </div>
+                                <p className="text-sm font-semibold text-gray-900 truncate flex-shrink-0">{diaryTitle}</p>
+                                {diaryPreview && (
+                                  <p className="text-xs text-gray-500 mt-1.5 break-words whitespace-pre-wrap line-clamp-[6] flex-1 min-h-0 overflow-hidden">{diaryPreview}</p>
+                                )}
                               </div>
                             )}
                           </Link>

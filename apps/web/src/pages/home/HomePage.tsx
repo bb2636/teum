@@ -628,7 +628,7 @@ export function HomePage() {
                                         />
                                       </div>
                                       <div className="p-2 bg-white min-h-0">
-                                        <p className="text-xs font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                        <p className="text-xs font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
                                         {diaryPreview && (
                                           <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
                                         )}
@@ -640,7 +640,7 @@ export function HomePage() {
                                         <img src="/home_logo.png" alt="teum" className="w-16 h-16 object-contain opacity-30" />
                                       </div>
                                       <div className="p-2 bg-white min-h-0">
-                                        <p className="text-xs font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                        <p className="text-xs font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
                                         {diaryPreview && (
                                           <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
                                         )}
@@ -667,7 +667,7 @@ export function HomePage() {
                                 className="block bg-white rounded-xl px-4 py-3 border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200 animate-slide-up"
                                 style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
                               >
-                                <p className="text-sm font-semibold text-gray-900 truncate">{diaryTitle}</p>
+                                <p className="text-sm font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
                                 {diaryPreview && (
                                   <p className="text-xs text-gray-500 mt-1 line-clamp-2">{diaryPreview}</p>
                                 )}

@@ -146,20 +146,6 @@ export function ProfileEditPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-[#665146] flex items-center justify-center shrink-0">
-                <span className="text-white text-xl font-medium">
-                  {user?.profile?.nickname
-                    ? user.profile.nickname.charAt(0).toUpperCase()
-                    : user?.profile?.name
-                    ? user.profile.name.charAt(0).toUpperCase()
-                    : user?.email
-                    ? user.email.charAt(0).toUpperCase()
-                    : 'U'}
-                </span>
-              </div>
-            </div>
-
             {/* 이메일 (읽기 전용) */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-brown-900">이메일</Label>

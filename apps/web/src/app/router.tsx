@@ -5,6 +5,7 @@ import { SplashPage } from '../pages/auth/SplashPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { SignupPage } from '../pages/auth/SignupPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
+import { SocialOnboardingPage } from '../pages/auth/SocialOnboardingPage';
 import { HomePage } from '../pages/home/HomePage';
 import { CalendarPage } from '../pages/calendar/CalendarPage';
 import { DiaryListPage } from '../pages/diaries/DiaryListPage';
@@ -93,6 +94,7 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/social-onboarding" element={<SocialOnboardingPage />} />
               <Route
                 path="/home"
                 element={

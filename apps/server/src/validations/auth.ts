@@ -87,5 +87,37 @@ export type PhoneVerificationRequestInput = z.infer<typeof phoneVerificationRequ
 export type PhoneVerificationConfirmInput = z.infer<typeof phoneVerificationConfirmSchema>;
 export type EmailVerificationRequestInput = z.infer<typeof emailVerificationRequestSchema>;
 export type EmailVerificationConfirmInput = z.infer<typeof emailVerificationConfirmSchema>;
+// Apple OAuth callback
+export const appleOAuthCallbackSchema = z.object({
+  idToken: z.string(),
+  authorizationCode: z.string().optional(),
+  user: z.object({
+    email: z.string().email().optional(),
+    name: z.object({
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+    }).optional(),
+  }).optional(),
+});
+
+// Social onboarding (shared by Google and Apple)
+export const socialOnboardingSchema = z.object({
+  onboardingToken: z.string(),
+  email: z.string().email().optional(),
+  nickname: nicknameSchema,
+  name: z.string().min(1, 'Name is required').max(100),
+  dateOfBirth: z.string().optional(),
+  country: z.string().optional(),
+  phone: z.string().optional(),
+  termsConsents: z.array(
+    z.object({
+      termsType: z.string(),
+      consented: z.boolean(),
+    })
+  ),
+});
+
 export type GoogleOAuthCallbackInput = z.infer<typeof googleOAuthCallbackSchema>;
 export type GoogleOAuthOnboardingInput = z.infer<typeof googleOAuthOnboardingSchema>;
+export type AppleOAuthCallbackInput = z.infer<typeof appleOAuthCallbackSchema>;
+export type SocialOnboardingInput = z.infer<typeof socialOnboardingSchema>;

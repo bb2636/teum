@@ -7,6 +7,8 @@ import {
   phoneVerificationConfirmSchema,
   emailVerificationRequestSchema,
   emailVerificationConfirmSchema,
+  socialOnboardingSchema,
+  appleOAuthCallbackSchema,
 } from '../validations/auth';
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
@@ -276,6 +278,151 @@ export class AuthController {
           },
         });
       }
+      next(error);
+    }
+  }
+
+  async googleLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { idToken } = req.body;
+      if (!idToken) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'idToken is required' },
+        });
+      }
+
+      const result = await authService.googleLogin(idToken);
+
+      if (result.isNewUser) {
+        return res.json({
+          success: true,
+          data: {
+            isNewUser: true,
+            onboardingToken: result.onboardingToken,
+            socialProfile: result.socialProfile,
+          },
+        });
+      }
+
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          isNewUser: false,
+          user: result.user,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('정지')) {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'ACCOUNT_SUSPENDED', message: error.message },
+        });
+      }
+      next(error);
+    }
+  }
+
+  async appleLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const parsed = appleOAuthCallbackSchema.parse(req.body);
+
+      const result = await authService.appleLogin(parsed.idToken, parsed.user);
+
+      if (result.isNewUser) {
+        return res.json({
+          success: true,
+          data: {
+            isNewUser: true,
+            onboardingToken: result.onboardingToken,
+            socialProfile: result.socialProfile,
+          },
+        });
+      }
+
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          isNewUser: false,
+          user: result.user,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('정지')) {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'ACCOUNT_SUSPENDED', message: error.message },
+        });
+      }
+      next(error);
+    }
+  }
+
+  async socialOnboarding(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = socialOnboardingSchema.parse(req.body);
+
+      let detectedCountry = input.country;
+      if (!detectedCountry) {
+        const clientIp = getClientIp(req);
+        detectedCountry = await detectCountryFromIp(clientIp) || undefined;
+      }
+
+      const result = await authService.socialOnboarding({
+        ...input,
+        country: detectedCountry,
+      });
+
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: { user: result.user },
+      });
+    } catch (error) {
       next(error);
     }
   }

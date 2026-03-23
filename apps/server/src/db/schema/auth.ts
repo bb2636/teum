@@ -3,7 +3,7 @@ import { relations } from 'drizzle-orm';
 import { users } from './users';
 
 // Auth provider enum
-export const authProviderEnum = pgEnum('auth_provider', ['email', 'google']);
+export const authProviderEnum = pgEnum('auth_provider', ['email', 'google', 'apple']);
 
 // Phone verification status enum
 export const phoneVerificationStatusEnum = pgEnum('phone_verification_status', [

@@ -87,7 +87,7 @@ export class UserRepository {
 
   async createAuthAccount(data: {
     userId: string;
-    provider: 'email' | 'google';
+    provider: 'email' | 'google' | 'apple';
     providerAccountId: string;
     accessToken?: string;
     refreshToken?: string;
@@ -107,7 +107,7 @@ export class UserRepository {
     return account;
   }
 
-  async findAuthAccount(provider: 'email' | 'google', providerAccountId: string) {
+  async findAuthAccount(provider: 'email' | 'google' | 'apple', providerAccountId: string) {
     const [account] = await db
       .select()
       .from(authAccounts)

@@ -5,6 +5,9 @@ import { termsConsentRepository } from '../repositories/terms-consent.repository
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
 import { logger } from '../config/logger';
+import { OAuth2Client } from 'google-auth-library';
+import * as crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
 import {
   SignupInput,
   LoginInput,
@@ -12,6 +15,7 @@ import {
   PhoneVerificationConfirmInput,
   EmailVerificationRequestInput,
   EmailVerificationConfirmInput,
+  SocialOnboardingInput,
 } from '../validations/auth';
 
 export class AuthService {
@@ -368,6 +372,250 @@ export class AuthService {
     return {
       message: 'Email verified',
       verified: true,
+    };
+  }
+  async googleLogin(idToken: string) {
+    logger.info('Google login attempt');
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('Google OAuth is not configured');
+    }
+
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub) {
+      throw new Error('Invalid Google token');
+    }
+
+    const googleId = payload.sub;
+    const email = payload.email || '';
+    const name = payload.name || '';
+    const picture = payload.picture || '';
+
+    const existingAuth = await userRepository.findAuthAccount('google', googleId);
+    if (existingAuth) {
+      const user = await userRepository.findById(existingAuth.userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      if (user.isActive === false) {
+        throw new Error('계정이 정지되었습니다. 관리자에게 문의하세요.');
+      }
+
+      const jwtPayload: JWTPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      };
+
+      return {
+        isNewUser: false,
+        user: { id: user.id, email: user.email, role: user.role },
+        accessToken: generateAccessToken(jwtPayload),
+        refreshToken: generateRefreshToken(jwtPayload),
+      };
+    }
+
+    const existingUser = await userRepository.findByEmailIncludingDeleted(email);
+    if (existingUser && !existingUser.deletedAt) {
+      const jwtPayload: JWTPayload = {
+        userId: existingUser.id,
+        email: existingUser.email,
+        role: existingUser.role,
+      };
+      await userRepository.createAuthAccount({
+        userId: existingUser.id,
+        provider: 'google',
+        providerAccountId: googleId,
+      });
+      return {
+        isNewUser: false,
+        user: { id: existingUser.id, email: existingUser.email, role: existingUser.role },
+        accessToken: generateAccessToken(jwtPayload),
+        refreshToken: generateRefreshToken(jwtPayload),
+      };
+    }
+
+    const onboardingToken = jwt.sign(
+      { provider: 'google', providerAccountId: googleId, email, name, picture },
+      process.env.JWT_SECRET || 'default_secret',
+      { expiresIn: '30m' }
+    );
+
+    return {
+      isNewUser: true,
+      onboardingToken,
+      socialProfile: {
+        provider: 'google' as const,
+        providerAccountId: googleId,
+        email,
+        name,
+        picture,
+      },
+    };
+  }
+
+  async appleLogin(idToken: string, userData?: { email?: string; name?: { firstName?: string; lastName?: string } }) {
+    logger.info('Apple login attempt');
+
+    const decoded = jwt.decode(idToken, { complete: true }) as any;
+    if (!decoded || !decoded.payload || !decoded.payload.sub) {
+      throw new Error('Invalid Apple ID token');
+    }
+
+    const appleId = decoded.payload.sub as string;
+    const tokenEmail = decoded.payload.email as string | undefined;
+    const email = userData?.email || tokenEmail || '';
+    const name = userData?.name
+      ? `${userData.name.lastName || ''}${userData.name.firstName || ''}`.trim()
+      : '';
+
+    const existingAuth = await userRepository.findAuthAccount('apple', appleId);
+    if (existingAuth) {
+      const user = await userRepository.findById(existingAuth.userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      if (user.isActive === false) {
+        throw new Error('계정이 정지되었습니다. 관리자에게 문의하세요.');
+      }
+
+      const jwtPayload: JWTPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      };
+
+      return {
+        isNewUser: false,
+        user: { id: user.id, email: user.email, role: user.role },
+        accessToken: generateAccessToken(jwtPayload),
+        refreshToken: generateRefreshToken(jwtPayload),
+      };
+    }
+
+    if (email) {
+      const existingUser = await userRepository.findByEmailIncludingDeleted(email);
+      if (existingUser && !existingUser.deletedAt) {
+        const jwtPayload: JWTPayload = {
+          userId: existingUser.id,
+          email: existingUser.email,
+          role: existingUser.role,
+        };
+        await userRepository.createAuthAccount({
+          userId: existingUser.id,
+          provider: 'apple',
+          providerAccountId: appleId,
+        });
+        return {
+          isNewUser: false,
+          user: { id: existingUser.id, email: existingUser.email, role: existingUser.role },
+          accessToken: generateAccessToken(jwtPayload),
+          refreshToken: generateRefreshToken(jwtPayload),
+        };
+      }
+    }
+
+    const isEmailHidden = !email || email.includes('privaterelay.appleid.com');
+
+    const onboardingToken = jwt.sign(
+      { provider: 'apple', providerAccountId: appleId, email: isEmailHidden ? '' : email, name, isEmailHidden },
+      process.env.JWT_SECRET || 'default_secret',
+      { expiresIn: '30m' }
+    );
+
+    return {
+      isNewUser: true,
+      onboardingToken,
+      socialProfile: {
+        provider: 'apple' as const,
+        providerAccountId: appleId,
+        email: isEmailHidden ? '' : email,
+        name,
+        isEmailHidden,
+      },
+    };
+  }
+
+  async socialOnboarding(input: SocialOnboardingInput) {
+    let tokenPayload: any;
+    try {
+      tokenPayload = jwt.verify(input.onboardingToken, process.env.JWT_SECRET || 'default_secret');
+    } catch {
+      throw new Error('온보딩 토큰이 만료되었거나 유효하지 않습니다. 다시 소셜 로그인을 진행해주세요.');
+    }
+
+    const provider = tokenPayload.provider as 'google' | 'apple';
+    const providerAccountId = tokenPayload.providerAccountId as string;
+    const tokenEmail = tokenPayload.email as string;
+    const isEmailHidden = tokenPayload.isEmailHidden === true;
+
+    const email = (isEmailHidden && input.email) ? input.email : tokenEmail;
+
+    logger.info('Social onboarding', { provider, email });
+
+    const existingUser = await userRepository.findByEmailIncludingDeleted(email);
+    if (existingUser) {
+      if (existingUser.deletedAt) {
+        const deletedAt = new Date(existingUser.deletedAt);
+        const oneYearLater = new Date(deletedAt);
+        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+        if (new Date() < oneYearLater) {
+          throw new Error('탈퇴한 계정의 이메일로는 1년간 재가입이 불가합니다.');
+        }
+      } else {
+        throw new Error('이미 존재하는 이메일입니다.');
+      }
+    }
+
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const passwordHash = await hashPassword(randomPassword);
+
+    const user = await userRepository.createUser({
+      email,
+      passwordHash,
+      role: 'user',
+    });
+
+    await userRepository.createProfile({
+      userId: user.id,
+      nickname: input.nickname,
+      name: input.name,
+      phone: input.phone,
+      dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
+      country: input.country,
+    });
+
+    await userRepository.createAuthAccount({
+      userId: user.id,
+      provider,
+      providerAccountId,
+    });
+
+    if (input.termsConsents.length > 0) {
+      await termsConsentRepository.createMany(
+        input.termsConsents.map((consent) => ({
+          userId: user.id,
+          termsType: consent.termsType,
+          consented: consent.consented,
+        }))
+      );
+    }
+
+    const jwtPayload: JWTPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    return {
+      user: { id: user.id, email: user.email, role: user.role },
+      accessToken: generateAccessToken(jwtPayload),
+      refreshToken: generateRefreshToken(jwtPayload),
     };
   }
 }

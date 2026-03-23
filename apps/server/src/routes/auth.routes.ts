@@ -15,6 +15,11 @@ router.post('/email/confirm', authController.confirmEmailVerification.bind(authC
 router.post('/phone/request', authController.requestPhoneVerification.bind(authController));
 router.post('/phone/confirm', authController.confirmPhoneVerification.bind(authController));
 
+// Social login routes
+router.post('/google/login', authController.googleLogin.bind(authController));
+router.post('/apple/login', authController.appleLogin.bind(authController));
+router.post('/social/onboarding', authController.socialOnboarding.bind(authController));
+
 // Protected routes
 router.post('/logout', authenticate, authController.logout.bind(authController));
 

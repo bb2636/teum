@@ -37,6 +37,10 @@ teum/
 - `OPENAI_API_KEY` / `OPENAI_BASE_URL` - Legacy fallback for OpenAI API access
 - `MUREKA_API_KEY` - For AI music generation
 - `CORS_ORIGIN` / `FRONTEND_URL` - Frontend URL for CORS (defaults to localhost:3000)
+- `GOOGLE_CLIENT_ID` - Google OAuth Client ID (server)
+- `VITE_GOOGLE_CLIENT_ID` - Google OAuth Client ID (frontend)
+- `VITE_APPLE_CLIENT_ID` - Apple Sign In Service ID (frontend)
+- `VITE_APPLE_REDIRECT_URI` - Apple Sign In redirect URI (frontend)
 
 ## Key Features
 
@@ -73,6 +77,14 @@ pnpm --filter server db:migrate
 - **Admin User List**: Shows all users including withdrawn; `status` field: `active` / `suspended` / `withdrawn`; withdrawn users have disabled status dropdown
 - **Admin Subscription Cancel**: `/api/payments/admin/subscriptions/cancel` 관리자 전용 구독 취소 엔드포인트
 - **Subscription Grace Period**: Cancelled subscriptions remain active until `endDate`; `getEffectiveSubscription` helper in `usePayment.ts`
+
+## Social Login (OAuth)
+
+- **Google Login**: Google Identity Services (GSI) - ID token 방식; 서버에서 `google-auth-library`로 토큰 검증; 신규 유저는 `/social-onboarding`으로 리다이렉트
+- **Apple Login**: Apple Sign In JS SDK - ID token 디코딩; 이메일 숨김(privaterelay) 시 직접 이메일 입력 + 이메일 인증 필요
+- **Social Onboarding** (`/social-onboarding`): 소셜 로그인 후 신규 유저 추가 정보 입력 (닉네임, 이름, 생년월일, 약관 동의)
+- **Auth Accounts**: `auth_accounts` 테이블에 provider별 계정 연결 (email/google/apple)
+- **Endpoints**: `POST /api/auth/google/login`, `POST /api/auth/apple/login`, `POST /api/auth/social/onboarding`
 
 ## Deployment
 

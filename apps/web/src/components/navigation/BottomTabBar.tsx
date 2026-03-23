@@ -41,7 +41,7 @@ export function BottomTabBar() {
             </div>
           )}
 
-          <div className="flex items-center justify-center relative h-16">
+          <div className="flex items-center justify-center relative h-16 w-full">
             <div
               className="absolute inset-0 rounded-full"
               style={{

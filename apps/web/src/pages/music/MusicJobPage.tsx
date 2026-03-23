@@ -57,6 +57,7 @@ export function MusicJobPage() {
     : [];
 
   useEffect(() => {
+    setAudioDuration(null);
     if (job?.audioUrl && job.status === 'completed') {
       const audio = new Audio();
       audioRef.current = audio;
@@ -65,6 +66,9 @@ export function MusicJobPage() {
         if (audio.duration && isFinite(audio.duration)) {
           setAudioDuration(Math.round(audio.duration));
         }
+      });
+      audio.addEventListener('error', () => {
+        setAudioDuration(null);
       });
       audio.src = job.audioUrl;
     }

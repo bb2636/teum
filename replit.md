@@ -41,16 +41,19 @@ teum/
 - `VITE_GOOGLE_CLIENT_ID` - Google OAuth Client ID (frontend)
 - `VITE_APPLE_CLIENT_ID` - Apple Sign In Service ID (frontend)
 - `VITE_APPLE_REDIRECT_URI` - Apple Sign In redirect URI (frontend)
+- `FIREBASE_SERVICE_ACCOUNT` - Firebase 서비스 계정 JSON (서버 푸시 알림 발송용; Replit Secrets에만 저장)
 
 ## Key Features
 
-1. **Diary Management**: Rich text entries organized into folders
-2. **Calendar View**: Track entries and emotions on a calendar
-3. **AI Feedback**: OpenAI-generated encouraging messages
-4. **AI Music**: Mureka API generates custom music from diary content; on quota/rate-limit failure, saves AI-generated lyrics with `lyrics_only` status (Melon-style popup, download disabled, "담기" enabled)
+1. **Diary Management**: Rich text entries organized into folders; floating format toolbar (bold/italic/underline/list/color); toolbar follows keyboard on mobile
+2. **Calendar View**: Track entries and emotions on a calendar; same-folder entries grouped with count display
+3. **AI Feedback**: OpenAI-generated encouraging messages (content 변경 시에만 재생성)
+4. **AI Music**: Mureka API generates custom music from diary content; 음악 상세 페이지에서 곡 정보 확인 및 다운로드; 실제 오디오 메타데이터에서 곡 길이 표시; on quota/rate-limit failure, saves AI-generated lyrics with `lyrics_only` status
 5. **Gamification**: Daily random questions to prompt writing
 6. **Admin Panel**: Manage users, diaries, questions, and legal terms
 7. **Payments**: Nice Payments integration for subscriptions
+8. **Push Notifications**: Firebase FCM을 통한 푸시 알림 (음악 완성, 문의 답변 시 자동 발송)
+9. **Android APK**: Capacitor 래핑; 배포 서버 URL로 직접 로드; CORS/쿠키 Capacitor 호환
 
 ## UI Animations
 
@@ -89,16 +92,21 @@ pnpm --filter server db:migrate
 ## Capacitor (Android/iOS)
 
 - **Config**: `apps/web/capacitor.config.ts` - appId: `com.teum.app`
+- **Server URL**: APK는 `server.url: 'https://teum.replit.app'`으로 배포 서버에서 직접 콘텐츠 로드 (로컬 dist 사용 안 함)
 - **PWA Manifest**: `apps/web/public/manifest.json`
+- **CORS**: Capacitor origin (`capacitor://localhost`, `https://localhost`) 허용; 비허용 origin은 차단
+- **쿠키**: 프로덕션 환경에서 `sameSite: 'none'` + `secure: true` (Capacitor WebView 호환)
 - **Push Notifications**: Firebase Cloud Messaging (FCM) 사용
+  - Android: `google-services.json` + Firebase BoM 34.11.0 + firebase-messaging (Gradle)
+  - 프론트: `@capacitor/push-notifications` → 권한 요청 → 리스너 등록 → `register()` 순서
   - 서버: `firebase-admin` SDK → `pushNotificationService.sendToUser()`
   - 디바이스 토큰 등록: `POST /api/push/register` (token, platform)
   - 디바이스 토큰 해제: `POST /api/push/unregister`
   - 트리거: 관리자 문의 답변 시, 음악 생성 완료 시 자동 발송
   - DB: `device_tokens` 테이블 (userId, token, platform)
 - **Camera**: `@capacitor/camera` 사용, 네이티브에서는 Capacitor Camera, 웹에서는 file input 자동 감지
-- **필요 환경변수**: `FIREBASE_SERVICE_ACCOUNT` (Firebase 서비스 계정 JSON)
-- **Android 빌드**: 로컬에서 `npx cap add android` → Android Studio로 빌드
+- **필요 환경변수**: `FIREBASE_SERVICE_ACCOUNT` (Firebase 서비스 계정 JSON — Replit Secrets에만 저장, .replit 파일에 절대 포함 금지)
+- **Android 빌드**: 로컬에서 `git pull` → `pnpm install` → `pnpm --filter web build` → `npx cap sync android` → Android Studio 빌드
 
 ## Deployment
 

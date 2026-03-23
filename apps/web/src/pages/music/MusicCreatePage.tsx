@@ -199,7 +199,7 @@ export function MusicCreatePage() {
       );
       if (response.data.audioUrl) {
         const title = response.data.title || completedTitle || 'music';
-        const filename = `${title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.mp3`;
+        const filename = `${title.replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
         await downloadFile(response.data.audioUrl, filename);
       } else {
         // 아직 완료되지 않은 경우 상세 페이지로 이동

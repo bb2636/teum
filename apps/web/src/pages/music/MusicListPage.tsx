@@ -37,7 +37,7 @@ export function MusicListPage() {
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣]/g, '_')}.mp3`;
+      const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
       link.download = filename;
       document.body.appendChild(link);
       link.click();

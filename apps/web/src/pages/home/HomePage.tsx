@@ -616,7 +616,7 @@ export function HomePage() {
                                 <Link
                                   key={diary.id}
                                   to={`/diaries/${diary.id}`}
-                                  className="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow aspect-square animate-slide-up"
+                                  className="block bg-white rounded-lg overflow-hidden border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200 aspect-square animate-slide-up"
                                   style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
                                 >
                                   {hasImage ? (
@@ -664,7 +664,7 @@ export function HomePage() {
                               <Link
                                 key={diary.id}
                                 to={`/diaries/${diary.id}`}
-                                className="block bg-white rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-shadow animate-slide-up"
+                                className="block bg-white rounded-xl px-4 py-3 border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200 animate-slide-up"
                                 style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
                               >
                                 <p className="text-sm font-semibold text-gray-900 truncate">{diaryTitle}</p>

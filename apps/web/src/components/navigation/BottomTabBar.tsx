@@ -28,7 +28,7 @@ export function BottomTabBar() {
       <div className="max-w-md mx-auto px-4 relative" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex items-end justify-center h-20 relative">
           {location.pathname !== '/music' && location.pathname !== '/my' && (
-            <div className="absolute bottom-16 right-4 z-50">
+            <div className="absolute bottom-20 right-4 z-50">
               <button
                 onClick={(e) => {
                   e.preventDefault();

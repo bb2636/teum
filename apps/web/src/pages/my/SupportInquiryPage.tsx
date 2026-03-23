@@ -9,7 +9,7 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 
 const inquirySchema = z.object({
   subject: z.string().min(1, '제목을 입력해주세요').max(200, '제목은 200자 이하여야 합니다'),
-  message: z.string().min(1, '문의 내용을 입력해주세요').max(500, '문의 내용은 500자 이하여야 합니다'),
+  message: z.string().min(10, '문의 내용은 최소 10자 이상이어야 합니다').max(500, '문의 내용은 500자 이하여야 합니다'),
 });
 
 type InquiryFormData = z.infer<typeof inquirySchema>;

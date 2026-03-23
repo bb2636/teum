@@ -120,8 +120,8 @@ export function ScrollYearMonthPicker({
               })}
             </div>
 
-            <div className="flex-1 px-2">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="flex-1 px-2 flex items-center">
+              <div className="grid grid-cols-3 gap-2 w-full">
                 {months.map((month) => {
                   const isSelected = month === pickerMonth && pickerYear === selectedYear;
                   return (

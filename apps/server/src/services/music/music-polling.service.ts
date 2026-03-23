@@ -39,8 +39,8 @@ export class MusicPollingService {
     }
 
     try {
-      // Poll provider for job status
-      const status = await murekaProvider.getJobStatus(job.providerJobId);
+      const mode = job.provider === 'mureka_bgm' ? 'bgm' as const : job.provider === 'mureka' ? 'song' as const : 'bgm' as const;
+      const status = await murekaProvider.getJobStatus(job.providerJobId, mode);
 
       if (status.status === 'completed' && status.audioUrl) {
         // Job completed, update database (오디오 + 썸네일 + 재생 길이)

@@ -61,11 +61,14 @@ export class MurekaProvider {
 
   /**
    * 음악 생성 요청 (비동기). task_id 반환.
+   * mode: 'bgm' → /v1/instrumental/generate (비용 절감, 가사 없는 BGM)
+   * mode: 'song' → /v1/song/generate (가사 포함 노래)
    */
   async generateMusic(input: {
     prompt: string;
     durationSeconds?: number;
     lyrics?: string;
+    mode?: 'bgm' | 'song';
   }): Promise<{
     provider: string;
     providerJobId?: string;
@@ -77,17 +80,33 @@ export class MurekaProvider {
       throw new Error('Mureka provider is not enabled');
     }
 
-    try {
-      const lyrics =
-        input.lyrics?.trim() ||
-        '[Verse]\nInstrumental melody based on the mood and theme.';
-      const body = {
-        lyrics,
-        model: 'auto',
-        prompt: input.prompt.trim() || 'pop, emotional, reflective',
-      };
+    const mode = input.mode || 'bgm';
 
-      const response = await fetch(`${MUREKA_BASE}/v1/song/generate`, {
+    try {
+      let endpoint: string;
+      let body: Record<string, unknown>;
+
+      if (mode === 'bgm') {
+        endpoint = `${MUREKA_BASE}/v1/instrumental/generate`;
+        body = {
+          model: 'auto',
+          prompt: input.prompt.trim() || 'pop, emotional, reflective',
+        };
+      } else {
+        endpoint = `${MUREKA_BASE}/v1/song/generate`;
+        const lyrics =
+          input.lyrics?.trim() ||
+          '[Verse]\nInstrumental melody based on the mood and theme.';
+        body = {
+          lyrics,
+          model: 'auto',
+          prompt: input.prompt.trim() || 'pop, emotional, reflective',
+        };
+      }
+
+      logger.info('Mureka generate request', { mode, endpoint });
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -121,7 +140,7 @@ export class MurekaProvider {
       }
 
       return {
-        provider: 'mureka',
+        provider: mode === 'bgm' ? 'mureka_bgm' : 'mureka',
         providerJobId: String(taskId),
         status: 'processing',
         raw: data,
@@ -135,8 +154,9 @@ export class MurekaProvider {
 
   /**
    * 작업 상태 조회 (폴링용)
+   * mode: 'bgm' → /v1/instrumental/query, 'song' → /v1/song/query
    */
-  async getJobStatus(jobId: string): Promise<{
+  async getJobStatus(jobId: string, mode: 'bgm' | 'song' = 'bgm'): Promise<{
     status: 'pending' | 'processing' | 'completed' | 'failed';
     audioUrl?: string;
     thumbnailUrl?: string;
@@ -148,7 +168,8 @@ export class MurekaProvider {
     }
 
     try {
-      const response = await fetch(`${MUREKA_BASE}/v1/song/query/${encodeURIComponent(jobId)}`, {
+      const queryPath = mode === 'bgm' ? 'instrumental' : 'song';
+      const response = await fetch(`${MUREKA_BASE}/v1/${queryPath}/query/${encodeURIComponent(jobId)}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,

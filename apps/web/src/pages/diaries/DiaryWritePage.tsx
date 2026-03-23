@@ -747,7 +747,7 @@ export function DiaryWritePage() {
   // Show loading state when editing and diary is loading
   if (isEditMode && isLoadingDiary) {
     return (
-      <div className="min-h-screen bg-[#F5F5F0] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-muted-foreground">일기를 불러오는 중...</div>
       </div>
     );
@@ -755,7 +755,7 @@ export function DiaryWritePage() {
 
   if (type === 'free_form') {
     return (
-      <div className="min-h-screen bg-[#F5F5F0] pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
+      <div className="min-h-screen bg-white pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
         {(uploading || createDiary.isPending || updateDiary.isPending) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
             <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
@@ -789,42 +789,6 @@ export function DiaryWritePage() {
               className="flex-1 relative overflow-hidden bg-white"
             >
               <div
-                className="absolute inset-0 z-0"
-                style={{
-                  backgroundImage: `
-                    repeating-linear-gradient(
-                      to bottom,
-                      transparent 0px,
-                      transparent 31px,
-                      white 31px,
-                      white 79px
-                    ),
-                    repeating-linear-gradient(
-                      to bottom,
-                      transparent 0px,
-                      transparent 0px,
-                      #D0D0D0 0px,
-                      #D0D0D0 1px,
-                      transparent 1px,
-                      transparent 31px,
-                      #D0D0D0 31px,
-                      #D0D0D0 32px,
-                      transparent 32px,
-                      transparent 79px
-                    ),
-                    repeating-linear-gradient(
-                      to bottom,
-                      transparent 0px,
-                      transparent 7px,
-                      #D0D0D0 7px,
-                      #D0D0D0 8px
-                    )
-                  `,
-                  backgroundSize: '100% 80px, 100% 80px, 100% 8px',
-                  backgroundPosition: '0 0, 0 0, 0 0',
-                }}
-              />
-              <div
                 ref={contentEditableRef}
                 contentEditable
                 onInput={handleContentChange}
@@ -834,7 +798,7 @@ export function DiaryWritePage() {
                 onFocus={updateActiveFormats}
                 onSelect={updateActiveFormats}
                 data-placeholder="글쓰기 시작..."
-                className="relative z-10 w-full h-full resize-none outline-none bg-transparent overflow-y-auto overflow-x-hidden min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                className="w-full h-full resize-none outline-none bg-white overflow-y-auto overflow-x-hidden min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
                   lineHeight: '24px',

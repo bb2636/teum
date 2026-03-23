@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, XCircle, Play, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, XCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicJob } from '@/hooks/useMusic';
 import { useDiaries } from '@/hooks/useDiaries';
@@ -14,6 +14,8 @@ export function MusicJobPage() {
   const { data: job, isLoading, error } = useMusicJob(jobId || '');
   const { data: diariesAll = [] } = useDiaries();
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // 일기 첫 줄 추출 함수
   const getFirstLine = (diary: { title?: string; content?: string; type?: string; answers?: Array<{ answer?: string; question?: { question?: string } }> }) => {
@@ -53,6 +55,26 @@ export function MusicJobPage() {
         .map((id) => diariesAll.find((d) => d.id === id))
         .filter(Boolean)
     : [];
+
+  useEffect(() => {
+    if (job?.audioUrl && job.status === 'completed') {
+      const audio = new Audio();
+      audioRef.current = audio;
+      audio.preload = 'metadata';
+      audio.addEventListener('loadedmetadata', () => {
+        if (audio.duration && isFinite(audio.duration)) {
+          setAudioDuration(Math.round(audio.duration));
+        }
+      });
+      audio.src = job.audioUrl;
+    }
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+    };
+  }, [job?.audioUrl, job?.status]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -106,7 +128,7 @@ export function MusicJobPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/music')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-brown-900">음악 생성</h1>
+          <h1 className="text-xl font-bold text-brown-900">음악 상세</h1>
         </div>
 
         {/* 로딩 팝업: 생성 중일 때 - 전체 화면 */}
@@ -301,64 +323,44 @@ export function MusicJobPage() {
             </div>
 
             {job.audioUrl && (
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <audio controls className="w-full mb-4">
-                  <source src={job.audioUrl} type="audio/mpeg" />
-                  <source src={job.audioUrl} type="audio/wav" />
-                  브라우저가 오디오 재생을 지원하지 않습니다.
-                </audio>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-0 rounded-full"
-                    onClick={async () => {
-                      if (job.audioUrl) {
-                        try {
-                          const response = await fetch(job.audioUrl);
-                          const blob = await response.blob();
-                          const blobUrl = window.URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = blobUrl;
-                          const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-                          link.download = filename;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          window.URL.revokeObjectURL(blobUrl);
-                        } catch (error) {
-                          console.error('Download failed:', error);
-                          window.open(job.audioUrl, '_blank');
-                        }
+              <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
+                <Button
+                  className="w-full bg-[#4A2C1A] hover:bg-[#3a2114] text-white rounded-full py-3"
+                  onClick={async () => {
+                    if (job.audioUrl) {
+                      try {
+                        const response = await fetch(job.audioUrl);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (error) {
+                        console.error('Download failed:', error);
+                        window.open(job.audioUrl, '_blank');
                       }
-                    }}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    다운로드
-                  </Button>
-                  <Button
-                    className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
-                    onClick={() => {
-                      if (job.audioUrl) {
-                        const audio = new Audio(job.audioUrl);
-                        audio.play();
-                      }
-                    }}
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    재생
-                  </Button>
-                </div>
+                    }
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  다운로드
+                </Button>
               </div>
             )}
 
-            {job.durationSeconds != null && (
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">곡 길이</span>
-                  <span className="font-medium text-brown-900">{formatDuration(job.durationSeconds)}</span>
-                </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">곡 길이</span>
+                <span className="font-medium text-brown-900">
+                  {formatDuration(audioDuration ?? job.durationSeconds)}
+                </span>
               </div>
-            )}
+            </div>
 
             {job.lyrics && (
               <div className="bg-white rounded-xl p-6 shadow-sm">

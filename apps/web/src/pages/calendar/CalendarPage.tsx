@@ -40,12 +40,11 @@ function getFirstLine(diary: Diary): string {
   return '';
 }
 
-/** 일기 첫 내용을 3~4글자로 자르기 */
 function getDiaryPreviewText(diary: Diary): string {
-  const firstLine = getFirstLine(diary);
-  if (!firstLine) return '';
-  // 3~4글자로 자르기 (한글 기준)
-  return firstLine.length > 4 ? firstLine.substring(0, 4) : firstLine;
+  if (diary.folder) {
+    return diary.folder.isDefault || diary.folder.name === 'All' ? '전체' : diary.folder.name;
+  }
+  return '전체';
 }
 
 interface DiarySlideProps {

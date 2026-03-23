@@ -67,8 +67,6 @@ build = ["sh", "-c", "pnpm --filter web build"]
 
 [userenv.shared]
 OPENAI_BASE_URL = "http://localhost:1106/modelfarm/openai"
-GOOGLE_CLIENT_ID = ""
-VITE_GOOGLE_CLIENT_ID = ""
 VITE_APPLE_CLIENT_ID = ""
 VITE_APPLE_REDIRECT_URI = ""
 FIREBASE_SERVICE_ACCOUNT = ""

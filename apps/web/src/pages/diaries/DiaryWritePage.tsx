@@ -155,26 +155,30 @@ export function DiaryWritePage() {
 
   // 키보드 높이 감지 (모바일)
   useEffect(() => {
+    const initialHeight = window.innerHeight;
+
     const handleResize = () => {
-      // 모바일에서 키보드가 올라오면 viewport height가 줄어듦
-      const viewportHeight = window.visualViewport?.height || window.innerHeight;
-      const windowHeight = window.innerHeight;
-      const heightDiff = windowHeight - viewportHeight;
-      setKeyboardHeight(heightDiff > 50 ? heightDiff : 0); // 50px 이상 차이나면 키보드로 간주
+      if (window.visualViewport) {
+        const heightDiff = initialHeight - window.visualViewport.height;
+        setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
+      } else {
+        const heightDiff = initialHeight - window.innerHeight;
+        setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
+      }
     };
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize);
-    } else {
-      window.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
     }
+    window.addEventListener('resize', handleResize);
 
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
-      } else {
-        window.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
       }
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -844,8 +848,14 @@ export function DiaryWritePage() {
               </div>
             </div>
 
-            {/* Floating Toolbar - Left bottom, oval shape with 3 buttons */}
-            <div className="fixed bottom-6 left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4">
+            {/* Floating Toolbar - Left bottom, oval shape with 3 buttons, 키보드에 맞춰 이동 */}
+            <div 
+              className="fixed left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4"
+              style={{
+                bottom: keyboardHeight > 0 ? `${keyboardHeight + 24}px` : '24px',
+                transition: 'bottom 0.3s ease-out',
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setShowFormatMenu(true)}

@@ -49,6 +49,23 @@ export class PhoneVerificationRepository {
       .where(eq(phoneVerifications.id, id));
   }
 
+  async findRecentVerified(phone: string, withinMinutes: number = 10) {
+    const cutoff = new Date();
+    cutoff.setMinutes(cutoff.getMinutes() - withinMinutes);
+    const [verification] = await db
+      .select()
+      .from(phoneVerifications)
+      .where(
+        and(
+          eq(phoneVerifications.phone, phone),
+          eq(phoneVerifications.status, 'verified'),
+          gt(phoneVerifications.verifiedAt, cutoff)
+        )
+      )
+      .limit(1);
+    return verification;
+  }
+
   async markAsExpired(phone: string) {
     await db
       .update(phoneVerifications)

@@ -18,6 +18,22 @@ export function useRequestPasswordReset() {
   });
 }
 
+export function useRequestPasswordResetByPhone() {
+  return useMutation({
+    mutationFn: async ({ email, phone }: { email: string; phone: string }) => {
+      const response = await apiRequest<{
+        success: boolean;
+        message: string;
+        token?: string;
+      }>('/password-reset/request-by-phone', {
+        method: 'POST',
+        body: JSON.stringify({ email, phone }),
+      });
+      return response;
+    },
+  });
+}
+
 export function useResetPassword() {
   return useMutation({
     mutationFn: async (data: { token: string; password: string }) => {

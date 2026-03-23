@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { passwordResetRepository } from '../repositories/password-reset.repository';
 import { userRepository } from '../repositories/user.repository';
+import { phoneVerificationRepository } from '../repositories/phone-verification.repository';
 import { hashPassword } from '../utils/password';
 import { logger } from '../config/logger';
 import { emailService } from './email/email.service';
@@ -67,6 +68,34 @@ export class PasswordResetService {
       success: true,
       ...(shouldReturnToken && { token, resetLink }),
     };
+  }
+
+  async requestPasswordResetByPhone(email: string, phone: string) {
+    logger.info('Password reset by phone requested', { email, phone });
+
+    const recentVerification = await phoneVerificationRepository.findRecentVerified(phone, 10);
+    if (!recentVerification) {
+      throw new Error('전화번호 인증이 완료되지 않았습니다. 먼저 인증번호를 확인해주세요.');
+    }
+
+    const user = await userRepository.findByEmailAndPhone(email, phone);
+    if (!user) {
+      throw new Error('이메일과 전화번호가 일치하는 계정을 찾을 수 없습니다.');
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    await passwordResetRepository.createToken({
+      userId: user.id,
+      token,
+      expiresAt,
+    });
+
+    logger.info('Password reset token generated via phone verification', { email });
+
+    return { success: true, token };
   }
 
   async resetPassword(token: string, newPassword: string) {

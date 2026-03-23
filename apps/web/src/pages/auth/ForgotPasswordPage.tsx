@@ -6,12 +6,11 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRequestPasswordReset, useResetPassword } from '@/hooks/usePasswordReset';
-import { useRequestEmailVerificationForPasswordReset, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
+import { useRequestPasswordResetByPhone, useResetPassword } from '@/hooks/usePasswordReset';
+import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { X, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Toast } from '@/components/Toast';
 
-// 비밀번호 유효성 검사: 8자 이상, 영문/숫자 포함
 const passwordSchema = z
   .string()
   .min(8, '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.')
@@ -20,6 +19,7 @@ const passwordSchema = z
 
 const forgotPasswordSchema = z.object({
   email: z.string().min(1, '이메일을 입력해주세요').email('올바른 이메일을 입력해주세요'),
+  phone: z.string().min(10, '전화번호를 입력해주세요').max(15),
 });
 
 const resetPasswordSchema = z.object({
@@ -38,24 +38,23 @@ export function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const requestPasswordReset = useRequestPasswordReset();
+  const requestPasswordResetByPhone = useRequestPasswordResetByPhone();
   const resetPassword = useResetPassword();
+  const requestPhoneVerification = useRequestPhoneVerification();
+  const confirmPhoneVerification = useConfirmPhoneVerification();
 
-  const [step, setStep] = useState<'email' | 'reset'>(token ? 'reset' : 'email');
+  const [step, setStep] = useState<'info' | 'reset'>(token ? 'reset' : 'info');
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(token);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
-  const [emailVerificationCode, setEmailVerificationCode] = useState<string | null>(null);
-  const [emailVerificationInput, setEmailVerificationInput] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
+  const [phoneVerificationCode, setPhoneVerificationCode] = useState<string | null>(null);
+  const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [showToast, setShowToast] = useState(false);
-  
-  const requestEmailVerification = useRequestEmailVerificationForPasswordReset();
-  const confirmEmailVerification = useConfirmEmailVerification();
 
-  const emailForm = useForm<ForgotPasswordFormData>({
+  const infoForm = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     mode: 'onChange',
   });
@@ -67,15 +66,14 @@ export function ForgotPasswordPage() {
       token: resetToken || token || '',
     },
   });
-  
-  const emailFormWatch = emailForm.watch('email');
+
+  const infoFormEmail = infoForm.watch('email');
+  const infoFormPhone = infoForm.watch('phone');
   const passwordFormWatchPassword = passwordForm.watch('password');
   const passwordFormWatchConfirmPassword = passwordForm.watch('confirmPassword');
-  
-  // 이메일 단계 버튼 활성화 조건
-  const isEmailFormValid = emailFormWatch && emailFormWatch.length > 0 && !emailForm.formState.errors.email;
-  
-  // 비밀번호 재설정 단계 버튼 활성화 조건
+
+  const isInfoFormValid = infoFormEmail && infoFormPhone && infoFormPhone.length >= 10 && !infoForm.formState.errors.email && !infoForm.formState.errors.phone;
+
   const isPasswordFormValid = 
     passwordFormWatchPassword && 
     passwordFormWatchConfirmPassword && 
@@ -83,50 +81,51 @@ export function ForgotPasswordPage() {
     !passwordForm.formState.errors.password &&
     !passwordForm.formState.errors.confirmPassword;
 
-  // Update form when token changes
   useEffect(() => {
     if (resetToken) {
       passwordForm.setValue('token', resetToken);
     }
   }, [resetToken]);
 
-  // 이메일 인증 요청 핸들러
-  const handleRequestEmailVerification = async (email: string) => {
+  const handleRequestPhoneVerification = async () => {
+    const phone = infoForm.getValues('phone');
+    if (!phone || phone.length < 10) {
+      setError('전화번호를 정확히 입력해주세요');
+      return;
+    }
+
+    setError(null);
+
     try {
-      // 비밀번호 찾기용 이메일 인증 요청 (이메일이 존재해야 함)
-      const response = await requestEmailVerification.mutateAsync(email);
-      setEmailVerificationCode(response.code || null);
-      if (response.code) {
-        console.log('이메일 인증번호 (개발 모드):', response.code);
+      const result = await requestPhoneVerification.mutateAsync(phone);
+      setPhoneVerificationCode(result.code || null);
+      if (result.code) {
+        console.log('SMS 인증번호 (개발 모드):', result.code);
       }
-      setShowEmailVerificationModal(true);
-      setEmailVerified(false);
-      setEmailVerificationInput('');
-      setError(null); // 에러 초기화
+      setShowPhoneVerificationModal(true);
+      setPhoneVerified(false);
+      setPhoneVerificationInput('');
     } catch (err: any) {
-      // 에러 처리: 존재하지 않는 이메일인 경우
-      // apiRequest는 에러를 throw할 때 Error 객체를 던지므로 message를 확인
-      const errorMessage = err?.message || '인증번호 발송에 실패했습니다';
-      setError(errorMessage);
+      setError(err?.message || '인증번호 발송에 실패했습니다');
     }
   };
 
-  // 이메일 인증 확인 핸들러
-  const handleConfirmEmailVerification = async () => {
-    if (!emailFormWatch) return;
-    
+  const handleConfirmPhoneVerification = async () => {
+    const phone = infoForm.getValues('phone');
+    if (!phone) return;
+
     try {
-      const response = await confirmEmailVerification.mutateAsync({
-        email: emailFormWatch,
-        code: emailVerificationInput,
+      const response = await confirmPhoneVerification.mutateAsync({
+        phone,
+        code: phoneVerificationInput,
       });
-      
+
       if (response.verified) {
-        setEmailVerified(true);
-        setShowEmailVerificationModal(false);
-        // 인증 완료 후 비밀번호 재설정 요청하여 토큰 생성
+        setPhoneVerified(true);
+        setShowPhoneVerificationModal(false);
+        const email = infoForm.getValues('email');
         try {
-          const resetResponse = await requestPasswordReset.mutateAsync(emailFormWatch);
+          const resetResponse = await requestPasswordResetByPhone.mutateAsync({ email, phone });
           if (resetResponse.token) {
             setResetToken(resetResponse.token);
             setStep('reset');
@@ -135,12 +134,8 @@ export function ForgotPasswordPage() {
             setError('비밀번호 재설정 토큰을 생성할 수 없습니다.');
           }
         } catch (resetErr: any) {
-          // 비밀번호 재설정 요청 실패 시 에러 처리
-          const errorMessage = resetErr?.response?.data?.error?.message || 
-                              resetErr?.message || 
-                              '존재하지 않는 이메일입니다.';
+          const errorMessage = resetErr?.message || '이메일과 전화번호가 일치하는 계정을 찾을 수 없습니다.';
           setError(errorMessage);
-          setShowEmailVerificationModal(false);
         }
       }
     } catch (err) {
@@ -148,10 +143,9 @@ export function ForgotPasswordPage() {
     }
   };
 
-  const onEmailSubmit = async (data: ForgotPasswordFormData) => {
+  const onInfoSubmit = async (_data: ForgotPasswordFormData) => {
     setError(null);
-    // 이메일 인증 모달 표시
-    await handleRequestEmailVerification(data.email);
+    await handleRequestPhoneVerification();
   };
 
   const onPasswordSubmit = async (data: ResetPasswordFormData) => {
@@ -168,10 +162,8 @@ export function ForgotPasswordPage() {
         password: data.password,
       });
 
-      // 토스트 메시지 표시
       setShowToast(true);
-      
-      // 3초 후 로그인 화면으로 이동
+
       setTimeout(() => {
         navigate('/login');
       }, 3000);
@@ -183,13 +175,12 @@ export function ForgotPasswordPage() {
   if (step === 'reset') {
     return (
       <div className="min-h-screen flex flex-col bg-white px-4 py-6 pb-24">
-        {/* Header */}
         <div className="flex items-center mb-8">
           <button
             onClick={() => {
-              setStep('email');
+              setStep('info');
               setResetToken(null);
-              setEmailVerified(false);
+              setPhoneVerified(false);
             }}
             className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mr-3"
           >
@@ -227,11 +218,7 @@ export function ForgotPasswordPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
               {passwordForm.formState.errors.password && (
@@ -258,11 +245,7 @@ export function ForgotPasswordPage() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
               {passwordForm.formState.errors.confirmPassword && (
@@ -271,10 +254,8 @@ export function ForgotPasswordPage() {
                 </p>
               )}
             </div>
-
           </form>
 
-          {/* Toast Message - 버튼 위에 표시 */}
           <Toast
             message="비밀번호가 변경되었습니다."
             isVisible={showToast}
@@ -283,7 +264,6 @@ export function ForgotPasswordPage() {
           />
         </div>
 
-        {/* 비밀번호 변경 버튼 - 화면 하단 고정 */}
         <div className="fixed bottom-0 left-0 right-0 bg-white px-4 py-4 border-t border-gray-200 z-40">
           <div className="max-w-sm mx-auto">
             <Button 
@@ -311,7 +291,7 @@ export function ForgotPasswordPage() {
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">비밀번호 찾기</h1>
           <p className="text-sm text-muted-foreground">
-            가입하신 이메일을 입력해주세요.
+            가입하신 이메일과 전화번호를 입력해주세요.
           </p>
         </div>
 
@@ -321,30 +301,46 @@ export function ForgotPasswordPage() {
           </div>
         )}
 
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
+        <form onSubmit={infoForm.handleSubmit(onInfoSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">이메일</Label>
             <Input
               id="email"
               type="email"
-              {...emailForm.register('email')}
+              {...infoForm.register('email')}
               placeholder="이메일을 입력해주세요"
-              className={emailForm.formState.errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
+              className={infoForm.formState.errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
             />
-            {emailForm.formState.errors.email && (
+            {infoForm.formState.errors.email && (
               <p className="text-sm text-red-500">
-                {emailForm.formState.errors.email.message}
+                {infoForm.formState.errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">전화번호</Label>
+            <Input
+              id="phone"
+              type="tel"
+              {...infoForm.register('phone')}
+              placeholder="전화번호를 입력해주세요"
+              className={infoForm.formState.errors.phone ? 'border-red-500 placeholder:text-red-500' : ''}
+            />
+            {infoForm.formState.errors.phone && (
+              <p className="text-sm text-red-500">
+                {infoForm.formState.errors.phone.message}
               </p>
             )}
           </div>
 
           <Button 
-            className={`w-full ${isEmailFormValid ? 'bg-[#665146] text-white hover:bg-[#5A453A]' : 'bg-gray-500 text-white cursor-not-allowed'}`}
+            className={`w-full ${isInfoFormValid ? 'bg-[#665146] text-white hover:bg-[#5A453A]' : 'bg-gray-500 text-white cursor-not-allowed'}`}
             size="lg" 
             type="submit"
-            disabled={requestEmailVerification.isPending || !isEmailFormValid}
+            disabled={requestPhoneVerification.isPending || !isInfoFormValid}
           >
-            {requestEmailVerification.isPending ? '전송 중...' : '인증번호 보내기'}
+            {requestPhoneVerification.isPending ? '전송 중...' : '인증번호 보내기'}
           </Button>
         </form>
 
@@ -355,13 +351,12 @@ export function ForgotPasswordPage() {
         </div>
       </div>
 
-      {/* Email Verification Modal */}
-      {showEmailVerificationModal && (
+      {showPhoneVerificationModal && (
         <div
           className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade"
           onClick={() => {
-            if (emailVerified) {
-              setShowEmailVerificationModal(false);
+            if (phoneVerified) {
+              setShowPhoneVerificationModal(false);
             }
           }}
         >
@@ -373,9 +368,7 @@ export function ForgotPasswordPage() {
               <h2 className="text-lg font-semibold">인증번호 입력</h2>
               <button
                 onClick={() => {
-                  if (emailVerified) {
-                    setShowEmailVerificationModal(false);
-                  }
+                  setShowPhoneVerificationModal(false);
                 }}
                 className="p-2 rounded-full hover:bg-gray-100"
               >
@@ -387,28 +380,28 @@ export function ForgotPasswordPage() {
               <Input
                 id="verificationCode"
                 type="text"
-                value={emailVerificationInput}
+                value={phoneVerificationInput}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                  setEmailVerificationInput(value);
+                  setPhoneVerificationInput(value);
                 }}
                 placeholder="인증번호 입력"
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
-                disabled={emailVerified}
+                disabled={phoneVerified}
               />
-              {emailVerificationCode && (
+              {phoneVerificationCode && (
                 <p className="text-xs text-gray-500 text-center">
-                  개발 모드: 인증번호는 콘솔에 표시되었습니다 ({emailVerificationCode})
+                  개발 모드: 인증번호는 콘솔에 표시되었습니다 ({phoneVerificationCode})
                 </p>
               )}
             </div>
             <Button
-              onClick={handleConfirmEmailVerification}
+              onClick={handleConfirmPhoneVerification}
               className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
-              disabled={emailVerificationInput.length !== 6 || emailVerified || confirmEmailVerification.isPending}
+              disabled={phoneVerificationInput.length !== 6 || phoneVerified || confirmPhoneVerification.isPending}
             >
-              {confirmEmailVerification.isPending ? '확인 중...' : '확인'}
+              {confirmPhoneVerification.isPending ? '확인 중...' : '확인'}
             </Button>
           </div>
         </div>

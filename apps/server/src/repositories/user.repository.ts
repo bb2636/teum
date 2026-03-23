@@ -121,6 +121,20 @@ export class UserRepository {
     return account;
   }
 
+  async findByEmailAndPhone(email: string, phone: string) {
+    const user = await db.query.users.findFirst({
+      where: (users, { eq, and, isNull }) =>
+        and(eq(users.email, email), isNull(users.deletedAt)),
+      with: {
+        profile: true,
+      },
+    });
+    if (user && user.profile && user.profile.phone === phone) {
+      return user;
+    }
+    return null;
+  }
+
   async findByEmailIncludingDeleted(email: string) {
     const [user] = await db
       .select()

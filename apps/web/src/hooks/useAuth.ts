@@ -92,20 +92,3 @@ export function useLogout() {
     },
   });
 }
-
-export function useMe() {
-  const queryClient = useQueryClient();
-
-  return {
-    refetch: async () => {
-      try {
-        const response = await apiRequest<{ data: { user: User } }>('/users/me');
-        queryClient.setQueryData(['user', 'me'], response.data.user);
-        return response.data.user;
-      } catch (error) {
-        queryClient.setQueryData(['user', 'me'], null);
-        throw error;
-      }
-    },
-  };
-}

@@ -61,7 +61,7 @@ export class PaymentService {
   }> {
     logger.info('Processing payment', { userId, input, mock: this.isPaymentMockSuccess() });
 
-    const isRenewal = !!(input as any).isRenewal;
+    const isRenewal = !!input.isRenewal;
     if (input.planName && !isRenewal) {
       const activeSubscription = await this.getActiveSubscription(userId);
       if (activeSubscription) {

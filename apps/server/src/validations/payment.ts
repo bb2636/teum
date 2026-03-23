@@ -8,6 +8,7 @@ export const processPaymentSchema = z.object({
   }),
   cardCompany: z.string().optional(),
   easyPayProvider: z.enum(['toss', 'npay', 'apple']).optional(),
+  isRenewal: z.boolean().optional(),
 });
 
 export type ProcessPaymentInput = z.infer<typeof processPaymentSchema>;

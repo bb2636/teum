@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "947393691388",
+    "project_id": "teum-1f2ed",
+    "storage_bucket": "teum-1f2ed.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:947393691388:android:55c42ef905492e3fc72179",
+        "android_client_info": {
+          "package_name": "com.teum.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAG5ijnYL3ZQHr0YBhHZRM9F-1VO3gA2qA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

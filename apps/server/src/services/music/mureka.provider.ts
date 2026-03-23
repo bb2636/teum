@@ -185,14 +185,16 @@ export class MurekaProvider {
       }
 
       const status = this.normalizeStatus(data.status);
+      const firstChoice = (data as any).choices?.[0];
       const audioUrl =
-        data.result_url ?? data.result?.url ?? data.audio_url;
+        data.result_url ?? data.result?.url ?? data.audio_url ?? firstChoice?.url;
       const thumbnailUrl =
         data.cover_url ??
         data.thumbnail_url ??
         data.cover ??
         data.result?.cover_url ??
-        data.result?.thumbnail_url;
+        data.result?.thumbnail_url ??
+        firstChoice?.cover_url;
 
       return {
         status,
@@ -211,7 +213,7 @@ export class MurekaProvider {
   private normalizeStatus(s?: string): 'pending' | 'processing' | 'completed' | 'failed' {
     if (!s) return 'pending';
     const lower = s.toLowerCase();
-    if (lower === 'completed' || lower === 'success' || lower === 'done') return 'completed';
+    if (lower === 'completed' || lower === 'success' || lower === 'succeeded' || lower === 'done') return 'completed';
     if (lower === 'failed' || lower === 'error') return 'failed';
     if (lower === 'processing' || lower === 'preparing' || lower === 'running') return 'processing';
     return 'pending';

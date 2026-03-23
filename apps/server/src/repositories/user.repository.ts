@@ -121,10 +121,19 @@ export class UserRepository {
     return account;
   }
 
+  async findByEmailIncludingDeleted(email: string) {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    return user;
+  }
+
   async softDeleteUser(userId: string) {
     await db
       .update(users)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() })
       .where(eq(users.id, userId));
   }
 
@@ -185,7 +194,6 @@ export class UserRepository {
 
   async findAllWithProfiles() {
     return await db.query.users.findMany({
-      where: (users, { isNull }) => isNull(users.deletedAt),
       with: {
         profile: true,
       },

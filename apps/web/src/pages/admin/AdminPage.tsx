@@ -440,14 +440,16 @@ export function AdminPage() {
                                 left: rect.left,
                               });
                             }
+                            if (user.isWithdrawn) return;
                             setOpenDropdownId(openDropdownId === user.id ? null : user.id);
                           }}
-                          className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={user.isWithdrawn}
+                          className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full ${user.isWithdrawn ? 'bg-gray-50 cursor-not-allowed opacity-60' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
                         >
                           <span className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                            <span className={user.isActive ? 'text-green-600' : 'text-red-600'}>
-                              {user.isActive ? '활성됨' : '정지됨'}
+                            <span className={`w-2 h-2 rounded-full ${user.isWithdrawn ? 'bg-gray-400' : user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <span className={user.isWithdrawn ? 'text-gray-500' : user.isActive ? 'text-green-600' : 'text-red-600'}>
+                              {user.isWithdrawn ? '탈퇴(정지됨)' : user.isActive ? '활성됨' : '정지됨'}
                             </span>
                           </span>
                           <ChevronDown className="w-3 h-3 text-gray-500" />

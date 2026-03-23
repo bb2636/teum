@@ -15,6 +15,8 @@ export interface AdminUser {
   };
   hasActiveSubscription: boolean;
   isActive: boolean;
+  isWithdrawn: boolean;
+  status: 'active' | 'suspended' | 'withdrawn';
 }
 
 export function useAllUsers() {

@@ -65,6 +65,13 @@ Uses Drizzle ORM with PostgreSQL. Run migrations with:
 pnpm --filter server db:migrate
 ```
 
+## User Account Management
+
+- **Soft Delete (탈퇴)**: `softDeleteUser` sets `deletedAt` + `isActive = false`; data retained for 1 year
+- **Re-registration Block**: `findByEmailIncludingDeleted` checks all users including withdrawn; signup, email check, and email verification all reject withdrawn emails with "탈퇴한 계정" message
+- **Admin User List**: Shows all users including withdrawn; `status` field: `active` / `suspended` / `withdrawn`; withdrawn users have disabled status dropdown
+- **Subscription Grace Period**: Cancelled subscriptions remain active until `endDate`; `getEffectiveSubscription` helper in `usePayment.ts`
+
 ## Deployment
 
 Configured for autoscale deployment:

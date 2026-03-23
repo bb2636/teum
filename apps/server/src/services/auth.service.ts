@@ -16,9 +16,12 @@ import {
 
 export class AuthService {
   async signup(input: SignupInput) {
-    // Check if user already exists
-    const existingUser = await userRepository.findByEmail(input.email);
+    // Check if user already exists (including withdrawn accounts)
+    const existingUser = await userRepository.findByEmailIncludingDeleted(input.email);
     if (existingUser) {
+      if (existingUser.deletedAt) {
+        throw new Error('탈퇴한 계정의 이메일로는 재가입이 불가합니다.');
+      }
       throw new Error('User with this email already exists');
     }
 
@@ -220,16 +223,19 @@ export class AuthService {
   }
 
   async checkEmailExists(email: string) {
-    const existingUser = await userRepository.findByEmail(email);
+    const existingUser = await userRepository.findByEmailIncludingDeleted(email);
     return {
       exists: !!existingUser,
+      isWithdrawn: existingUser ? !!existingUser.deletedAt : false,
     };
   }
 
   async requestEmailVerification(input: EmailVerificationRequestInput) {
-    // Check if email already exists
-    const existingUser = await userRepository.findByEmail(input.email);
+    const existingUser = await userRepository.findByEmailIncludingDeleted(input.email);
     if (existingUser) {
+      if (existingUser.deletedAt) {
+        throw new Error('탈퇴한 계정의 이메일로는 재가입이 불가합니다.');
+      }
       throw new Error('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
     }
 

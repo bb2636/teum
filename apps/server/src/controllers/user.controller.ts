@@ -170,6 +170,7 @@ export class UserController {
               eq(subs.status, 'active')
             ),
           });
+          const isWithdrawn = !!user.deletedAt;
           return {
             id: user.id,
             email: user.email,
@@ -179,6 +180,8 @@ export class UserController {
             profile: user.profile,
             hasActiveSubscription: !!activeSubscription,
             isActive: user.isActive ?? true,
+            isWithdrawn,
+            status: isWithdrawn ? 'withdrawn' : (user.isActive ? 'active' : 'suspended'),
           };
         })
       );

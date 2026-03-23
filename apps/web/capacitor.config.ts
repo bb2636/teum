@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'teum',
   webDir: 'dist',
   server: {
+    url: 'https://teum-app.replit.app',
     androidScheme: 'https',
+    cleartext: false,
   },
   plugins: {
     PushNotifications: {

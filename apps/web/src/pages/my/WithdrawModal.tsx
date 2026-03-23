@@ -18,18 +18,24 @@ const WITHDRAW_NOTICE = `제1조 (목적)
 interface WithdrawModalProps {
   onClose: () => void;
   onWithdrawComplete?: () => void;
+  hasActiveSubscription?: boolean;
 }
 
-export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProps) {
+export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscription }: WithdrawModalProps) {
   const navigate = useNavigate();
   const [agreed, setAgreed] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteError, setShowDeleteError] = useState(false);
+  const [showSubWarning, setShowSubWarning] = useState(false);
 
   const handleDelete = async () => {
-    setShowConfirm(true);
+    if (hasActiveSubscription) {
+      setShowSubWarning(true);
+    } else {
+      setShowConfirm(true);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -142,6 +148,40 @@ export function WithdrawModal({ onClose, onWithdrawComplete }: WithdrawModalProp
             >
               확인
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 구독 이용중 경고 팝업 */}
+      {showSubWarning && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg animate-modal-pop">
+            <h3 className="text-lg font-bold text-[#4A2C1A] text-center mb-3">정말로 탈퇴하시겠습니까?</h3>
+            <p className="text-sm text-gray-700 text-center leading-relaxed mb-6">
+              현재 구독 이용중입니다.<br />
+              회원 탈퇴 시 남은 구독 기간에 대한<br />
+              <span className="font-semibold text-red-500">환불이 어렵습니다.</span>
+            </p>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
+                onClick={() => setShowSubWarning(false)}
+              >
+                취소
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 border-0 text-gray-500 rounded-full hover:bg-gray-100"
+                onClick={() => {
+                  setShowSubWarning(false);
+                  setShowConfirm(true);
+                }}
+              >
+                탈퇴 진행
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useMe, useUpdateProfile, User as UserType } from '@/hooks/useProfile';
 import { useLogout } from '@/hooks/useAuth';
+import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,6 +38,8 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
   const { refetch } = useMe();
+  const { data: subscriptions = [] } = useSubscriptions();
+  const activeSubscription = getEffectiveSubscription(subscriptions);
 
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -776,6 +779,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
             setShowWithdraw(false);
             onClose();
           }}
+          hasActiveSubscription={!!activeSubscription}
         />
       )}
     </>

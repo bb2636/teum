@@ -560,7 +560,14 @@ export function CalendarPage() {
         <MonthPickerModal
           currentYear={year}
           currentMonth={month}
-          onClose={() => setShowMonthPicker(false)}
+          onClose={() => {
+            setShowMonthPicker(false);
+            requestAnimationFrame(() => {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+              document.documentElement.scrollTop = 0;
+            });
+          }}
           onSelectMonth={handleMonthSelect}
         />
       )}

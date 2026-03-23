@@ -602,7 +602,7 @@ export function HomePage() {
                       };
 
                       const hasAnyImage = dateDiaries.some((d) => d.images && d.images.length > 0);
-                      const useGrid = hasAnyImage || dateDiaries.length >= 3;
+                      const useGrid = hasAnyImage;
 
                       if (useGrid) {
                         return (

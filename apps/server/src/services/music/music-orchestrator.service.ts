@@ -141,7 +141,7 @@ export class MusicOrchestratorService {
           prompt: promptForMureka,
           lyrics: analysis.lyrics,
           durationSeconds: 120,
-          mode: 'bgm',
+          mode: 'song',
         });
       } catch (murekaError) {
         const murekaMsg = murekaError instanceof Error ? murekaError.message : String(murekaError);

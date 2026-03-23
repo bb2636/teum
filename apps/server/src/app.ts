@@ -21,7 +21,22 @@ app.set('trust proxy', true);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.CORS_ORIGIN,
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'https://teum.replit.app',
+      'capacitor://localhost',
+      'https://localhost',
+    ].filter(Boolean) as string[];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());

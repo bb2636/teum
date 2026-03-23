@@ -47,7 +47,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): R
           res.cookie('accessToken', newAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
             maxAge: 15 * 60 * 1000, // 15 minutes
           });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSubscriptions, usePayments, useCancelSubscription } from '@/hooks/usePayment';
+import { useSubscriptions, usePayments, useCancelSubscription, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useMe } from '@/hooks/useProfile';
 import { SubscriptionCancelModal } from '@/components/SubscriptionCancelModal';
 import { format } from 'date-fns';
@@ -27,7 +27,8 @@ export function PaymentHistoryPage() {
     );
   }
 
-  const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  const effectiveSubscription = getEffectiveSubscription(subscriptions);
+  const isSubscriptionActive = effectiveSubscription?.status === 'active';
 
   const formatPaymentMethod = (method?: string): string => {
     if (!method) return '결제 수단 미확인';
@@ -57,31 +58,39 @@ export function PaymentHistoryPage() {
         <div className="px-4 py-6 space-y-6">
 
           {/* 결제 정보 */}
-          {activeSubscription && (
+          {effectiveSubscription && (
             <div>
               <h2 className="text-sm font-medium text-gray-500 mb-2">결제 정보</h2>
               <div className="bg-white rounded-xl p-4 border border-gray-200">
-                <p className="text-lg font-semibold text-[#4A2C1A] mb-3">
-                  월 {parseInt(activeSubscription.amount.toString()).toLocaleString()}원
-                </p>
-                {activeSubscription.endDate && (
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-lg font-semibold text-[#4A2C1A]">
+                    월 {parseInt(effectiveSubscription.amount.toString()).toLocaleString()}원
+                  </p>
+                  {!isSubscriptionActive && (
+                    <span className="text-xs text-red-500 font-medium bg-red-50 px-2 py-1 rounded-full">
+                      구독 취소됨
+                    </span>
+                  )}
+                </div>
+                {effectiveSubscription.endDate && (
                   <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>다음 결제 예정일</span>
-                    <span>{format(new Date(activeSubscription.endDate), 'yyyy.MM.dd', { locale: ko })}</span>
+                    <span>{isSubscriptionActive ? '다음 결제 예정일' : '이용 가능 기간'}</span>
+                    <span>{format(new Date(effectiveSubscription.endDate), 'yyyy.MM.dd', { locale: ko })}</span>
                   </div>
                 )}
               </div>
-              {/* 구독 취소 버튼 - 결제 정보 바로 아래 */}
-              <div className="text-right mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCancelModal(true)}
-                  disabled={cancelSubscription.isPending}
-                  className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
-                >
-                  구독취소
-                </button>
-              </div>
+              {isSubscriptionActive && (
+                <div className="text-right mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={cancelSubscription.isPending}
+                    className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
+                  >
+                    구독취소
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -151,13 +160,13 @@ export function PaymentHistoryPage() {
       </div>
 
       {/* 구독 취소 모달 */}
-      {showCancelModal && activeSubscription && (
+      {showCancelModal && effectiveSubscription && isSubscriptionActive && (
         <SubscriptionCancelModal
           isOpen={showCancelModal}
           onClose={() => setShowCancelModal(false)}
           onConfirm={async () => {
             try {
-              await cancelSubscription.mutateAsync(activeSubscription.id);
+              await cancelSubscription.mutateAsync(effectiveSubscription.id);
               setShowCancelModal(false);
               setShowCancelSuccess(true);
             } catch (error: any) {

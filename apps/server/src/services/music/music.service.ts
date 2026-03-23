@@ -28,13 +28,8 @@ export class MusicService {
   }
 
   private async hasActiveSubscription(userId: string): Promise<boolean> {
-    const subs = await paymentService.getSubscriptions(userId);
-    const now = new Date();
-    return subs.some(
-      (s) =>
-        s.status === 'active' &&
-        (!s.endDate || new Date(s.endDate) >= now)
-    );
+    const activeSub = await paymentService.getActiveSubscription(userId);
+    return activeSub !== null;
   }
 
   private async getMonthlyUsage(userId: string): Promise<number> {

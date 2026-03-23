@@ -26,8 +26,12 @@ export class PaymentService {
   async getActiveSubscription(userId: string) {
     const subs = await this.getSubscriptions(userId);
     const now = new Date();
-    return subs.find(
+    const activeSub = subs.find(
       (s) => s.status === 'active' && (!s.endDate || new Date(s.endDate) >= now)
+    );
+    if (activeSub) return activeSub;
+    return subs.find(
+      (s) => s.status === 'cancelled' && s.endDate && new Date(s.endDate) >= now
     ) ?? null;
   }
 

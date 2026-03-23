@@ -4,7 +4,7 @@ import { Download, Sprout, Sparkles, ChevronRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
 import { useMusicJobs, MusicJobListItem } from '@/hooks/useMusic';
-import { useSubscriptions } from '@/hooks/usePayment';
+import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
 import { format } from 'date-fns';
@@ -223,7 +223,7 @@ export function MusicHomePage() {
   const jobs = jobsData?.jobs ?? [];
   const monthlyUsed = jobsData?.monthlyUsed ?? 0;
   const hasSubscription = jobsData?.hasSubscription ?? false;
-  const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  const activeSubscription = getEffectiveSubscription(subscriptions);
   const subscriptionStartDate = activeSubscription?.startDate;
   const completedJobs = jobs.filter((j) => j.status === 'completed' || j.status === 'lyrics_only');
 

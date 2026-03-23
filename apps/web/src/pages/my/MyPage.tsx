@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { useMe } from '@/hooks/useProfile';
-import { useSubscriptions } from '@/hooks/usePayment';
+import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useLogout } from '@/hooks/useAuth';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
@@ -51,7 +51,7 @@ export function MyPage() {
     } catch (_) {}
   };
 
-  const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  const activeSubscription = getEffectiveSubscription(subscriptions);
   
   useEffect(() => {
     return () => setHideTabBar(false);
@@ -169,12 +169,20 @@ export function MyPage() {
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between gap-2 mb-1">
               <span className="font-semibold text-brown-900">
-                {activeSubscription ? '구독중' : '미구독'}
+                {activeSubscription
+                  ? activeSubscription.status === 'cancelled'
+                    ? '구독 취소됨'
+                    : '구독중'
+                  : '미구독'}
               </span>
             </div>
             {activeSubscription && nextPaymentDateStr && (
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>다음 결제일</span>
+                <span>
+                  {activeSubscription.status === 'cancelled'
+                    ? '이용 가능 기간'
+                    : '다음 결제예정일'}
+                </span>
                 <span>{nextPaymentDateStr}</span>
               </div>
             )}

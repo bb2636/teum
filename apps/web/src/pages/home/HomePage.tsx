@@ -7,7 +7,7 @@ import { ProfileButton } from '@/components/ProfileButton';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
-import { useSubscriptions } from '@/hooks/usePayment';
+import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -63,7 +63,7 @@ export function HomePage() {
     };
   }, [showCreateFolderModal, setHideTabBar]);
   
-  const activeSubscription = subscriptions.find((s) => s.status === 'active');
+  const activeSubscription = getEffectiveSubscription(subscriptions);
   
   // Filter out "All" folder (isDefault: true)
   const filteredFolders = folders.filter((folder) => !folder.isDefault);

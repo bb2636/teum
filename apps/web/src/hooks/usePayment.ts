@@ -101,6 +101,15 @@ export function usePayments() {
   });
 }
 
+export function getEffectiveSubscription(subscriptions: Subscription[]): Subscription | undefined {
+  const now = new Date();
+  const active = subscriptions.find((s) => s.status === 'active');
+  if (active) return active;
+  return subscriptions.find(
+    (s) => s.status === 'cancelled' && s.endDate && new Date(s.endDate) >= now
+  );
+}
+
 // Cancel subscription
 export function useCancelSubscription() {
   const queryClient = useQueryClient();

@@ -117,14 +117,15 @@ export class MusicController {
         });
       }
 
-      // If job is still processing, try polling once
-      const job = await musicService.getJob(req.user.userId, jobId);
+      let job = await musicService.getJob(req.user.userId, jobId);
       if (job.status === 'processing' && job.providerJobId) {
-        // Trigger a poll attempt (non-blocking)
-        musicPollingService.pollJob(jobId).catch((_error) => {
-          // Log but don't fail the request
-          // Error is logged by polling service
-        });
+        try {
+          const done = await musicPollingService.pollJob(jobId);
+          if (done) {
+            job = await musicService.getJob(req.user.userId, jobId);
+          }
+        } catch (_error) {
+        }
       }
 
       res.json({

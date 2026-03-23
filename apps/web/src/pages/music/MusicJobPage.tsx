@@ -109,18 +109,21 @@ export function MusicJobPage() {
           <h1 className="text-xl font-bold text-brown-900">음악 생성</h1>
         </div>
 
-        {/* 로딩 팝업: 생성 중일 때 */}
+        {/* 로딩 팝업: 생성 중일 때 - 전체 화면 */}
         {isProcessing && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
-            <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl animate-modal-pop">
-              <div className="flex justify-center gap-1 mb-4">
-                <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 rounded-full bg-brown-500 animate-bounce [animation-delay:300ms]" />
+          <div className="fixed inset-0 z-50 bg-[#665146] flex flex-col items-center justify-center animate-overlay-fade">
+            <div className="text-center space-y-6 px-8">
+              <div className="flex justify-center space-x-2">
+                <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <p className="font-semibold text-brown-900 mb-2">음악을 만들고 있습니다.</p>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-xl font-semibold text-white">음악을 만들고 있습니다.</h2>
+              <p className="text-sm text-white/70">
                 선택한 일기의 감정을 분석하고<br />선율로 바꾸는 중입니다.
+              </p>
+              <p className="text-xs text-white/50 mt-8">
+                최대 2~3분 정도 소요될 수 있습니다.
               </p>
             </div>
           </div>

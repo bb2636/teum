@@ -99,9 +99,6 @@ export function ForgotPasswordPage() {
     try {
       const result = await requestPhoneVerification.mutateAsync(phone);
       setPhoneVerificationCode(result.code || null);
-      if (result.code) {
-        console.log('SMS 인증번호 (개발 모드):', result.code);
-      }
       setShowPhoneVerificationModal(true);
       setPhoneVerified(false);
       setPhoneVerificationInput('');

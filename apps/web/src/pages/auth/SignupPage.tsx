@@ -228,7 +228,6 @@ export function SignupPage() {
       setShowPhoneVerificationModal(true);
       if (result.code) {
         setPhoneVerificationCode(result.code);
-        console.log('SMS 인증번호:', result.code);
       }
     } catch (err) {
       const error = err as Error;

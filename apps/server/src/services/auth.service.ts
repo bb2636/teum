@@ -202,18 +202,20 @@ export class AuthService {
       expiresAt,
     });
 
-    // TODO: Send SMS (mock for now)
-    // In development, log to logger and return code in response
+    // TODO: Send SMS via real provider
     logger.info('Phone verification code generated', {
       phone: input.phone,
-      code,
       expiresAt: expiresAt.toISOString(),
     });
 
-    return {
+    const response: { message: string; expiresIn: number; code?: string } = {
       message: 'Verification code sent',
-      expiresIn: 600, // 10 minutes in seconds
+      expiresIn: 600,
     };
+    if (process.env.NODE_ENV !== 'production') {
+      response.code = code;
+    }
+    return response;
   }
 
   async confirmPhoneVerification(input: PhoneVerificationConfirmInput) {
@@ -300,19 +302,20 @@ export class AuthService {
       expiresAt,
     });
 
-    // TODO: Send email (mock for now)
-    // In development, log to logger and return code in response
+    // TODO: Send email via real provider
     logger.info('Email verification code generated', {
       email: input.email,
-      code,
       expiresAt: expiresAt.toISOString(),
     });
 
-    return {
+    const response: { message: string; expiresIn: number; code?: string } = {
       message: 'Verification code sent',
-      expiresIn: 600, // 10 minutes in seconds
-      code, // Return code in development mode
+      expiresIn: 600,
     };
+    if (process.env.NODE_ENV !== 'production') {
+      response.code = code;
+    }
+    return response;
   }
 
   async requestEmailVerificationForPasswordReset(input: EmailVerificationRequestInput) {
@@ -340,19 +343,20 @@ export class AuthService {
       expiresAt,
     });
 
-    // TODO: Send email (mock for now)
-    // In development, log to logger and return code in response
+    // TODO: Send email via real provider
     logger.info('Email verification code generated for password reset', {
       email: input.email,
-      code,
       expiresAt: expiresAt.toISOString(),
     });
 
-    return {
+    const response: { message: string; expiresIn: number; code?: string } = {
       message: 'Verification code sent',
-      expiresIn: 600, // 10 minutes in seconds
-      code, // Return code in development mode
+      expiresIn: 600,
     };
+    if (process.env.NODE_ENV !== 'production') {
+      response.code = code;
+    }
+    return response;
   }
 
   async confirmEmailVerification(input: EmailVerificationConfirmInput) {

@@ -11,23 +11,21 @@ import { logger } from '../../config/logger';
  * In production, this should be replaced with a proper queue system (Bull, BullMQ, etc.)
  */
 export class MusicQueueService {
-  private processing = false;
+  private running = false;
+  private jobInProgress = false;
   private intervalId: NodeJS.Timeout | null = null;
 
-  /**
-   * Start the queue worker
-   * Processes one job at a time to avoid overwhelming the system
-   */
   startWorker(intervalMs: number = 5000): void {
-    if (this.processing) {
+    if (this.running) {
       logger.warn('Music queue worker is already running');
       return;
     }
 
-    this.processing = true;
+    this.running = true;
     logger.info('Music queue worker started', { intervalMs });
 
     this.intervalId = setInterval(async () => {
+      if (this.jobInProgress) return;
       await this.processNextJob();
     }, intervalMs);
   }
@@ -40,7 +38,7 @@ export class MusicQueueService {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    this.processing = false;
+    this.running = false;
     logger.info('Music queue worker stopped');
   }
 
@@ -48,8 +46,8 @@ export class MusicQueueService {
    * Process the next queued job
    */
   private async processNextJob(): Promise<void> {
+    this.jobInProgress = true;
     try {
-      // Find the oldest queued job
       const [job] = await db
         .select()
         .from(musicJobs)
@@ -58,23 +56,23 @@ export class MusicQueueService {
         .limit(1);
 
       if (!job) {
-        return; // No jobs to process
+        return;
       }
 
       logger.info('Processing music generation job', { jobId: job.id });
 
-      // Update status to processing
       await db
         .update(musicJobs)
         .set({ status: 'processing' })
         .where(eq(musicJobs.id, job.id));
 
-      // Process the job
       await musicOrchestratorService.generateMusic(job.userId, job.sourceDiaryIds as string[]);
     } catch (error) {
       logger.error('Error processing music job', {
         error: error instanceof Error ? error.message : String(error),
       });
+    } finally {
+      this.jobInProgress = false;
     }
   }
 

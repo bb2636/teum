@@ -176,7 +176,6 @@ export function SocialOnboardingPage() {
       setShowEmailVerificationModal(true);
       if (result.code) {
         setEmailVerificationCode(result.code);
-        console.log('이메일 인증번호:', result.code);
       }
     } catch (err: any) {
       setError(err?.message || '인증 코드 발송에 실패했습니다');

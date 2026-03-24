@@ -32,9 +32,9 @@ export interface Subscription {
 export interface ProcessPaymentInput {
   amount: number;
   planName: string;
-  paymentMethod: 'card' | 'easy_pay' | 'bank_transfer';
+  paymentMethod: string;
   cardCompany?: string;
-  easyPayProvider?: 'toss' | 'npay' | 'apple';
+  cardCode?: string;
 }
 
 export interface ProcessPaymentResponse {

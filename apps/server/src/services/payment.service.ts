@@ -72,10 +72,8 @@ export class PaymentService {
 
     const orderId = `ORDER_${Date.now()}_${userId.substring(0, 8)}`;
     let paymentMethodStr: string = input.paymentMethod;
-    if (input.paymentMethod === 'card' && input.cardCompany) {
-      paymentMethodStr = `card_${input.cardCompany}`;
-    } else if (input.paymentMethod === 'easy_pay' && input.easyPayProvider) {
-      paymentMethodStr = `easy_pay_${input.easyPayProvider}`;
+    if (input.paymentMethod === 'CARD' && input.cardCode) {
+      paymentMethodStr = `CARD_${input.cardCode}`;
     }
 
     // 결제 연동 전: 모크 모드면 PG 호출 없이 바로 성공 처리
@@ -174,7 +172,7 @@ export class PaymentService {
         })
         .returning();
 
-      if (paymentMethodStr.startsWith('card') || paymentMethodStr.startsWith('easy_pay')) {
+      if (paymentMethodStr.startsWith('CARD') || paymentMethodStr === 'BANK' || paymentMethodStr === 'CELLPHONE') {
         const activeSubscription = await this.getActiveSubscription(userId);
         if (activeSubscription) {
           await db

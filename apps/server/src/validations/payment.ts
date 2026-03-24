@@ -3,11 +3,11 @@ import { z } from 'zod';
 export const processPaymentSchema = z.object({
   amount: z.number().positive('결제 금액은 0보다 커야 합니다'),
   planName: z.string().min(1, '플랜 이름이 필요합니다'),
-  paymentMethod: z.enum(['card', 'easy_pay', 'bank_transfer'], {
+  paymentMethod: z.enum(['CARD', 'BANK', 'CELLPHONE'], {
     errorMap: () => ({ message: '유효한 결제 수단을 선택해주세요' }),
   }),
   cardCompany: z.string().optional(),
-  easyPayProvider: z.enum(['toss', 'npay', 'apple']).optional(),
+  cardCode: z.string().optional(),
   isRenewal: z.boolean().optional(),
 });
 

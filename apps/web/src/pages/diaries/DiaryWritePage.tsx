@@ -197,15 +197,10 @@ export function DiaryWritePage() {
     };
   }, []);
 
-  // 스크롤 방지
   useEffect(() => {
-    // 스크롤 방지
     document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
     return () => {
       document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
     };
   }, []);
 
@@ -785,7 +780,7 @@ export function DiaryWritePage() {
 
   if (type === 'free_form') {
     return (
-      <div className="min-h-screen bg-white pb-20 overflow-hidden" style={{ touchAction: 'none' }}>
+      <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
         {(uploading || createDiary.isPending || updateDiary.isPending) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
             <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
@@ -795,9 +790,8 @@ export function DiaryWritePage() {
             </div>
           </div>
         )}
-        <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden bg-white">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-30">
+        <div className="max-w-md mx-auto w-full flex-1 flex flex-col overflow-hidden bg-white">
+          <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0">
             <button 
               onClick={handleBackClick} 
               className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
@@ -815,81 +809,73 @@ export function DiaryWritePage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            <div 
-              className="flex-1 relative overflow-hidden bg-white"
-            >
-              <div className="overflow-y-auto overflow-x-hidden h-full">
-                <input
-                  {...register('title')}
-                  type="text"
-                  placeholder="제목을 입력하세요"
-                  className="w-full px-4 pt-4 pb-2 text-lg font-semibold outline-none bg-white border-b border-gray-100"
-                  style={{ color: '#4A2C1A' }}
-                  maxLength={100}
-                />
-                <div
-                  ref={contentEditableRef}
-                  contentEditable
-                  onInput={handleContentChange}
-                  onPaste={handlePaste}
-                  onKeyDown={handleContentKeyDown}
-                  onBlur={updateActiveFormats}
-                  onFocus={updateActiveFormats}
-                  onSelect={updateActiveFormats}
-                  data-placeholder="글쓰기 시작..."
-                  className="w-full resize-none outline-none bg-white min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
-                  style={{ 
-                    color: '#4A2C1A',
-                    lineHeight: '24px',
-                    fontSize: '16px',
-                    paddingTop: '12px',
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
-                  }}
-                />
-              </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white">
+              <input
+                {...register('title')}
+                type="text"
+                placeholder="제목을 입력하세요"
+                className="w-full px-4 pt-4 pb-2 text-lg font-semibold outline-none bg-white border-b border-gray-100"
+                style={{ color: '#4A2C1A' }}
+                maxLength={100}
+              />
+              <div
+                ref={contentEditableRef}
+                contentEditable
+                onInput={handleContentChange}
+                onPaste={handlePaste}
+                onKeyDown={handleContentKeyDown}
+                onBlur={updateActiveFormats}
+                onFocus={updateActiveFormats}
+                onSelect={updateActiveFormats}
+                data-placeholder="글쓰기 시작..."
+                className="w-full resize-none outline-none bg-white min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                style={{ 
+                  color: '#4A2C1A',
+                  lineHeight: '24px',
+                  fontSize: '16px',
+                  paddingTop: '12px',
+                  paddingBottom: '120px',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                }}
+              />
             </div>
 
-            {/* Floating Toolbar - Left bottom, oval shape with 3 buttons, 키보드에 맞춰 이동 */}
-            <div 
-              className="fixed left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4"
-              style={{
-                bottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : '24px',
-                transition: keyboardHeight > 0 ? 'none' : 'bottom 0.3s ease-out',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setShowFormatMenu(true)}
-                className="cursor-pointer p-1"
-              >
-                <Type className="w-6 h-6 text-gray-600" />
-              </button>
-              <button
-                type="button"
-                onClick={handleCameraClick}
-                className="cursor-pointer p-1"
-              >
-                <Camera className="w-6 h-6 text-gray-600" />
-              </button>
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              <label className="cursor-pointer p-1">
-                <ImageIcon className="w-6 h-6 text-gray-600" />
+            <div className="shrink-0 px-4 py-2 bg-white">
+              <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setShowFormatMenu(true)}
+                  className="cursor-pointer p-1"
+                >
+                  <Type className="w-6 h-6 text-gray-600" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCameraClick}
+                  className="cursor-pointer p-1"
+                >
+                  <Camera className="w-6 h-6 text-gray-600" />
+                </button>
                 <input
+                  ref={cameraInputRef}
                   type="file"
-                  multiple
                   accept="image/*"
+                  capture="environment"
                   onChange={handleImageSelect}
                   className="hidden"
                 />
-              </label>
+                <label className="cursor-pointer p-1">
+                  <ImageIcon className="w-6 h-6 text-gray-600" />
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
           </form>
 
@@ -938,7 +924,7 @@ export function DiaryWritePage() {
 
   // Question-based Diary
   return (
-    <div className="min-h-screen bg-white pb-24 overflow-hidden relative" style={{ touchAction: 'none' }}>
+    <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
       {(uploading || createDiary.isPending || updateDiary.isPending) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
           <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
@@ -948,9 +934,8 @@ export function DiaryWritePage() {
           </div>
         </div>
       )}
-      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative bg-white">
-        {/* Header - 자유작성과 동일 */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-30">
+      <div className="max-w-md mx-auto w-full flex-1 flex flex-col overflow-hidden bg-white">
+        <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0">
           <button 
             onClick={handleBackClick} 
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
@@ -968,7 +953,6 @@ export function DiaryWritePage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-          {/* 질문 영역 - 목록/확장 뷰 전환 */}
           <div className="flex-1 flex flex-col overflow-hidden px-4 py-5">
             {questionsLoading ? (
               <div className="text-center py-8 text-gray-500">질문을 불러오는 중...</div>
@@ -1048,42 +1032,37 @@ export function DiaryWritePage() {
             )}
           </div>
 
-          {/* Floating Toolbar - Left bottom, oval shape with 3 buttons, 키보드에 맞춰 이동 */}
-          <div 
-            className="fixed left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4" 
-            style={{
-              bottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : '24px',
-              transition: keyboardHeight > 0 ? 'none' : 'bottom 0.3s ease-out',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setShowFormatMenu(true)}
-              className="cursor-pointer p-1"
-            >
-              <Type className="w-6 h-6 text-gray-600" />
-            </button>
-            <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
-              <Camera className="w-6 h-6 text-gray-600" />
-            </button>
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-            <label className="cursor-pointer p-1">
-              <ImageIcon className="w-6 h-6 text-gray-600" />
+          <div className="shrink-0 px-4 py-2 bg-white">
+            <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
+              <button
+                type="button"
+                onClick={() => setShowFormatMenu(true)}
+                className="cursor-pointer p-1"
+              >
+                <Type className="w-6 h-6 text-gray-600" />
+              </button>
+              <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
+                <Camera className="w-6 h-6 text-gray-600" />
+              </button>
               <input
+                ref={cameraInputRef}
                 type="file"
-                multiple
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageSelect}
                 className="hidden"
               />
-            </label>
+              <label className="cursor-pointer p-1">
+                <ImageIcon className="w-6 h-6 text-gray-600" />
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
         </form>
       </div>

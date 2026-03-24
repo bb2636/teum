@@ -16,6 +16,7 @@ export function MusicJobPage() {
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const wasProcessingRef = useRef(false);
   
   // 일기 첫 줄 추출 함수
   const getFirstLine = (diary: { title?: string; content?: string; type?: string; answers?: Array<{ answer?: string; question?: { question?: string } }> }) => {
@@ -81,8 +82,15 @@ export function MusicJobPage() {
   }, [job?.audioUrl, job?.status]);
 
   useEffect(() => {
+    if (job?.status === 'processing' || job?.status === 'queued') {
+      wasProcessingRef.current = true;
+    }
+  }, [job?.status]);
+
+  useEffect(() => {
     if (!jobId) return;
     if (job?.status !== 'completed' && job?.status !== 'lyrics_only') return;
+    if (!wasProcessingRef.current) return;
     const key = `music_completion_seen_${jobId}`;
     if (localStorage.getItem(key)) return;
     setShowCompletionPopup(true);

@@ -183,6 +183,21 @@ input[type="checkbox"] {
   animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* 탭바 아이콘 바운스 */
 @keyframes tab-bounce {
   0% { transform: scale(1); }

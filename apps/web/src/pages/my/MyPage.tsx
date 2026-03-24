@@ -33,6 +33,7 @@ export function MyPage() {
   const logout = useLogout();
   const { setHideTabBar } = useHideTabBar();
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showTermsList, setShowTermsList] = useState(false);
   const [termsType, setTermsType] = useState<string>('service');
@@ -93,11 +94,17 @@ export function MyPage() {
     setHideTabBar(false);
   };
 
-  const handleLogout = async () => {
-    if (confirm('로그아웃 하시겠습니까?')) {
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    try {
       await logout.mutateAsync();
-      navigate('/login');
+    } catch {
+      // ignore
     }
+    setShowLogoutConfirm(false);
   };
 
   if (isLoading) {
@@ -242,6 +249,30 @@ export function MyPage() {
           </button>
         </div>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
+            <p className="text-brown-900 mb-6">정말 로그아웃 하시겠습니까?</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="flex-1 py-2.5 border border-brown-200 text-brown-700 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="flex-1 py-2.5 bg-[#665146] hover:bg-[#5A453A] text-white rounded-full transition-colors"
+                onClick={handleLogoutConfirm}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {showTermsList && (

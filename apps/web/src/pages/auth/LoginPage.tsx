@@ -23,9 +23,18 @@ export function LoginPage() {
   const loginMutation = useLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skipAutoRedirect] = useState(() => {
+    const flag = sessionStorage.getItem('teum_logging_out');
+    if (flag) {
+      sessionStorage.removeItem('teum_logging_out');
+      return true;
+    }
+    return false;
+  });
   const { data: user, isLoading: isCheckingAuth } = useMe();
 
   useEffect(() => {
+    if (skipAutoRedirect) return;
     if (isCheckingAuth) return;
     if (user) {
       if (user.role === 'admin') {
@@ -34,7 +43,7 @@ export function LoginPage() {
         navigate('/home', { replace: true });
       }
     }
-  }, [user, isCheckingAuth, navigate]);
+  }, [user, isCheckingAuth, navigate, skipAutoRedirect]);
 
   const {
     register,

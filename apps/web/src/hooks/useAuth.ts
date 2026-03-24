@@ -81,15 +81,25 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const { unregisterPushNotifications } = await import('@/lib/push-notifications');
-      await unregisterPushNotifications();
-      await apiRequest('/auth/logout', {
-        method: 'POST',
-      });
+      try {
+        const { unregisterPushNotifications } = await import('@/lib/push-notifications');
+        await unregisterPushNotifications();
+      } catch {
+        // ignore push unregister failure
+      }
+      try {
+        await apiRequest('/auth/logout', {
+          method: 'POST',
+        });
+      } catch {
+        // ignore server logout failure
+      }
     },
-    onSuccess: () => {
+    onSettled: () => {
+      sessionStorage.setItem('teum_logging_out', '1');
+      queryClient.setQueryData(['me'], null);
       queryClient.clear();
-      navigate('/login');
+      navigate('/login', { replace: true });
     },
   });
 }

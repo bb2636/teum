@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
@@ -31,9 +31,18 @@ export function SplashPage() {
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const appleLogin = useAppleLogin();
+  const [skipAutoRedirect] = useState(() => {
+    const flag = sessionStorage.getItem('teum_logging_out');
+    if (flag) {
+      sessionStorage.removeItem('teum_logging_out');
+      return true;
+    }
+    return false;
+  });
   const { data: user, isLoading: isCheckingAuth } = useMe();
 
   useEffect(() => {
+    if (skipAutoRedirect) return;
     if (isCheckingAuth) return;
     if (user) {
       if (user.role === 'admin') {
@@ -42,7 +51,7 @@ export function SplashPage() {
         navigate('/home', { replace: true });
       }
     }
-  }, [user, isCheckingAuth, navigate]);
+  }, [user, isCheckingAuth, navigate, skipAutoRedirect]);
 
   const handleGoogleCredentialResponse = useCallback(
     async (response: any) => {

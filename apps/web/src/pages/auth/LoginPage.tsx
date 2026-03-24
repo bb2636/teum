@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLogin } from '@/hooks/useAuth';
 import { Logo } from '@/components/Logo';
+import { useMe } from '@/hooks/useProfile';
 
 const loginSchema = z.object({
   email: z.string().min(1, '이메일을 입력해주세요').email('올바른 이메일을 입력해주세요'),
@@ -22,6 +23,18 @@ export function LoginPage() {
   const loginMutation = useLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { data: user, isLoading: isCheckingAuth } = useMe();
+
+  useEffect(() => {
+    if (isCheckingAuth) return;
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/home', { replace: true });
+      }
+    }
+  }, [user, isCheckingAuth, navigate]);
 
   const {
     register,

@@ -66,16 +66,9 @@ export async function apiRequest<T>(
     credentials: 'include',
   });
 
-  // Handle 401: 세션/쿠키/토큰 만료 시 로그인 화면으로 이동 (단, /users/me는 인증 확인용이므로 리다이렉트하지 않고 throw)
   if (response.status === 401 && endpoint !== '/auth/refresh') {
-    if (endpoint === '/users/me') {
-      const err = new Error('Unauthorized') as Error & { status?: number };
-      err.status = 401;
-      throw err;
-    }
     try {
       await refreshToken();
-      // 토큰 갱신 후 재시도
       const retryIsFormData = options?.body instanceof FormData;
       const retryHeaders: HeadersInit = retryIsFormData
         ? { ...options?.headers }
@@ -90,7 +83,11 @@ export async function apiRequest<T>(
       });
 
       if (retryResponse.status === 401) {
-        // 재시도 후에도 401이면 로그인 화면으로 이동
+        if (endpoint === '/users/me') {
+          const err = new Error('Unauthorized') as Error & { status?: number };
+          err.status = 401;
+          throw err;
+        }
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
@@ -106,7 +103,11 @@ export async function apiRequest<T>(
 
       return retryResponse.json();
     } catch (refreshError) {
-      // 토큰 갱신 실패 또는 인증 실패 시 로그인 화면으로 이동
+      if (endpoint === '/users/me') {
+        const err = new Error('Unauthorized') as Error & { status?: number };
+        err.status = 401;
+        throw err;
+      }
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }

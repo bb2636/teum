@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { useGoogleLogin, useAppleLogin } from '@/hooks/useSocialAuth';
+import { useMe } from '@/hooks/useProfile';
 
 declare global {
   interface Window {
@@ -30,6 +31,18 @@ export function SplashPage() {
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const appleLogin = useAppleLogin();
+  const { data: user, isLoading: isCheckingAuth } = useMe();
+
+  useEffect(() => {
+    if (isCheckingAuth) return;
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/home', { replace: true });
+      }
+    }
+  }, [user, isCheckingAuth, navigate]);
 
   const handleGoogleCredentialResponse = useCallback(
     async (response: any) => {

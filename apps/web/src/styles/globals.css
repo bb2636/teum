@@ -180,7 +180,7 @@ input[type="checkbox"] {
 }
 
 .animate-page-in {
-  animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fade-in {

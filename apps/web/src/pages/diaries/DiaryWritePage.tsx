@@ -155,7 +155,20 @@ export function DiaryWritePage() {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      return;
+      let cleanup: (() => void) | undefined;
+      import('@capacitor/keyboard').then(({ Keyboard }) => {
+        const showHandle = Keyboard.addListener('keyboardWillShow', (info: { keyboardHeight: number }) => {
+          setKeyboardHeight(info.keyboardHeight);
+        });
+        const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
+          setKeyboardHeight(0);
+        });
+        cleanup = () => {
+          showHandle.then(h => h.remove());
+          hideHandle.then(h => h.remove());
+        };
+      }).catch(() => {});
+      return () => { cleanup?.(); };
     }
 
     const vv = window.visualViewport;
@@ -780,7 +793,10 @@ export function DiaryWritePage() {
 
   if (type === 'free_form') {
     return (
-      <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
+      <div
+        className="bg-white flex flex-col overflow-hidden"
+        style={{ height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '100dvh' }}
+      >
         {(uploading || createDiary.isPending || updateDiary.isPending) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
             <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
@@ -924,7 +940,10 @@ export function DiaryWritePage() {
 
   // Question-based Diary
   return (
-    <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
+    <div
+      className="bg-white flex flex-col overflow-hidden"
+      style={{ height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '100dvh' }}
+    >
       {(uploading || createDiary.isPending || updateDiary.isPending) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
           <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">

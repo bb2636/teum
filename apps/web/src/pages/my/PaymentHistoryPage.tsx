@@ -30,16 +30,23 @@ export function PaymentHistoryPage() {
   const effectiveSubscription = getEffectiveSubscription(subscriptions);
   const isSubscriptionActive = effectiveSubscription?.status === 'active';
 
+  const NICEPAY_CARD_NAMES: Record<string, string> = {
+    '01': 'BC카드', '02': 'KB국민카드', '03': '하나카드', '04': '삼성카드',
+    '06': '신한카드', '07': '현대카드', '08': '롯데카드', '11': '씨티카드',
+    '12': 'NH농협카드', '15': '우리카드',
+  };
+
   const formatPaymentMethod = (method?: string): string => {
     if (!method) return '결제 수단 미확인';
-    if (method.startsWith('card_')) return method.replace('card_', '') + ' 카드결제';
-    if (method.startsWith('easy_pay_')) {
-      const provider = method.replace('easy_pay_', '');
-      const names: Record<string, string> = { npay: '네이버페이', toss: '토스페이', apple: 'Apple Pay', kakao: '카카오페이' };
-      return names[provider] || provider;
+    if (method.startsWith('CARD_')) {
+      const code = method.replace('CARD_', '');
+      return (NICEPAY_CARD_NAMES[code] || '카드') + ' 결제';
     }
+    if (method === 'CARD') return '카드결제';
+    if (method === 'BANK') return '계좌이체';
+    if (method === 'CELLPHONE') return '휴대폰 결제';
+    if (method.startsWith('card_')) return method.replace('card_', '') + ' 카드결제';
     if (method === 'card') return '카드결제';
-    if (method === 'easy_pay') return '간편결제';
     if (method === 'bank_transfer') return '계좌이체';
     return method;
   };

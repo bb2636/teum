@@ -6,7 +6,6 @@ import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Keyboard } from '@capacitor/keyboard';
 import { useRandomQuestions } from '@/hooks/useQuestions';
 import { FolderSelectModal } from './FolderSelectModal';
 import { FormatMenu } from './FormatMenu';
@@ -155,69 +154,86 @@ export function DiaryWritePage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     if (Capacitor.isNativePlatform()) {
-      const showListener = Keyboard.addListener('keyboardWillShow', (info) => {
-        setKeyboardHeight(info.keyboardHeight);
-      });
-      const hideListener = Keyboard.addListener('keyboardWillHide', () => {
-        setKeyboardHeight(0);
-      });
+      let nativeCleanup: (() => void) | undefined;
+
+      import('@capacitor/keyboard')
+        .then(({ Keyboard }) => {
+          if (cancelled) return;
+          const showHandle = Keyboard.addListener(
+            'keyboardWillShow',
+            (info: { keyboardHeight: number }) => {
+              setKeyboardHeight(info.keyboardHeight);
+            },
+          );
+          const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
+            setKeyboardHeight(0);
+          });
+          nativeCleanup = () => {
+            showHandle.then((h: { remove: () => void }) => h.remove());
+            hideHandle.then((h: { remove: () => void }) => h.remove());
+          };
+        })
+        .catch(() => {});
 
       return () => {
-        showListener.then(h => h.remove());
-        hideListener.then(h => h.remove());
-      };
-    } else {
-      const initialHeight = window.innerHeight;
-
-      const handleResize = () => {
-        if (window.visualViewport) {
-          const heightDiff = initialHeight - window.visualViewport.height;
-          setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
-        } else {
-          const heightDiff = initialHeight - window.innerHeight;
-          setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
-        }
-      };
-
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', handleResize);
-        window.visualViewport.addEventListener('scroll', handleResize);
-      }
-      window.addEventListener('resize', handleResize);
-
-      return () => {
-        if (window.visualViewport) {
-          window.visualViewport.removeEventListener('resize', handleResize);
-          window.visualViewport.removeEventListener('scroll', handleResize);
-        }
-        window.removeEventListener('resize', handleResize);
+        cancelled = true;
+        nativeCleanup?.();
       };
     }
+
+    const vv = window.visualViewport;
+    if (vv) {
+      const handleViewport = () => {
+        const kbHeight = window.innerHeight - vv.height;
+        setKeyboardHeight(kbHeight > 50 ? kbHeight : 0);
+      };
+
+      vv.addEventListener('resize', handleViewport);
+      vv.addEventListener('scroll', handleViewport);
+
+      return () => {
+        cancelled = true;
+        vv.removeEventListener('resize', handleViewport);
+        vv.removeEventListener('scroll', handleViewport);
+      };
+    }
+
+    let focusTimer: ReturnType<typeof setTimeout>;
+    const handleFocusIn = () => {
+      focusTimer = setTimeout(() => {
+        const diff = window.innerHeight - (window.visualViewport?.height ?? window.innerHeight);
+        setKeyboardHeight(diff > 50 ? diff : 0);
+      }, 300);
+    };
+    const handleFocusOut = () => {
+      clearTimeout(focusTimer);
+      setKeyboardHeight(0);
+    };
+    window.addEventListener('resize', handleFocusIn);
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(focusTimer);
+      window.removeEventListener('resize', handleFocusIn);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
   }, []);
 
   // 스크롤 방지
   useEffect(() => {
     // 스크롤 방지
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
     document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.position = 'fixed';
-    document.documentElement.style.width = '100%';
-    document.documentElement.style.height = '100%';
 
-    // cleanup: 페이지를 벗어날 때 스크롤 복원
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
       document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.documentElement.style.width = '';
-      document.documentElement.style.height = '';
     };
   }, []);
 

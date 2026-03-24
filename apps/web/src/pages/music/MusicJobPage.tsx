@@ -84,12 +84,12 @@ export function MusicJobPage() {
     if (!jobId) return;
     if (job?.status !== 'completed' && job?.status !== 'lyrics_only') return;
     const key = `music_completion_seen_${jobId}`;
-    if (sessionStorage.getItem(key)) return;
+    if (localStorage.getItem(key)) return;
     setShowCompletionPopup(true);
   }, [job?.status, jobId]);
 
   const handleCloseCompletionPopup = () => {
-    if (jobId) sessionStorage.setItem(`music_completion_seen_${jobId}`, '1');
+    if (jobId) localStorage.setItem(`music_completion_seen_${jobId}`, '1');
     setShowCompletionPopup(false);
   };
 
@@ -156,35 +156,39 @@ export function MusicJobPage() {
         )}
 
         {(job.status === 'completed' || job.status === 'lyrics_only') && showCompletionPopup && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col shadow-xl animate-modal-pop">
-              <div className="text-center space-y-2 mb-4">
-                <h3 className="font-semibold text-lg text-brown-900">
-                  {job.status === 'lyrics_only' ? '가사가 완성되었습니다' : '노래가 도착했습니다'}
-                </h3>
-                {title && title !== '제목 없음' && (
-                  <div className="space-y-1">
-                    <p className="font-medium text-brown-900">{title}</p>
-                    {titleEn && (
-                      <p className="text-sm text-muted-foreground">{titleEn}</p>
-                    )}
-                  </div>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  {job.status === 'lyrics_only'
-                    ? '멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.'
-                    : '완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.'}
-                </p>
+          <div className="fixed inset-0 z-50 bg-white flex flex-col animate-overlay-fade">
+            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-6">
+              <div className="max-w-sm mx-auto">
+                <div className="text-center space-y-2 mb-6">
+                  <h3 className="font-semibold text-lg text-brown-900">
+                    {job.status === 'lyrics_only' ? '가사가 완성되었습니다' : '노래가 도착했습니다'}
+                  </h3>
+                  {title && title !== '제목 없음' && (
+                    <div className="space-y-1">
+                      <p className="font-medium text-brown-900">{title}</p>
+                      {titleEn && (
+                        <p className="text-sm text-muted-foreground">{titleEn}</p>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {job.status === 'lyrics_only'
+                      ? '멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.'
+                      : '완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-brown-100 bg-gray-50 p-4 min-h-[120px]">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
+                    {job.lyrics || '이곳에 가사가 들어갑니다.'}
+                  </pre>
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-gray-50 p-4 mb-4 min-h-[120px]">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
-                  {job.lyrics || '이곳에 가사가 들어갑니다.'}
-                </pre>
-              </div>
+            </div>
+            <div className="px-6 pb-8 pt-4 max-w-sm mx-auto w-full">
               <div className="flex gap-3">
                 {job.status === 'completed' && job.audioUrl && (
                   <Button
-                    className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
+                    className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
                     onClick={async () => {
                       if (job.audioUrl) {
                         try {

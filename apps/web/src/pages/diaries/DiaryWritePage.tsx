@@ -154,34 +154,8 @@ export function DiaryWritePage() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-
     if (Capacitor.isNativePlatform()) {
-      let nativeCleanup: (() => void) | undefined;
-
-      import('@capacitor/keyboard')
-        .then(({ Keyboard }) => {
-          if (cancelled) return;
-          const showHandle = Keyboard.addListener(
-            'keyboardWillShow',
-            (info: { keyboardHeight: number }) => {
-              setKeyboardHeight(info.keyboardHeight);
-            },
-          );
-          const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
-            setKeyboardHeight(0);
-          });
-          nativeCleanup = () => {
-            showHandle.then((h: { remove: () => void }) => h.remove());
-            hideHandle.then((h: { remove: () => void }) => h.remove());
-          };
-        })
-        .catch(() => {});
-
-      return () => {
-        cancelled = true;
-        nativeCleanup?.();
-      };
+      return;
     }
 
     const vv = window.visualViewport;
@@ -195,7 +169,6 @@ export function DiaryWritePage() {
       vv.addEventListener('scroll', handleViewport);
 
       return () => {
-        cancelled = true;
         vv.removeEventListener('resize', handleViewport);
         vv.removeEventListener('scroll', handleViewport);
       };
@@ -217,7 +190,6 @@ export function DiaryWritePage() {
     document.addEventListener('focusout', handleFocusOut);
 
     return () => {
-      cancelled = true;
       clearTimeout(focusTimer);
       window.removeEventListener('resize', handleFocusIn);
       document.removeEventListener('focusin', handleFocusIn);

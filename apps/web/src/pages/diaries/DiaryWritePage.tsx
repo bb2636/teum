@@ -6,6 +6,7 @@ import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Keyboard } from '@capacitor/keyboard';
 import { useRandomQuestions } from '@/hooks/useQuestions';
 import { FolderSelectModal } from './FolderSelectModal';
 import { FormatMenu } from './FormatMenu';
@@ -153,33 +154,46 @@ export function DiaryWritePage() {
     return text.trim();
   };
 
-  // 키보드 높이 감지 (모바일)
   useEffect(() => {
-    const initialHeight = window.innerHeight;
+    if (Capacitor.isNativePlatform()) {
+      const showListener = Keyboard.addListener('keyboardWillShow', (info) => {
+        setKeyboardHeight(info.keyboardHeight);
+      });
+      const hideListener = Keyboard.addListener('keyboardWillHide', () => {
+        setKeyboardHeight(0);
+      });
 
-    const handleResize = () => {
+      return () => {
+        showListener.then(h => h.remove());
+        hideListener.then(h => h.remove());
+      };
+    } else {
+      const initialHeight = window.innerHeight;
+
+      const handleResize = () => {
+        if (window.visualViewport) {
+          const heightDiff = initialHeight - window.visualViewport.height;
+          setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
+        } else {
+          const heightDiff = initialHeight - window.innerHeight;
+          setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
+        }
+      };
+
       if (window.visualViewport) {
-        const heightDiff = initialHeight - window.visualViewport.height;
-        setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
-      } else {
-        const heightDiff = initialHeight - window.innerHeight;
-        setKeyboardHeight(heightDiff > 50 ? heightDiff : 0);
+        window.visualViewport.addEventListener('resize', handleResize);
+        window.visualViewport.addEventListener('scroll', handleResize);
       }
-    };
+      window.addEventListener('resize', handleResize);
 
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-      window.visualViewport.addEventListener('scroll', handleResize);
+      return () => {
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', handleResize);
+          window.visualViewport.removeEventListener('scroll', handleResize);
+        }
+        window.removeEventListener('resize', handleResize);
+      };
     }
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleResize);
-      }
-      window.removeEventListener('resize', handleResize);
-    };
   }, []);
 
   // 스크롤 방지
@@ -852,8 +866,8 @@ export function DiaryWritePage() {
             <div 
               className="fixed left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4"
               style={{
-                bottom: keyboardHeight > 0 ? `${keyboardHeight + 24}px` : '24px',
-                transition: 'bottom 0.3s ease-out',
+                bottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : '24px',
+                transition: keyboardHeight > 0 ? 'none' : 'bottom 0.3s ease-out',
               }}
             >
               <button
@@ -1050,8 +1064,8 @@ export function DiaryWritePage() {
           <div 
             className="fixed left-4 z-40 bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4" 
             style={{
-              bottom: keyboardHeight > 0 ? `${keyboardHeight + 24}px` : '24px',
-              transition: 'bottom 0.3s ease-out',
+              bottom: keyboardHeight > 0 ? `${keyboardHeight + 8}px` : '24px',
+              transition: keyboardHeight > 0 ? 'none' : 'bottom 0.3s ease-out',
             }}
           >
             <button

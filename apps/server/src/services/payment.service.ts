@@ -1,11 +1,9 @@
-import { db, sqlClient } from '../db';
+import { db } from '../db';
 import { payments, subscriptions, paymentSessions } from '../db/schema';
 import { eq, desc, lt } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import * as schema from '../db/schema';
 
 setInterval(async () => {
   try {
@@ -156,10 +154,8 @@ export class PaymentService {
     }
 
     try {
-      const result = await sqlClient.begin(async (sql) => {
-        const txDb = drizzle(sql, { schema });
-
-        const [payment] = await txDb
+      const result = await db.transaction(async (tx) => {
+        const [payment] = await tx
           .insert(payments)
           .values({
             userId: session.userId,
@@ -179,7 +175,7 @@ export class PaymentService {
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 1);
 
-          const [newSubscription] = await txDb
+          const [newSubscription] = await tx
             .insert(subscriptions)
             .values({
               userId: session.userId,
@@ -194,7 +190,7 @@ export class PaymentService {
 
           subscriptionId = newSubscription.id;
 
-          await txDb
+          await tx
             .update(payments)
             .set({ subscriptionId: newSubscription.id })
             .where(eq(payments.id, payment.id));

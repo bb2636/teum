@@ -40,7 +40,7 @@ export class FolderRepository {
       .insert(folders)
       .values({
         userId,
-        name: 'All',
+        name: '전체',
         isDefault: true,
         color: '#F5F5DC',
       })

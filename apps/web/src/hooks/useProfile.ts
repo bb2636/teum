@@ -63,8 +63,15 @@ export function useUpdateProfile() {
       );
       return response.data.profile;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+    onSuccess: (updatedProfile) => {
+      queryClient.setQueryData(['user', 'me'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          profile: { ...old.profile, ...updatedProfile },
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'], refetchType: 'all' });
     },
   });
 }

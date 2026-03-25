@@ -844,7 +844,7 @@ export function DiaryWritePage() {
               />
             </div>
 
-            <div className="shrink-0 px-4 py-2 bg-white">
+            <div className="shrink-0 px-4 py-2 bg-white" style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
               <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
                 <button
                   type="button"
@@ -1038,7 +1038,7 @@ export function DiaryWritePage() {
             )}
           </div>
 
-          <div className="shrink-0 px-4 py-2 bg-white">
+          <div className="shrink-0 px-4 py-2 bg-white" style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
             <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
               <button
                 type="button"

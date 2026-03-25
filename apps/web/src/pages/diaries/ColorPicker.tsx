@@ -39,7 +39,7 @@ export function ColorPicker({ onClose, onColorSelect, selectedColor }: ColorPick
         </div>
 
         {/* Color Grid */}
-        <div className="p-4">
+        <div className="p-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="grid grid-cols-10 gap-0">
             {colorPalette.map((color) => (
               <button

@@ -44,7 +44,7 @@ export function FormatMenu({
           </button>
         </div>
 
-        <div className="px-4 pt-2 pb-5 space-y-3">
+        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="overflow-x-auto scrollbar-hide">
             <div className="flex gap-2 min-w-max items-center">
               {textStyles.map((style) => (

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
+import { useCreateDiary, useUpdateDiary, useDiary, useFolders } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
@@ -80,14 +80,26 @@ export function DiaryWritePage() {
     formState: {},
     watch,
     reset,
+    setValue,
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
     defaultValues: {
       type,
       date: selectedDate,
-      folderId: undefined, // No default folder - user must select
+      folderId: undefined,
     },
   });
+
+  const { data: allFolders } = useFolders();
+
+  useEffect(() => {
+    if (!isEditMode && allFolders && allFolders.length > 0 && !watch('folderId')) {
+      const defaultFolder = allFolders.find((f: any) => f.isDefault);
+      if (defaultFolder) {
+        setValue('folderId', defaultFolder.id);
+      }
+    }
+  }, [allFolders, isEditMode, setValue, watch]);
 
   // Load existing diary data when in edit mode
   useEffect(() => {

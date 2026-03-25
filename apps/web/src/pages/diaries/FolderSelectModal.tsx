@@ -275,10 +275,8 @@ export function FolderSelectModal({
                       className="w-full h-32 object-cover"
                     />
                   ) : (
-                    <div className="w-full h-32 bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400 text-sm text-center px-2 truncate w-full">
-                        {folder.name}
-                      </span>
+                    <div className="w-full h-32 bg-[#f5f0eb] flex items-center justify-center">
+                      <img src="/logo.png" alt="teum" className="w-14 h-14 object-contain opacity-30" />
                     </div>
                   )}
                   <div className="p-3 bg-white">

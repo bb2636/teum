@@ -31,7 +31,7 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 export function ProfileEditPage() {
   const navigate = useNavigate();
-  const { data: user, isLoading, refetch } = useMe();
+  const { data: user, isLoading } = useMe();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
   const { data: subscriptions = [] } = useSubscriptions();
@@ -99,7 +99,6 @@ export function ProfileEditPage() {
     try {
       const { name: _name, ...rest } = data;
       await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO });
-      await refetch();
       
       // 국가가 변경된 경우 언어도 업데이트
       if (data.country) {

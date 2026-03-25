@@ -35,7 +35,7 @@ interface ProfileEditModalProps {
 export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
-  const { refetch } = useMe();
+  useMe();
   const { data: subscriptions = [] } = useSubscriptions();
   const activeSubscription = getEffectiveSubscription(subscriptions);
 
@@ -105,7 +105,6 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
   const onSubmit = async (data: ProfileFormData) => {
     try {
       await updateProfile.mutateAsync({ ...data, dateOfBirth: dateOfBirthISO });
-      await refetch();
       setShowSaveSuccess(true);
     } catch (error) {
       console.error('Failed to update profile:', error);

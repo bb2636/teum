@@ -64,7 +64,7 @@ export function useUpdateProfile() {
       );
       return response.data.profile;
     },
-    onSuccess: (updatedProfile) => {
+    onSuccess: async (updatedProfile) => {
       queryClient.setQueryData(['user', 'me'], (old: any) => {
         if (!old) return old;
         return {
@@ -72,7 +72,7 @@ export function useUpdateProfile() {
           profile: { ...old.profile, ...updatedProfile },
         };
       });
-      queryClient.invalidateQueries({ queryKey: ['user', 'me'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
     },
   });
 }

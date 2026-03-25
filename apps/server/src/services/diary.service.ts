@@ -41,9 +41,9 @@ export class DiaryService {
     // If no folderId provided, use default folder
     let folderId = data.folderId;
     if (!folderId) {
-      const defaultFolder = await folderRepository.findDefaultFolder(userId);
+      let defaultFolder = await folderRepository.findDefaultFolder(userId);
       if (!defaultFolder) {
-        throw new Error('Default folder not found');
+        defaultFolder = await folderRepository.createDefault(userId);
       }
       folderId = defaultFolder.id;
     }

@@ -56,7 +56,7 @@ export class AuthService {
       country: input.country,
     });
 
-    // No longer create default "All" folder - users will see "전체" (All) option instead
+    await userRepository.createDefaultFolder(user.id);
 
     // Create auth account
     await userRepository.createAuthAccount({
@@ -584,6 +584,8 @@ export class AuthService {
       dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
       country: input.country,
     });
+
+    await userRepository.createDefaultFolder(user.id);
 
     await userRepository.createAuthAccount({
       userId: user.id,

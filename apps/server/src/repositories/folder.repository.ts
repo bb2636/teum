@@ -35,6 +35,19 @@ export class FolderRepository {
     return folder;
   }
 
+  async createDefault(userId: string) {
+    const [folder] = await db
+      .insert(folders)
+      .values({
+        userId,
+        name: 'All',
+        isDefault: true,
+        color: '#F5F5DC',
+      })
+      .returning();
+    return folder;
+  }
+
   async create(data: {
     userId: string;
     name: string;

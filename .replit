@@ -69,3 +69,4 @@ build = ["sh", "-c", "pnpm --filter web build"]
 OPENAI_BASE_URL = "http://localhost:1106/modelfarm/openai"
 VITE_APPLE_CLIENT_ID = ""
 VITE_APPLE_REDIRECT_URI = ""
+PAYMENT_MOCK_SUCCESS = "true"

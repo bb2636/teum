@@ -87,7 +87,7 @@ export function LoginPage() {
       
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-1">
-          <Logo size="md" showText={true} />
+          <Logo size="md" />
           <p className="text-muted-foreground text-sm">
             기록이 곧, 당신만의 트랙이 됩니다.
           </p>

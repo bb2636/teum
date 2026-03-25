@@ -185,8 +185,8 @@ export function SplashPage() {
       <div className="w-full h-screen bg-[#665146] relative overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'none' }}>
         <div className="w-full flex flex-col items-center justify-center space-y-6">
           <div className="flex flex-col justify-center items-center text-center space-y-2">
-            <div className="[&_h1]:text-[#221813]">
-              <Logo size="md" showText={true} />
+            <div>
+              <Logo size="md" />
             </div>
             <p className="text-[#221813] text-sm" style={{ opacity: 0.6 }}>
               기록이 곧, 당신만의 트랙이 됩니다.

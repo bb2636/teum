@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { payments, subscriptions, paymentSessions } from '../db/schema';
-import { eq, desc, and, lt } from 'drizzle-orm';
+import { eq, desc, lt } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';

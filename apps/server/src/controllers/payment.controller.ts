@@ -21,6 +21,22 @@ export class PaymentController {
         });
       }
 
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'amount must be a positive number' },
+        });
+      }
+
+      const allowedMethods = ['CARD', 'BANK', 'CELLPHONE'];
+      if (!allowedMethods.includes(paymentMethod)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'Invalid payment method' },
+        });
+      }
+
       const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
       const returnUrl = `${frontendUrl}/api/payments/nicepay/return`;
 
@@ -43,6 +59,7 @@ export class PaymentController {
   }
 
   async nicepayReturn(req: Request, res: Response) {
+    const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
       const body = req.body;
       logger.info('NicePay return received', {
@@ -55,7 +72,10 @@ export class PaymentController {
 
       const { resultCode, tid, orderId, amount } = body;
 
-      const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      if (!orderId) {
+        logger.error('NicePay return missing orderId');
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('주문 정보가 누락되었습니다.')}`);
+      }
 
       if (resultCode !== '0000') {
         logger.error('NicePay auth failed', { resultCode, resultMsg: body.resultMsg, orderId });
@@ -75,7 +95,6 @@ export class PaymentController {
       }
     } catch (error) {
       logger.error('NicePay return handler error', { error });
-      const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
       return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('결제 처리 중 오류가 발생했습니다.')}`);
     }
   }

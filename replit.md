@@ -42,6 +42,10 @@ teum/
 - `VITE_APPLE_CLIENT_ID` - Apple Sign In Service ID (frontend)
 - `VITE_APPLE_REDIRECT_URI` - Apple Sign In redirect URI (frontend)
 - `FIREBASE_SERVICE_ACCOUNT` - Firebase 서비스 계정 JSON (서버 푸시 알림 발송용; Replit Secrets에만 저장)
+- `NICEPAY_MERCHANT_ID` - NicePay 상점 ID (clientId)
+- `NICEPAY_API_SECRET` - NicePay API Secret Key
+- `NICEPAY_TEST_MODE` - `TRUE`면 sandbox API 사용
+- `PAYMENT_MOCK_SUCCESS` - `true`면 실제 NicePay 호출 없이 DB만 저장 (테스트용)
 
 ## Key Features
 
@@ -51,7 +55,7 @@ teum/
 4. **AI Music**: Mureka API generates custom music from diary content; 음악 상세 페이지에서 곡 정보 확인 및 다운로드; 실제 오디오 메타데이터에서 곡 길이 표시; on quota/rate-limit failure, saves AI-generated lyrics with `lyrics_only` status
 5. **Gamification**: Daily random questions to prompt writing
 6. **Admin Panel**: Manage users, diaries, questions, and legal terms
-7. **Payments**: Nice Payments integration for subscriptions
+7. **Payments**: NicePay JS SDK 연동 (신용/체크카드, 계좌이체, 휴대폰 결제); 결제 세션 DB 영구 저장(`payment_sessions` 테이블, 30분 TTL 자동 정리); `PAYMENT_MOCK_SUCCESS=true`로 테스트 모드 지원; 결제 실패 페이지(`/payment/fail`); 결제 성공 후 가이드 페이지(`/payment/success`)
 8. **Push Notifications**: Firebase FCM을 통한 푸시 알림 (음악 완성, 문의 답변 시 자동 발송)
 9. **Android APK**: Capacitor 래핑; 배포 서버 URL로 직접 로드; CORS/쿠키 Capacitor 호환
 

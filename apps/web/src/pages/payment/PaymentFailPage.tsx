@@ -37,7 +37,7 @@ export function PaymentFailPage() {
 
       <div className="p-6 space-y-3">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/payment/intro', { replace: true })}
           className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
         >
           다시 시도하기

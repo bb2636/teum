@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, BookOpen, Music, PenLine, ChevronRight, type LucideIcon } from 'lucide-react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useEffect, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 type GuidePage = {
   id: string;
@@ -87,14 +88,20 @@ const GUIDE_PAGES: GuidePage[] = [
 export function PaymentSuccessPage() {
   const navigate = useNavigate();
   const { setHideTabBar } = useHideTabBar();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     setHideTabBar(true);
+    queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+    queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
+    queryClient.invalidateQueries({ queryKey: ['me'] });
+    queryClient.invalidateQueries({ queryKey: ['users'] });
     return () => {
       setHideTabBar(false);
     };
-  }, [setHideTabBar]);
+  }, [setHideTabBar, queryClient]);
 
   const isLastPage = currentPage === GUIDE_PAGES.length - 1;
   const page = GUIDE_PAGES[currentPage];

@@ -637,7 +637,7 @@ export function HomePage() {
                                   ) : (
                                     <div className="flex flex-col h-full">
                                       <div className="relative flex-1 overflow-hidden bg-[#f5f0eb] flex items-center justify-center">
-                                        <img src="/home_logo.png" alt="teum" className="w-16 h-16 object-contain opacity-30" />
+                                        <img src="/logo.png" alt="teum" className="w-16 h-16 object-contain opacity-30" />
                                       </div>
                                       <div className="p-2 bg-white min-h-0">
                                         <p className="text-xs font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>

@@ -155,20 +155,7 @@ export function DiaryWritePage() {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      let cleanup: (() => void) | undefined;
-      import('@capacitor/keyboard').then(({ Keyboard }) => {
-        const showHandle = Keyboard.addListener('keyboardWillShow', (info: { keyboardHeight: number }) => {
-          setKeyboardHeight(info.keyboardHeight);
-        });
-        const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
-          setKeyboardHeight(0);
-        });
-        cleanup = () => {
-          showHandle.then(h => h.remove());
-          hideHandle.then(h => h.remove());
-        };
-      }).catch(() => {});
-      return () => { cleanup?.(); };
+      return;
     }
 
     const vv = window.visualViewport;

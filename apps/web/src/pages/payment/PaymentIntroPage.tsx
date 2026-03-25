@@ -25,7 +25,7 @@ export function PaymentIntroPage() {
 
   const handleConfirmStart = () => {
     setShowStartModal(false);
-    navigate('/payment/checkout?plan=음악 생성 플랜(월간)&amount=4900');
+    navigate(`/payment/checkout?plan=${encodeURIComponent(t('payment.musicPlanMonthly'))}&amount=4900`);
   };
 
   return (

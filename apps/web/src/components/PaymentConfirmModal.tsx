@@ -1,3 +1,5 @@
+import { useT } from '@/hooks/useTranslation';
+
 interface PaymentConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +13,7 @@ export function PaymentConfirmModal({
   onConfirm,
   amount,
 }: PaymentConfirmModalProps) {
+  const t = useT();
   if (!isOpen) return null;
 
   return (
@@ -24,10 +27,10 @@ export function PaymentConfirmModal({
       >
         <div className="text-center space-y-4">
           <h2 className="text-lg font-semibold text-black">
-            결제를 진행할까요?
+            {t('payment.proceedPaymentQuestion')}
           </h2>
           <p className="text-sm text-gray-600">
-            월 {amount.toLocaleString()}원이 매월 자동 갱신됩니다.
+            {t('payment.monthlyAutoRenewDesc', { amount: amount.toLocaleString() })}
           </p>
         </div>
 
@@ -36,13 +39,13 @@ export function PaymentConfirmModal({
             onClick={onClose}
             className="flex-1 py-3 px-4 rounded-lg text-[#4A2C1A] font-medium hover:bg-gray-100 transition-colors"
           >
-            취소
+            {t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
           >
-            결제하기
+            {t('payment.pay')}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
+import { useT } from '@/hooks/useTranslation';
 
 interface PaymentTermsSheetProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface PaymentTermsSheetProps {
 }
 
 export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsSheetProps) {
+  const t = useT();
   const [agreeAll, setAgreeAll] = useState(false);
   const [agreeService, setAgreeService] = useState(false);
   const [agreePayment, setAgreePayment] = useState(false);
@@ -62,7 +64,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
-            <h2 className="text-lg font-semibold text-[#4A2C1A]">이용약관에 동의해주세요</h2>
+            <h2 className="text-lg font-semibold text-[#4A2C1A]">{t('payment.termsTitle')}</h2>
             <button
               onClick={onClose}
               className="p-2 rounded-full hover:bg-gray-100"
@@ -72,7 +74,6 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
           </div>
 
           <div className="p-4 space-y-4">
-            {/* 전체 동의 */}
             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
               <input
                 type="checkbox"
@@ -80,11 +81,10 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                 onChange={(e) => handleAgreeAll(e.target.checked)}
                 className="w-5 h-5 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
               />
-              <span className="font-medium text-[#4A2C1A]">전체 동의</span>
+              <span className="font-medium text-[#4A2C1A]">{t('payment.agreeAll')}</span>
             </label>
 
             <div className="space-y-3 pt-2 pl-3">
-              {/* 서비스 이용약관 */}
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-3 flex-1 cursor-pointer">
                   <input
@@ -93,7 +93,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     onChange={(e) => handleServiceChange(e.target.checked)}
                     className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
                   />
-                  <span className="text-sm text-gray-700">[필수] 서비스 이용약관에 동의합니다.</span>
+                  <span className="text-sm text-gray-700">{t('payment.agreeServiceRequired')}</span>
                 </label>
                 <button
                   type="button"
@@ -104,7 +104,6 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                 </button>
               </div>
 
-              {/* 정기결제/자동갱신 */}
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-3 flex-1 cursor-pointer">
                   <input
@@ -113,7 +112,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     onChange={(e) => handlePaymentChange(e.target.checked)}
                     className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
                   />
-                  <span className="text-sm text-gray-700">[필수] 정기 결제 및 자동 갱신에 동의합니다.</span>
+                  <span className="text-sm text-gray-700">{t('payment.agreePaymentRequired')}</span>
                 </label>
                 <button
                   type="button"
@@ -124,7 +123,6 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                 </button>
               </div>
 
-              {/* 환불/취소 정책 */}
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-3 flex-1 cursor-pointer">
                   <input
@@ -133,7 +131,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     onChange={(e) => handleRefundChange(e.target.checked)}
                     className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
                   />
-                  <span className="text-sm text-gray-700">[필수] 환불/해지 정책을 확인했습니다.</span>
+                  <span className="text-sm text-gray-700">{t('payment.agreeRefundRequired')}</span>
                 </label>
                 <button
                   type="button"
@@ -149,13 +147,12 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
               onClick={() => {
                 if (allRequiredAgreed) {
                   onAgree(true);
-                  // onClose는 PaymentPage에서 처리
                 }
               }}
               disabled={!allRequiredAgreed}
               className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              월 4,900원으로 시작하기
+              {t('payment.startWithMonthly', { amount: '4,900' })}
             </button>
           </div>
         </div>

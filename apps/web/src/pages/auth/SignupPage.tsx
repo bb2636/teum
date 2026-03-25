@@ -228,6 +228,7 @@ export function SignupPage() {
       setShowPhoneVerificationModal(true);
       if (result.code) {
         setPhoneVerificationCode(result.code);
+        setPhoneVerificationInput(result.code);
       }
     } catch (err) {
       const error = err as Error;

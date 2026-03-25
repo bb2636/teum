@@ -208,14 +208,11 @@ export class AuthService {
       expiresAt: expiresAt.toISOString(),
     });
 
-    const response: { message: string; expiresIn: number; code?: string } = {
+    return {
       message: 'Verification code sent',
       expiresIn: 600,
+      code,
     };
-    if (process.env.NODE_ENV !== 'production') {
-      response.code = code;
-    }
-    return response;
   }
 
   async confirmPhoneVerification(input: PhoneVerificationConfirmInput) {
@@ -308,14 +305,11 @@ export class AuthService {
       expiresAt: expiresAt.toISOString(),
     });
 
-    const response: { message: string; expiresIn: number; code?: string } = {
+    return {
       message: 'Verification code sent',
       expiresIn: 600,
+      code,
     };
-    if (process.env.NODE_ENV !== 'production') {
-      response.code = code;
-    }
-    return response;
   }
 
   async requestEmailVerificationForPasswordReset(input: EmailVerificationRequestInput) {
@@ -349,14 +343,11 @@ export class AuthService {
       expiresAt: expiresAt.toISOString(),
     });
 
-    const response: { message: string; expiresIn: number; code?: string } = {
+    return {
       message: 'Verification code sent',
       expiresIn: 600,
+      code,
     };
-    if (process.env.NODE_ENV !== 'production') {
-      response.code = code;
-    }
-    return response;
   }
 
   async confirmEmailVerification(input: EmailVerificationConfirmInput) {

@@ -101,7 +101,7 @@ export function ForgotPasswordPage() {
       setPhoneVerificationCode(result.code || null);
       setShowPhoneVerificationModal(true);
       setPhoneVerified(false);
-      setPhoneVerificationInput('');
+      setPhoneVerificationInput(result.code || '');
     } catch (err: any) {
       setError(err?.message || '인증번호 발송에 실패했습니다');
     }

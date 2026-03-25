@@ -32,12 +32,7 @@ export function SplashPage() {
   const googleLogin = useGoogleLogin();
   const appleLogin = useAppleLogin();
   const [skipAutoRedirect] = useState(() => {
-    const flag = sessionStorage.getItem('teum_logging_out');
-    if (flag) {
-      sessionStorage.removeItem('teum_logging_out');
-      return true;
-    }
-    return false;
+    return !!sessionStorage.getItem('teum_logged_out');
   });
   const { data: user, isLoading: isCheckingAuth } = useMe();
 
@@ -60,6 +55,7 @@ export function SplashPage() {
         if (result.isNewUser && result.socialProfile) {
           navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
         } else if (result.user) {
+          sessionStorage.removeItem('teum_logged_out');
           queryClient.clear();
           if (result.user.role === 'admin') {
             navigate('/admin');
@@ -166,6 +162,7 @@ export function SplashPage() {
       if (result.isNewUser && result.socialProfile) {
         navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
       } else if (result.user) {
+        sessionStorage.removeItem('teum_logged_out');
         queryClient.clear();
         if (result.user.role === 'admin') {
           navigate('/admin');

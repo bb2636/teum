@@ -28,9 +28,8 @@ export function useLogin() {
       return response.data.user;
     },
     onSuccess: (user) => {
-      // Clear all cache on login
+      sessionStorage.removeItem('teum_logged_out');
       queryClient.clear();
-      // 관리자면 관리자 페이지로, 일반 사용자면 홈으로
       if (user.role === 'admin') {
         navigate('/admin');
       } else {
@@ -62,7 +61,7 @@ export function useSignup() {
       return response.data.user;
     },
     onSuccess: (user) => {
-      // Clear all cache on signup
+      sessionStorage.removeItem('teum_logged_out');
       queryClient.clear();
       
       // 사용자 프로필의 국가 정보로 언어 설정
@@ -96,10 +95,11 @@ export function useLogout() {
       }
     },
     onSettled: () => {
-      sessionStorage.setItem('teum_logging_out', '1');
-      queryClient.setQueryData(['me'], null);
+      sessionStorage.setItem('teum_logged_out', '1');
+      queryClient.setQueryData(['user', 'me'], null);
+      queryClient.removeQueries({ queryKey: ['user', 'me'] });
       queryClient.clear();
-      navigate('/login', { replace: true });
+      navigate('/splash', { replace: true });
     },
   });
 }

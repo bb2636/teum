@@ -78,6 +78,7 @@ export function useSocialOnboarding() {
       return response.data.user;
     },
     onSuccess: () => {
+      sessionStorage.removeItem('teum_logged_out');
       queryClient.clear();
       navigate('/home');
     },

@@ -24,12 +24,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [skipAutoRedirect] = useState(() => {
-    const flag = sessionStorage.getItem('teum_logging_out');
-    if (flag) {
-      sessionStorage.removeItem('teum_logging_out');
-      return true;
-    }
-    return false;
+    return !!sessionStorage.getItem('teum_logged_out');
   });
   const { data: user, isLoading: isCheckingAuth } = useMe();
 

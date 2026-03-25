@@ -892,6 +892,7 @@ export function DiaryWritePage() {
               selectedStyle={selectedTextStyle}
               activeFormats={activeFormats}
               textColor={textColor}
+              keyboardHeight={keyboardHeight}
             />
           )}
 
@@ -901,6 +902,7 @@ export function DiaryWritePage() {
               onClose={() => setShowColorPicker(false)}
               onColorSelect={applyTextColor}
               selectedColor={textColor}
+              keyboardHeight={keyboardHeight}
             />
           )}
 
@@ -1083,6 +1085,7 @@ export function DiaryWritePage() {
           selectedStyle={selectedTextStyle}
           activeFormats={activeFormats}
           textColor={textColor}
+          keyboardHeight={keyboardHeight}
         />
       )}
 
@@ -1091,6 +1094,7 @@ export function DiaryWritePage() {
           onClose={() => setShowColorPicker(false)}
           onColorSelect={applyTextColor}
           selectedColor={textColor}
+          keyboardHeight={keyboardHeight}
         />
       )}
 

@@ -11,6 +11,7 @@ interface FormatMenuProps {
   selectedStyle?: TextStyle;
   activeFormats: Set<FormatType>;
   textColor?: string;
+  keyboardHeight?: number;
 }
 
 export function FormatMenu({
@@ -21,6 +22,7 @@ export function FormatMenu({
   selectedStyle,
   activeFormats,
   textColor = '#4A2C1A',
+  keyboardHeight = 0,
 }: FormatMenuProps) {
   const textStyles: { value: TextStyle; label: string }[] = [
     { value: 'title', label: '제목' },
@@ -34,7 +36,7 @@ export function FormatMenu({
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={onClose}>
       <div
         className="w-full max-w-md mx-auto animate-modal-sheet"
-        style={{ backgroundColor: '#D1D1D6' }}
+        style={{ backgroundColor: '#D1D1D6', marginBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 pt-3 pb-1 flex items-center justify-between">
@@ -44,7 +46,7 @@ export function FormatMenu({
           </button>
         </div>
 
-        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: keyboardHeight > 0 ? '20px' : 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="overflow-x-auto scrollbar-hide">
             <div className="flex gap-2 min-w-max items-center">
               {textStyles.map((style) => (

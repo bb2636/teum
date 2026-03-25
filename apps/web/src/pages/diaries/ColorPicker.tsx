@@ -4,6 +4,7 @@ interface ColorPickerProps {
   onClose: () => void;
   onColorSelect: (color: string) => void;
   selectedColor?: string;
+  keyboardHeight?: number;
 }
 
 // 10 columns x 6 rows = 60 colors with natural gradient
@@ -23,11 +24,12 @@ const colorPalette = [
   '#E8F5E9', '#C8E6C9', '#A5D6A7', '#81C784', '#66BB6A', '#4CAF50', '#43A047', '#388E3C', '#2E7D32', '#1B5E20',
 ];
 
-export function ColorPicker({ onClose, onColorSelect, selectedColor }: ColorPickerProps) {
+export function ColorPicker({ onClose, onColorSelect, selectedColor, keyboardHeight = 0 }: ColorPickerProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={onClose}>
       <div
         className="bg-gradient-to-b from-gray-200 to-gray-100 rounded-t-3xl w-full max-w-md mx-auto animate-modal-sheet"
+        style={{ marginBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -39,7 +41,7 @@ export function ColorPicker({ onClose, onColorSelect, selectedColor }: ColorPick
         </div>
 
         {/* Color Grid */}
-        <div className="p-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="p-4" style={{ paddingBottom: keyboardHeight > 0 ? '16px' : 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="grid grid-cols-10 gap-0">
             {colorPalette.map((color) => (
               <button

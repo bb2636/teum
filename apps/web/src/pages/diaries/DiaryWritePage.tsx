@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateDiary, useUpdateDiary, useDiary, useFolders } from '@/hooks/useDiaries';
+import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
@@ -80,7 +80,6 @@ export function DiaryWritePage() {
     formState: {},
     watch,
     reset,
-    setValue,
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
     defaultValues: {
@@ -89,17 +88,6 @@ export function DiaryWritePage() {
       folderId: undefined,
     },
   });
-
-  const { data: allFolders } = useFolders();
-
-  useEffect(() => {
-    if (!isEditMode && allFolders && allFolders.length > 0 && !watch('folderId')) {
-      const defaultFolder = allFolders.find((f: any) => f.isDefault);
-      if (defaultFolder) {
-        setValue('folderId', defaultFolder.id);
-      }
-    }
-  }, [allFolders, isEditMode, setValue, watch]);
 
   // Load existing diary data when in edit mode
   useEffect(() => {
@@ -167,7 +155,20 @@ export function DiaryWritePage() {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      return;
+      let showListener: any;
+      let hideListener: any;
+      import('@capacitor/keyboard').then(({ Keyboard }) => {
+        showListener = Keyboard.addListener('keyboardWillShow', (info) => {
+          setKeyboardHeight(info.keyboardHeight);
+        });
+        hideListener = Keyboard.addListener('keyboardWillHide', () => {
+          setKeyboardHeight(0);
+        });
+      }).catch(() => {});
+      return () => {
+        if (showListener) showListener.then?.((h: any) => h.remove());
+        if (hideListener) hideListener.then?.((h: any) => h.remove());
+      };
     }
 
     const vv = window.visualViewport;

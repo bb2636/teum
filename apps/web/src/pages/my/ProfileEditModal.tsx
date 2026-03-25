@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { X, User, Pencil, Calendar, ChevronUp, ChevronDown as ChevronDownIcon, ChevronLeft } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -34,7 +33,6 @@ interface ProfileEditModalProps {
 
 
 export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
-  const navigate = useNavigate();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
   const { refetch } = useMe();
@@ -123,8 +121,6 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
     await logout.mutateAsync();
-    onClose();
-    navigate('/login');
   };
 
   return (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/api';
@@ -52,11 +53,17 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
     }
   };
 
+  const queryClient = useQueryClient();
+
   const handleCompleteClose = () => {
     setShowComplete(false);
     onClose();
     onWithdrawComplete?.();
-    navigate('/login');
+    sessionStorage.setItem('teum_logged_out', '1');
+    queryClient.setQueryData(['user', 'me'], null);
+    queryClient.removeQueries({ queryKey: ['user', 'me'] });
+    queryClient.clear();
+    navigate('/splash', { replace: true });
   };
 
   return (

@@ -40,7 +40,7 @@ function ProtectedRoute({ children, requireAdmin = false }: { children: React.Re
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/splash" replace />;
   }
 
   if (requireAdmin && user.role !== 'admin') {
@@ -62,9 +62,8 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 로그인하지 않았거나 관리자가 아니면 로그인 페이지로
   if (!user || user.role !== 'admin') {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/splash" replace />;
   }
 
   return <>{children}</>;

@@ -89,7 +89,7 @@ export async function apiRequest<T>(
           throw err;
         }
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/splash';
         }
         throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
       }
@@ -109,7 +109,7 @@ export async function apiRequest<T>(
         throw err;
       }
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        window.location.href = '/splash';
       }
       throw refreshError;
     }

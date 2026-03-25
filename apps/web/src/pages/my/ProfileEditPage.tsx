@@ -121,7 +121,6 @@ export function ProfileEditPage() {
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
     await logout.mutateAsync();
-    navigate('/login');
   };
 
   if (isLoading) {
@@ -581,7 +580,6 @@ export function ProfileEditPage() {
           onClose={() => setShowWithdraw(false)}
           onWithdrawComplete={() => {
             setShowWithdraw(false);
-            navigate('/login');
           }}
           hasActiveSubscription={!!activeSubscription}
         />

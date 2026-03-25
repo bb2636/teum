@@ -44,7 +44,8 @@ export function useMe() {
       }
     },
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 

@@ -116,10 +116,11 @@ export function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-beige-50 pb-20">
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
+    <div className="h-screen bg-beige-50 flex flex-col overflow-hidden">
+      <div className="shrink-0 max-w-md mx-auto w-full px-4 pt-6 pb-2">
         <h1 className="text-2xl font-bold text-brown-900">프로필</h1>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-20 space-y-6">
 
         {/* Profile Section - 가운데 정렬 (아바타 + 닉네임) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">

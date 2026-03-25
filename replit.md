@@ -29,6 +29,13 @@ teum/
 - **Backend**: runs on port 3001 (workflow: "Backend")
 - API requests from frontend are proxied from `/api` to `http://localhost:3001`
 
+## Data Caching Strategy
+
+- 모든 주요 쿼리에 `staleTime: Infinity` 적용 — 탭 이동 시 캐시 데이터를 즉시 표시하고 네트워크 요청 없음
+- 데이터 갱신은 mutation의 `onSuccess`에서 `invalidateQueries()`로 처리 (CQRS 패턴)
+- 각 mutation은 관련된 모든 쿼리 키를 정확히 invalidate해야 함 (예: 일기 삭제 시 `['diaries']`, `['diaries', 'calendar']`, `['folders']` 모두 invalidate)
+- 사용자 프로필 쿼리 키: `['user', 'me']` — 결제/구독 훅에서도 동일 키 사용 필수
+
 ## Environment Variables
 
 - `DATABASE_URL` - PostgreSQL connection string (auto-set by Replit)

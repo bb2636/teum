@@ -93,8 +93,7 @@ export function useProcessPayment() {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['me'] });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.refetchQueries({ queryKey: ['subscriptions'] });
       queryClient.refetchQueries({ queryKey: ['music', 'jobs'] });
     },
@@ -111,8 +110,8 @@ export function useSubscriptions() {
       );
       return response.data.subscriptions;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: 'always',
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -126,7 +125,8 @@ export function usePayments() {
       );
       return response.data.payments;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -166,7 +166,7 @@ export function useCancelSubscription() {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.refetchQueries({ queryKey: ['music', 'jobs'] });
       queryClient.refetchQueries({ queryKey: ['subscriptions'] });
     },

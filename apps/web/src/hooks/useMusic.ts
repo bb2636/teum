@@ -87,8 +87,8 @@ export function useMusicJobs() {
       const response = await apiRequest<{ data: MusicJobsResponse }>('/music/jobs');
       return response.data;
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 

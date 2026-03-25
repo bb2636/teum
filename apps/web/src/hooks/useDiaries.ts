@@ -44,8 +44,8 @@ export function useFolders() {
       const response = await apiRequest<{ data: { folders: Folder[] } }>('/folders');
       return response.data.folders;
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -60,11 +60,8 @@ export function useDiaries(folderId?: string) {
       );
       return response.data.diaries;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-    // Background refetch to get updates
-    refetchInterval: 1000 * 60 * 2, // Every 2 minutes in background
-    refetchIntervalInBackground: true,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -77,12 +74,11 @@ export function useDiary(id: string) {
       return response.data.diary;
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
-// Calendar diaries
 export function useCalendarDiaries(year: number, month: number) {
   return useQuery<Diary[]>({
     queryKey: ['diaries', 'calendar', year, month],
@@ -92,11 +88,8 @@ export function useCalendarDiaries(year: number, month: number) {
       );
       return response.data.diaries;
     },
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-    retry: 2,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -288,11 +281,11 @@ export function useDeleteDiary() {
       return id;
     },
     onMutate: async (id) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['diaries'] });
 
-      // Snapshot previous values
       const previousDiaries = queryClient.getQueriesData<Diary[]>({ queryKey: ['diaries'] });
+
+      queryClient.removeQueries({ queryKey: ['diary', id] });
 
       // Optimistically remove from cache
       queryClient.setQueriesData<Diary[]>({ queryKey: ['diaries'] }, (old) => {
@@ -313,9 +306,9 @@ export function useDeleteDiary() {
       }
     },
     onSuccess: () => {
-      // Invalidate to refetch in background
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
     },
   });
 }

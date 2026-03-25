@@ -30,6 +30,8 @@ app.use(cors({
       'https://teum.replit.app',
       'capacitor://localhost',
       'https://localhost',
+      'https://pay.nicepay.co.kr',
+      'https://sandbox-pay.nicepay.co.kr',
     ].filter(Boolean) as string[];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);

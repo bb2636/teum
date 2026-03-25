@@ -37,7 +37,7 @@ export const payments = pgTable('payments', {
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   currency: varchar('currency', { length: 10 }).default('KRW').notNull(),
   paymentMethod: varchar('payment_method', { length: 50 }),
-  transactionId: varchar('transaction_id', { length: 255 }),
+  transactionId: varchar('transaction_id', { length: 255 }).unique(),
   paidAt: timestamp('paid_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

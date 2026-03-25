@@ -211,10 +211,18 @@ export class PaymentService {
         message: approvalResult.resultMsg || '결제가 완료되었습니다.',
       };
     } catch (txError) {
-      logger.error('Payment DB transaction failed', { error: txError, tid, orderId });
+      logger.error('Payment DB transaction failed, attempting to cancel NicePay payment', { error: txError, tid, orderId });
+
+      try {
+        const cancelResult = await nicePayProvider.cancelPayment(tid, amount, '시스템 오류로 인한 자동 취소');
+        logger.info('NicePay payment auto-cancelled after DB failure', { tid, cancelResult: cancelResult.success });
+      } catch (cancelError) {
+        logger.error('Failed to auto-cancel NicePay payment after DB failure', { tid, cancelError });
+      }
+
       return {
         success: false,
-        message: '결제 저장 중 오류가 발생했습니다. 고객센터에 문의해주세요.',
+        message: '결제 처리 중 오류가 발생했습니다. 자동 취소 처리되었습니다. 문제가 지속되면 고객센터에 문의해주세요.',
       };
     }
   }

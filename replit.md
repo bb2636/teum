@@ -42,10 +42,11 @@ teum/
 - `VITE_APPLE_CLIENT_ID` - Apple Sign In Service ID (frontend)
 - `VITE_APPLE_REDIRECT_URI` - Apple Sign In redirect URI (frontend)
 - `FIREBASE_SERVICE_ACCOUNT` - Firebase 서비스 계정 JSON (서버 푸시 알림 발송용; Replit Secrets에만 저장)
-- `NICEPAY_MERCHANT_ID` - NicePay 상점 ID (clientId)
+- `NICEPAY_MERCHANT_ID` - NicePay 상점 ID (clientId); 샌드박스=`S2_...`, 운영=`R2_...`
 - `NICEPAY_API_SECRET` - NicePay API Secret Key
-- `NICEPAY_TEST_MODE` - `TRUE`면 sandbox API 사용
+- `NICEPAY_TEST_MODE` - `TRUE`면 sandbox API 사용; `S2_` 키와 반드시 함께 사용
 - `PAYMENT_MOCK_SUCCESS` - `true`면 실제 NicePay 호출 없이 DB만 저장 (테스트용)
+- `BACKEND_URL` - NicePay returnUrl 생성용 백엔드 URL (미설정 시 FRONTEND_URL 사용)
 
 ## Key Features
 

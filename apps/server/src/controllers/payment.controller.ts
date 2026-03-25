@@ -37,8 +37,8 @@ export class PaymentController {
         });
       }
 
-      const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
-      const returnUrl = `${frontendUrl}/api/payments/nicepay/return`;
+      const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      const returnUrl = `${backendUrl}/api/payments/nicepay/return`;
 
       const result = await paymentService.initPayment(req.user.userId, {
         amount: Number(amount),

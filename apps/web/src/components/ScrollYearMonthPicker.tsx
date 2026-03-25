@@ -90,7 +90,7 @@ export function ScrollYearMonthPicker({
               ? `${pickerYear}년 ${pickerMonth}월`
               : '날짜 선택'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -106,6 +106,7 @@ export function ScrollYearMonthPicker({
                 return (
                   <button
                     key={year}
+                    type="button"
                     data-selected={isSelected}
                     onClick={() => handleYearClick(year)}
                     className={`w-full py-2.5 text-center text-sm font-medium rounded-lg transition-colors ${
@@ -127,6 +128,7 @@ export function ScrollYearMonthPicker({
                   return (
                     <button
                       key={month}
+                      type="button"
                       onClick={() => handleMonthClick(month)}
                       className={`py-3 rounded-lg text-sm font-medium transition-colors ${
                         isSelected
@@ -144,6 +146,7 @@ export function ScrollYearMonthPicker({
         ) : (
           <div className="px-5 pb-4">
             <button
+              type="button"
               onClick={() => setShowDayGrid(false)}
               className="text-sm text-[#4A2C1A] mb-3 hover:underline"
             >

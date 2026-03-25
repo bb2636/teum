@@ -1,10 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones } from 'lucide-react';
-import { useProcessPayment } from '@/hooks/usePayment';
+import { useInitPayment } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
+
+declare global {
+  interface Window {
+    AUTHNICE?: {
+      requestPay: (params: Record<string, unknown>) => void;
+    };
+  }
+}
 
 type PaymentMethod = 'CARD' | 'BANK' | 'CELLPHONE';
 
@@ -41,7 +49,7 @@ export function PaymentPage() {
   const [showTermsSheet, setShowTermsSheet] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const processPayment = useProcessPayment();
+  const initPayment = useInitPayment();
 
   const nextPaymentDate = useMemo(() => {
     const date = new Date();
@@ -89,27 +97,39 @@ export function PaymentPage() {
     setShowConfirmModal(false);
 
     try {
-      const selectedCard = NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode);
-
-      const paymentData = {
+      const initResult = await initPayment.mutateAsync({
         amount: parseFloat(amount),
         planName,
-        paymentMethod: paymentMethod as string,
-        cardCompany: paymentMethod === 'CARD' ? (selectedCard?.name || undefined) : undefined,
-        cardCode: paymentMethod === 'CARD' ? cardCode : undefined,
+        paymentMethod,
+      });
+
+      if (!window.AUTHNICE) {
+        alert('나이스페이 결제 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const payParams: Record<string, unknown> = {
+        clientId: initResult.clientId,
+        method: initResult.method,
+        orderId: initResult.orderId,
+        amount: initResult.amount,
+        goodsName: initResult.goodsName,
+        returnUrl: initResult.returnUrl,
+        fnError: (result: { errorMsg?: string }) => {
+          setIsProcessing(false);
+          alert(result.errorMsg || '결제 중 오류가 발생했습니다.');
+        },
       };
 
-      const result = await processPayment.mutateAsync(paymentData);
-
-      if (result.success) {
-        navigate('/payment/success');
-      } else {
-        alert('결제에 실패했습니다. 다시 시도해주세요.');
+      if (paymentMethod === 'CARD' && cardCode) {
+        payParams.cardCode = cardCode;
       }
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('결제 처리 중 오류가 발생했습니다.');
-    } finally {
+
+      window.AUTHNICE.requestPay(payParams);
+    } catch (error: any) {
+      console.error('Payment init error:', error);
+      alert(error?.message || '결제 초기화 중 오류가 발생했습니다.');
       setIsProcessing(false);
     }
   };
@@ -285,14 +305,14 @@ export function PaymentPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
           <div className="max-w-md mx-auto">
             <p className="text-xs text-gray-600 text-center mb-3">
-              결제 버튼을 누르면 구독이 시작되며, 매월 자동 결제됩니다.
+              결제 버튼을 누르면 나이스페이 결제창이 열립니다.
             </p>
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || processPayment.isPending || !isButtonEnabled}
+              disabled={isProcessing || initPayment.isPending || !isButtonEnabled}
               className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing || processPayment.isPending
+              {isProcessing || initPayment.isPending
                 ? '결제 처리 중...'
                 : `월 ${parseInt(amount).toLocaleString()}원으로 시작하기`}
             </button>

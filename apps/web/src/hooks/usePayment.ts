@@ -44,7 +44,37 @@ export interface ProcessPaymentResponse {
   message?: string;
 }
 
-// Process payment
+export interface InitPaymentInput {
+  amount: number;
+  planName: string;
+  paymentMethod: string;
+}
+
+export interface InitPaymentResponse {
+  clientId: string;
+  orderId: string;
+  amount: number;
+  goodsName: string;
+  method: string;
+  returnUrl: string;
+  isTestMode: boolean;
+}
+
+export function useInitPayment() {
+  return useMutation({
+    mutationFn: async (data: InitPaymentInput) => {
+      const response = await apiRequest<{ data: InitPaymentResponse }>(
+        '/payments/init',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      );
+      return response.data;
+    },
+  });
+}
+
 export function useProcessPayment() {
   const queryClient = useQueryClient();
 
@@ -63,9 +93,8 @@ export function useProcessPayment() {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['me'] }); // 유저 정보도 업데이트
-      queryClient.invalidateQueries({ queryKey: ['users'] }); // 관리자 화면 유저 목록도 업데이트
-      // 즉시 refetch하여 구독 정보 반영
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.refetchQueries({ queryKey: ['subscriptions'] });
       queryClient.refetchQueries({ queryKey: ['music', 'jobs'] });
     },

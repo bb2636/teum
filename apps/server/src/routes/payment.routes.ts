@@ -4,8 +4,11 @@ import { authenticate, requireRole } from '../middleware/auth';
 
 const router: Router = Router();
 
+router.post('/nicepay/return', paymentController.nicepayReturn.bind(paymentController));
+
 router.use(authenticate);
 
+router.post('/init', paymentController.initPayment.bind(paymentController));
 router.post('/process', paymentController.processPayment.bind(paymentController));
 router.post('/cancel', paymentController.cancelPayment.bind(paymentController));
 router.post('/subscriptions/cancel', paymentController.cancelSubscription.bind(paymentController));

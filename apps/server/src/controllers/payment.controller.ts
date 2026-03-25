@@ -1,8 +1,85 @@
 import { Request, Response, NextFunction } from 'express';
 import { paymentService } from '../services/payment.service';
 import { processPaymentSchema } from '../validations/payment';
+import { logger } from '../config/logger';
 
 export class PaymentController {
+  async initPayment(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const { amount, planName, paymentMethod } = req.body;
+      if (!amount || !planName || !paymentMethod) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'amount, planName, paymentMethod are required' },
+        });
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      const returnUrl = `${frontendUrl}/api/payments/nicepay/return`;
+
+      const result = await paymentService.initPayment(req.user.userId, {
+        amount: Number(amount),
+        planName,
+        paymentMethod,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          returnUrl,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async nicepayReturn(req: Request, res: Response) {
+    try {
+      const body = req.body;
+      logger.info('NicePay return received', {
+        resultCode: body.resultCode,
+        resultMsg: body.resultMsg,
+        tid: body.tid,
+        orderId: body.orderId,
+        amount: body.amount,
+      });
+
+      const { resultCode, tid, orderId, amount } = body;
+
+      const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+
+      if (resultCode !== '0000') {
+        logger.error('NicePay auth failed', { resultCode, resultMsg: body.resultMsg, orderId });
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(body.resultMsg || '결제 인증에 실패했습니다.')}`);
+      }
+
+      const result = await paymentService.approveNicePayPayment(
+        tid,
+        orderId,
+        Number(amount)
+      );
+
+      if (result.success) {
+        return res.redirect(`${frontendUrl}/payment/success`);
+      } else {
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}`);
+      }
+    } catch (error) {
+      logger.error('NicePay return handler error', { error });
+      const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('결제 처리 중 오류가 발생했습니다.')}`);
+    }
+  }
+
   async processPayment(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
@@ -115,6 +192,7 @@ export class PaymentController {
       next(error);
     }
   }
+
   async adminCancelSubscription(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {

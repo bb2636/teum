@@ -1,28 +1,23 @@
 import { db } from '../db';
-import { payments, subscriptions } from '../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { payments, subscriptions, paymentSessions } from '../db/schema';
+import { eq, desc, and, lt } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
 
-/**
- * Payment Service
- * 
- * Handles payment processing using Nice Payments.
- * Supports both test and production modes.
- */
+setInterval(async () => {
+  try {
+    await db.delete(paymentSessions).where(lt(paymentSessions.expiresAt, new Date()));
+  } catch (e) {
+    logger.error('Failed to cleanup expired payment sessions', { error: e });
+  }
+}, 5 * 60 * 1000);
+
 export class PaymentService {
-  /**
-   * 결제 연동 전: PAYMENT_MOCK_SUCCESS=true 이면 NicePay 호출 없이 구독만 생성 후 성공 처리.
-   * 다음 결제일 = 구독 endDate(갱신일) 기준으로 노출 가능.
-   */
   private isPaymentMockSuccess(): boolean {
     return process.env.PAYMENT_MOCK_SUCCESS === 'true';
   }
 
-  /**
-   * 활성 구독 1건 조회 (다음 결제일 등 노출용).
-   */
   async getActiveSubscription(userId: string) {
     const subs = await this.getSubscriptions(userId);
     const now = new Date();
@@ -35,10 +30,164 @@ export class PaymentService {
     ) ?? null;
   }
 
-  /**
-   * Process a payment using Nice Payments.
-   * PAYMENT_MOCK_SUCCESS=true 이면 실제 PG 호출 없이 결제·구독만 생성 후 성공 반환.
-   */
+  async initPayment(
+    userId: string,
+    input: { amount: number; planName: string; paymentMethod: string }
+  ) {
+    const isRenewal = false;
+    if (!isRenewal) {
+      const activeSubscription = await this.getActiveSubscription(userId);
+      if (activeSubscription) {
+        throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+      }
+    }
+
+    const orderId = `ORDER_${Date.now()}_${userId.substring(0, 8)}`;
+
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await db.insert(paymentSessions).values({
+      orderId,
+      userId,
+      amount: input.amount.toString(),
+      planName: input.planName,
+      paymentMethod: input.paymentMethod,
+      expiresAt,
+    });
+
+    const clientId = nicePayProvider.getClientId();
+
+    const nicepayMethodMap: Record<string, string> = {
+      CARD: 'card',
+      BANK: 'bank',
+      CELLPHONE: 'cellphone',
+    };
+
+    return {
+      clientId,
+      orderId,
+      amount: input.amount,
+      goodsName: input.planName,
+      method: nicepayMethodMap[input.paymentMethod] || 'card',
+      isTestMode: nicePayProvider.getIsTestMode(),
+    };
+  }
+
+  async getPendingSession(orderId: string) {
+    const [session] = await db
+      .select()
+      .from(paymentSessions)
+      .where(eq(paymentSessions.orderId, orderId))
+      .limit(1);
+    if (!session || session.expiresAt < new Date()) return null;
+    return session;
+  }
+
+  async deletePendingSession(orderId: string) {
+    await db.delete(paymentSessions).where(eq(paymentSessions.orderId, orderId));
+  }
+
+  async approveNicePayPayment(
+    tid: string,
+    orderId: string,
+    amount: number
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const session = await this.getPendingSession(orderId);
+    if (!session) {
+      logger.error('Payment session not found', { orderId });
+      return { success: false, message: '결제 세션을 찾을 수 없습니다.' };
+    }
+
+    if (Number(session.amount) !== amount) {
+      logger.error('Payment amount mismatch', {
+        orderId,
+        expected: session.amount,
+        received: amount,
+      });
+      return { success: false, message: '결제 금액이 일치하지 않습니다.' };
+    }
+
+    const approvalResult = await nicePayProvider.approvePayment(tid, amount);
+
+    if (!approvalResult.success) {
+      logger.error('NicePay approval failed', {
+        orderId,
+        tid,
+        errorCode: approvalResult.errorCode,
+        errorMsg: approvalResult.errorMsg,
+      });
+
+      await db.insert(payments).values({
+        userId: session.userId,
+        status: 'failed',
+        amount: amount.toString(),
+        currency: 'KRW',
+        paymentMethod: session.paymentMethod,
+        transactionId: tid || orderId,
+        paidAt: null,
+      });
+
+      await this.deletePendingSession(orderId);
+
+      return {
+        success: false,
+        message: approvalResult.errorMsg || '결제 승인에 실패했습니다.',
+      };
+    }
+
+    const [payment] = await db
+      .insert(payments)
+      .values({
+        userId: session.userId,
+        status: 'completed',
+        amount: amount.toString(),
+        currency: 'KRW',
+        paymentMethod: session.paymentMethod,
+        transactionId: tid || orderId,
+        paidAt: new Date(),
+      })
+      .returning();
+
+    if (session.planName) {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      const [newSubscription] = await db
+        .insert(subscriptions)
+        .values({
+          userId: session.userId,
+          status: 'active',
+          planName: session.planName,
+          amount: amount.toString(),
+          currency: 'KRW',
+          startDate,
+          endDate,
+        })
+        .returning();
+
+      await db
+        .update(payments)
+        .set({ subscriptionId: newSubscription.id })
+        .where(eq(payments.id, payment.id));
+    }
+
+    await this.deletePendingSession(orderId);
+
+    logger.info('NicePay payment approved successfully', {
+      paymentId: payment.id,
+      tid,
+      orderId,
+    });
+
+    return {
+      success: true,
+      message: approvalResult.resultMsg || '결제가 완료되었습니다.',
+    };
+  }
+
   async processPayment(
     userId: string,
     input: ProcessPaymentInput
@@ -55,7 +204,7 @@ export class PaymentService {
       id: string;
       status: string;
       planName: string;
-      nextPaymentDate?: string; // ISO string, 다음 결제/갱신일
+      nextPaymentDate?: string;
     };
     message?: string;
   }> {
@@ -65,7 +214,6 @@ export class PaymentService {
     if (input.planName && !isRenewal) {
       const activeSubscription = await this.getActiveSubscription(userId);
       if (activeSubscription) {
-        logger.warn('User already has active subscription', { userId, existingSubscriptionId: activeSubscription.id });
         throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
       }
     }
@@ -76,7 +224,6 @@ export class PaymentService {
       paymentMethodStr = `CARD_${input.cardCode}`;
     }
 
-    // 결제 연동 전: 모크 모드면 PG 호출 없이 바로 성공 처리
     if (this.isPaymentMockSuccess()) {
       const startDate = new Date();
       const endDate = new Date();
@@ -141,137 +288,9 @@ export class PaymentService {
       };
     }
 
-    // 실제 PG 연동
-    const nicePayResponse = await nicePayProvider.approvePayment({
-      amount: input.amount,
-      orderId,
-      goodsName: input.planName,
-      buyerName: undefined,
-      buyerEmail: undefined,
-      returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success`,
-      notifyUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/payments/webhook`,
-    });
-
-    if (!nicePayResponse.success) {
-      logger.error('Nice Payments approval failed', {
-        orderId,
-        errorCode: nicePayResponse.errorCode,
-        errorMsg: nicePayResponse.errorMsg,
-      });
-
-      const [payment] = await db
-        .insert(payments)
-        .values({
-          userId,
-          status: 'failed',
-          amount: input.amount.toString(),
-          currency: 'KRW',
-          paymentMethod: paymentMethodStr,
-          transactionId: nicePayResponse.tid || orderId,
-          paidAt: null,
-        })
-        .returning();
-
-      if (paymentMethodStr.startsWith('CARD') || paymentMethodStr === 'BANK' || paymentMethodStr === 'CELLPHONE') {
-        const activeSubscription = await this.getActiveSubscription(userId);
-        if (activeSubscription) {
-          await db
-            .update(subscriptions)
-            .set({
-              status: 'cancelled',
-              cancelledAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(subscriptions.id, activeSubscription.id));
-          logger.info('Subscription auto-cancelled due to payment failure', {
-            subscriptionId: activeSubscription.id,
-            paymentId: payment.id,
-          });
-        }
-      }
-
-      return {
-        success: false,
-        payment: {
-          id: payment.id,
-          status: payment.status,
-          amount: payment.amount,
-          paymentMethod: payment.paymentMethod,
-          transactionId: payment.transactionId,
-        },
-        message: nicePayResponse.errorMsg || '결제에 실패했습니다.',
-      };
-    }
-
-    const [payment] = await db
-      .insert(payments)
-      .values({
-        userId,
-        status: 'completed',
-        amount: input.amount.toString(),
-        currency: 'KRW',
-        paymentMethod: paymentMethodStr,
-        transactionId: nicePayResponse.tid || orderId,
-        paidAt: new Date(),
-      })
-      .returning();
-
-    let subscription: { id: string; status: string; planName: string; endDate?: Date | null } | null = null;
-    if (input.planName) {
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1);
-
-      const [newSubscription] = await db
-        .insert(subscriptions)
-        .values({
-          userId,
-          status: 'active',
-          planName: input.planName,
-          amount: input.amount.toString(),
-          currency: 'KRW',
-          startDate,
-          endDate,
-        })
-        .returning();
-
-      await db
-        .update(payments)
-        .set({ subscriptionId: newSubscription.id })
-        .where(eq(payments.id, payment.id));
-
-      subscription = newSubscription;
-    }
-
-    logger.info('Payment processed successfully', {
-      paymentId: payment.id,
-      transactionId: nicePayResponse.tid,
-    });
-
-    return {
-      success: true,
-      payment: {
-        id: payment.id,
-        status: payment.status,
-        amount: payment.amount,
-        paymentMethod: payment.paymentMethod,
-        transactionId: payment.transactionId,
-      },
-      subscription: subscription
-        ? {
-            id: subscription.id,
-            status: subscription.status,
-            planName: subscription.planName,
-            nextPaymentDate: subscription.endDate ? new Date(subscription.endDate).toISOString() : undefined,
-          }
-        : undefined,
-      message: nicePayResponse.resultMsg || '결제가 완료되었습니다.',
-    };
+    throw new Error('나이스페이 JS SDK를 통해 결제해주세요.');
   }
 
-  /**
-   * Get all payments for a user.
-   */
   async getPayments(userId: string) {
     return db
       .select()
@@ -280,9 +299,6 @@ export class PaymentService {
       .orderBy(desc(payments.createdAt));
   }
 
-  /**
-   * Get all subscriptions for a user.
-   */
   async getSubscriptions(userId: string) {
     return db
       .select()
@@ -291,9 +307,6 @@ export class PaymentService {
       .orderBy(desc(subscriptions.createdAt));
   }
 
-  /**
-   * Cancel payment (refund)
-   */
   async cancelPayment(
     userId: string,
     tid: string,
@@ -305,7 +318,6 @@ export class PaymentService {
   }> {
     logger.info('Cancelling payment', { userId, tid, amount });
 
-    // Find payment by transaction ID
     const [payment] = await db
       .select()
       .from(payments)
@@ -320,11 +332,10 @@ export class PaymentService {
       throw new Error('Only completed payments can be cancelled');
     }
 
-    // Call Nice Payments cancel API
     const cancelResponse = await nicePayProvider.cancelPayment(tid, amount, reason);
 
     if (!cancelResponse.success) {
-      logger.error('Nice Payments cancellation failed', {
+      logger.error('NicePay cancellation failed', {
         tid,
         errorCode: cancelResponse.errorCode,
         errorMsg: cancelResponse.errorMsg,
@@ -332,7 +343,6 @@ export class PaymentService {
       throw new Error(cancelResponse.errorMsg || '결제 취소에 실패했습니다.');
     }
 
-    // Update payment status
     await db
       .update(payments)
       .set({ status: 'refunded', updatedAt: new Date() })
@@ -346,9 +356,6 @@ export class PaymentService {
     };
   }
 
-  /**
-   * Cancel subscription (구독 취소)
-   */
   async cancelSubscription(
     userId: string,
     subscriptionId: string
@@ -358,7 +365,6 @@ export class PaymentService {
   }> {
     logger.info('Cancelling subscription', { userId, subscriptionId });
 
-    // Find subscription
     const [subscription] = await db
       .select()
       .from(subscriptions)
@@ -380,7 +386,6 @@ export class PaymentService {
       throw new Error('Only active subscriptions can be cancelled');
     }
 
-    // Update subscription status to cancelled
     await db
       .update(subscriptions)
       .set({ 

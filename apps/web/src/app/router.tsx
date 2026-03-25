@@ -22,6 +22,7 @@ import { PaymentIntroPage } from '../pages/payment/PaymentIntroPage';
 import { PaymentPage } from '../pages/payment/PaymentPage';
 import { PaymentSuccessPage } from '../pages/payment/PaymentSuccessPage';
 import { PaymentHistoryPage } from '../pages/my/PaymentHistoryPage';
+import { PaymentFailPage } from '../pages/payment/PaymentFailPage';
 import { SupportPage } from '../pages/my/SupportPage';
 import { SupportInquiryPage } from '../pages/my/SupportInquiryPage';
 import { AdminPage } from '../pages/admin/AdminPage';
@@ -204,6 +205,12 @@ export default function App() {
                   <ProtectedRoute>
                     <PaymentSuccessPage />
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment/fail"
+                element={
+                  <PaymentFailPage />
                 }
               />
               <Route

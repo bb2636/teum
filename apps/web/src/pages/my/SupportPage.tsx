@@ -5,12 +5,14 @@ import { useSupportInquiries } from '@/hooks/useSupport';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { useT } from '@/hooks/useTranslation';
 
 export function SupportPage() {
   const navigate = useNavigate();
   const { data: inquiries = [], isLoading } = useSupportInquiries();
   const [expandedInquiryId, setExpandedInquiryId] = useState<string | null>(null);
   const { setHideTabBar } = useHideTabBar();
+  const t = useT();
 
   useEffect(() => {
     setHideTabBar(true);
@@ -22,11 +24,11 @@ export function SupportPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'answered':
-        return '답변 완료';
+        return t('support.answered');
       case 'in_progress':
-        return '처리 중';
+        return t('support.inProgress');
       default:
-        return '답변 대기';
+        return t('support.waiting');
     }
   };
 
@@ -44,7 +46,7 @@ export function SupportPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-gray-500">로딩 중...</div>
+        <div className="text-gray-500">{t('common.loading')}</div>
       </div>
     );
   }
@@ -60,7 +62,7 @@ export function SupportPage() {
           >
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
-          <h1 className="text-lg font-semibold text-[#4A2C1A]">고객 지원</h1>
+          <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('support.title')}</h1>
           <div className="w-10" /> {/* Spacer */}
         </div>
 
@@ -68,7 +70,7 @@ export function SupportPage() {
           {/* 문의 목록 */}
           <div className="space-y-0">
             {inquiries.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">문의 내역이 없습니다</p>
+              <p className="text-sm text-gray-500 text-center py-8">{t('support.noInquiries')}</p>
             ) : (
               inquiries.map((inquiry, index) => {
                 const isExpanded = expandedInquiryId === inquiry.id;
@@ -141,7 +143,7 @@ export function SupportPage() {
             onClick={() => navigate('/my/support/inquiry')}
             className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
           >
-            1:1 문의
+            {t('support.newInquiry')}
           </button>
         </div>
       </div>

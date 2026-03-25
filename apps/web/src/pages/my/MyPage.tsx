@@ -16,7 +16,8 @@ import { useLogout } from '@/hooks/useAuth';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { apiRequest } from '@/lib/api';
 import { TermsModal } from './TermsModal';
-import { setLanguageFromCountry } from '@/lib/i18n';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useT } from '@/hooks/useTranslation';
 
 type TermsItem = {
   type: string;
@@ -28,6 +29,8 @@ type TermsItem = {
 export function MyPage() {
   const navigate = useNavigate();
   const { data: user, isLoading } = useMe();
+  const t = useT();
+  const { setLanguageFromCountry } = useLanguage();
   const { data: subscriptions = [] } = useSubscriptions();
   useSupportInquiries();
   const logout = useLogout();
@@ -110,7 +113,7 @@ export function MyPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
-        <div className="text-muted-foreground">로딩 중...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -118,9 +121,9 @@ export function MyPage() {
   return (
     <div className="h-screen bg-beige-50 flex flex-col overflow-hidden">
       <div className="shrink-0 max-w-md mx-auto w-full px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-bold text-brown-900">프로필</h1>
+        <h1 className="text-2xl font-bold text-brown-900">{t('my.profile')}</h1>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-20 space-y-6">
+      <div className="flex-1 min-h-0 overflow-hidden max-w-md mx-auto w-full px-4 pb-20 space-y-4">
 
         {/* Profile Section - 가운데 정렬 (아바타 + 닉네임) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -163,11 +166,10 @@ export function MyPage() {
               </button>
             </div>
             <h3 className="text-lg font-semibold text-brown-900 mt-2">
-              기록이 곧, 당신만의 트랙이 됩니다.
+              {t('my.promoTitle')}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              일기의 감정이 그대로 담긴 단 하나의 선율입니다.<br />
-              기록하는 순간, 새로운 음악이 태어납니다.
+            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+              {t('my.promoDesc')}
             </p>
           </div>
         )}
@@ -179,17 +181,17 @@ export function MyPage() {
               <span className="font-semibold text-brown-900">
                 {activeSubscription
                   ? activeSubscription.status === 'cancelled'
-                    ? '구독 취소됨'
-                    : '구독중'
-                  : '미구독'}
+                    ? t('my.subscriptionCancelled')
+                    : t('my.subscribing')
+                  : t('my.notSubscribed')}
               </span>
             </div>
             {activeSubscription && nextPaymentDateStr && (
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>
                   {activeSubscription.status === 'cancelled'
-                    ? '이용 가능 기간'
-                    : '다음 결제예정일'}
+                    ? t('my.availableUntil')
+                    : t('my.nextPaymentDate')}
                 </span>
                 <span>{nextPaymentDateStr}</span>
               </div>
@@ -205,7 +207,7 @@ export function MyPage() {
           >
             <div className="flex items-center gap-3">
               <Pencil className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">프로필 편집</span>
+              <span className="font-medium text-brown-900">{t('my.profileEdit')}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -215,7 +217,7 @@ export function MyPage() {
           >
             <div className="flex items-center gap-3">
               <ClipboardList className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">결제 내역</span>
+              <span className="font-medium text-brown-900">{t('my.paymentHistory')}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -225,7 +227,7 @@ export function MyPage() {
           >
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">약관 보기</span>
+              <span className="font-medium text-brown-900">{t('my.viewTerms')}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -235,7 +237,7 @@ export function MyPage() {
           >
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">고객 지원</span>
+              <span className="font-medium text-brown-900">{t('my.customerSupport')}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -245,7 +247,7 @@ export function MyPage() {
           >
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5 text-brown-600" />
-              <span className="font-medium text-brown-900">로그아웃</span>
+              <span className="font-medium text-brown-900">{t('auth.logout')}</span>
             </div>
           </button>
         </div>
@@ -254,21 +256,21 @@ export function MyPage() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">정말 로그아웃 하시겠습니까?</p>
+            <p className="text-brown-900 mb-6">{t('auth.logoutConfirm')}</p>
             <div className="flex gap-3">
               <button
                 type="button"
                 className="flex-1 py-2.5 border border-brown-200 text-brown-700 rounded-full hover:bg-gray-100 transition-colors"
                 onClick={() => setShowLogoutConfirm(false)}
               >
-                취소
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 className="flex-1 py-2.5 bg-[#665146] hover:bg-[#5A453A] text-white rounded-full transition-colors"
                 onClick={handleLogoutConfirm}
               >
-                확인
+                {t('common.confirm')}
               </button>
             </div>
           </div>
@@ -283,16 +285,16 @@ export function MyPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-semibold text-brown-900">약관 보기</h2>
+              <h2 className="text-lg font-semibold text-brown-900">{t('my.viewTerms')}</h2>
               <button type="button" onClick={closeTermsList} className="p-1" aria-label="닫기">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
               {termsLoading ? (
-                <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
+                <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
               ) : termsList.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">등록된 약관이 없습니다</div>
+                <div className="text-center py-8 text-muted-foreground">{t('terms.noTerms')}</div>
               ) : (
                 termsList.map((item) => (
                   <button

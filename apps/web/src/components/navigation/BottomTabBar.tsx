@@ -2,14 +2,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Calendar, Music, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef, useEffect } from 'react';
+import { useT } from '@/hooks/useTranslation';
 
 const mainTabs = [
-  { path: '/home', label: '홈', icon: Home },
-  { path: '/calendar', label: '캘린더', icon: Calendar },
-  { path: '/music', label: '음악 생성', icon: Music },
+  { path: '/home', labelKey: 'tab.home', icon: Home },
+  { path: '/calendar', labelKey: 'tab.calendar', icon: Calendar },
+  { path: '/music', labelKey: 'tab.music', icon: Music },
 ];
 
 export function BottomTabBar() {
+  const t = useT();
   const location = useLocation();
   const prevPathRef = useRef(location.pathname);
   const activeTabRef = useRef<HTMLDivElement | null>(null);
@@ -74,7 +76,7 @@ export function BottomTabBar() {
                     >
                       <Icon className={cn('w-6 h-6 mb-1', isActive ? 'text-[#4A2C1A]' : 'text-gray-400')} />
                       <span className={cn('text-xs font-medium', isActive ? 'text-[#4A2C1A]' : 'text-gray-400')}>
-                        {tab.label}
+                        {t(tab.labelKey)}
                       </span>
                     </div>
                   </Link>

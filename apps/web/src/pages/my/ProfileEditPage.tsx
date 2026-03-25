@@ -13,7 +13,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { WithdrawModal } from './WithdrawModal';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
-import { setLanguageFromCountry } from '@/lib/i18n';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useT } from '@/hooks/useTranslation';
 
 const profileSchema = z.object({
   nickname: z
@@ -34,6 +35,8 @@ export function ProfileEditPage() {
   const { data: user, isLoading } = useMe();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
+  const t = useT();
+  const { setLanguageFromCountry } = useLanguage();
   const { data: subscriptions = [] } = useSubscriptions();
   const activeSubscription = getEffectiveSubscription(subscriptions);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
@@ -125,7 +128,7 @@ export function ProfileEditPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
-        <div className="text-muted-foreground">로딩 중...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -135,12 +138,12 @@ export function ProfileEditPage() {
       <div className="min-h-screen bg-beige-50">
         <div className="max-w-md mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold text-brown-900">프로필 편집</h1>
+            <h1 className="text-xl font-bold text-brown-900">{t('my.profileEdit')}</h1>
             <button
               type="button"
               onClick={() => navigate('/my')}
               className="p-2 rounded-full hover:bg-brown-100"
-              aria-label="닫기"
+              aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -149,7 +152,7 @@ export function ProfileEditPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* 이메일 (읽기 전용) */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-brown-900">이메일</Label>
+              <Label htmlFor="email" className="text-brown-900">{t('auth.email')}</Label>
               <Input
                 id="email"
                 value={user?.email ?? ''}
@@ -161,11 +164,11 @@ export function ProfileEditPage() {
 
             {/* 닉네임 */}
             <div className="space-y-2">
-              <Label htmlFor="nickname" className="text-brown-900">닉네임</Label>
+              <Label htmlFor="nickname" className="text-brown-900">{t('auth.nickname')}</Label>
               <Input
                 id="nickname"
                 {...register('nickname')}
-                placeholder="닉네임을 입력하세요"
+                placeholder={t('my.nicknamePlaceholder')}
                 className="bg-gray-50"
               />
               {errors.nickname && (
@@ -175,7 +178,7 @@ export function ProfileEditPage() {
 
             {/* 이름 (읽기 전용 - 변경 불가) */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-brown-900">이름</Label>
+              <Label htmlFor="name" className="text-brown-900">{t('auth.name')}</Label>
               <Input
                 id="name"
                 value={user?.profile?.name ?? ''}
@@ -188,7 +191,7 @@ export function ProfileEditPage() {
             {/* 생년월일 */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="dateOfBirth" className="text-brown-900">생년월일</Label>
+                <Label htmlFor="dateOfBirth" className="text-brown-900">{t('auth.dateOfBirth')}</Label>
                 <button
                   ref={calendarButtonRef}
                   type="button"
@@ -467,7 +470,7 @@ export function ProfileEditPage() {
 
             {/* 국가 선택 - 팝업 스타일 토글 목록 (다른 팝업과 UI 통일) */}
             <div className="space-y-2">
-              <Label className="text-brown-900">국가 선택</Label>
+              <Label className="text-brown-900">{t('my.selectCountry')}</Label>
               <button
                 type="button"
                 onClick={() => setShowCountryList(true)}
@@ -475,8 +478,8 @@ export function ProfileEditPage() {
               >
                 <span className={watch('country') ? 'text-brown-900' : 'text-muted-foreground'}>
                   {watch('country')
-                    ? COUNTRY_OPTIONS.find((c) => c.value === watch('country'))?.label ?? '국가 선택'
-                    : '국가 선택'}
+                    ? COUNTRY_OPTIONS.find((c) => c.value === watch('country'))?.label ?? t('my.selectCountry')
+                    : t('my.selectCountry')}
                 </span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
               </button>
@@ -491,7 +494,7 @@ export function ProfileEditPage() {
                 onClick={() => setShowLogoutConfirm(true)}
                 className="text-sm text-muted-foreground hover:text-brown-900 underline"
               >
-                로그아웃
+                {t('auth.logout')}
               </button>
               <span className="text-muted-foreground">|</span>
               <button
@@ -499,7 +502,7 @@ export function ProfileEditPage() {
                 onClick={() => setShowWithdraw(true)}
                 className="text-sm text-muted-foreground hover:text-brown-900 underline"
               >
-                회원탈퇴
+                {t('auth.withdraw')}
               </button>
             </div>
 
@@ -509,7 +512,7 @@ export function ProfileEditPage() {
               className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 rounded-full"
               disabled={updateProfile.isPending}
             >
-              {updateProfile.isPending ? '저장 중...' : '저장'}
+              {updateProfile.isPending ? t('common.saving') : t('common.save')}
             </Button>
           </form>
         </div>
@@ -519,13 +522,13 @@ export function ProfileEditPage() {
       {showSaveSuccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">저장되었습니다</p>
+            <p className="text-brown-900 mb-6">{t('my.saved')}</p>
             <Button
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A] rounded-full"
               onClick={handleSaveSuccessClose}
             >
-              확인
+              {t('common.confirm')}
             </Button>
           </div>
         </div>
@@ -535,13 +538,13 @@ export function ProfileEditPage() {
       {showSaveError && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">프로필 업데이트에 실패했습니다.</p>
+            <p className="text-brown-900 mb-6">{t('my.saveFailed')}</p>
             <Button
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A] rounded-full"
               onClick={() => setShowSaveError(false)}
             >
-              확인
+              {t('common.confirm')}
             </Button>
           </div>
         </div>
@@ -551,7 +554,7 @@ export function ProfileEditPage() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">정말 로그아웃 하시겠습니까?</p>
+            <p className="text-brown-900 mb-6">{t('auth.logoutConfirm')}</p>
             <div className="flex gap-3">
               <Button
                 type="button"
@@ -559,14 +562,14 @@ export function ProfileEditPage() {
                 className="flex-1 border-0 text-brown-700 rounded-full hover:bg-gray-100"
                 onClick={() => setShowLogoutConfirm(false)}
               >
-                취소
+                {t('common.cancel')}
               </Button>
               <Button
                 type="button"
                 className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
                 onClick={handleLogoutConfirm}
               >
-                확인
+                {t('common.confirm')}
               </Button>
             </div>
           </div>
@@ -594,12 +597,12 @@ export function ProfileEditPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-semibold text-brown-900">국가 선택</h2>
+              <h2 className="text-lg font-semibold text-brown-900">{t('my.selectCountry')}</h2>
               <button
                 type="button"
                 onClick={() => setShowCountryList(false)}
                 className="p-1 rounded-full hover:bg-gray-100"
-                aria-label="닫기"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -617,7 +620,7 @@ export function ProfileEditPage() {
                 >
                   <span className="font-medium text-brown-900">{label}</span>
                   {watch('country') === value && (
-                    <span className="text-brown-600 text-sm">선택됨</span>
+                    <span className="text-brown-600 text-sm">✓</span>
                   )}
                 </button>
               ))}

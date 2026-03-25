@@ -10,10 +10,11 @@ import { Label } from '@/components/ui/label';
 import { useLogin } from '@/hooks/useAuth';
 import { Logo } from '@/components/Logo';
 import { useMe } from '@/hooks/useProfile';
+import { useT } from '@/hooks/useTranslation';
 
 const loginSchema = z.object({
-  email: z.string().min(1, '이메일을 입력해주세요').email('올바른 이메일을 입력해주세요'),
-  password: z.string().min(1, '비밀번호를 입력해주세요'),
+  email: z.string().min(1, 'required').email('invalid'),
+  password: z.string().min(1, 'required'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -21,6 +22,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginPage() {
   const navigate = useNavigate();
   const loginMutation = useLogin();
+  const t = useT();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [skipAutoRedirect] = useState(() => {
@@ -63,7 +65,7 @@ export function LoginPage() {
         console.error('Login error:', err);
         const errorMessage = err instanceof Error 
           ? err.message 
-          : '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.';
+          : t('auth.loginFailed');
         setError(errorMessage);
       },
     });
@@ -75,7 +77,7 @@ export function LoginPage() {
       <button
         onClick={() => navigate('/splash')}
         className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm"
-        aria-label="뒤로가기"
+        aria-label="Back"
       >
         <ChevronLeft className="w-5 h-5 text-gray-700" />
       </button>
@@ -84,7 +86,7 @@ export function LoginPage() {
         <div className="text-center space-y-1">
           <Logo size="md" />
           <p className="text-muted-foreground text-sm">
-            기록이 곧, 당신만의 트랙이 됩니다.
+            {t('app.tagline')}
           </p>
         </div>
 
@@ -96,12 +98,12 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">이메일</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
               type="email"
               {...register('email')}
-              placeholder="이메일을 입력해주세요"
+              placeholder={t('auth.emailPlaceholder')}
               className={errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
             />
             {errors.email && (
@@ -109,13 +111,13 @@ export function LoginPage() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">비밀번호</Label>
+            <Label htmlFor="password">{t('auth.password')}</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 {...register('password')}
-                placeholder="비밀번호를 입력해주세요"
+                placeholder={t('auth.passwordPlaceholder')}
                 className={errors.password ? 'border-red-500 placeholder:text-red-500 pr-10' : 'pr-10'}
               />
               <button
@@ -145,17 +147,17 @@ export function LoginPage() {
             type="submit" 
             disabled={loginMutation.isPending || !isFormValid}
           >
-            {loginMutation.isPending ? '로그인 중...' : '로그인하기'}
+            {loginMutation.isPending ? t('auth.loggingIn') : t('auth.loginAction')}
           </Button>
         </form>
 
         <div className="text-center text-sm">
           <Link to="/signup" className="text-primary hover:underline">
-            회원가입
+            {t('auth.signup')}
           </Link>
           {' · '}
           <Link to="/forgot-password" className="text-primary hover:underline">
-            비밀번호 찾기
+            {t('auth.forgotPassword')}
           </Link>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { useT } from '@/hooks/useTranslation';
 
 /** HTML 태그를 제거하고 텍스트만 반환 */
 function stripHTML(html: string): string {
@@ -23,6 +24,7 @@ type SortOrder = 'newest' | 'oldest';
 type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';
 
 export function HomePage() {
+  const t = useT();
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const { data: diaries = [], isLoading: diariesLoading } = useDiaries(selectedFolderId);
@@ -125,7 +127,7 @@ export function HomePage() {
 
   const handleCreateFolder = async () => {
     if (!folderName.trim()) {
-      alert('폴더 이름을 입력해주세요.');
+      alert(t('diary.folderNameRequired'));
       return;
     }
 
@@ -166,13 +168,13 @@ export function HomePage() {
 
       // Show toast
       const toastId = Date.now().toString();
-      setToastMessages((prev) => [...prev, { id: toastId, message: '폴더가 생성되었습니다.' }]);
+      setToastMessages((prev) => [...prev, { id: toastId, message: t('diary.folderCreated') }]);
       setTimeout(() => {
         setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
       }, 3000);
     } catch (error) {
       console.error('Failed to create folder:', error);
-      alert('폴더 생성에 실패했습니다.');
+      alert(t('diary.folderCreateFailed'));
     } finally {
       setIsCreating(false);
     }
@@ -199,7 +201,7 @@ export function HomePage() {
 
   const handleFolderNameSave = async (folderId: string) => {
     if (!editingFolderName.trim()) {
-      alert('폴더 이름을 입력해주세요.');
+      alert(t('diary.folderNameRequired'));
       return;
     }
     
@@ -211,13 +213,13 @@ export function HomePage() {
       setEditingFolderId(null);
       setEditingFolderName('');
       const toastId = Date.now().toString();
-      setToastMessages((prev) => [...prev, { id: toastId, message: '폴더이름이 수정되었습니다.' }]);
+      setToastMessages((prev) => [...prev, { id: toastId, message: t('diary.folderRenamed') }]);
       setTimeout(() => {
         setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
       }, 3000);
     } catch (error) {
       console.error('Failed to update folder:', error);
-      alert('폴더 이름 변경에 실패했습니다.');
+      alert(t('diary.folderRenameFailed'));
     }
   };
 
@@ -246,7 +248,7 @@ export function HomePage() {
       }
     } catch (error) {
       console.error('Failed to delete folder:', error);
-      alert('폴더 삭제에 실패했습니다.');
+      alert(t('diary.folderDeleteFailed'));
     }
   };
 
@@ -278,7 +280,7 @@ export function HomePage() {
                 className="bg-gray-100 text-gray-700 border-0 rounded-lg px-4 py-2 h-auto cursor-default"
                 disabled
               >
-                구독중
+                {t('my.subscribing')}
               </Button>
             ) : (
               <Link to="/payment">
@@ -286,7 +288,7 @@ export function HomePage() {
                   variant="outline"
                   className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
                 >
-                  구독하기
+                  {t('payment.subscribe')}
                 </Button>
               </Link>
             )}
@@ -296,7 +298,7 @@ export function HomePage() {
 
         {/* Header - Second Row */}
         <div className="sticky top-[52px] z-30 px-4 pb-3 flex items-center justify-between bg-white">
-          <h1 className="text-xl font-semibold text-gray-800">일기</h1>
+          <h1 className="text-xl font-semibold text-gray-800">{t('diary.title')}</h1>
           
           {/* 필터 버튼 */}
           <div className="relative">
@@ -305,7 +307,7 @@ export function HomePage() {
               className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:text-[#4A2C1A] transition-colors rounded-lg hover:bg-gray-50"
             >
               <Filter className="w-4 h-4" />
-              <span>필터</span>
+              <span>{t('diary.filter')}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
             </button>
             
@@ -319,7 +321,7 @@ export function HomePage() {
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-2">
                   {/* 정렬 옵션 */}
                   <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs font-medium text-gray-500 mb-2">정렬</p>
+                    <p className="text-xs font-medium text-gray-500 mb-2">{t('diary.sort')}</p>
                     <button
                       onClick={() => {
                         setSortOrder('newest');
@@ -331,7 +333,7 @@ export function HomePage() {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      최신순
+                      {t('diary.newest')}
                     </button>
                     <button
                       onClick={() => {
@@ -344,13 +346,13 @@ export function HomePage() {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      오래된순
+                      {t('diary.oldest')}
                     </button>
                   </div>
                   
                   {/* 타입 필터 */}
                   <div className="px-3 py-2">
-                    <p className="text-xs font-medium text-gray-500 mb-2">타입</p>
+                    <p className="text-xs font-medium text-gray-500 mb-2">{t('diary.typeFilter')}</p>
                     <button
                       onClick={() => {
                         setTypeFilter('all');
@@ -362,7 +364,7 @@ export function HomePage() {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      전체
+                      {t('diary.all')}
                     </button>
                     <button
                       onClick={() => {
@@ -375,7 +377,7 @@ export function HomePage() {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      자유형식
+                      {t('diary.freeForm')}
                     </button>
                     <button
                       onClick={() => {
@@ -388,7 +390,7 @@ export function HomePage() {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      질문기록
+                      {t('diary.questionBased')}
                     </button>
                   </div>
                 </div>
@@ -406,7 +408,7 @@ export function HomePage() {
             <span className={`text-sm font-medium ${
               selectedFolderId === undefined ? 'text-[#4A2C1A]' : 'text-gray-600'
             }`}>
-              전체
+              {t('diary.all')}
             </span>
             {selectedFolderId === undefined && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A2C1A]"></span>
@@ -508,7 +510,7 @@ export function HomePage() {
 
         {/* Main Content */}
         {diariesLoading ? (
-          <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+          <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
         ) : diaries.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-12 space-y-6">
             {/* Empty State Illustration */}
@@ -524,13 +526,13 @@ export function HomePage() {
             {/* Messages */}
             <div className="text-center space-y-2">
               <h2 className="text-lg font-semibold text-[#4A2C1A]">
-                아직 작성된 일기가 없어요
+                {t('diary.noDiaries')}
               </h2>
               <p className="text-sm text-[#4A2C1A]">
-                첫 일기를 작성해보세요
+                {t('diary.startWriting')}
               </p>
               <p className="text-sm text-[#4A2C1A]">
-                기록이 쌓이면 음악을 만들 수 있어요
+                {t('diary.musicFromDiary')}
               </p>
             </div>
 
@@ -539,13 +541,13 @@ export function HomePage() {
               to="/calendar"
               className="text-sm text-[#4A2C1A] underline underline-offset-2"
             >
-              자세히보기
+              {t('common.learnMore')}
             </Link>
           </div>
         ) : filteredAndSortedDiaries.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-12 space-y-4">
             <p className="text-sm text-gray-500">
-              선택한 필터 조건에 맞는 일기가 없습니다.
+              {t('diary.noFilterResults')}
             </p>
             <button
               onClick={() => {
@@ -554,7 +556,7 @@ export function HomePage() {
               }}
               className="text-sm text-[#4A2C1A] underline underline-offset-2"
             >
-              필터 초기화
+              {t('diary.resetFilter')}
             </button>
           </div>
         ) : (
@@ -582,9 +584,9 @@ export function HomePage() {
                     {(() => {
                       const getDiaryTitle = (d: typeof dateDiaries[0]) => {
                         if (d.type === 'question_based' && d.answers?.length) {
-                          return d.answers[0].question?.question?.trim() || '제목 없음';
+                          return d.answers[0].question?.question?.trim() || t('diary.noTitle');
                         }
-                        return d.title?.trim() || '제목 없음';
+                        return d.title?.trim() || t('diary.noTitle');
                       };
 
                       const getDiaryPreview = (d: typeof dateDiaries[0]) => {
@@ -697,13 +699,13 @@ export function HomePage() {
           >
             <div className="text-center space-y-4">
               <h2 className="text-lg font-semibold text-[#4A2C1A]">
-                폴더 삭제
+                {t('diary.deleteFolder')}
               </h2>
               <p className="text-sm text-gray-700">
-                <span className="font-medium">"{folderToDelete.name}"</span> 폴더를 삭제하시겠습니까?
+                <span className="font-medium">"{folderToDelete.name}"</span> {t('diary.deleteFolderConfirm')}
               </p>
               <p className="text-sm text-red-600 font-medium">
-                ⚠️ 해당 폴더 내 작성된 일기 전부가 삭제됩니다.
+                ⚠️ {t('diary.deleteFolderWarning')}
               </p>
             </div>
 
@@ -712,14 +714,14 @@ export function HomePage() {
                 onClick={() => setShowDeleteModal(false)}
                 className="flex-1 py-3 px-4 rounded-lg text-[#4A2C1A] font-medium hover:bg-gray-100 transition-colors"
               >
-                취소
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleFolderDeleteConfirm}
                 disabled={deleteFolder.isPending}
                 className="flex-1 py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {deleteFolder.isPending ? '삭제 중...' : '삭제'}
+                {deleteFolder.isPending ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
           </div>
@@ -755,7 +757,7 @@ export function HomePage() {
               >
                 <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
               </button>
-              <h2 className="text-lg font-semibold text-[#4A2C1A]">새로운 폴더</h2>
+              <h2 className="text-lg font-semibold text-[#4A2C1A]">{t('diary.newFolder')}</h2>
               <div className="w-10" /> {/* Spacer */}
             </div>
 
@@ -763,7 +765,7 @@ export function HomePage() {
             <div className="px-4 py-6 space-y-6">
               {/* Folder Photo */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[#4A2C1A]">폴더 사진</label>
+                <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderPhoto')}</label>
                 <div className="relative">
                   {coverImagePreview ? (
                     <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
@@ -796,13 +798,13 @@ export function HomePage() {
 
               {/* Folder Name */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[#4A2C1A]">폴더 이름</label>
+                <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderName')}</label>
                 <div className="relative">
                   <input
                     type="text"
                     value={folderName}
                     onChange={(e) => setFolderName(e.target.value)}
-                    placeholder="폴더 이름"
+                    placeholder={t('diary.folderName')}
                     maxLength={50}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
                   />
@@ -839,7 +841,7 @@ export function HomePage() {
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  {isCreating ? '만드는 중...' : '만들기'}
+                  {isCreating ? t('common.creating') : t('common.create')}
                 </button>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { useGoogleLogin, useAppleLogin } from '@/hooks/useSocialAuth';
 import { useMe } from '@/hooks/useProfile';
+import { useT } from '@/hooks/useTranslation';
 
 declare global {
   interface Window {
@@ -31,6 +32,7 @@ export function SplashPage() {
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const appleLogin = useAppleLogin();
+  const t = useT();
   const [skipAutoRedirect] = useState(() => {
     return !!sessionStorage.getItem('teum_logged_out');
   });
@@ -186,7 +188,7 @@ export function SplashPage() {
               <Logo size="md" />
             </div>
             <p className="text-[#221813] text-sm" style={{ opacity: 0.6 }}>
-              기록이 곧, 당신만의 트랙이 됩니다.
+              {t('app.tagline')}
             </p>
           </div>
 
@@ -201,7 +203,7 @@ export function SplashPage() {
               size="lg"
               onClick={() => navigate('/login')}
             >
-              이메일로 로그인
+              {t('auth.login')}
             </Button>
 
             <div className="relative flex items-center justify-center my-3">
@@ -209,7 +211,7 @@ export function SplashPage() {
                 <div className="w-full border-t" style={{ borderColor: 'rgba(253, 253, 253, 0.8)' }}></div>
               </div>
               <div className="relative bg-[#665146] px-4">
-                <span className="text-sm" style={{ color: 'rgba(253, 253, 253, 0.8)' }}>또는</span>
+                <span className="text-sm" style={{ color: 'rgba(253, 253, 253, 0.8)' }}>{t('common.or')}</span>
               </div>
             </div>
 

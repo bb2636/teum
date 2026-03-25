@@ -67,6 +67,15 @@ teum/
 8. **Push Notifications**: Firebase FCM을 통한 푸시 알림 (음악 완성, 문의 답변 시 자동 발송)
 9. **Android APK**: Capacitor 래핑; 배포 서버 URL로 직접 로드; CORS/쿠키 Capacitor 호환
 
+## Internationalization (i18n)
+
+- **Languages**: Korean (ko), English (en), Japanese (ja), Chinese (zh) — fully translated; other languages fall back to English
+- **Architecture**: `LanguageContext` (React Context) → `useT()` hook → `t('key')` function
+- **Files**: `apps/web/src/lib/i18n.ts` (all translation data), `apps/web/src/contexts/LanguageContext.tsx`, `apps/web/src/hooks/useTranslation.ts`
+- **Language Detection**: Country-based via `setLanguageFromCountry(country)` from LanguageContext; persisted to localStorage
+- **Applied Pages**: SplashPage, LoginPage, HomePage, MyPage, ProfileEditPage, SupportPage, BottomTabBar
+- **Rules**: Never import `setLanguageFromCountry` directly from `i18n.ts` — always use the Context version via `useLanguage()`
+
 ## UI Animations
 
 Custom CSS animations defined in `apps/web/src/styles/globals.css`:

@@ -21,11 +21,12 @@ export function SubscriptionStartModal({
         className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-modal-pop"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-center space-y-4">
-          <h2 className="text-lg font-semibold text-[#4A2C1A]">
-            월 4,900원 구독을 시작하시겠습니까?
+        <div className="text-center">
+          <p className="text-sm text-gray-500">월 4,900원</p>
+          <h2 className="text-lg font-bold text-[#4A2C1A] mt-1">
+            구독을 시작하시겠습니까?
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-500 mt-3">
             빠르게 쓰거나, 질문에 따라<br />차근히 정리할 수 있습니다.
           </p>
         </div>

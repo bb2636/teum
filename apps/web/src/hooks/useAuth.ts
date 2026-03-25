@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/lib/api';
-import { setLanguageFromCountry } from '@/lib/i18n';
 
 export interface User {
   id: string;
@@ -20,6 +19,9 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onMutate: () => {
+      queryClient.getQueryCache().clear();
+    },
     mutationFn: async (data: { email: string; password: string }) => {
       const response = await apiRequest<{ data: { user: User } }>('/auth/login', {
         method: 'POST',
@@ -29,7 +31,7 @@ export function useLogin() {
     },
     onSuccess: (user) => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.clear();
+      queryClient.getQueryCache().clear();
       if (user.role === 'admin') {
         navigate('/admin');
       } else {
@@ -60,15 +62,9 @@ export function useSignup() {
       });
       return response.data.user;
     },
-    onSuccess: (user) => {
+    onSuccess: () => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.clear();
-      
-      // 사용자 프로필의 국가 정보로 언어 설정
-      if (user?.profile?.country) {
-        setLanguageFromCountry(user.profile.country);
-      }
-      
+      queryClient.getQueryCache().clear();
       navigate('/home');
     },
   });

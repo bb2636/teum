@@ -70,6 +70,9 @@ export class AuthController {
       const input = loginSchema.parse(req.body);
       logger.debug('Input validated');
 
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
+
       // Login
       const result = await authService.login(input);
       logger.info('Login successful', { userId: result.user.id, email: result.user.email });
@@ -304,6 +307,9 @@ export class AuthController {
         });
       }
 
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
+
       const result = await authService.googleLogin(idToken);
 
       if (result.isNewUser) {
@@ -353,6 +359,9 @@ export class AuthController {
   async appleLogin(req: Request, res: Response, next: NextFunction) {
     try {
       const parsed = appleOAuthCallbackSchema.parse(req.body);
+
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
 
       const result = await authService.appleLogin(parsed.idToken, parsed.user);
 

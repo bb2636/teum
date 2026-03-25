@@ -69,12 +69,16 @@ teum/
 
 ## Internationalization (i18n)
 
-- **Languages**: Korean (ko), English (en), Japanese (ja), Chinese (zh) — fully translated; other languages fall back to English
+- **Language**: Korean only (ko) — all other languages removed
 - **Architecture**: `LanguageContext` (React Context) → `useT()` hook → `t('key')` function
-- **Files**: `apps/web/src/lib/i18n.ts` (all translation data), `apps/web/src/contexts/LanguageContext.tsx`, `apps/web/src/hooks/useTranslation.ts`
-- **Language Detection**: Country-based via `setLanguageFromCountry(country)` from LanguageContext; persisted to localStorage
+- **Files**: `apps/web/src/lib/i18n.ts` (Korean translation data only), `apps/web/src/contexts/LanguageContext.tsx`, `apps/web/src/hooks/useTranslation.ts`
 - **Applied Pages**: SplashPage, LoginPage, HomePage, MyPage, ProfileEditPage, SupportPage, BottomTabBar
-- **Rules**: Never import `setLanguageFromCountry` directly from `i18n.ts` — always use the Context version via `useLanguage()`
+
+## Auth Session Management
+
+- **Login cache safety**: All login hooks (`useLogin`, `useGoogleLogin`, `useAppleLogin`) clear query cache via `queryClient.getQueryCache().clear()` in `onMutate` (before API call) and `onSuccess` (after API call) to prevent cross-account data leaking
+- **Server-side**: Login endpoints (`/auth/login`, `/auth/google/login`, `/auth/apple/login`) clear existing cookies before setting new ones
+- **Logout**: `useLogout` clears both query and mutation caches via `queryClient.clear()` before navigating to splash
 
 ## UI Animations
 

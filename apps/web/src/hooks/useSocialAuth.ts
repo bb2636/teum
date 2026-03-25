@@ -13,7 +13,12 @@ export interface SocialProfile {
 }
 
 export function useGoogleLogin() {
+  const queryClient = useQueryClient();
+
   return useMutation({
+    onMutate: () => {
+      queryClient.getQueryCache().clear();
+    },
     mutationFn: async (idToken: string) => {
       const response = await apiRequest<{
         data: {
@@ -28,11 +33,22 @@ export function useGoogleLogin() {
       });
       return response.data;
     },
+    onSuccess: (data) => {
+      queryClient.getQueryCache().clear();
+      if (!data.isNewUser) {
+        sessionStorage.removeItem('teum_logged_out');
+      }
+    },
   });
 }
 
 export function useAppleLogin() {
+  const queryClient = useQueryClient();
+
   return useMutation({
+    onMutate: () => {
+      queryClient.getQueryCache().clear();
+    },
     mutationFn: async (data: {
       idToken: string;
       authorizationCode?: string;
@@ -53,6 +69,12 @@ export function useAppleLogin() {
         body: JSON.stringify(data),
       });
       return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.getQueryCache().clear();
+      if (!data.isNewUser) {
+        sessionStorage.removeItem('teum_logged_out');
+      }
     },
   });
 }

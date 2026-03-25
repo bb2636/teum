@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 
 export function SupportPage() {
@@ -88,7 +88,7 @@ export function SupportPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-[#4A2C1A] mb-1">{inquiry.subject}</p>
                           <p className={`text-sm ${getStatusColor(inquiry.status)}`}>
-                            {getStatusText(inquiry.status)} · {format(new Date(inquiry.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                            {getStatusText(inquiry.status)} · {format(new Date(inquiry.createdAt), 'yyyy.MM.dd', { locale: getDateLocale() })}
                           </p>
                         </div>
                       </div>
@@ -119,7 +119,7 @@ export function SupportPage() {
                           {/* 날짜 */}
                           <div className="text-right pt-2">
                             <p className="text-xs text-gray-500">
-                              {format(new Date(inquiry.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                              {format(new Date(inquiry.createdAt), 'yyyy.MM.dd', { locale: getDateLocale() })}
                             </p>
                           </div>
                         </div>

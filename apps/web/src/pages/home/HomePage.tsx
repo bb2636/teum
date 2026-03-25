@@ -10,7 +10,7 @@ import { useUploadImage } from '@/hooks/useUpload';
 import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 
 /** HTML 태그를 제거하고 텍스트만 반환 */
@@ -456,7 +456,7 @@ export function HomePage() {
                       handleFolderDeleteClick(folder);
                     }}
                     className="text-red-600 hover:text-red-700 p-0.5"
-                    title="폴더 삭제"
+                    title={t('diary.deleteFolder')}
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -489,7 +489,7 @@ export function HomePage() {
                       onMouseEnter={() => setHoveredFolderId(folder.id)}
                       onMouseLeave={() => setHoveredFolderId(null)}
                       className="text-gray-500 hover:text-[#4A2C1A] p-0.5 flex-shrink-0 transition-colors"
-                      title="폴더 편집"
+                      title={t('my.profileEdit')}
                     >
                       <Pencil className="w-3 h-3" />
                     </button>
@@ -569,7 +569,7 @@ export function HomePage() {
               })
               .map(([dateKey, dateDiaries], groupIndex) => {
                 const date = new Date(dateKey);
-                const dateLabel = format(date, 'M월 d일 (E)', { locale: ko });
+                const dateLabel = format(date, 'PPP (E)', { locale: getDateLocale() });
                 
                 return (
                   <div
@@ -829,7 +829,7 @@ export function HomePage() {
                   }}
                   className="flex-1 py-3 px-4 rounded-full text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors"
                 >
-                  취소
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"

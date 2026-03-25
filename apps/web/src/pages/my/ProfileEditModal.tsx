@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { X, User, Pencil, Calendar, ChevronUp, ChevronDown as ChevronDownIcon, ChevronLeft } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDate, startOfWeek, endOfWeek } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,12 +12,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { WithdrawModal } from './WithdrawModal';
+import { useT } from '@/hooks/useTranslation';
 
 const profileSchema = z.object({
   nickname: z
     .string()
     .optional()
-    .refine((v) => !v || v.length === 0 || (v.length >= 2 && v.length <= 12), '닉네임은 2~12자입니다'),
+    .refine((v) => !v || v.length === 0 || (v.length >= 2 && v.length <= 12), 'auth.nicknameRule'),
   name: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
@@ -33,6 +34,7 @@ interface ProfileEditModalProps {
 
 
 export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
+  const t = useT();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
   useMe();
@@ -108,7 +110,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
       setShowSaveSuccess(true);
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('프로필 업데이트에 실패했습니다.');
+      alert(t('my.profileUpdateFailed'));
     }
   };
 
@@ -127,12 +129,12 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-overlay-fade">
         <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-pop">
           <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between z-10">
-            <h2 className="text-xl font-bold text-brown-900">프로필 편집</h2>
+            <h2 className="text-xl font-bold text-brown-900">{t('my.profileEdit')}</h2>
             <button
               type="button"
               onClick={onClose}
               className="p-1 rounded-full hover:bg-gray-100"
-              aria-label="닫기"
+              aria-label={t('common.close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -157,12 +159,12 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                   <Pencil className="w-3 h-3 text-white" />
                 </div>
               </div>
-              <Label className="text-brown-900">프로필 이미지</Label>
+              <Label className="text-brown-900">{t('my.profileImage')}</Label>
             </div>
 
             {/* 이메일 (읽기 전용) */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-brown-900">이메일</Label>
+              <Label htmlFor="email" className="text-brown-900">{t('auth.email')}</Label>
               <Input
                 id="email"
                 value={user?.email ?? ''}
@@ -174,11 +176,11 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
             {/* 닉네임 */}
             <div className="space-y-2">
-              <Label htmlFor="nickname" className="text-brown-900">닉네임</Label>
+              <Label htmlFor="nickname" className="text-brown-900">{t('auth.nickname')}</Label>
               <Input
                 id="nickname"
                 {...register('nickname')}
-                placeholder="닉네임을 입력하세요"
+                placeholder={t('auth.enterNickname')}
                 className="bg-gray-50"
               />
               {errors.nickname && (
@@ -188,11 +190,11 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
             {/* 이름 */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-brown-900">이름</Label>
+              <Label htmlFor="name" className="text-brown-900">{t('auth.name')}</Label>
               <Input
                 id="name"
                 {...register('name')}
-                placeholder="이름을 입력하세요"
+                placeholder={t('auth.enterName')}
                 className="bg-gray-50"
               />
               {errors.name && (
@@ -203,7 +205,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
             {/* 생년월일 */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="dateOfBirth" className="text-brown-900">생년월일</Label>
+                <Label htmlFor="dateOfBirth" className="text-brown-900">{t('auth.dateOfBirth')}</Label>
                 <button
                   ref={calendarButtonRef}
                   type="button"
@@ -248,7 +250,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                           className="flex items-center gap-2 hover:bg-gray-700 rounded px-2 py-1"
                         >
                           <span className="text-sm font-medium">
-                            {format(calendarDate, 'yyyy년 MM월', { locale: ko })}
+                            {format(calendarDate, 'yyyy MMMM', { locale: getDateLocale() })}
                           </span>
                           <ChevronDownIcon className={`w-4 h-4 transition-transform ${showYearMonthPicker ? 'rotate-180' : ''}`} />
                         </button>
@@ -285,7 +287,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                               <ChevronLeft className="w-4 h-4" />
                             </button>
                             <span className="text-sm font-medium text-white">
-                              {yearPickerStartYear}년 - {yearPickerStartYear + 9}년
+                              {t('my.yearRange', { start: String(yearPickerStartYear), end: String(yearPickerStartYear + 9) })}
                             </span>
                             <button
                               type="button"
@@ -346,7 +348,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                                       : 'bg-gray-700 text-white hover:bg-gray-600'
                                   }`}
                                 >
-                                  {month}월
+                                  {t('my.monthLabel', { month: String(month) })}
                                 </button>
                               );
                             })}
@@ -356,7 +358,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                       
                       {/* 요일 헤더 */}
                       <div className="grid grid-cols-7 gap-1 mb-2">
-                        {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                        {t('calendar.weekdays').split(',').map((day) => (
                           <div key={day} className="text-center text-xs text-gray-400 py-1">
                             {day}
                           </div>
@@ -412,7 +414,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                           }}
                           className="text-blue-400 text-sm"
                         >
-                          삭제
+                          {t('my.calendarDelete')}
                         </button>
                         <button
                           type="button"
@@ -424,7 +426,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                           }}
                           className="text-blue-400 text-sm"
                         >
-                          오늘
+                          {t('my.calendarToday')}
                         </button>
                       </div>
                     </div>
@@ -678,18 +680,18 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
 
             {/* 국가 선택 */}
             <div className="space-y-2">
-              <Label htmlFor="country" className="text-brown-900">국가 선택</Label>
+              <Label htmlFor="country" className="text-brown-900">{t('my.selectCountry')}</Label>
               <select
                 id="country"
                 {...register('country')}
                 className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 text-sm"
               >
-                <option value="">국가 선택</option>
-                <option value="KR">대한민국</option>
-                <option value="US">미국</option>
-                <option value="JP">일본</option>
-                <option value="CN">중국</option>
-                <option value="ETC">기타</option>
+                <option value="">{t('my.selectCountry')}</option>
+                <option value="KR">🇰🇷 Korea</option>
+                <option value="US">🇺🇸 USA</option>
+                <option value="JP">🇯🇵 Japan</option>
+                <option value="CN">🇨🇳 China</option>
+                <option value="ETC">{t('common.other')}</option>
               </select>
             </div>
 
@@ -700,7 +702,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                 onClick={() => setShowLogoutConfirm(true)}
                 className="text-sm text-muted-foreground hover:text-brown-900 underline"
               >
-                로그아웃
+                {t('auth.logout')}
               </button>
               <span className="text-muted-foreground">|</span>
               <button
@@ -708,7 +710,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                 onClick={() => setShowWithdraw(true)}
                 className="text-sm text-muted-foreground hover:text-brown-900 underline"
               >
-                회원탈퇴
+                {t('auth.withdraw')}
               </button>
             </div>
 
@@ -718,7 +720,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
               className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3"
               disabled={updateProfile.isPending}
             >
-              {updateProfile.isPending ? '저장 중...' : '저장'}
+              {updateProfile.isPending ? t('common.saving') : t('common.save')}
             </Button>
           </form>
         </div>
@@ -728,13 +730,13 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
       {showSaveSuccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">저장되었습니다</p>
+            <p className="text-brown-900 mb-6">{t('my.saved')}</p>
             <Button
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleSaveSuccessClose}
             >
-              확인
+              {t('common.confirm')}
             </Button>
           </div>
         </div>
@@ -744,7 +746,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">정말 로그아웃 하시겠습니까?</p>
+            <p className="text-brown-900 mb-6">{t('auth.logoutConfirm')}</p>
             <div className="flex gap-3">
               <Button
                 type="button"
@@ -752,14 +754,14 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                 className="flex-1 border-0 text-brown-700 rounded-full hover:bg-gray-100"
                 onClick={() => setShowLogoutConfirm(false)}
               >
-                취소
+                {t('common.cancel')}
               </Button>
               <Button
                 type="button"
                 className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
                 onClick={handleLogoutConfirm}
               >
-                확인
+                {t('common.confirm')}
               </Button>
             </div>
           </div>

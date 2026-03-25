@@ -69,10 +69,12 @@ teum/
 
 ## Internationalization (i18n)
 
-- **Language**: Korean only (ko) — all other languages removed
+- **Languages**: Korean (ko), English (en) — 국가 선택에 따라 전환 (KR→한국어, US/IN/CA/GB→영어)
 - **Architecture**: `LanguageContext` (React Context) → `useT()` hook → `t('key')` function
-- **Files**: `apps/web/src/lib/i18n.ts` (Korean translation data only), `apps/web/src/contexts/LanguageContext.tsx`, `apps/web/src/hooks/useTranslation.ts`
+- **Files**: `apps/web/src/lib/i18n.ts` (ko/en translation data), `apps/web/src/contexts/LanguageContext.tsx`, `apps/web/src/hooks/useTranslation.ts`
+- **Language Detection**: 프로필 편집에서 국가 선택 즉시 언어 전환 (저장 전에도 즉시 반영)
 - **Applied Pages**: SplashPage, LoginPage, HomePage, MyPage, ProfileEditPage, SupportPage, BottomTabBar
+- **Rules**: Never import `setLanguageFromCountry` directly from `i18n.ts` — always use the Context version via `useLanguage()`
 
 ## Auth Session Management
 

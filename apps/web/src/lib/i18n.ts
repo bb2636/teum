@@ -1,4 +1,12 @@
-export type Language = 'ko';
+export type Language = 'ko' | 'en';
+
+const COUNTRY_TO_LANGUAGE: Record<string, Language> = {
+  KR: 'ko',
+  US: 'en',
+  IN: 'en',
+  CA: 'en',
+  GB: 'en',
+};
 
 const DEFAULT_LANGUAGE: Language = 'ko';
 
@@ -157,15 +165,180 @@ const ko: Record<string, string> = {
   'tab.my': 'MY',
 };
 
+const en: Record<string, string> = {
+  'app.name': 'teum',
+  'app.tagline': 'Your records become your own track.',
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.confirm': 'Confirm',
+  'common.close': 'Close',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.loading': 'Loading...',
+  'common.saving': 'Saving...',
+  'common.next': 'Next',
+  'common.back': 'Back',
+  'common.or': 'or',
+  'common.today': 'Today',
+  'common.noData': 'No data',
+  'common.deleting': 'Deleting...',
+  'common.creating': 'Creating...',
+  'common.create': 'Create',
+  'common.learnMore': 'Learn More',
+  'auth.login': 'Login with Email',
+  'auth.signup': 'Sign Up',
+  'auth.email': 'Email',
+  'auth.password': 'Password',
+  'auth.confirmPassword': 'Confirm Password',
+  'auth.nickname': 'Nickname',
+  'auth.name': 'Name',
+  'auth.dateOfBirth': 'Date of Birth',
+  'auth.sendVerificationCode': 'Send Verification Code',
+  'auth.verificationCode': 'Verification Code',
+  'auth.verify': 'Verify',
+  'auth.emailVerified': 'Email verification completed',
+  'auth.emailExists': 'This email already exists. Please enter another email.',
+  'auth.passwordRequirements': 'Password must be at least 8 characters with letters and numbers',
+  'auth.passwordMismatch': 'Passwords do not match.',
+  'auth.accountInfo': 'Please enter your account information.',
+  'auth.profileInfo': 'Please enter your profile information.',
+  'auth.termsAgreement': 'Please agree to the terms and conditions.',
+  'auth.forgotPassword': 'Forgot your password?',
+  'auth.resetPassword': 'Reset Password',
+  'auth.loginFailed': 'Login failed. Please check your email and password.',
+  'auth.loggingIn': 'Logging in...',
+  'auth.loginAction': 'Log In',
+  'auth.emailPlaceholder': 'Enter your email',
+  'auth.passwordPlaceholder': 'Enter your password',
+  'auth.logout': 'Log Out',
+  'auth.logoutConfirm': 'Are you sure you want to log out?',
+  'auth.withdraw': 'Delete Account',
+  'my.profile': 'Profile',
+  'my.profileEdit': 'Edit Profile',
+  'my.paymentHistory': 'Payment History',
+  'my.viewTerms': 'Terms of Service',
+  'my.customerSupport': 'Customer Support',
+  'my.subscribing': 'Subscribed',
+  'my.notSubscribed': 'Not Subscribed',
+  'my.subscriptionCancelled': 'Subscription Cancelled',
+  'my.nextPaymentDate': 'Next Payment Date',
+  'my.availableUntil': 'Available Until',
+  'my.saved': 'Saved successfully',
+  'my.saveFailed': 'Failed to update profile.',
+  'my.nicknamePlaceholder': 'Enter nickname',
+  'my.nicknameRule': 'Nickname must be 2-12 characters',
+  'my.selectCountry': 'Select Country',
+  'my.promoTitle': 'Your records become your own track.',
+  'my.promoDesc': 'A unique melody that captures the emotions of your diary.\nThe moment you write, new music is born.',
+  'diary.title': 'Diary',
+  'diary.write': 'Write Diary',
+  'diary.freeForm': 'Free Writing',
+  'diary.questionBased': 'Question Diary',
+  'diary.titlePlaceholder': 'Enter title',
+  'diary.contentPlaceholder': 'How was your day?',
+  'diary.selectDate': 'Please select a date',
+  'diary.selectFolder': 'Select Folder',
+  'diary.noFolder': 'No Folder',
+  'diary.newFolder': 'New Folder',
+  'diary.folderName': 'Folder Name',
+  'diary.allDiaries': 'All Diaries',
+  'diary.newest': 'Newest',
+  'diary.oldest': 'Oldest',
+  'diary.deleteConfirm': 'Are you sure you want to delete?',
+  'diary.deleteDesc': 'Deleted diaries cannot be recovered.',
+  'diary.noDiaries': 'No diaries yet',
+  'diary.startWriting': 'Write your first diary',
+  'diary.saved': 'Diary saved',
+  'diary.exitConfirm': 'You have unsaved changes.\nDo you want to leave?',
+  'diary.exitDesc': 'Unsaved content will be lost.',
+  'diary.exit': 'Leave',
+  'diary.continuWriting': 'Continue Writing',
+  'diary.encouragement': 'AI Encouragement',
+  'diary.generateEncouragement': 'Generate Encouragement',
+  'diary.generateMusic': 'Generate Music',
+  'diary.filter': 'Filter',
+  'diary.sort': 'Sort',
+  'diary.typeFilter': 'Type',
+  'diary.all': 'All',
+  'diary.free': 'Free',
+  'diary.question': 'Question',
+  'diary.noTitle': 'No Title',
+  'diary.noFilterResults': 'No diaries matching the selected filter.',
+  'diary.resetFilter': 'Reset Filter',
+  'diary.musicFromDiary': 'You can create music as your diary entries grow',
+  'diary.deleteFolder': 'Delete Folder',
+  'diary.deleteFolderConfirm': 'Do you want to delete this folder?',
+  'diary.deleteFolderWarning': 'All diaries in this folder will be deleted.',
+  'diary.folderNameRequired': 'Please enter a folder name.',
+  'diary.folderCreated': 'Folder created.',
+  'diary.folderCreateFailed': 'Failed to create folder.',
+  'diary.folderRenamed': 'Folder renamed.',
+  'diary.folderRenameFailed': 'Failed to rename folder.',
+  'diary.folderDeleteFailed': 'Failed to delete folder.',
+  'diary.folderPhoto': 'Folder Photo',
+  'calendar.title': 'Calendar',
+  'calendar.diaryCount': '{count} diaries',
+  'calendar.noDiariesOnDate': 'No diaries on this date',
+  'music.title': 'Music',
+  'music.myMusic': 'My Music',
+  'music.create': 'Create Music',
+  'music.generating': 'Generating music...',
+  'music.generated': 'Music generated',
+  'music.noMusic': 'No music yet',
+  'music.createFromDiary': 'Create music from diary',
+  'support.title': 'Customer Support',
+  'support.newInquiry': 'New Inquiry',
+  'support.inquiryTitle': 'Inquiry Title',
+  'support.inquiryContent': 'Inquiry Content',
+  'support.submit': 'Submit',
+  'support.noInquiries': 'No inquiries',
+  'support.answered': 'Answered',
+  'support.inProgress': 'In Progress',
+  'support.waiting': 'Waiting',
+  'support.answer': 'Answer',
+  'terms.viewTerms': 'Terms of Service',
+  'terms.noTerms': 'No terms available',
+  'payment.title': 'Payment',
+  'payment.subscribe': 'Subscribe',
+  'payment.monthly': 'Monthly',
+  'payment.yearly': 'Yearly',
+  'payment.price': 'Price',
+  'payment.success': 'Payment completed',
+  'payment.fail': 'Payment failed',
+  'payment.history': 'Payment History',
+  'payment.noHistory': 'No payment history',
+  'payment.cancelled': 'Cancelled',
+  'payment.active': 'Active',
+  'payment.intro.title': 'Premium Subscription',
+  'payment.intro.feature1': 'Unlimited AI encouragement messages',
+  'payment.intro.feature2': 'AI music generation',
+  'payment.intro.feature3': 'Unlimited diary entries',
+  'tab.home': 'Home',
+  'tab.calendar': 'Calendar',
+  'tab.write': 'Write',
+  'tab.music': 'Music',
+  'tab.my': 'MY',
+};
+
+const translations: Record<Language, Record<string, string>> = { ko, en };
+
 export function getCurrentLanguage(): Language {
+  if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
+  const saved = localStorage.getItem('teum_language') as Language | null;
+  if (saved && translations[saved]) return saved;
+  const country = localStorage.getItem('teum_user_country');
+  if (country && COUNTRY_TO_LANGUAGE[country]) return COUNTRY_TO_LANGUAGE[country];
   return DEFAULT_LANGUAGE;
 }
 
-export function setLanguage(_language: Language): void {
+export function setLanguage(language: Language): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('teum_language', language);
 }
 
 export function t(key: string, params?: Record<string, string | number>): string {
-  let text = ko[key] || key;
+  const lang = getCurrentLanguage();
+  let text = translations[lang]?.[key] || translations[DEFAULT_LANGUAGE]?.[key] || key;
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       text = text.replace(`{${k}}`, String(v));
@@ -174,9 +347,15 @@ export function t(key: string, params?: Record<string, string | number>): string
   return text;
 }
 
-export function setLanguageFromCountry(_countryCode: string | null | undefined): void {
+export function setLanguageFromCountry(countryCode: string | null | undefined): void {
+  if (!countryCode) return;
+  const language = COUNTRY_TO_LANGUAGE[countryCode.toUpperCase()];
+  if (language) {
+    setLanguage(language);
+    localStorage.setItem('teum_user_country', countryCode.toUpperCase());
+  }
 }
 
-export function getLanguageFromCountry(_countryCode: string): Language {
-  return DEFAULT_LANGUAGE;
+export function getLanguageFromCountry(countryCode: string): Language {
+  return COUNTRY_TO_LANGUAGE[countryCode.toUpperCase()] || DEFAULT_LANGUAGE;
 }

@@ -74,7 +74,7 @@ export class NicePayProvider {
           'Content-Type': 'application/json',
           Authorization: authHeader,
         },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount: Math.round(amount) }),
       });
 
       const data = (await response.json()) as Record<string, unknown>;

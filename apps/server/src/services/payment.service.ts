@@ -1,9 +1,11 @@
-import { db } from '../db';
+import { db, sqlClient } from '../db';
 import { payments, subscriptions, paymentSessions } from '../db/schema';
 import { eq, desc, lt } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import * as schema from '../db/schema';
 
 setInterval(async () => {
   try {
@@ -109,6 +111,24 @@ export class PaymentService {
       return { success: false, message: '결제 금액이 일치하지 않습니다.' };
     }
 
+    await this.deletePendingSession(orderId);
+
+    const existingPayment = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.transactionId, tid))
+      .limit(1);
+
+    if (existingPayment.length > 0) {
+      logger.warn('Duplicate approval attempt detected', { tid, orderId });
+      return {
+        success: existingPayment[0].status === 'completed',
+        message: existingPayment[0].status === 'completed'
+          ? '이미 처리된 결제입니다.'
+          : '결제가 실패한 상태입니다.',
+      };
+    }
+
     const approvalResult = await nicePayProvider.approvePayment(tid, amount);
 
     if (!approvalResult.success) {
@@ -125,11 +145,9 @@ export class PaymentService {
         amount: amount.toString(),
         currency: 'KRW',
         paymentMethod: session.paymentMethod,
-        transactionId: tid || orderId,
+        transactionId: tid,
         paidAt: null,
       });
-
-      await this.deletePendingSession(orderId);
 
       return {
         success: false,
@@ -137,55 +155,72 @@ export class PaymentService {
       };
     }
 
-    const [payment] = await db
-      .insert(payments)
-      .values({
-        userId: session.userId,
-        status: 'completed',
-        amount: amount.toString(),
-        currency: 'KRW',
-        paymentMethod: session.paymentMethod,
-        transactionId: tid || orderId,
-        paidAt: new Date(),
-      })
-      .returning();
+    try {
+      const result = await sqlClient.begin(async (sql) => {
+        const txDb = drizzle(sql, { schema });
 
-    if (session.planName) {
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1);
+        const [payment] = await txDb
+          .insert(payments)
+          .values({
+            userId: session.userId,
+            status: 'completed',
+            amount: amount.toString(),
+            currency: 'KRW',
+            paymentMethod: session.paymentMethod,
+            transactionId: tid,
+            paidAt: new Date(),
+          })
+          .returning();
 
-      const [newSubscription] = await db
-        .insert(subscriptions)
-        .values({
-          userId: session.userId,
-          status: 'active',
-          planName: session.planName,
-          amount: amount.toString(),
-          currency: 'KRW',
-          startDate,
-          endDate,
-        })
-        .returning();
+        let subscriptionId: string | null = null;
 
-      await db
-        .update(payments)
-        .set({ subscriptionId: newSubscription.id })
-        .where(eq(payments.id, payment.id));
+        if (session.planName) {
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 1);
+
+          const [newSubscription] = await txDb
+            .insert(subscriptions)
+            .values({
+              userId: session.userId,
+              status: 'active',
+              planName: session.planName,
+              amount: amount.toString(),
+              currency: 'KRW',
+              startDate,
+              endDate,
+            })
+            .returning();
+
+          subscriptionId = newSubscription.id;
+
+          await txDb
+            .update(payments)
+            .set({ subscriptionId: newSubscription.id })
+            .where(eq(payments.id, payment.id));
+        }
+
+        return { paymentId: payment.id, subscriptionId };
+      });
+
+      logger.info('NicePay payment approved successfully', {
+        paymentId: result.paymentId,
+        subscriptionId: result.subscriptionId,
+        tid,
+        orderId,
+      });
+
+      return {
+        success: true,
+        message: approvalResult.resultMsg || '결제가 완료되었습니다.',
+      };
+    } catch (txError) {
+      logger.error('Payment DB transaction failed', { error: txError, tid, orderId });
+      return {
+        success: false,
+        message: '결제 저장 중 오류가 발생했습니다. 고객센터에 문의해주세요.',
+      };
     }
-
-    await this.deletePendingSession(orderId);
-
-    logger.info('NicePay payment approved successfully', {
-      paymentId: payment.id,
-      tid,
-      orderId,
-    });
-
-    return {
-      success: true,
-      message: approvalResult.resultMsg || '결제가 완료되었습니다.',
-    };
   }
 
   async processPayment(

@@ -78,14 +78,28 @@ export class PaymentController {
       }
 
       if (resultCode !== '0000') {
+        await paymentService.deletePendingSession(orderId);
         logger.error('NicePay auth failed', { resultCode, resultMsg: body.resultMsg, orderId });
         return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(body.resultMsg || '결제 인증에 실패했습니다.')}`);
+      }
+
+      if (!tid) {
+        await paymentService.deletePendingSession(orderId);
+        logger.error('NicePay return missing tid', { orderId });
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('결제 거래 정보가 누락되었습니다.')}`);
+      }
+
+      const parsedAmount = Number(amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        await paymentService.deletePendingSession(orderId);
+        logger.error('NicePay return invalid amount', { orderId, amount });
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('결제 금액 정보가 올바르지 않습니다.')}`);
       }
 
       const result = await paymentService.approveNicePayPayment(
         tid,
         orderId,
-        Number(amount)
+        parsedAmount
       );
 
       if (result.success) {

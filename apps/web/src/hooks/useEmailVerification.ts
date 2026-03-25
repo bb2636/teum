@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 
 export interface RequestEmailVerificationResponse {
@@ -16,7 +16,7 @@ export interface CheckEmailExistsResponse {
   exists: boolean;
 }
 
-// Check if email exists
+// Check if email exists (mutation - for on-demand checks)
 export function useCheckEmailExists() {
   return useMutation({
     mutationFn: async (email: string) => {
@@ -25,6 +25,21 @@ export function useCheckEmailExists() {
       );
       return response.data;
     },
+  });
+}
+
+// Check if email exists (query - for real-time validation)
+export function useEmailDuplicateCheck(email: string, enabled: boolean = false) {
+  return useQuery({
+    queryKey: ['email-check', email],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: CheckEmailExistsResponse }>(
+        `/auth/check-email?email=${encodeURIComponent(email)}`
+      );
+      return response.data;
+    },
+    enabled: enabled && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    staleTime: 0,
   });
 }
 

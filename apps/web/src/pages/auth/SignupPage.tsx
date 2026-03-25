@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
-import { useCheckEmailExists } from '@/hooks/useEmailVerification';
+import { useCheckEmailExists, useEmailDuplicateCheck } from '@/hooks/useEmailVerification';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
@@ -86,6 +86,7 @@ export function SignupPage() {
   }>({});
 
   const checkEmailExists = useCheckEmailExists();
+  const [emailError, setEmailError] = useState<string | null>(null);
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
@@ -135,8 +136,23 @@ export function SignupPage() {
     step3Form.setValue('termsRefund', !agreeAll);
   };
 
+  const shouldCheckEmail = !!step1Email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(step1Email) && !step1Form.formState.errors.email;
+  const emailDuplicateCheck = useEmailDuplicateCheck(step1Email || '', shouldCheckEmail);
+
   const shouldCheckNickname = step2Nickname && step2Nickname.length >= 2 && step2Nickname.length <= 12 && !step2Nickname.includes(' ') && /^[a-zA-Z0-9가-힣_]+$/.test(step2Nickname);
   const nicknameCheck = useNicknameCheck(step2Nickname || '', shouldCheckNickname || false);
+
+  useEffect(() => {
+    if (shouldCheckEmail && emailDuplicateCheck.data) {
+      if (emailDuplicateCheck.data.exists) {
+        setEmailError('이미 존재하는 이메일입니다.');
+      } else {
+        setEmailError(null);
+      }
+    } else if (!shouldCheckEmail) {
+      setEmailError(null);
+    }
+  }, [shouldCheckEmail, emailDuplicateCheck.data]);
 
   const step1Errors = step1Form.formState.errors;
   const isStep1Valid =
@@ -146,6 +162,7 @@ export function SignupPage() {
     step1Phone &&
     !step1Errors.email &&
     !step1Errors.password &&
+    !emailError &&
     step1Password === step1ConfirmPassword &&
     phoneVerified;
 
@@ -213,14 +230,9 @@ export function SignupPage() {
 
     setError(null);
 
-    try {
-      const checkResult = await checkEmailExists.mutateAsync(step1Email);
-      if (checkResult.exists) {
-        setError('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
-        return;
-      }
-    } catch (err) {
-      console.error('Email check error:', err);
+    if (emailError) {
+      setError('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
+      return;
     }
 
     try {
@@ -361,10 +373,13 @@ export function SignupPage() {
                 type="email"
                 {...step1Form.register('email')}
                 placeholder="이메일을 입력해주세요"
-                className={step1Errors.email ? 'border-red-500' : ''}
+                className={step1Errors.email || emailError ? 'border-red-500' : ''}
               />
               {step1Errors.email && (
                 <p className="text-sm text-red-500">{step1Errors.email.message}</p>
+              )}
+              {!step1Errors.email && emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
               )}
             </div>
 

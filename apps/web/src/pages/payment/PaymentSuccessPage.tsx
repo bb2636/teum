@@ -1,95 +1,57 @@
 import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, BookOpen, Music, PenLine, ChevronRight, type LucideIcon } from 'lucide-react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-
-type GuidePage = {
-  id: string;
-  title: ReactNode;
-  subtitle: ReactNode | null;
-  icon: LucideIcon | null;
-  tips?: string[];
-};
-
-const GUIDE_PAGES: GuidePage[] = [
-  {
-    id: 'welcome',
-    title: (
-      <>
-        구독이<br />
-        시작되었습니다.
-      </>
-    ),
-    subtitle: (
-      <>
-        일기를 분석해<br />
-        가사를 만들고,<br />
-        음악까지 생성해 보세요.
-      </>
-    ),
-    icon: null,
-  },
-  {
-    id: 'why-diary',
-    icon: BookOpen,
-    title: (
-      <>
-        일기가 많을수록<br />
-        더 좋은 음악이<br />
-        만들어져요.
-      </>
-    ),
-    subtitle: (
-      <>
-        AI는 일기 속 감정, 상황, 계절감을<br />
-        분석해 가사와 멜로디를 만듭니다.<br />
-        풍부한 기록이 곧 풍부한 음악이에요.
-      </>
-    ),
-  },
-  {
-    id: 'how-to',
-    icon: PenLine,
-    title: (
-      <>
-        이렇게<br />
-        써 보세요.
-      </>
-    ),
-    subtitle: null,
-    tips: [
-      '오늘 하루 느낀 감정을 솔직하게 적어 보세요.',
-      '날씨, 장소, 만난 사람 등 구체적인 상황을 담으면 좋아요.',
-      '짧아도 괜찮아요. 매일 한 줄이면 충분합니다.',
-      '질문형 일기를 활용하면 쉽게 시작할 수 있어요.',
-    ],
-  },
-  {
-    id: 'music-create',
-    icon: Music,
-    title: (
-      <>
-        일기를 모아<br />
-        나만의 음악을<br />
-        만들어 보세요.
-      </>
-    ),
-    subtitle: (
-      <>
-        3편 이상의 일기가 쌓이면<br />
-        음악 생성이 가능해요.<br />
-        지금 바로 일기를 시작해 보세요!
-      </>
-    ),
-  },
-];
+import { useT } from '@/hooks/useTranslation';
 
 export function PaymentSuccessPage() {
   const navigate = useNavigate();
   const { setHideTabBar } = useHideTabBar();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
+  const t = useT();
+
+  type GuidePage = {
+    id: string;
+    title: string;
+    subtitle: string | null;
+    icon: LucideIcon | null;
+    tips?: string[];
+  };
+
+  const GUIDE_PAGES: GuidePage[] = [
+    {
+      id: 'welcome',
+      title: t('payment.success.subscriptionStarted'),
+      subtitle: t('payment.success.analyzeAndCreate'),
+      icon: null,
+    },
+    {
+      id: 'why-diary',
+      icon: BookOpen,
+      title: t('payment.success.moreDiaries'),
+      subtitle: t('payment.success.moreDiariesDesc'),
+    },
+    {
+      id: 'how-to',
+      icon: PenLine,
+      title: t('payment.success.howToWrite'),
+      subtitle: null,
+      tips: [
+        t('payment.success.tip1'),
+        t('payment.success.tip2'),
+        t('payment.success.tip3'),
+        t('payment.success.tip4'),
+      ],
+    },
+    {
+      id: 'music-create',
+      icon: Music,
+      title: t('payment.success.collectAndCreate'),
+      subtitle: t('payment.success.collectAndCreateDesc'),
+    },
+  ];
 
   useEffect(() => {
     setHideTabBar(true);
@@ -176,13 +138,13 @@ export function PaymentSuccessPage() {
               className="w-full py-4 px-4 rounded-full border border-gray-200 text-[#4A2C1A] font-medium transition-colors hover:bg-gray-50 flex items-center justify-center gap-2"
             >
               <PenLine className="w-4 h-4" />
-              일기 쓰러 가기
+              {t('payment.success.goWriteDiary')}
             </button>
             <button
               onClick={() => navigate('/music')}
               className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
             >
-              음악 생성하기
+              {t('payment.success.goCreateMusic')}
               <Sparkles className="w-4 h-4" />
             </button>
           </>
@@ -192,13 +154,13 @@ export function PaymentSuccessPage() {
               onClick={() => navigate('/home')}
               className="w-full text-center text-sm text-gray-400 hover:text-gray-600 py-2"
             >
-              건너뛰기
+              {t('common.skip')}
             </button>
             <button
               onClick={handleNext}
               className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
             >
-              다음
+              {t('common.next')}
               <ChevronRight className="w-4 h-4" />
             </button>
           </>

@@ -5,6 +5,7 @@ import { useInitPayment } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
+import { useT } from '@/hooks/useTranslation';
 
 declare global {
   interface Window {
@@ -33,8 +34,9 @@ export function PaymentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setHideTabBar } = useHideTabBar();
+  const t = useT();
   const amount = searchParams.get('amount') || '0';
-  const planName = searchParams.get('plan') || '기본 플랜';
+  const planName = searchParams.get('plan') || t('payment.plan');
 
   useEffect(() => {
     setHideTabBar(true);
@@ -54,11 +56,10 @@ export function PaymentPage() {
   const nextPaymentDate = useMemo(() => {
     const date = new Date();
     date.setMonth(date.getMonth() + 1);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).replace(/\./g, '.').replace(/\s/g, '');
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}.${m}.${d}`;
   }, []);
 
   const isPaymentMethodValid = () => {
@@ -72,7 +73,7 @@ export function PaymentPage() {
   const handlePaymentClick = () => {
     if (!isPaymentMethodValid()) {
       if (paymentMethod === 'CARD' && !cardCode) {
-        alert('카드사를 선택해주세요');
+        alert(t('payment.selectCardCompany'));
         return;
       }
       return;
@@ -89,7 +90,7 @@ export function PaymentPage() {
 
   const handleConfirmPayment = async () => {
     if (!paymentMethod) {
-      alert('결제 수단을 선택해주세요.');
+      alert(t('payment.selectPaymentMethod'));
       return;
     }
 
@@ -104,7 +105,7 @@ export function PaymentPage() {
       });
 
       if (!window.AUTHNICE) {
-        alert('나이스페이 결제 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.');
+        alert(t('payment.nicepayLoadFailed'));
         setIsProcessing(false);
         return;
       }
@@ -118,7 +119,7 @@ export function PaymentPage() {
         returnUrl: initResult.returnUrl,
         fnError: (result: { errorMsg?: string }) => {
           setIsProcessing(false);
-          alert(result.errorMsg || '결제 중 오류가 발생했습니다.');
+          alert(result.errorMsg || t('payment.paymentError'));
         },
       };
 
@@ -129,7 +130,7 @@ export function PaymentPage() {
       window.AUTHNICE.requestPay(payParams);
     } catch (error: any) {
       console.error('Payment init error:', error);
-      alert(error?.message || '결제 초기화 중 오류가 발생했습니다.');
+      alert(error?.message || t('payment.initError'));
       setIsProcessing(false);
     }
   };
@@ -144,14 +145,14 @@ export function PaymentPage() {
           >
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
-          <h1 className="text-lg font-semibold text-[#4A2C1A]">구독 결제</h1>
+          <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('payment.subscriptionPayment')}</h1>
           <div className="w-10" />
         </div>
 
         <div className="px-4 py-6 space-y-6">
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-gray-700">플랜혜택</span>
+              <span className="text-sm font-medium text-gray-700">{t('payment.planBenefits')}</span>
               <div className="flex items-center gap-2">
                 <img
                   src="/mureka_logo.png"
@@ -171,7 +172,7 @@ export function PaymentPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-[#4A2C1A] mb-1">
-                    일기 무제한 작성 · 저장
+                    {t('payment.unlimitedDiary')}
                   </h3>
                 </div>
               </div>
@@ -182,7 +183,7 @@ export function PaymentPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-[#4A2C1A] mb-1">
-                    Ai 분석 기반 가사 생성
+                    {t('payment.aiLyrics')}
                   </h3>
                 </div>
               </div>
@@ -193,7 +194,7 @@ export function PaymentPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-[#4A2C1A] mb-1">
-                    음악 생성 (Mureka)
+                    {t('payment.musicGeneration')}
                   </h3>
                 </div>
               </div>
@@ -202,29 +203,29 @@ export function PaymentPage() {
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-[#4A2C1A]">결제정보</h2>
-              <span className="text-sm text-gray-600">다음 결제일 : {nextPaymentDate}</span>
+              <h2 className="text-base font-semibold text-[#4A2C1A]">{t('payment.paymentInfo')}</h2>
+              <span className="text-sm text-gray-600">{t('payment.nextPaymentDateLabel', { date: nextPaymentDate })}</span>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">플랜</span>
+                <span className="text-sm text-gray-600">{t('payment.plan')}</span>
                 <span className="text-sm font-medium text-[#4A2C1A]">{planName}</span>
               </div>
               <div className="border-t border-gray-200"></div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">금액</span>
+                <span className="text-sm text-gray-600">{t('payment.amount')}</span>
                 <span className="text-base font-bold text-[#4A2C1A]">
-                  {parseInt(amount).toLocaleString()}원
+                  {parseInt(amount).toLocaleString()}{t('payment.won')}
                 </span>
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-3">
-              구독은 매월 자동 갱신되며, 다음 결제일 전까지 언제든지 해지할 수 있습니다.
+              {t('payment.autoRenewalNote')}
             </p>
           </div>
 
           <div>
-            <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">결제수단</h2>
+            <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">{t('payment.method')}</h2>
 
             <div className="space-y-3 mb-4">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -239,14 +240,14 @@ export function PaymentPage() {
                   }}
                   className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
                 />
-                <span className="font-medium text-[#4A2C1A]">신용/체크카드</span>
+                <span className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</span>
               </label>
 
               {paymentMethod === 'CARD' && (
                 <div className="ml-8 relative">
                   <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">
                     <span className="text-sm text-gray-600">
-                      {NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode)?.name || '카드사 선택'}
+                      {NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode)?.name || t('payment.selectCard')}
                     </span>
                     <ChevronDown className="w-4 h-4 text-gray-400" />
                   </div>
@@ -255,7 +256,7 @@ export function PaymentPage() {
                     onChange={(e) => setCardCode(e.target.value)}
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   >
-                    <option value="">카드사 선택</option>
+                    <option value="">{t('payment.selectCard')}</option>
                     {NICEPAY_CARD_COMPANIES.map((card) => (
                       <option key={card.code} value={card.code}>
                         {card.name}
@@ -279,7 +280,7 @@ export function PaymentPage() {
                   }}
                   className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
                 />
-                <span className="font-medium text-[#4A2C1A]">계좌이체</span>
+                <span className="font-medium text-[#4A2C1A]">{t('payment.bankTransfer')}</span>
               </label>
             </div>
 
@@ -296,7 +297,7 @@ export function PaymentPage() {
                   }}
                   className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
                 />
-                <span className="font-medium text-[#4A2C1A]">휴대폰 결제</span>
+                <span className="font-medium text-[#4A2C1A]">{t('payment.mobilePayment')}</span>
               </label>
             </div>
           </div>
@@ -305,7 +306,7 @@ export function PaymentPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
           <div className="max-w-md mx-auto">
             <p className="text-xs text-gray-600 text-center mb-3">
-              결제 버튼을 누르면 나이스페이 결제창이 열립니다.
+              {t('payment.paymentNote')}
             </p>
             <button
               onClick={handlePaymentClick}
@@ -313,8 +314,8 @@ export function PaymentPage() {
               className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing || initPayment.isPending
-                ? '결제 처리 중...'
-                : `월 ${parseInt(amount).toLocaleString()}원으로 시작하기`}
+                ? t('payment.processing')
+                : t('payment.startMonthly', { amount: parseInt(amount).toLocaleString() })}
             </button>
           </div>
         </div>

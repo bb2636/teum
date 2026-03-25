@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 
 export function DiaryListPage() {
   const [searchParams] = useSearchParams();
+  const t = useT();
+  const locale = getDateLocale();
   const date = searchParams.get('date');
   const folderId = searchParams.get('folderId') || undefined;
 
@@ -26,7 +29,7 @@ export function DiaryListPage() {
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-brown-900">
-            {date ? format(new Date(date), 'yyyy년 M월 d일', { locale: ko }) : '일기 목록'}
+            {date ? format(new Date(date), 'yyyy.MM.dd', { locale }) : t('diary.list')}
           </h1>
           <Link to="/diaries/new">
             <Button
@@ -39,10 +42,10 @@ export function DiaryListPage() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+          <div className="text-center py-12 text-muted-foreground">{t('common.loading')}</div>
         ) : filteredDiaries.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p>작성된 일기가 없어요</p>
+            <p>{t('diary.noDiariesYet')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -56,11 +59,11 @@ export function DiaryListPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(diary.date), 'yyyy.MM.dd', { locale: ko })}
+                        {format(new Date(diary.date), 'yyyy.MM.dd', { locale })}
                       </span>
                       {diary.type === 'question_based' && (
                         <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                          질문
+                          {t('diary.question')}
                         </span>
                       )}
                     </div>

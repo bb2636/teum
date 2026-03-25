@@ -12,18 +12,19 @@ import { useRequestEmailVerification, useConfirmEmailVerification } from '@/hook
 import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
+import { useT } from '@/hooks/useTranslation';
 
 const nicknameSchema = z
   .string()
-  .min(2, '닉네임은 2~12자로 입력해 주세요.')
-  .max(12, '닉네임은 2~12자로 입력해 주세요.')
-  .refine((val) => !val.includes(' '), '닉네임에 공백은 사용할 수 없습니다.')
-  .refine((val) => /^[a-zA-Z0-9가-힣_]+$/.test(val), '사용할 수 없는 문자가 포함되어 있습니다.');
+  .min(2, 'auth.nicknameRule')
+  .max(12, 'auth.nicknameRule')
+  .refine((val) => !val.includes(' '), 'auth.nicknameNoSpace')
+  .refine((val) => /^[a-zA-Z0-9가-힣_]+$/.test(val), 'auth.nicknameInvalidChar');
 
 const profileSchema = z.object({
-  email: z.string().email('올바른 이메일을 입력해주세요'),
+  email: z.string().email('auth.emailPlaceholder'),
   nickname: nicknameSchema,
-  name: z.string().min(1, '이름을 입력해주세요.').max(100),
+  name: z.string().min(1, 'auth.enterName').max(100),
   dateOfBirth: z
     .string()
     .refine((val) => {
@@ -39,7 +40,7 @@ const profileSchema = z.object({
       if (isNaN(day) || day < 1 || day > 31) return false;
       const date = new Date(year, month - 1, day);
       return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-    }, '생년월일을 정확하게 입력해주세요.')
+    }, 'auth.enterDateOfBirth')
     .optional(),
 });
 
@@ -55,6 +56,7 @@ type TermsFormData = z.infer<typeof termsSchema>;
 export function SocialOnboardingPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const t = useT();
   const socialProfile = location.state?.socialProfile as SocialProfile | undefined;
   const onboardingToken = location.state?.onboardingToken as string | undefined;
   const socialOnboarding = useSocialOnboarding();
@@ -115,11 +117,11 @@ export function SocialOnboardingPage() {
   useEffect(() => {
     if (watchNickname && watchNickname.length > 0) {
       const errors: string[] = [];
-      if (watchNickname.length < 2 || watchNickname.length > 12) errors.push('닉네임은 2~12자로 입력해 주세요.');
-      if (watchNickname.includes(' ')) errors.push('닉네임에 공백은 사용할 수 없습니다.');
-      if (!/^[a-zA-Z0-9가-힣_]+$/.test(watchNickname)) errors.push('사용할 수 없는 문자가 포함되어 있습니다.');
+      if (watchNickname.length < 2 || watchNickname.length > 12) errors.push(t('auth.nicknameRule'));
+      if (watchNickname.includes(' ')) errors.push(t('auth.nicknameNoSpace'));
+      if (!/^[a-zA-Z0-9가-힣_]+$/.test(watchNickname)) errors.push(t('auth.nicknameInvalidChar'));
       if (shouldCheckNickname && nicknameCheck.data && !nicknameCheck.data.available) {
-        if (nicknameCheck.data.reason === 'duplicate') errors.push('이미 사용 중인 닉네임입니다.');
+        if (nicknameCheck.data.reason === 'duplicate') errors.push(t('auth.nicknameDuplicate'));
       }
       setNicknameError(errors);
     } else {
@@ -178,7 +180,7 @@ export function SocialOnboardingPage() {
         setEmailVerificationCode(result.code);
       }
     } catch (err: any) {
-      setError(err?.message || '인증 코드 발송에 실패했습니다');
+      setError(err?.message || t('auth.verificationFailed'));
     }
   };
 
@@ -192,17 +194,17 @@ export function SocialOnboardingPage() {
       setShowEmailVerificationModal(false);
       setEmailVerificationInput('');
     } catch (err: any) {
-      setError(err?.message || '인증 코드가 올바르지 않습니다');
+      setError(err?.message || t('auth.verificationInvalid'));
     }
   };
 
   const onProfileSubmit = async (_data: ProfileFormData) => {
     if (nicknameError.length > 0) {
-      setError('닉네임을 올바르게 입력해주세요');
+      setError(t('auth.fixNickname'));
       return;
     }
     if (needsEmailInput && !emailVerified) {
-      setError('이메일 인증을 완료해주세요');
+      setError(t('auth.completeEmailVerification'));
       return;
     }
     setStep(2);
@@ -230,7 +232,7 @@ export function SocialOnboardingPage() {
       },
       {
         onError: (err) => {
-          setError(err instanceof Error ? err.message : '회원가입에 실패했습니다');
+          setError(err instanceof Error ? err.message : t('auth.signupFailed'));
         },
       }
     );
@@ -254,10 +256,10 @@ export function SocialOnboardingPage() {
             <ChevronLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold">{providerLabel} 회원가입</h1>
+            <h1 className="text-2xl font-bold">{t('auth.socialSignup', { provider: providerLabel })}</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 1 && '회원 정보를 입력해주세요.'}
-              {step === 2 && '약관에 동의해주세요.'}
+              {step === 1 && t('auth.profileInfo')}
+              {step === 2 && t('auth.termsAgreement')}
             </p>
           </div>
         </div>
@@ -269,14 +271,14 @@ export function SocialOnboardingPage() {
         {step === 1 && (
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               {needsEmailInput ? (
                 <div className="relative">
                   <Input
                     id="email"
                     type="email"
                     {...profileForm.register('email')}
-                    placeholder="이메일을 입력해주세요"
+                    placeholder={t('auth.emailPlaceholder')}
                     className={`pr-28 ${profileErrors.email ? 'border-red-500' : ''}`}
                     disabled={emailVerified}
                   />
@@ -287,7 +289,7 @@ export function SocialOnboardingPage() {
                     disabled={requestEmailVerification.isPending || emailVerified || !watchEmail || !!profileErrors.email}
                     className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
                   >
-                    {emailVerified ? '인증완료' : requestEmailVerification.isPending ? '전송 중...' : '인증번호 보내기'}
+                    {emailVerified ? t('auth.verificationComplete') : requestEmailVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
                   </Button>
                 </div>
               ) : (
@@ -300,18 +302,18 @@ export function SocialOnboardingPage() {
                 />
               )}
               {emailVerified && needsEmailInput && (
-                <p className="text-sm text-green-600">✓ 이메일 인증이 완료되었습니다</p>
+                <p className="text-sm text-green-600">✓ {t('auth.emailVerified')}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="nickname">닉네임</Label>
+              <Label htmlFor="nickname">{t('auth.nickname')}</Label>
               <div className="relative">
                 <Input
                   id="nickname"
                   type="text"
                   {...profileForm.register('nickname')}
-                  placeholder="닉네임을 입력하세요"
+                  placeholder={t('auth.enterNickname')}
                   className={`pr-10 bg-gray-100 ${nicknameError.length > 0 ? 'border-red-500' : ''}`}
                 />
                 {watchNickname && nicknameError.length === 0 && !profileErrors.nickname && nicknameCheck.data?.available && (
@@ -330,12 +332,12 @@ export function SocialOnboardingPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">이름</Label>
+              <Label htmlFor="name">{t('auth.name')}</Label>
               <Input
                 id="name"
                 type="text"
                 {...profileForm.register('name')}
-                placeholder="이름을 입력하세요"
+                placeholder={t('auth.enterName')}
                 className={`bg-gray-100 ${profileErrors.name ? 'border-red-500' : ''}`}
               />
               {profileErrors.name && <p className="text-sm text-red-500">{profileErrors.name.message}</p>}
@@ -343,7 +345,7 @@ export function SocialOnboardingPage() {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="dateOfBirth">생년월일</Label>
+                <Label htmlFor="dateOfBirth">{t('auth.dateOfBirth')}</Label>
                 <button type="button" onClick={() => setShowCalendar(!showCalendar)} className="text-gray-500 hover:text-gray-700">
                   <Calendar className="w-4 h-4" />
                 </button>
@@ -395,7 +397,7 @@ export function SocialOnboardingPage() {
             )}
 
             <Button type="submit" className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={!isProfileValid}>
-              다음
+              {t('common.next')}
             </Button>
           </form>
         )}
@@ -411,13 +413,13 @@ export function SocialOnboardingPage() {
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${agreeAll ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
                   {agreeAll && <CheckCircle2 className="w-4 h-4 text-white" />}
                 </div>
-                <span className="text-base font-semibold text-gray-900">전체 동의합니다</span>
+                <span className="text-base font-semibold text-gray-900">{t('auth.agreeAll')}</span>
               </button>
 
               <div className="divide-y divide-gray-100">
                 {(['service', 'payment', 'refund'] as const).map((type) => {
                   const key = `terms${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof TermsFormData;
-                  const label = type === 'service' ? '서비스 이용약관' : type === 'payment' ? '정기 결제 및 자동 갱신' : '환불/해지 정책';
+                  const label = t(`auth.terms${type.charAt(0).toUpperCase() + type.slice(1)}` as any);
                   const checked = termsForm.watch(key);
 
                   return (
@@ -427,7 +429,7 @@ export function SocialOnboardingPage() {
                         {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                       </div>
                       <div className="flex-1 flex items-center justify-between">
-                        <span className="text-sm text-gray-700">(필수) {label}</span>
+                        <span className="text-sm text-gray-700">{t('auth.required')} {label}</span>
                         <button type="button" onClick={(e) => { e.preventDefault(); setShowTermsModal(type); }} className="text-xs text-gray-400 hover:text-gray-600">
                           <ChevronRight className="w-4 h-4" />
                         </button>
@@ -439,7 +441,7 @@ export function SocialOnboardingPage() {
             </div>
 
             <Button type="submit" className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={!isTermsValid || socialOnboarding.isPending}>
-              {socialOnboarding.isPending ? '가입 중...' : '가입하기'}
+              {socialOnboarding.isPending ? t('auth.signingUp') : t('auth.signupAction')}
             </Button>
           </form>
         )}
@@ -449,28 +451,28 @@ export function SocialOnboardingPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={() => setShowEmailVerificationModal(false)}>
           <div className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4 animate-modal-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">이메일 인증번호 입력</h2>
+              <h2 className="text-lg font-semibold">{t('auth.emailVerifyTitle')}</h2>
               <button onClick={() => setShowEmailVerificationModal(false)} className="p-2 rounded-full hover:bg-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="emailCode">인증번호</Label>
+              <Label htmlFor="emailCode">{t('auth.verificationCode')}</Label>
               <Input
                 id="emailCode"
                 type="text"
                 value={emailVerificationInput}
                 onChange={(e) => setEmailVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="인증번호 입력"
+                placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
               />
               {emailVerificationCode && (
-                <p className="text-xs text-gray-500 text-center">개발 모드: 인증번호 ({emailVerificationCode})</p>
+                <p className="text-xs text-gray-500 text-center">Dev mode: code ({emailVerificationCode})</p>
               )}
             </div>
             <Button onClick={handleConfirmEmailVerification} className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={emailVerificationInput.length !== 6 || confirmEmailVerification.isPending}>
-              {confirmEmailVerification.isPending ? '확인 중...' : '확인'}
+              {confirmEmailVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
           </div>
         </div>

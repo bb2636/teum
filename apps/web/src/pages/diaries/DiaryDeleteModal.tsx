@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
+import { useT } from '@/hooks/useTranslation';
 
 interface DiaryDeleteModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export function DiaryDeleteModal({
   isLoading = false,
 }: DiaryDeleteModalProps) {
   const { setHideTabBar } = useHideTabBar();
+  const t = useT();
 
   useEffect(() => {
     if (isOpen) {
@@ -22,7 +24,6 @@ export function DiaryDeleteModal({
     } else {
       setHideTabBar(false);
     }
-    // Cleanup: 모달이 닫힐 때 하단바 다시 표시
     return () => {
       setHideTabBar(false);
     };
@@ -40,8 +41,8 @@ export function DiaryDeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center space-y-4">
-          <h2 className="text-lg font-semibold text-[#4A2C1A]">삭제</h2>
-          <p className="text-sm text-gray-700">일기를 삭제하시겠습니까?</p>
+          <h2 className="text-lg font-semibold text-[#4A2C1A]">{t('common.delete')}</h2>
+          <p className="text-sm text-gray-700">{t('diary.deleteQuestion')}</p>
         </div>
 
         <div className="flex gap-3 mt-6">
@@ -50,14 +51,14 @@ export function DiaryDeleteModal({
             disabled={isLoading}
             className="flex-1 py-3 px-4 rounded-lg text-[#4A2C1A] font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
           >
-            취소
+            {t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
             className="flex-1 py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50"
           >
-            {isLoading ? '삭제 중...' : '확인'}
+            {isLoading ? t('common.deleting') : t('common.confirm')}
           </button>
         </div>
       </div>

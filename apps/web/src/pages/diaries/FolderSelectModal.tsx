@@ -6,6 +6,7 @@ import { useDiaries } from '@/hooks/useDiaries';
 import { useCreateFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { getStorageImageSrc } from '@/lib/api';
+import { useT } from '@/hooks/useTranslation';
 
 interface FolderSelectModalProps {
   selectedFolderId?: string;
@@ -20,6 +21,7 @@ export function FolderSelectModal({
   onClose,
 }: FolderSelectModalProps) {
   const queryClient = useQueryClient();
+  const t = useT();
   const { data: folders = [] } = useFolders();
   const { data: allDiaries = [] } = useDiaries();
   const createFolder = useCreateFolder();
@@ -58,7 +60,7 @@ export function FolderSelectModal({
 
   const handleCreateFolder = async () => {
     if (!folderName.trim()) {
-      alert('폴더 이름을 입력해주세요.');
+      alert(t('diary.folderNameRequired'));
       return;
     }
 
@@ -106,7 +108,7 @@ export function FolderSelectModal({
       onSelect(newFolder.id);
     } catch (error) {
       console.error('Failed to create folder:', error);
-      alert('폴더 생성에 실패했습니다.');
+      alert(t('diary.folderCreateFailed'));
     } finally {
       setIsCreating(false);
     }
@@ -140,7 +142,7 @@ export function FolderSelectModal({
             >
               <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
             </button>
-            <h2 className="text-lg font-semibold text-[#4A2C1A]">새로운 폴더</h2>
+            <h2 className="text-lg font-semibold text-[#4A2C1A]">{t('diary.newFolderTitle')}</h2>
             <div className="w-10" /> {/* Spacer */}
           </div>
 
@@ -148,7 +150,7 @@ export function FolderSelectModal({
           <div className="px-4 py-6 space-y-6">
             {/* Folder Photo */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#4A2C1A]">폴더 사진</label>
+              <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderPhoto')}</label>
               <div className="relative">
                 {coverImagePreview ? (
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
@@ -181,13 +183,13 @@ export function FolderSelectModal({
 
             {/* Folder Name */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#4A2C1A]">폴더 이름</label>
+              <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderNameLabel')}</label>
               <div className="relative">
                 <input
                   type="text"
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
-                  placeholder="폴더 이름"
+                  placeholder={t('diary.folderNameLabel')}
                   maxLength={50}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
                 />
@@ -212,7 +214,7 @@ export function FolderSelectModal({
                 }}
                 className="flex-1 py-3 px-4 rounded-full text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors"
               >
-                취소
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -224,7 +226,7 @@ export function FolderSelectModal({
                     : 'bg-gray-300 cursor-not-allowed'
                 }`}
               >
-                {isCreating ? '만드는 중...' : '만들기'}
+                {isCreating ? t('common.creating') : t('common.create')}
               </button>
             </div>
           </div>
@@ -246,7 +248,7 @@ export function FolderSelectModal({
 
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
-          <h2 className="text-lg font-semibold text-[#4A2C1A]">폴더 선택</h2>
+          <h2 className="text-lg font-semibold text-[#4A2C1A]">{t('diary.selectFolder')}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
@@ -283,7 +285,7 @@ export function FolderSelectModal({
                     <p className="text-sm font-medium text-[#4A2C1A] mb-1 truncate" title={folder.name}>
                       {folder.name}
                     </p>
-                    <p className="text-xs text-gray-500">{diaryCount}개의 일기</p>
+                    <p className="text-xs text-gray-500">{t('diary.diaryCountLabel', { count: diaryCount })}</p>
                   </div>
                 </button>
               );
@@ -298,7 +300,7 @@ export function FolderSelectModal({
             className="w-full py-4 px-4 bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            새로운 폴더
+            {t('diary.newFolderTitle')}
           </button>
         </div>
       </div>

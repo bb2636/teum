@@ -13,30 +13,31 @@ import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hook
 import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
+import { useT } from '@/hooks/useTranslation';
 
 const nicknameSchema = z
   .string()
-  .min(2, '닉네임은 2~12자로 입력해 주세요.')
-  .max(12, '닉네임은 2~12자로 입력해 주세요.')
-  .refine((val) => !val.includes(' '), '닉네임에 공백은 사용할 수 없습니다.')
-  .refine((val) => /^[a-zA-Z0-9가-힣_]+$/.test(val), '사용할 수 없는 문자가 포함되어 있습니다.');
+  .min(2, 'auth.nicknameRule')
+  .max(12, 'auth.nicknameRule')
+  .refine((val) => !val.includes(' '), 'auth.nicknameNoSpace')
+  .refine((val) => /^[a-zA-Z0-9가-힣_]+$/.test(val), 'auth.nicknameInvalidChar');
 
 const passwordSchema = z
   .string()
-  .min(8, '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.')
-  .refine((val) => /[a-zA-Z]/.test(val), '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.')
-  .refine((val) => /[0-9]/.test(val), '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.');
+  .min(8, 'auth.passwordRequirements')
+  .refine((val) => /[a-zA-Z]/.test(val), 'auth.passwordRequirements')
+  .refine((val) => /[0-9]/.test(val), 'auth.passwordRequirements');
 
 const step1Schema = z.object({
-  email: z.string().email('올바른 이메일을 입력해주세요'),
+  email: z.string().email('auth.emailPlaceholder'),
   password: passwordSchema,
   confirmPassword: z.string(),
-  phone: z.string().min(10, '전화번호를 입력해주세요').max(15),
+  phone: z.string().min(10, 'auth.phoneRequired').max(15),
 });
 
 const step2Schema = z.object({
   nickname: nicknameSchema,
-  name: z.string().min(1, '이름을 입력해주세요.').max(100),
+  name: z.string().min(1, 'auth.enterName').max(100),
   dateOfBirth: z
     .string()
     .refine((val) => {
@@ -53,14 +54,14 @@ const step2Schema = z.object({
       const date = new Date(year, month - 1, day);
       if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return false;
       return true;
-    }, '생년월일을 정확하게 입력해주세요.')
+    }, 'auth.enterDateOfBirth')
     .optional(),
 });
 
 const step3Schema = z.object({
-  termsService: z.boolean().refine((val) => val === true, '서비스 이용약관에 동의해주세요'),
-  termsPayment: z.boolean().refine((val) => val === true, '정기 결제 및 자동 갱신에 동의해주세요'),
-  termsRefund: z.boolean().refine((val) => val === true, '환불/해지 정책을 확인해주세요'),
+  termsService: z.boolean().refine((val) => val === true, 'auth.termsService'),
+  termsPayment: z.boolean().refine((val) => val === true, 'auth.termsPayment'),
+  termsRefund: z.boolean().refine((val) => val === true, 'auth.termsRefund'),
 });
 
 type Step1FormData = z.infer<typeof step1Schema>;
@@ -70,6 +71,7 @@ type Step3FormData = z.infer<typeof step3Schema>;
 export function SignupPage() {
   const navigate = useNavigate();
   const signupMutation = useSignup();
+  const t = useT();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
@@ -144,7 +146,7 @@ export function SignupPage() {
   useEffect(() => {
     if (shouldCheckEmail && emailDuplicateCheck.data) {
       if (emailDuplicateCheck.data.exists) {
-        setEmailError('이미 존재하는 이메일입니다.');
+        setEmailError(t('auth.emailExistsDuplicate'));
       } else {
         setEmailError(null);
       }
@@ -199,17 +201,17 @@ export function SignupPage() {
     if (step2Nickname && step2Nickname.length > 0) {
       const errors: string[] = [];
       if (step2Nickname.length < 2 || step2Nickname.length > 12) {
-        errors.push('닉네임은 2~12자로 입력해 주세요.');
+        errors.push(t('auth.nicknameRule'));
       }
       if (step2Nickname.includes(' ')) {
-        errors.push('닉네임에 공백은 사용할 수 없습니다.');
+        errors.push(t('auth.nicknameNoSpace'));
       }
       if (!/^[a-zA-Z0-9가-힣_]+$/.test(step2Nickname)) {
-        errors.push('사용할 수 없는 문자가 포함되어 있습니다.');
+        errors.push(t('auth.nicknameInvalidChar'));
       }
       if (shouldCheckNickname && nicknameCheck.data && !nicknameCheck.data.available) {
         if (nicknameCheck.data.reason === 'duplicate') {
-          errors.push('이미 사용 중인 닉네임입니다.');
+          errors.push(t('auth.nicknameDuplicate'));
         }
       }
       setNicknameError(errors);
@@ -223,14 +225,14 @@ export function SignupPage() {
   const handleRequestPhoneVerification = async () => {
     const phone = step1Form.getValues('phone');
     if (!phone || phone.length < 10) {
-      setError('전화번호를 정확히 입력해주세요');
+      setError(t('auth.phoneRequired'));
       return;
     }
 
     setError(null);
 
     if (emailError) {
-      setError('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.');
+      setError(t('auth.emailExistsDuplicate'));
       return;
     }
 
@@ -243,19 +245,19 @@ export function SignupPage() {
       }
     } catch (err) {
       const error = err as Error;
-      setError(error.message || '인증번호 발송에 실패했습니다');
+      setError(error.message || t('auth.verificationFailed'));
     }
   };
 
   const handleConfirmPhoneVerification = async () => {
     const phone = step1Form.getValues('phone');
     if (!phone || !phoneVerificationInput) {
-      setError('인증번호를 입력해주세요');
+      setError(t('auth.enterVerification'));
       return;
     }
 
     if (phoneVerificationInput.length !== 6) {
-      setError('인증번호는 6자리입니다');
+      setError(t('auth.verification6Digits'));
       return;
     }
 
@@ -271,18 +273,18 @@ export function SignupPage() {
       setPhoneVerificationInput('');
     } catch (err) {
       const error = err as Error;
-      setError(error.message || '인증번호가 올바르지 않습니다');
+      setError(error.message || t('auth.verificationInvalid'));
     }
   };
 
   const onStep1Submit = async (data: Step1FormData) => {
     if (!phoneVerified) {
-      setError('전화번호 인증을 완료해주세요');
+      setError(t('auth.completePhoneVerification'));
       return;
     }
 
     if (data.password !== data.confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다');
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
@@ -293,7 +295,7 @@ export function SignupPage() {
 
   const onStep2Submit = async (data: Step2FormData) => {
     if (nicknameError.length > 0) {
-      setError('닉네임을 올바르게 입력해주세요');
+      setError(t('auth.fixNickname'));
       return;
     }
 
@@ -304,7 +306,7 @@ export function SignupPage() {
 
   const onStep3Submit = async (data: Step3FormData) => {
     if (!formData.step1 || !formData.step2) {
-      setError('이전 단계 정보가 없습니다');
+      setError(t('auth.prevStepMissing'));
       return;
     }
 
@@ -325,7 +327,7 @@ export function SignupPage() {
       },
       {
         onError: (err) => {
-          setError(err instanceof Error ? err.message : '회원가입에 실패했습니다');
+          setError(err instanceof Error ? err.message : t('auth.signupFailed'));
         },
       }
     );
@@ -348,11 +350,11 @@ export function SignupPage() {
             <ChevronLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold">회원가입</h1>
+            <h1 className="text-2xl font-bold">{t('auth.signup')}</h1>
             <p className="text-sm text-muted-foreground">
-              {step === 1 && '사용하실 계정 정보를 입력해주세요.'}
-              {step === 2 && '회원 정보를 입력해주세요.'}
-              {step === 3 && '약관에 동의해주세요.'}
+              {step === 1 && t('auth.accountInfo')}
+              {step === 2 && t('auth.profileInfo')}
+              {step === 3 && t('auth.termsAgreement')}
             </p>
           </div>
         </div>
@@ -366,12 +368,12 @@ export function SignupPage() {
         {step === 1 && (
           <form onSubmit={step1Form.handleSubmit(onStep1Submit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
                 {...step1Form.register('email')}
-                placeholder="이메일을 입력해주세요"
+                placeholder={t('auth.emailPlaceholder')}
                 className={step1Errors.email || emailError ? 'border-red-500' : ''}
               />
               {step1Errors.email && (
@@ -383,13 +385,13 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   {...step1Form.register('password')}
-                  placeholder="비밀번호를 입력해주세요"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className={step1Errors.password ? 'border-red-500' : ''}
                 />
                 <button
@@ -406,13 +408,13 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">비밀번호 확인</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...step1Form.register('confirmPassword')}
-                  placeholder="비밀번호를 입력해주세요"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className={
                     step1Password && step1ConfirmPassword !== step1Password
                       ? 'border-red-500'
@@ -432,18 +434,18 @@ export function SignupPage() {
                 </button>
               </div>
               {step1Password && step1ConfirmPassword !== step1Password && (
-                <p className="text-sm text-red-500">비밀번호가 일치하지 않습니다.</p>
+                <p className="text-sm text-red-500">{t('auth.passwordMismatch')}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">전화번호</Label>
+              <Label htmlFor="phone">{t('auth.phone')}</Label>
               <div className="relative">
                 <Input
                   id="phone"
                   type="tel"
                   {...step1Form.register('phone')}
-                  placeholder="전화번호를 입력해주세요"
+                  placeholder={t('auth.phonePlaceholder')}
                   className={`pr-32 ${step1Errors.phone ? 'border-red-500' : ''}`}
                   disabled={phoneVerified}
                 />
@@ -454,14 +456,14 @@ export function SignupPage() {
                   disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 10 || !step1Email || !!step1Errors.email}
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
                 >
-                  {phoneVerified ? '인증완료' : requestPhoneVerification.isPending ? '전송 중...' : '인증번호 보내기'}
+                  {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
                 </Button>
               </div>
               {step1Errors.phone && (
                 <p className="text-sm text-red-500">{step1Errors.phone.message}</p>
               )}
               {phoneVerified && (
-                <p className="text-sm text-green-600">✓ 전화번호 인증이 완료되었습니다</p>
+                <p className="text-sm text-green-600">✓ {t('auth.phoneVerified')}</p>
               )}
             </div>
 
@@ -470,7 +472,7 @@ export function SignupPage() {
               className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
               disabled={!isStep1Valid}
             >
-              다음
+              {t('common.next')}
             </Button>
           </form>
         )}
@@ -478,13 +480,13 @@ export function SignupPage() {
         {step === 2 && (
           <form onSubmit={step2Form.handleSubmit(onStep2Submit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="nickname">닉네임</Label>
+              <Label htmlFor="nickname">{t('auth.nickname')}</Label>
               <div className="relative">
                 <Input
                   id="nickname"
                   type="text"
                   {...step2Form.register('nickname')}
-                  placeholder="닉네임을 입력하세요"
+                  placeholder={t('auth.enterNickname')}
                   className={`pr-10 bg-gray-100 ${
                     step2Errors.nickname || nicknameError.length > 0 ? 'border-red-500' : ''
                   }`}
@@ -513,12 +515,12 @@ export function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">이름</Label>
+              <Label htmlFor="name">{t('auth.name')}</Label>
               <Input
                 id="name"
                 type="text"
                 {...step2Form.register('name')}
-                placeholder="이름을 입력하세요"
+                placeholder={t('auth.enterName')}
                 className={`bg-gray-100 ${step2Errors.name ? 'border-red-500' : ''}`}
               />
               {step2Errors.name && (
@@ -528,7 +530,7 @@ export function SignupPage() {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="dateOfBirth">생년월일</Label>
+                <Label htmlFor="dateOfBirth">{t('auth.dateOfBirth')}</Label>
                 <button
                   ref={calendarButtonRef}
                   type="button"
@@ -592,176 +594,138 @@ export function SignupPage() {
               className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
               disabled={!isStep2Valid}
             >
-              다음
+              {t('common.next')}
             </Button>
           </form>
         )}
 
         {step === 3 && (
-          <>
-            <form onSubmit={step3Form.handleSubmit(onStep3Submit)} className="space-y-4">
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <button
-                  type="button"
-                  onClick={handleAgreeAll}
-                  className="w-full flex items-center gap-3 px-4 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${agreeAll ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
-                    {agreeAll && <CheckCircle2 className="w-4 h-4 text-white" />}
-                  </div>
-                  <span className="text-base font-semibold text-gray-900">전체 동의합니다</span>
-                </button>
-
-                <div className="divide-y divide-gray-100">
-                  <label className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={step3TermsService || false}
-                      onChange={(e) => step3Form.setValue('termsService', e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${step3TermsService ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
-                      {step3TermsService && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                    </div>
-                    <div className="flex-1 flex items-center justify-between">
-                      <span className="text-sm text-gray-700">(필수) 서비스 이용약관</span>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); setShowTermsModal('service'); }}
-                        className="text-xs text-gray-400 hover:text-gray-600"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={step3TermsPayment || false}
-                      onChange={(e) => step3Form.setValue('termsPayment', e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${step3TermsPayment ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
-                      {step3TermsPayment && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                    </div>
-                    <div className="flex-1 flex items-center justify-between">
-                      <span className="text-sm text-gray-700">(필수) 정기 결제 및 자동 갱신</span>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); setShowTermsModal('payment'); }}
-                        className="text-xs text-gray-400 hover:text-gray-600"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={step3TermsRefund || false}
-                      onChange={(e) => step3Form.setValue('termsRefund', e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${step3TermsRefund ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
-                      {step3TermsRefund && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                    </div>
-                    <div className="flex-1 flex items-center justify-between">
-                      <span className="text-sm text-gray-700">(필수) 환불/해지 정책</span>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); setShowTermsModal('refund'); }}
-                        className="text-xs text-gray-400 hover:text-gray-600"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
-                disabled={!isStep3Valid || signupMutation.isPending}
+          <form onSubmit={step3Form.handleSubmit(onStep3Submit)} className="space-y-4">
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={handleAgreeAll}
+                className="w-full flex items-center gap-3 px-4 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
-                {signupMutation.isPending ? '가입 중...' : '가입하기'}
-              </Button>
-            </form>
-          </>
-        )}
+                <div
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    agreeAll ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'
+                  }`}
+                >
+                  {agreeAll && <CheckCircle2 className="w-4 h-4 text-white" />}
+                </div>
+                <span className="text-base font-semibold text-gray-900">{t('auth.agreeAll')}</span>
+              </button>
 
-        <div className="text-center text-sm">
-          <Link to="/login" className="text-primary hover:underline">
-            이미 계정이 있으신가요? 로그인
-          </Link>
-        </div>
+              <div className="divide-y divide-gray-100">
+                {(['service', 'payment', 'refund'] as const).map((type) => {
+                  const key = `terms${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof Step3FormData;
+                  const label = t(`auth.terms${type.charAt(0).toUpperCase() + type.slice(1)}` as any);
+                  const checked = step3Form.watch(key);
+
+                  return (
+                    <label
+                      key={type}
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!checked}
+                        onChange={(e) => step3Form.setValue(key, e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          checked ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'
+                        }`}
+                      >
+                        {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="text-sm text-gray-700">
+                          {t('auth.required')} {label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowTermsModal(type);
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              disabled={!isStep3Valid || signupMutation.isPending}
+            >
+              {signupMutation.isPending ? t('auth.signingUp') : t('auth.signupAction')}
+            </Button>
+          </form>
+        )}
       </div>
 
       {showPhoneVerificationModal && (
         <div
           className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade"
-          onClick={() => {
-            if (phoneVerified) {
-              setShowPhoneVerificationModal(false);
-            }
-          }}
+          onClick={() => setShowPhoneVerificationModal(false)}
         >
           <div
             className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4 animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">인증번호 입력</h2>
+              <h2 className="text-lg font-semibold">{t('auth.verificationCode')}</h2>
               <button
-                onClick={() => {
-                  setShowPhoneVerificationModal(false);
-                }}
+                onClick={() => setShowPhoneVerificationModal(false)}
                 className="p-2 rounded-full hover:bg-gray-100"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="verificationCode">인증번호</Label>
+              <Label htmlFor="verificationCode">{t('auth.verificationCode')}</Label>
               <Input
                 id="verificationCode"
                 type="text"
                 value={phoneVerificationInput}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                  setPhoneVerificationInput(value);
-                }}
-                placeholder="인증번호 입력"
+                onChange={(e) =>
+                  setPhoneVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
-                disabled={phoneVerified}
               />
               {phoneVerificationCode && (
                 <p className="text-xs text-gray-500 text-center">
-                  개발 모드: 인증번호는 콘솔에 표시되었습니다 ({phoneVerificationCode})
+                  Dev mode: code ({phoneVerificationCode})
                 </p>
               )}
             </div>
             <Button
               onClick={handleConfirmPhoneVerification}
               className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
-              disabled={phoneVerificationInput.length !== 6 || phoneVerified || confirmPhoneVerification.isPending}
+              disabled={
+                phoneVerificationInput.length !== 6 || confirmPhoneVerification.isPending
+              }
             >
-              {confirmPhoneVerification.isPending ? '확인 중...' : '확인'}
+              {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
           </div>
         </div>
       )}
 
       {showTermsModal && (
-        <TermsModal
-          type={showTermsModal}
-          onClose={() => setShowTermsModal(false)}
-        />
+        <TermsModal type={showTermsModal} onClose={() => setShowTermsModal(false)} />
       )}
-
     </div>
   );
 }

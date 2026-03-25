@@ -8,7 +8,8 @@ import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 import type { Diary } from '@/hooks/useDiaries';
 
 const MONTHLY_LIMIT = 5;
@@ -19,6 +20,7 @@ interface MusicCardCarouselProps {
   onCardClick: (jobId: string) => void;
   onDownload: (e: React.MouseEvent, job: MusicJobListItem) => void;
   formatDuration: (seconds?: number) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const CARD_GRADIENTS = [
@@ -55,9 +57,10 @@ function getCardDotColor(index: number): string {
   return CARD_DOT_COLORS[getCardColorIndex(index)];
 }
 
-function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDuration }: MusicCardCarouselProps) {
+function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDuration, t }: MusicCardCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const locale = getDateLocale();
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -106,10 +109,10 @@ function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDura
               <div className="p-5 flex flex-col" style={{ height: '380px' }}>
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-white font-bold text-lg leading-tight flex-1 mr-3 line-clamp-2">
-                    {job.title || '노래 제목이 들어갑니다.'}
+                    {job.title || t('music.untitledSong')}
                   </h3>
                   <span className="text-white/70 text-sm flex-shrink-0 mt-0.5">
-                    {isLyricsOnly ? '가사' : formatDuration(job.durationSeconds)}
+                    {isLyricsOnly ? t('music.lyrics') : formatDuration(job.durationSeconds)}
                   </span>
                 </div>
 
@@ -137,17 +140,17 @@ function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDura
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm truncate">
-                            {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
+                            {getFirstLine(diary) || t('music.diaryTitlePlaceholder')}
                           </p>
                           <p className="text-white/50 text-xs">
-                            {format(new Date(diary.date), 'M월 d일 (EEE)', { locale: ko })}
+                            {format(new Date(diary.date), 'M/d (EEE)', { locale })}
                           </p>
                         </div>
                       </div>
                     );
                   })}
                   {sourceDiaries.length === 0 && (
-                    <p className="text-white/40 text-sm">연결된 일기가 없습니다.</p>
+                    <p className="text-white/40 text-sm">{t('music.noDiariesLinked')}</p>
                   )}
                 </div>
 
@@ -211,6 +214,8 @@ function getFirstLine(diary: Diary): string {
 
 export function MusicHomePage() {
   const navigate = useNavigate();
+  const t = useT();
+  const locale = getDateLocale();
   const { data: jobsData, refetch: refetchJobs } = useMusicJobs();
   const { data: diariesAll = [] } = useDiaries();
   const { data: subscriptions = [], refetch: refetchSubscriptions } = useSubscriptions();
@@ -275,7 +280,7 @@ export function MusicHomePage() {
     <div className="min-h-screen bg-white pb-20">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">음악 생성</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('music.generateTitle')}</h1>
           <ProfileButton />
         </div>
 
@@ -284,28 +289,28 @@ export function MusicHomePage() {
             <span className="text-xs px-3 py-1 bg-gray-200 rounded-full font-bold text-gray-700">Mureka</span>
             <span className="text-xs text-gray-600">
               {subscriptionStartDate
-                ? `결제일 ${format(new Date(subscriptionStartDate), 'M월 d일', { locale: ko })}`
-                : '결제일'}
+                ? t('music.paymentDate', { date: format(new Date(subscriptionStartDate), 'M/d', { locale }) })
+                : t('music.paymentDateLabel')}
             </span>
           </div>
           <div className="mb-2">
-            <p className="text-sm text-gray-600 mb-2">이번 달 생성 가능</p>
+            <p className="text-sm text-gray-600 mb-2">{t('music.monthlyAvailable')}</p>
             <p className="text-3xl font-bold text-gray-900">{monthlyUsed}/{MONTHLY_LIMIT}</p>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            일기 총 {diariesAll.length}개
+            {t('music.totalDiaries', { count: diariesAll.length })}
           </p>
           <Button
             onClick={handleOpenCreateModal}
             disabled={!hasSubscription || monthlyUsed >= MONTHLY_LIMIT}
             className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            <span>음악 생성</span>
+            <span>{t('music.generateTitle')}</span>
             <Sparkles className="w-4 h-4" />
           </Button>
           {!hasSubscription && (
             <p className="text-xs text-amber-700 mt-2 text-center">
-              음악 생성을 이용하려면 구독이 필요합니다.
+              {t('music.subscriptionRequired')}
             </p>
           )}
         </div>
@@ -313,7 +318,7 @@ export function MusicHomePage() {
 
       <section className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between px-4">
-          <h2 className="text-lg font-semibold text-gray-900">내 음악</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('music.myMusic')}</h2>
           {completedJobs.length > 0 && (
             <button
               onClick={() => navigate('/music/list')}
@@ -340,9 +345,9 @@ export function MusicHomePage() {
                 <Sprout className="w-16 h-16" />
               </div>
             </div>
-            <p className="font-medium text-brown-900 mb-2">아직 생성된 음악이 없어요.</p>
+            <p className="font-medium text-brown-900 mb-2">{t('music.noMusicYet')}</p>
             <p className="text-sm text-muted-foreground">
-              일기의 감정이 그대로 담긴 단 하나의 선율입니다. 기록하는 순간, 새로운 음악이 태어납니다.
+              {t('music.noMusicDesc')}
             </p>
           </div>
         ) : (
@@ -352,13 +357,14 @@ export function MusicHomePage() {
             onCardClick={(jobId) => navigate(`/music/jobs/${jobId}`)}
             onDownload={handleDownload}
             formatDuration={formatDuration}
+            t={t}
           />
         )}
       </section>
 
       {completedJobs.length > 0 && (
         <section className="max-w-md mx-auto px-4 mt-6 pb-4 space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900">빠른 선곡</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('music.quickPick')}</h2>
           <div className="space-y-2">
             {completedJobs.map((job, index) => {
               const isLyricsOnly = job.status === 'lyrics_only';
@@ -388,10 +394,10 @@ export function MusicHomePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate text-sm">
-                      {job.title || '노래 제목이 들어갑니다.'}
+                      {job.title || t('music.untitledSong')}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {isLyricsOnly ? '가사' : formatDuration(job.durationSeconds)}
+                      {isLyricsOnly ? t('music.lyrics') : formatDuration(job.durationSeconds)}
                     </p>
                   </div>
                   {job.status === 'completed' && job.audioUrl && (

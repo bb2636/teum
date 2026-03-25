@@ -4,13 +4,16 @@ import { Button } from '@/components/ui/button';
 import { useDiary, useDeleteDiary } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 import { useState } from 'react';
 import { DiaryDeleteModal } from './DiaryDeleteModal';
 
 export function DiaryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const t = useT();
+  const locale = getDateLocale();
   const { data: diary, isLoading } = useDiary(id || '');
   const deleteDiary = useDeleteDiary();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,7 +41,7 @@ export function DiaryDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
-        <div className="text-muted-foreground">로딩 중...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -47,9 +50,9 @@ export function DiaryDetailPage() {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">일기를 찾을 수 없습니다</p>
+          <p className="text-muted-foreground mb-4">{t('diary.notFound')}</p>
           <Link to="/home">
-            <Button>홈으로 돌아가기</Button>
+            <Button>{t('common.goHome')}</Button>
           </Link>
         </div>
       </div>
@@ -89,11 +92,11 @@ export function DiaryDetailPage() {
           {/* Date and Type */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
-              {format(new Date(diary.date), 'yyyy년 M월 d일', { locale: ko })}
+              {format(new Date(diary.date), 'yyyy.MM.dd', { locale })}
             </span>
             {diary.type === 'question_based' && (
               <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                질문기록
+                {t('diary.questionRecord')}
               </span>
             )}
           </div>
@@ -153,7 +156,7 @@ export function DiaryDetailPage() {
           {/* AI 응원 메시지 - 맨 밑 별도 섹션 */}
           {(diary.aiMessage || diary.aiFeedback?.outputText) && (
             <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300 mt-4">
-              <p className="text-sm font-semibold text-amber-800 mb-2">응원 메시지</p>
+              <p className="text-sm font-semibold text-amber-800 mb-2">{t('diary.encouragementMessage')}</p>
               <p className="text-base text-brown-800 leading-relaxed">
                 {diary.aiMessage || diary.aiFeedback?.outputText}
               </p>

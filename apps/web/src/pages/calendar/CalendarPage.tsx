@@ -7,7 +7,8 @@ import { useCalendarDiaries } from '@/hooks/useDiaries';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { MonthPickerModal } from './MonthPickerModal';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths, subMonths, getDate } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 import { Diary } from '@/hooks/useDiaries';
 
 /** HTML 태그를 제거하고 텍스트만 반환 */
@@ -41,11 +42,11 @@ function getFirstLine(diary: Diary): string {
   return '';
 }
 
-function getDiaryPreviewText(diary: Diary): string {
+function getDiaryPreviewText(diary: Diary, allLabel: string): string {
   if (diary.folder) {
-    return diary.folder.isDefault || diary.folder.name === 'All' ? '전체' : diary.folder.name;
+    return diary.folder.isDefault || diary.folder.name === 'All' ? allLabel : diary.folder.name;
   }
-  return '전체';
+  return allLabel;
 }
 
 interface DiarySlideProps {
@@ -55,7 +56,9 @@ interface DiarySlideProps {
 }
 
 function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
-  const dateLabel = `${format(date, 'M월 d일', { locale: ko })} (${format(date, 'E', { locale: ko })})`;
+  const locale = getDateLocale();
+  const t = useT();
+  const dateLabel = `${format(date, 'M/d', { locale })} (${format(date, 'E', { locale })})`;
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
   const dragCurrentY = useRef<number>(0);
@@ -153,14 +156,14 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-xs text-gray-500">
                       {diary.folder
-                        ? (diary.folder.isDefault || diary.folder.name === 'All' ? '전체' : diary.folder.name)
-                        : '전체'}
+                        ? (diary.folder.isDefault || diary.folder.name === 'All' ? t('common.all') : diary.folder.name)
+                        : t('common.all')}
                     </span>
                     {diary.type === 'question_based' && (
-                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">질문기록</span>
+                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{t('diary.questionRecord')}</span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-[#4A2C1A] truncate">{firstLine || '제목 없음'}</p>
+                  <p className="text-sm font-semibold text-[#4A2C1A] truncate">{firstLine || t('diary.noTitle')}</p>
                   {diary.content?.trim() && firstLine !== stripHTML(diary.content).trim() && (
                     <p className="text-xs text-gray-500 mt-1 line-clamp-2">{stripHTML(diary.content).trim()}</p>
                   )}
@@ -182,7 +185,7 @@ function DiarySlide({ date, diaries, onClose }: DiarySlideProps) {
               );
             })}
             {diaries.length === 0 && (
-              <p className="text-center text-gray-400 text-sm py-8">이 날에 작성된 일기가 없습니다.</p>
+              <p className="text-center text-gray-400 text-sm py-8">{t('calendar.noDiariesDay')}</p>
             )}
           </div>
         </div>
@@ -197,6 +200,7 @@ interface DiaryTypeModalProps {
 }
 
 function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
+  const t = useT();
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={onClose}>
       <div
@@ -204,23 +208,25 @@ function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">
-          오늘은 어떤 방식으로 남기시겠습니까?
+          {t('calendar.howToRecord')}
         </h2>
         <p className="text-sm text-gray-600 mb-6">
-          빠르게 쓰거나, 질문에 따라<br />차근히 정리할 수 있습니다.
+          {t('calendar.recordDesc').split('\n').map((line, i) => (
+            <span key={i}>{line}<br /></span>
+          ))}
         </p>
         <div className="space-y-3">
           <button
             onClick={() => onSelectType('free_form')}
             className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-[#4A2C1A] font-medium transition-colors"
           >
-            자유작성
+            {t('calendar.freeWrite')}
           </button>
           <button
             onClick={() => onSelectType('question_based')}
             className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-[#4A2C1A] font-medium transition-colors"
           >
-            질문기록
+            {t('calendar.questionRecord')}
           </button>
         </div>
       </div>
@@ -231,6 +237,8 @@ function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
 export function CalendarPage() {
   const navigate = useNavigate();
   const { setHideTabBar } = useHideTabBar();
+  const t = useT();
+  const locale = getDateLocale();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
@@ -410,7 +418,7 @@ export function CalendarPage() {
               onClick={() => setShowMonthPicker(true)}
               className="text-lg font-semibold text-[#4A2C1A] hover:text-[#5A3C2A] transition-colors"
             >
-              {format(currentDate, 'yyyy.M', { locale: ko })}
+              {format(currentDate, 'yyyy.M', { locale })}
             </button>
             <button onClick={goToNextMonth} className="text-gray-500 hover:text-gray-700">
               <ChevronRight className="w-5 h-5" />
@@ -421,7 +429,7 @@ export function CalendarPage() {
               onClick={goToToday}
               className="text-sm text-[#4A2C1A] font-medium px-3 py-1.5 rounded-lg border border-[#4A2C1A] hover:bg-gray-100 transition-colors"
             >
-              오늘
+              {t('common.today')}
             </button>
             <ProfileButton />
           </div>
@@ -429,7 +437,7 @@ export function CalendarPage() {
 
         {/* Day labels */}
         <div className="grid grid-cols-7">
-          {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+          {t('calendar.weekdays').split(',').map((day, index) => (
             <div
               key={day}
               className={`text-center text-xs font-medium ${hasSixWeeks ? 'py-1' : 'py-2'} ${
@@ -444,7 +452,7 @@ export function CalendarPage() {
         {isError && (
           <div className="text-center py-2">
             <button onClick={() => refetch()} className="text-sm text-[#4A2C1A] underline">
-              일기를 불러오지 못했습니다. 다시 시도
+              {t('calendar.retryFetch')}
             </button>
           </div>
         )}
@@ -502,7 +510,7 @@ export function CalendarPage() {
                       {(() => {
                         const folderCounts = new Map<string, number>();
                         dayDiaries.forEach((d) => {
-                          const name = getDiaryPreviewText(d);
+                          const name = getDiaryPreviewText(d, t('common.all'));
                           folderCounts.set(name, (folderCounts.get(name) || 0) + 1);
                         });
                         const groups = Array.from(folderCounts.entries());

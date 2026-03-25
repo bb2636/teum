@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/api';
+import { useT } from '@/hooks/useTranslation';
 
 const WITHDRAW_NOTICE = `제1조 (목적)
 본 약관은 회사가 제공하는 서비스의 이용 조건, 절차, 이용자와 회사 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.
@@ -24,6 +25,7 @@ interface WithdrawModalProps {
 
 export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscription }: WithdrawModalProps) {
   const navigate = useNavigate();
+  const t = useT();
   const [agreed, setAgreed] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
@@ -71,19 +73,19 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
         <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-modal-pop">
           <div className="flex items-center justify-between p-4 border-b border-brown-200 shrink-0">
-            <h2 className="text-xl font-bold text-brown-900">회원탈퇴</h2>
+            <h2 className="text-xl font-bold text-brown-900">{t('auth.withdrawTitle')}</h2>
             <button
               type="button"
               onClick={onClose}
               className="p-1 rounded-full hover:bg-gray-100"
-              aria-label="닫기"
+              aria-label={t('common.close')}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <div className="overflow-y-auto flex-1 p-4">
-            <h3 className="font-semibold text-brown-900 mb-3">회원탈퇴 유의사항</h3>
+            <h3 className="font-semibold text-brown-900 mb-3">{t('auth.withdrawNotice')}</h3>
             <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed mb-6">
               {WITHDRAW_NOTICE}
             </div>
@@ -96,7 +98,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
                 className="mt-1 w-4 h-4 rounded border-gray-300 text-brown-600"
               />
               <span className="text-sm text-brown-900">
-                유의사항을 모두 확인하였으며, 회원탈퇴 시 음악, 일기 소멸에 동의합니다.
+                {t('auth.withdrawAgree')}
               </span>
             </label>
 
@@ -107,18 +109,17 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
               disabled={!agreed}
               onClick={handleDelete}
             >
-              계정 삭제하기
+              {t('auth.deleteAccount')}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* 계정 삭제 확인 팝업 */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg animate-modal-pop">
             <p className="text-center text-brown-900 mb-6">
-              계정 삭제 시 음악, 일기가 소멸됩니다. 정말 동의 하십니까?
+              {t('auth.deleteConfirmMsg')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -128,7 +129,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
                 onClick={() => setShowConfirm(false)}
                 disabled={isDeleting}
               >
-                취소
+                {t('common.cancel')}
               </Button>
               <Button
                 type="button"
@@ -136,38 +137,37 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? '처리 중...' : '확인'}
+                {isDeleting ? t('common.processing') : t('common.confirm')}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 회원탈퇴 완료 팝업 */}
       {showComplete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">회원탈퇴가 완료되었습니다.</p>
+            <p className="text-brown-900 mb-6">{t('auth.withdrawComplete')}</p>
             <Button
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={handleCompleteClose}
             >
-              확인
+              {t('common.confirm')}
             </Button>
           </div>
         </div>
       )}
 
-      {/* 구독 이용중 경고 팝업 */}
       {showSubWarning && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg animate-modal-pop">
-            <h3 className="text-lg font-bold text-[#4A2C1A] text-center mb-3">정말로 탈퇴하시겠습니까?</h3>
+            <h3 className="text-lg font-bold text-[#4A2C1A] text-center mb-3">{t('auth.subWarningTitle')}</h3>
             <p className="text-sm text-gray-700 text-center leading-relaxed mb-6">
-              현재 구독 이용중입니다.<br />
-              회원 탈퇴 시 남은 구독 기간에 대한<br />
-              <span className="font-semibold text-red-500">환불이 어렵습니다.</span>
+              {t('auth.subWarningDesc').split('\n').map((line, i) => (
+                <span key={i}>{line}<br /></span>
+              ))}
+              <span className="font-semibold text-red-500">{t('auth.noRefund')}</span>
             </p>
             <div className="flex gap-3">
               <Button
@@ -175,7 +175,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
                 className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
                 onClick={() => setShowSubWarning(false)}
               >
-                취소
+                {t('common.cancel')}
               </Button>
               <Button
                 type="button"
@@ -186,24 +186,23 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
                   setShowConfirm(true);
                 }}
               >
-                탈퇴 진행
+                {t('auth.proceedWithdraw')}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 삭제 실패 팝업 */}
       {showDeleteError && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-overlay-fade">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg text-center animate-modal-pop">
-            <p className="text-brown-900 mb-6">계정 삭제에 실패했습니다.</p>
+            <p className="text-brown-900 mb-6">{t('auth.withdrawFailed')}</p>
             <Button
               type="button"
               className="w-full bg-[#665146] hover:bg-[#5A453A]"
               onClick={() => setShowDeleteError(false)}
             >
-              확인
+              {t('common.confirm')}
             </Button>
           </div>
         </div>

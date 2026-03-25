@@ -23,14 +23,15 @@ export class UserService {
     // Parse date of birth if provided
     const dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : undefined;
 
-    const profile = await userRepository.updateProfile(userId, {
-      nickname: data.nickname,
-      name: data.name,
-      phone: data.phone,
-      dateOfBirth,
-      profileImageUrl: data.profileImageUrl,
-      country: data.country,
-    });
+    const updateData: Record<string, any> = {};
+    if (data.nickname !== undefined) updateData.nickname = data.nickname;
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
+    if (data.profileImageUrl !== undefined) updateData.profileImageUrl = data.profileImageUrl;
+    if (data.country !== undefined) updateData.country = data.country;
+
+    const profile = await userRepository.updateProfile(userId, updateData);
 
     return profile;
   }

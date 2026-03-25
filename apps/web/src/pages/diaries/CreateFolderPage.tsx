@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useCreateFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
+import { useT } from '@/hooks/useTranslation';
 
 export function CreateFolderPage() {
   const navigate = useNavigate();
+  const t = useT();
   const [searchParams] = useSearchParams();
   const createFolder = useCreateFolder();
   const uploadImage = useUploadImage();
@@ -36,7 +38,7 @@ export function CreateFolderPage() {
     e.preventDefault();
 
     if (!folderName.trim()) {
-      alert('폴더 이름을 입력해주세요.');
+      alert(t('diary.folderNameRequired'));
       return;
     }
 
@@ -74,7 +76,7 @@ export function CreateFolderPage() {
       }
     } catch (error) {
       console.error('Failed to create folder:', error);
-      alert('폴더 생성에 실패했습니다.');
+      alert(t('diary.folderCreateFailed'));
     } finally {
       setIsCreating(false);
     }
@@ -90,14 +92,14 @@ export function CreateFolderPage() {
           <button onClick={() => navigate(-1)} className="p-2">
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
-          <h1 className="text-lg font-semibold text-[#4A2C1A]">새로운 폴더</h1>
+          <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('diary.newFolderTitle')}</h1>
           <div className="w-10" /> {/* Spacer */}
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-4 py-6 space-y-6">
           {/* Folder Photo */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-[#4A2C1A]">폴더 사진</label>
+            <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderPhoto')}</label>
             <div className="relative">
               {coverImagePreview ? (
                 <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
@@ -130,13 +132,13 @@ export function CreateFolderPage() {
 
           {/* Folder Name */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-[#4A2C1A]">폴더 이름</label>
+            <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderNameLabel')}</label>
             <div className="relative">
               <input
                 type="text"
                 value={folderName}
                 onChange={(e) => setFolderName(e.target.value)}
-                placeholder="폴더 이름"
+                placeholder={t('diary.folderNameLabel')}
                 maxLength={50}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
               />
@@ -153,7 +155,7 @@ export function CreateFolderPage() {
               onClick={() => navigate(-1)}
               className="flex-1 py-3 px-4 rounded-full text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors"
             >
-              취소
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -164,7 +166,7 @@ export function CreateFolderPage() {
                   : 'bg-gray-300 cursor-not-allowed'
               }`}
             >
-              {isCreating ? '만드는 중...' : '만들기'}
+              {isCreating ? t('common.creating') : t('common.create')}
             </button>
           </div>
         </form>

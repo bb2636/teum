@@ -6,11 +6,14 @@ import { useMusicJob } from '@/hooks/useMusic';
 import { useDiaries } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 
 export function MusicJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
+  const t = useT();
+  const locale = getDateLocale();
   const { data: job, isLoading, error } = useMusicJob(jobId || '');
   const { data: diariesAll = [] } = useDiaries();
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
@@ -18,7 +21,6 @@ export function MusicJobPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wasProcessingRef = useRef(false);
   
-  // 일기 첫 줄 추출 함수
   const getFirstLine = (diary: { title?: string; content?: string; type?: string; answers?: Array<{ answer?: string; question?: { question?: string } }> }) => {
     if (diary.title?.trim()) return diary.title.trim();
     if (diary.type === 'question_based' && diary.answers?.length) {
@@ -42,7 +44,6 @@ export function MusicJobPage() {
     return '';
   };
   
-  // 곡 길이 포맷팅
   const formatDuration = (seconds?: number) => {
     if (seconds == null) return '00:00';
     const m = Math.floor(seconds / 60);
@@ -50,7 +51,6 @@ export function MusicJobPage() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
   
-  // 해당 음악의 바탕이 된 일기 목록
   const sourceDiaries = job?.sourceDiaryIds
     ? job.sourceDiaryIds
         .map((id) => diariesAll.find((d) => d.id === id))
@@ -106,7 +106,7 @@ export function MusicJobPage() {
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-brown-600 mx-auto mb-4" />
-          <p className="text-muted-foreground">로딩 중...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -121,7 +121,7 @@ export function MusicJobPage() {
           </Button>
           <div className="text-center py-12">
             <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-muted-foreground">음악 작업을 불러올 수 없습니다</p>
+            <p className="text-muted-foreground">{t('music.cannotLoad')}</p>
           </div>
         </div>
       </div>
@@ -129,21 +129,19 @@ export function MusicJobPage() {
   }
 
   const isProcessing = job.status === 'processing' || job.status === 'queued';
-  const title = job.title || job.lyricalTheme || '제목 없음';
+  const title = job.title || job.lyricalTheme || t('diary.noTitle');
   const titleEn = job.titleEn;
 
   return (
     <div className="min-h-screen bg-beige-50 pb-20">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/music')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold text-brown-900">음악 상세</h1>
+          <h1 className="text-xl font-bold text-brown-900">{t('music.detail')}</h1>
         </div>
 
-        {/* 로딩 팝업: 생성 중일 때 - 전체 화면 */}
         {isProcessing && (
           <div className="fixed inset-0 z-50 bg-[#665146] flex flex-col items-center justify-center animate-overlay-fade">
             <div className="text-center space-y-6 px-8">
@@ -152,12 +150,14 @@ export function MusicJobPage() {
                 <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <h2 className="text-xl font-semibold text-white">음악을 만들고 있습니다.</h2>
+              <h2 className="text-xl font-semibold text-white">{t('music.processingTitle')}</h2>
               <p className="text-sm text-white/70">
-                선택한 일기의 감정을 분석하고<br />선율로 바꾸는 중입니다.
+                {t('music.processingDesc').split('\n').map((line, i) => (
+                  <span key={i}>{line}<br /></span>
+                ))}
               </p>
               <p className="text-xs text-white/50 mt-8">
-                최대 2~3분 정도 소요될 수 있습니다.
+                {t('music.processingTime')}
               </p>
             </div>
           </div>
@@ -169,9 +169,9 @@ export function MusicJobPage() {
               <div className="max-w-sm mx-auto">
                 <div className="text-center space-y-2 mb-6">
                   <h3 className="font-semibold text-lg text-brown-900">
-                    {job.status === 'lyrics_only' ? '가사가 완성되었습니다' : '노래가 도착했습니다'}
+                    {job.status === 'lyrics_only' ? t('music.lyricsComplete') : t('music.songArrived')}
                   </h3>
-                  {title && title !== '제목 없음' && (
+                  {title && title !== t('diary.noTitle') && (
                     <div className="space-y-1">
                       <p className="font-medium text-brown-900">{title}</p>
                       {titleEn && (
@@ -181,13 +181,13 @@ export function MusicJobPage() {
                   )}
                   <p className="text-sm text-muted-foreground">
                     {job.status === 'lyrics_only'
-                      ? '멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.'
-                      : '완성된 음악을 다운로드해 두면 언제든 다시 들을 수 있습니다.'}
+                      ? t('music.lyricsOnlyDesc')
+                      : t('music.downloadDesc')}
                   </p>
                 </div>
                 <div className="rounded-xl border border-brown-100 bg-gray-50 p-4 min-h-[120px]">
                   <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
-                    {job.lyrics || '이곳에 가사가 들어갑니다.'}
+                    {job.lyrics || t('music.lyricsPlaceholder')}
                   </pre>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export function MusicJobPage() {
                     }}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    다운로드
+                    {t('music.download')}
                   </Button>
                 )}
                 <Button 
@@ -230,7 +230,7 @@ export function MusicJobPage() {
                     navigate('/music');
                   }}
                 >
-                  담기
+                  {t('music.addToMyMusic')}
                 </Button>
               </div>
             </div>
@@ -241,13 +241,13 @@ export function MusicJobPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-4">
               <XCircle className="w-6 h-6 text-red-600" />
-              <h2 className="font-semibold text-brown-900">생성 실패</h2>
+              <h2 className="font-semibold text-brown-900">{t('music.generationFailed')}</h2>
             </div>
             <p className="text-sm text-red-700 mb-4">
-              {job.errorMessage || '음악 생성에 실패했습니다'}
+              {job.errorMessage || t('music.failedMessage')}
             </p>
             <Button variant="outline" className="border-0 rounded-full" onClick={() => navigate('/music')}>
-              목록으로
+              {t('music.backToList')}
             </Button>
           </div>
         )}
@@ -260,18 +260,18 @@ export function MusicJobPage() {
                 <p className="text-sm text-muted-foreground mb-1">{titleEn}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                {format(new Date(job.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                {format(new Date(job.createdAt), 'yyyy.MM.dd', { locale })}
               </p>
               <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-xs text-amber-700">
-                  멜로디 생성은 실패했지만, AI가 작성한 가사를 확인할 수 있습니다.
+                  {t('music.lyricsOnlyDesc')}
                 </p>
               </div>
             </div>
 
             {job.lyrics && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-brown-900 mb-4">가사</h3>
+                <h3 className="font-semibold text-brown-900 mb-4">{t('music.lyrics')}</h3>
                 <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans leading-relaxed">
                   {job.lyrics}
                 </pre>
@@ -280,7 +280,7 @@ export function MusicJobPage() {
 
             {sourceDiaries.length > 0 && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-brown-900 mb-4">이 곡의 바탕이 된 일기</h3>
+                <h3 className="font-semibold text-brown-900 mb-4">{t('music.sourceDiaries')}</h3>
                 <div className="space-y-3">
                   {sourceDiaries.map((diary) => {
                     if (!diary) return null;
@@ -307,10 +307,10 @@ export function MusicJobPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-brown-900 truncate mb-1">
-                            {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
+                            {getFirstLine(diary) || t('music.diaryTitlePlaceholder')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(diary.date), 'yyyy년 M월 d일 (EEE)', { locale: ko })}
+                            {format(new Date(diary.date), 'yyyy.MM.dd (EEE)', { locale })}
                           </p>
                         </div>
                       </button>
@@ -321,7 +321,7 @@ export function MusicJobPage() {
             )}
 
             <Button variant="outline" className="w-full border-0 rounded-full" onClick={() => navigate('/music')}>
-              목록으로
+              {t('music.backToList')}
             </Button>
           </>
         )}
@@ -334,7 +334,7 @@ export function MusicJobPage() {
                 <p className="text-sm text-muted-foreground mb-1">{titleEn}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                {format(new Date(job.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                {format(new Date(job.createdAt), 'yyyy.MM.dd', { locale })}
               </p>
             </div>
 
@@ -364,14 +364,14 @@ export function MusicJobPage() {
                   }}
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  다운로드
+                  {t('music.download')}
                 </Button>
               </div>
             )}
 
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">곡 길이</span>
+                <span className="text-sm text-muted-foreground">{t('music.songLength')}</span>
                 <span className="font-medium text-brown-900">
                   {formatDuration(audioDuration ?? job.durationSeconds)}
                 </span>
@@ -380,7 +380,7 @@ export function MusicJobPage() {
 
             {job.lyrics && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-brown-900 mb-4">가사</h3>
+                <h3 className="font-semibold text-brown-900 mb-4">{t('music.lyrics')}</h3>
                 <pre className="whitespace-pre-wrap text-sm text-brown-800 font-sans leading-relaxed">
                   {job.lyrics}
                 </pre>
@@ -389,7 +389,7 @@ export function MusicJobPage() {
 
             {sourceDiaries.length > 0 && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-brown-900 mb-4">이 곡의 바탕이 된 일기</h3>
+                <h3 className="font-semibold text-brown-900 mb-4">{t('music.sourceDiaries')}</h3>
                 <div className="space-y-3">
                   {sourceDiaries.map((diary) => {
                     if (!diary) return null;
@@ -416,10 +416,10 @@ export function MusicJobPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-brown-900 truncate mb-1">
-                            {getFirstLine(diary) || '일기 제목이 들어갑니다.'}
+                            {getFirstLine(diary) || t('music.diaryTitlePlaceholder')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(diary.date), 'yyyy년 M월 d일 (EEE)', { locale: ko })}
+                            {format(new Date(diary.date), 'yyyy.MM.dd (EEE)', { locale })}
                           </p>
                         </div>
                       </button>
@@ -430,7 +430,7 @@ export function MusicJobPage() {
             )}
 
             <Button variant="outline" className="w-full border-0 rounded-full" onClick={() => navigate('/music')}>
-              다시 만들기
+              {t('music.tryAgain')}
             </Button>
           </>
         )}

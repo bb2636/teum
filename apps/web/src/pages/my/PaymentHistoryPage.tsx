@@ -6,10 +6,13 @@ import { useSubscriptions, usePayments, useCancelSubscription, getEffectiveSubsc
 import { useMe } from '@/hooks/useProfile';
 import { SubscriptionCancelModal } from '@/components/SubscriptionCancelModal';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 
 export function PaymentHistoryPage() {
   const navigate = useNavigate();
+  const t = useT();
+  const locale = getDateLocale();
   const { data: subscriptions = [], isLoading: subscriptionsLoading } = useSubscriptions();
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
   useMe();
@@ -22,7 +25,7 @@ export function PaymentHistoryPage() {
   if (subscriptionsLoading || paymentsLoading) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
-        <div className="text-muted-foreground">로딩 중...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -37,26 +40,25 @@ export function PaymentHistoryPage() {
   };
 
   const formatPaymentMethod = (method?: string): string => {
-    if (!method) return '결제 수단 미확인';
+    if (!method) return t('payment.paymentMethodUnknown');
     if (method.startsWith('CARD_')) {
       const code = method.replace('CARD_', '');
-      return (NICEPAY_CARD_NAMES[code] || '카드') + ' 결제';
+      return (NICEPAY_CARD_NAMES[code] || 'Card') + ' ' + t('payment.cardPayment');
     }
-    if (method === 'CARD') return '카드결제';
-    if (method === 'BANK') return '계좌이체';
-    if (method === 'CELLPHONE') return '휴대폰 결제';
-    if (method.startsWith('card_')) return method.replace('card_', '') + ' 카드결제';
-    if (method === 'card') return '카드결제';
-    if (method === 'bank_transfer') return '계좌이체';
+    if (method === 'CARD') return t('payment.cardPayment');
+    if (method === 'BANK') return t('payment.bankTransfer');
+    if (method === 'CELLPHONE') return t('payment.mobilePayment');
+    if (method.startsWith('card_')) return method.replace('card_', '') + ' ' + t('payment.cardPayment');
+    if (method === 'card') return t('payment.cardPayment');
+    if (method === 'bank_transfer') return t('payment.bankTransfer');
     return method;
   };
 
   return (
     <div className="min-h-screen bg-white pb-20">
       <div className="max-w-md mx-auto">
-        {/* Header - 고정 */}
         <div className="sticky top-0 z-30 bg-white px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-[#4A2C1A]">결제 내역</h1>
+          <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('payment.history')}</h1>
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <X className="w-5 h-5" />
           </Button>
@@ -64,25 +66,24 @@ export function PaymentHistoryPage() {
 
         <div className="px-4 py-6 space-y-6">
 
-          {/* 결제 정보 */}
           {effectiveSubscription && (
             <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-2">결제 정보</h2>
+              <h2 className="text-sm font-medium text-gray-500 mb-2">{t('payment.paymentInfoLabel')}</h2>
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-lg font-semibold text-[#4A2C1A]">
-                    월 {parseInt(effectiveSubscription.amount.toString()).toLocaleString()}원
+                    {t('payment.monthlyAmount', { amount: parseInt(effectiveSubscription.amount.toString()).toLocaleString() })}
                   </p>
                   {!isSubscriptionActive && (
                     <span className="text-xs text-red-500 font-medium bg-red-50 px-2 py-1 rounded-full">
-                      구독 취소됨
+                      {t('my.subscriptionCancelled')}
                     </span>
                   )}
                 </div>
                 {effectiveSubscription.endDate && (
                   <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>{isSubscriptionActive ? '다음 결제 예정일' : '이용 가능 기간'}</span>
-                    <span>{format(new Date(effectiveSubscription.endDate), 'yyyy.MM.dd', { locale: ko })}</span>
+                    <span>{isSubscriptionActive ? t('payment.nextPaymentSchedule') : t('my.availableUntil')}</span>
+                    <span>{format(new Date(effectiveSubscription.endDate), 'yyyy.MM.dd', { locale })}</span>
                   </div>
                 )}
               </div>
@@ -94,7 +95,7 @@ export function PaymentHistoryPage() {
                     disabled={cancelSubscription.isPending}
                     className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
                   >
-                    구독취소
+                    {t('payment.cancelSubscription')}
                   </button>
                 </div>
               )}
@@ -102,31 +103,28 @@ export function PaymentHistoryPage() {
           )}
 
 
-          {/* 결제 내역 */}
           <div>
-            <h2 className="text-sm font-medium text-gray-500 mb-3">결제 내역</h2>
+            <h2 className="text-sm font-medium text-gray-500 mb-3">{t('payment.history')}</h2>
             {payments.length === 0 ? (
-              <p className="text-sm text-gray-500">결제 내역이 없습니다</p>
+              <p className="text-sm text-gray-500">{t('payment.noHistory')}</p>
             ) : (
               <div className="space-y-0">
                 {payments.map((payment, index) => {
-                  // Find associated subscription for this payment
                   const associatedSubscription = payment.subscriptionId
                     ? subscriptions.find((s) => s.id === payment.subscriptionId)
                     : null;
                   
-                  // Calculate period (startDate to endDate or startDate + 1 month)
                   const periodStart = associatedSubscription
-                    ? format(new Date(associatedSubscription.startDate), 'yyyy.MM.dd', { locale: ko })
-                    : format(new Date(payment.createdAt), 'yyyy.MM.dd', { locale: ko });
+                    ? format(new Date(associatedSubscription.startDate), 'yyyy.MM.dd', { locale })
+                    : format(new Date(payment.createdAt), 'yyyy.MM.dd', { locale });
                   const periodEnd = associatedSubscription?.endDate
-                    ? format(new Date(associatedSubscription.endDate), 'yyyy.MM.dd', { locale: ko })
+                    ? format(new Date(associatedSubscription.endDate), 'yyyy.MM.dd', { locale })
                     : (() => {
                         const start = associatedSubscription
                           ? new Date(associatedSubscription.startDate)
                           : new Date(payment.createdAt);
                         start.setMonth(start.getMonth() + 1);
-                        return format(start, 'yyyy.MM.dd', { locale: ko });
+                        return format(start, 'yyyy.MM.dd', { locale });
                       })();
 
                   return (
@@ -136,15 +134,15 @@ export function PaymentHistoryPage() {
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-1">
                               <p className="text-sm text-[#4A2C1A]">
-                                {format(new Date(payment.createdAt), 'yyyy.MM.dd', { locale: ko })}
+                                {format(new Date(payment.createdAt), 'yyyy.MM.dd', { locale })}
                               </p>
                               <p className="text-sm font-semibold text-[#4A2C1A]">
-                                {parseInt(payment.amount.toString()).toLocaleString()}원
+                                {parseInt(payment.amount.toString()).toLocaleString()}{t('payment.won')}
                               </p>
                             </div>
                             {associatedSubscription && (
                               <p className="text-sm text-gray-500">
-                                {periodStart}~{periodEnd} 기간 동안의 멤버십
+                                {t('payment.membershipPeriod', { start: periodStart, end: periodEnd })}
                               </p>
                             )}
                             <p className="text-sm text-gray-500">
@@ -153,7 +151,6 @@ export function PaymentHistoryPage() {
                           </div>
                         </div>
                       </div>
-                      {/* 구분선 */}
                       {index < payments.length - 1 && (
                         <div className="border-b border-gray-200" />
                       )}
@@ -166,7 +163,6 @@ export function PaymentHistoryPage() {
         </div>
       </div>
 
-      {/* 구독 취소 모달 */}
       {showCancelModal && effectiveSubscription && isSubscriptionActive && (
         <SubscriptionCancelModal
           isOpen={showCancelModal}
@@ -181,9 +177,9 @@ export function PaymentHistoryPage() {
               setShowCancelModal(false);
               const msg = error?.message || '';
               if (msg.includes('active') || msg.includes('cancelled')) {
-                setCancelErrorMessage('이미 취소된 구독입니다.');
+                setCancelErrorMessage(t('payment.alreadyCancelled'));
               } else {
-                setCancelErrorMessage('구독 취소에 실패했습니다.');
+                setCancelErrorMessage(t('payment.cancelFailed'));
               }
               setShowCancelError(true);
             }
@@ -192,22 +188,20 @@ export function PaymentHistoryPage() {
         />
       )}
 
-      {/* 구독 취소 성공 모달 */}
       {showCancelSuccess && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
-            <p className="text-[#4A2C1A] mb-6">구독이 취소되었습니다.</p>
+            <p className="text-[#4A2C1A] mb-6">{t('payment.subscriptionCancelled')}</p>
             <button
               onClick={() => setShowCancelSuccess(false)}
               className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
             >
-              확인
+              {t('common.confirm')}
             </button>
           </div>
         </div>
       )}
 
-      {/* 구독 취소 실패 모달 */}
       {showCancelError && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
@@ -216,7 +210,7 @@ export function PaymentHistoryPage() {
               onClick={() => setShowCancelError(false)}
               className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
             >
-              확인
+              {t('common.confirm')}
             </button>
           </div>
         </div>

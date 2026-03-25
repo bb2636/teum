@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
-import { useCheckEmailExists, useEmailDuplicateCheck } from '@/hooks/useEmailVerification';
+import { useEmailDuplicateCheck } from '@/hooks/useEmailVerification';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
@@ -85,7 +85,6 @@ export function SignupPage() {
     step3?: Step3FormData;
   }>({});
 
-  const checkEmailExists = useCheckEmailExists();
   const [emailError, setEmailError] = useState<string | null>(null);
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();

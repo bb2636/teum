@@ -29,11 +29,14 @@ app.use(cors({
       'http://localhost:5000',
       'https://teum.replit.app',
       'capacitor://localhost',
+      'http://localhost',
       'https://localhost',
       'https://pay.nicepay.co.kr',
       'https://sandbox-pay.nicepay.co.kr',
     ].filter(Boolean) as string[];
     if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else if (origin && (origin.endsWith('.replit.dev') || origin.endsWith('.replit.app'))) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));

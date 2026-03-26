@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export async function downloadMusicFile(
   jobId: string,
@@ -16,19 +16,20 @@ export async function downloadMusicFile(
 
   if (isNative) {
     try {
-      const result: any = await apiRequest(`/music/jobs/${jobId}/download-token`, {
+      const tokenRes = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
         method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
-      const token = result?.data?.token;
-      if (token) {
-        const apiBase = import.meta.env.VITE_API_URL || '/api';
-        const downloadUrl = `${apiBase}/music/download/${token}`;
-        window.open(downloadUrl, '_system');
-        return;
+      if (tokenRes.ok) {
+        const tokenData = await tokenRes.json();
+        const token = tokenData?.data?.token;
+        if (token) {
+          window.open(`${API_BASE}/music/download/${token}`, '_blank');
+          return;
+        }
       }
-    } catch (error) {
-      console.error('Token download failed:', error);
-    }
+    } catch {}
     window.open(audioUrl, '_blank');
     return;
   }
@@ -44,8 +45,7 @@ export async function downloadMusicFile(
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
-  } catch (error) {
-    console.error('Download failed:', error);
+  } catch {
     window.open(audioUrl, '_blank');
   }
 }

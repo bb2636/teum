@@ -37,7 +37,10 @@ app.use(cors({
     ].filter(Boolean) as string[];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
-    } else if (origin && process.env.REPL_SLUG && (origin.endsWith('.replit.dev') || origin.endsWith('.replit.app')) && origin.includes(process.env.REPL_SLUG)) {
+    } else if (origin && (origin.endsWith('.replit.dev') || origin.endsWith('.replit.app')) && (
+      (process.env.REPLIT_DEV_DOMAIN && origin.includes(process.env.REPLIT_DEV_DOMAIN.replace(/:\d+$/, ''))) ||
+      origin.includes('teum')
+    )) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));

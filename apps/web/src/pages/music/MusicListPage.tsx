@@ -9,7 +9,6 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import type { Diary } from '@/hooks/useDiaries';
 import { useAudioDurations } from '@/hooks/useAudioDuration';
-import { downloadMusicFile } from '@/lib/downloadMusic';
 
 export function MusicListPage() {
   const navigate = useNavigate();
@@ -44,7 +43,22 @@ export function MusicListPage() {
 
   const handleDownload = async (e: React.MouseEvent, job: MusicJobListItem) => {
     e.stopPropagation();
-    await downloadMusicFile(job.jobId, job.title, job.audioUrl);
+    try {
+      const response = await fetch(job.audioUrl!);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      window.open(job.audioUrl, '_blank');
+    }
   };
 
   return (

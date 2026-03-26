@@ -89,6 +89,16 @@ teum/
 - **Login cache safety**: All login hooks (`useLogin`, `useGoogleLogin`, `useAppleLogin`) clear query cache via `queryClient.getQueryCache().clear()` in `onMutate` (before API call) and `onSuccess` (after API call) to prevent cross-account data leaking
 - **Server-side**: Login endpoints (`/auth/login`, `/auth/google/login`, `/auth/apple/login`) clear existing cookies before setting new ones
 - **Logout**: `useLogout` clears both query and mutation caches via `queryClient.clear()` before navigating to splash
+- **Concurrent Login Prevention**: `users.token_version` (integer, default 0) — 로그인마다 increment; refresh token에 `tokenVersion` 포함; access token 만료 → refresh 시 DB tokenVersion과 비교 → 불일치면 쿠키 삭제 + `SESSION_EXPIRED` 반환; `tokenVersion` 미포함 토큰도 거부
+
+## Rate Limiting
+
+- **Login**: 10회/15분 (keyGenerator: email → IP fallback)
+- **Signup**: 5회/1시간
+- **Verification**: 5회/1시간 (keyGenerator: phone/email → IP fallback)
+- **Password Reset**: 5회/1시간 (keyGenerator: email → IP fallback)
+- **Global API**: 100회/1분
+- **구현**: `apps/server/src/middleware/rate-limiter.ts` (express-rate-limit v8)
 
 ## UI Animations
 

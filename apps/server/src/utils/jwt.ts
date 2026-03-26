@@ -11,6 +11,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: string;
+  tokenVersion?: number;
 }
 
 export function generateAccessToken(payload: JWTPayload): string {

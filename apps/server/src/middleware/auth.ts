@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, verifyRefreshToken, generateAccessToken, JWTPayload } from '../utils/jwt';
+import { userRepository } from '../repositories/user.repository';
 
-// Extend Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
@@ -10,9 +10,8 @@ declare global {
   }
 }
 
-export function authenticate(req: Request, res: Response, next: NextFunction): Response | void {
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
   try {
-    // Get token from httpOnly cookie
     const token = req.cookies?.accessToken;
 
     if (!token) {
@@ -26,30 +25,47 @@ export function authenticate(req: Request, res: Response, next: NextFunction): R
     }
 
     try {
-      // Verify token
       const payload = verifyAccessToken(token);
       req.user = payload;
       next();
     } catch (error) {
-      // If access token is invalid, try to refresh
       const refreshToken = req.cookies?.refreshToken;
       
       if (refreshToken) {
         try {
           const refreshPayload = verifyRefreshToken(refreshToken);
+
+          const currentVersion = await userRepository.getTokenVersion(refreshPayload.userId);
+          if (currentVersion === null || refreshPayload.tokenVersion === undefined || refreshPayload.tokenVersion !== currentVersion) {
+            const cookieOpts = {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+              path: '/',
+            };
+            res.clearCookie('accessToken', cookieOpts);
+            res.clearCookie('refreshToken', cookieOpts);
+            return res.status(401).json({
+              success: false,
+              error: {
+                code: 'SESSION_EXPIRED',
+                message: '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.',
+              },
+            });
+          }
+
           const newAccessToken = generateAccessToken({
             userId: refreshPayload.userId,
             email: refreshPayload.email,
             role: refreshPayload.role,
           });
 
-          // Set new access token
           res.cookie('accessToken', newAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
-            maxAge: 15 * 60 * 1000, // 15 minutes
+            maxAge: 15 * 60 * 1000,
           });
 
           req.user = {
@@ -59,6 +75,14 @@ export function authenticate(req: Request, res: Response, next: NextFunction): R
           };
           next();
         } catch (refreshError) {
+          const cookieOpts = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+            path: '/',
+          };
+          res.clearCookie('accessToken', cookieOpts);
+          res.clearCookie('refreshToken', cookieOpts);
           return res.status(401).json({
             success: false,
             error: {

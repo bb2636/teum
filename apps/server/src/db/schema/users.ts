@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, boolean, pgEnum, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // User role enum
@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   passwordHash: varchar('password_hash', { length: 255 }),
   role: userRoleEnum('role').default('user').notNull(),
   isActive: boolean('is_active').default(true).notNull(),
+  tokenVersion: integer('token_version').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

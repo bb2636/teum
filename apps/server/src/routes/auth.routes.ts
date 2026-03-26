@@ -1,24 +1,25 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
+import { loginLimiter, signupLimiter, verificationLimiter } from '../middleware/rate-limiter';
 
 const router: Router = Router();
 
 // Public routes
-router.post('/signup', authController.signup.bind(authController));
-router.post('/login', authController.login.bind(authController));
+router.post('/signup', signupLimiter, authController.signup.bind(authController));
+router.post('/login', loginLimiter, authController.login.bind(authController));
 router.post('/refresh', authController.refresh.bind(authController));
 router.get('/check-email', authController.checkEmailExists.bind(authController));
-router.post('/email/request', authController.requestEmailVerification.bind(authController));
-router.post('/email/request-for-password-reset', authController.requestEmailVerificationForPasswordReset.bind(authController));
+router.post('/email/request', verificationLimiter, authController.requestEmailVerification.bind(authController));
+router.post('/email/request-for-password-reset', verificationLimiter, authController.requestEmailVerificationForPasswordReset.bind(authController));
 router.post('/email/confirm', authController.confirmEmailVerification.bind(authController));
-router.post('/phone/request', authController.requestPhoneVerification.bind(authController));
+router.post('/phone/request', verificationLimiter, authController.requestPhoneVerification.bind(authController));
 router.post('/phone/confirm', authController.confirmPhoneVerification.bind(authController));
 
 // Social login routes
-router.post('/google/login', authController.googleLogin.bind(authController));
-router.post('/apple/login', authController.appleLogin.bind(authController));
-router.post('/social/onboarding', authController.socialOnboarding.bind(authController));
+router.post('/google/login', loginLimiter, authController.googleLogin.bind(authController));
+router.post('/apple/login', loginLimiter, authController.appleLogin.bind(authController));
+router.post('/social/onboarding', signupLimiter, authController.socialOnboarding.bind(authController));
 
 // Protected routes
 router.post('/logout', authenticate, authController.logout.bind(authController));

@@ -21,6 +21,16 @@ import {
 } from '../validations/auth';
 
 export class AuthService {
+  private async generateTokensForUser(user: { id: string; email: string; role: string }) {
+    const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
+    const accessPayload: JWTPayload = { userId: user.id, email: user.email, role: user.role };
+    const refreshPayload: JWTPayload = { ...accessPayload, tokenVersion: newTokenVersion };
+    return {
+      accessToken: generateAccessToken(accessPayload),
+      refreshToken: generateRefreshToken(refreshPayload),
+    };
+  }
+
   async signup(input: SignupInput) {
     // Check if user already exists (including withdrawn accounts)
     const existingUser = await userRepository.findByEmailIncludingDeleted(input.email);
@@ -78,12 +88,7 @@ export class AuthService {
       );
     }
 
-    // Generate tokens
-    const payload: JWTPayload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    const tokens = await this.generateTokensForUser(user);
 
     return {
       user: {
@@ -91,8 +96,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
       },
-      accessToken: generateAccessToken(payload),
-      refreshToken: generateRefreshToken(payload),
+      ...tokens,
     };
   }
 
@@ -131,25 +135,8 @@ export class AuthService {
         throw new Error('Invalid email or password');
       }
 
-      // Generate tokens
-      logger.debug('Generating tokens');
-      const payload: JWTPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      };
-
-      let accessToken: string;
-      let refreshToken: string;
-      
-      try {
-        accessToken = generateAccessToken(payload);
-        refreshToken = generateRefreshToken(payload);
-        logger.debug('Tokens generated successfully', { userId: user.id });
-      } catch (tokenError) {
-        logger.error('Token generation error', { error: tokenError, userId: user.id });
-        throw new Error('Failed to generate authentication tokens');
-      }
+      const tokens = await this.generateTokensForUser(user);
+      logger.debug('Tokens generated successfully', { userId: user.id });
 
       return {
         user: {
@@ -157,8 +144,7 @@ export class AuthService {
           email: user.email,
           role: user.role,
         },
-        accessToken,
-        refreshToken,
+        ...tokens,
       };
     } catch (error) {
       // Re-throw authentication errors
@@ -424,37 +410,27 @@ export class AuthService {
         throw new Error('계정이 정지되었습니다. 관리자에게 문의하세요.');
       }
 
-      const jwtPayload: JWTPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      };
+      const tokens = await this.generateTokensForUser(user);
 
       return {
         isNewUser: false,
         user: { id: user.id, email: user.email, role: user.role },
-        accessToken: generateAccessToken(jwtPayload),
-        refreshToken: generateRefreshToken(jwtPayload),
+        ...tokens,
       };
     }
 
     const existingUser = await userRepository.findByEmailIncludingDeleted(email);
     if (existingUser && !existingUser.deletedAt) {
-      const jwtPayload: JWTPayload = {
-        userId: existingUser.id,
-        email: existingUser.email,
-        role: existingUser.role,
-      };
       await userRepository.createAuthAccount({
         userId: existingUser.id,
         provider: 'google',
         providerAccountId: googleId,
       });
+      const tokens = await this.generateTokensForUser(existingUser);
       return {
         isNewUser: false,
         user: { id: existingUser.id, email: existingUser.email, role: existingUser.role },
-        accessToken: generateAccessToken(jwtPayload),
-        refreshToken: generateRefreshToken(jwtPayload),
+        ...tokens,
       };
     }
 
@@ -502,38 +478,28 @@ export class AuthService {
         throw new Error('계정이 정지되었습니다. 관리자에게 문의하세요.');
       }
 
-      const jwtPayload: JWTPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      };
+      const tokens = await this.generateTokensForUser(user);
 
       return {
         isNewUser: false,
         user: { id: user.id, email: user.email, role: user.role },
-        accessToken: generateAccessToken(jwtPayload),
-        refreshToken: generateRefreshToken(jwtPayload),
+        ...tokens,
       };
     }
 
     if (email) {
       const existingUser = await userRepository.findByEmailIncludingDeleted(email);
       if (existingUser && !existingUser.deletedAt) {
-        const jwtPayload: JWTPayload = {
-          userId: existingUser.id,
-          email: existingUser.email,
-          role: existingUser.role,
-        };
         await userRepository.createAuthAccount({
           userId: existingUser.id,
           provider: 'apple',
           providerAccountId: appleId,
         });
+        const tokens = await this.generateTokensForUser(existingUser);
         return {
           isNewUser: false,
           user: { id: existingUser.id, email: existingUser.email, role: existingUser.role },
-          accessToken: generateAccessToken(jwtPayload),
-          refreshToken: generateRefreshToken(jwtPayload),
+          ...tokens,
         };
       }
     }
@@ -626,16 +592,11 @@ export class AuthService {
       );
     }
 
-    const jwtPayload: JWTPayload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    const tokens = await this.generateTokensForUser(user);
 
     return {
       user: { id: user.id, email: user.email, role: user.role },
-      accessToken: generateAccessToken(jwtPayload),
-      refreshToken: generateRefreshToken(jwtPayload),
+      ...tokens,
     };
   }
 }

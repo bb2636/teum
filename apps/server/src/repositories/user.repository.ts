@@ -1,4 +1,4 @@
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { users, userProfiles, folders, authAccounts } from '../db/schema';
 
@@ -213,6 +213,20 @@ export class UserRepository {
       },
       orderBy: (users, { desc }) => [desc(users.createdAt)],
     });
+  }
+
+  async incrementTokenVersion(userId: string): Promise<number> {
+    const [result] = await db
+      .update(users)
+      .set({ tokenVersion: sql`${users.tokenVersion} + 1` })
+      .where(eq(users.id, userId))
+      .returning({ tokenVersion: users.tokenVersion });
+    return result?.tokenVersion ?? 0;
+  }
+
+  async getTokenVersion(userId: string): Promise<number> {
+    const user = await this.findById(userId);
+    return (user as any)?.tokenVersion ?? 0;
   }
 }
 

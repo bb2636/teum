@@ -13,6 +13,7 @@ import {
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
 import { getClientIp, detectCountryFromIp } from '../utils/ip-geolocation';
+import { userRepository } from '../repositories/user.repository';
 
 export class AuthController {
   async signup(req: Request, res: Response, next: NextFunction) {
@@ -147,10 +148,27 @@ export class AuthController {
         });
       }
 
-      // Verify refresh token
       const payload = verifyRefreshToken(refreshToken);
 
-      // Generate new access token
+      const currentVersion = await userRepository.getTokenVersion(payload.userId);
+      if (currentVersion === null || payload.tokenVersion === undefined || payload.tokenVersion !== currentVersion) {
+        const cookieOpts = {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+          path: '/',
+        };
+        res.clearCookie('accessToken', cookieOpts);
+        res.clearCookie('refreshToken', cookieOpts);
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: 'SESSION_EXPIRED',
+            message: '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.',
+          },
+        });
+      }
+
       const accessToken = generateAccessToken({
         userId: payload.userId,
         email: payload.email,

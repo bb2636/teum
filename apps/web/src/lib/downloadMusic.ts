@@ -2,59 +2,60 @@ import { Capacitor } from '@capacitor/core';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-function getAbsoluteApiBase(): string {
-  if (API_BASE.startsWith('http')) return API_BASE;
-  return `${window.location.origin}${API_BASE}`;
-}
-
 export async function downloadMusicFile(
   jobId: string,
   title?: string,
   _audioUrl?: string | null
 ): Promise<void> {
-  const sanitizedTitle = (title || 'music').replace(/[<>:"/\\|?*]/g, '_').trim() || 'music';
-  const filename = `${sanitizedTitle}.mp3`;
+  try {
+    const sanitizedTitle = (title || 'music').replace(/[<>:"/\\|?*]/g, '_').trim() || 'music';
+    const filename = `${sanitizedTitle}.mp3`;
+    const isNative = Capacitor.isNativePlatform();
 
-  if (Capacitor.isNativePlatform()) {
-    await downloadForNative(jobId, filename);
-  } else {
-    await downloadForWeb(jobId, filename);
+    if (isNative) {
+      await downloadForNative(jobId, filename);
+    } else {
+      await downloadForWeb(jobId, filename);
+    }
+  } catch (e: any) {
+    alert(`다운로드 오류: ${e?.message || e}`);
   }
 }
 
 async function downloadForWeb(jobId: string, filename: string): Promise<void> {
-  try {
-    const blob = await fetchAudioBlob(jobId);
-    if (!blob) {
-      alert('다운로드에 실패했습니다. 다시 시도해주세요.');
-      return;
-    }
-    triggerBlobDownload(blob, filename);
-  } catch {
+  const blob = await fetchAudioBlob(jobId);
+  if (!blob) {
     alert('다운로드에 실패했습니다. 다시 시도해주세요.');
+    return;
   }
+  triggerBlobDownload(blob, filename);
 }
 
 async function downloadForNative(jobId: string, filename: string): Promise<void> {
-  let savedWithFilesystem = false;
+  const blob = await fetchAudioBlob(jobId);
 
-  try {
-    const blob = await fetchAudioBlob(jobId);
-    if (blob) {
-      savedWithFilesystem = await trySaveWithFilesystem(blob, filename);
-    }
-  } catch (e) {
-    console.error('Native download attempt failed:', e);
+  if (!blob) {
+    alert('오디오 데이터를 가져올 수 없습니다.');
+    return;
   }
 
-  if (savedWithFilesystem) return;
+  const saved = await trySaveWithFilesystem(blob, filename);
+  if (saved) return;
+
+  const absoluteBase = API_BASE.startsWith('http') ? API_BASE : `${window.location.origin}${API_BASE}`;
 
   try {
-    const tokenUrl = await getTokenDownloadUrl(jobId);
-    const absoluteUrl = tokenUrl.startsWith('http') ? tokenUrl : `${getAbsoluteApiBase().replace(/\/api$/, '')}${tokenUrl}`;
-    window.open(absoluteUrl, '_system');
-  } catch {
-    alert('다운로드에 실패했습니다. 다시 시도해주세요.');
+    const tokenResponse = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!tokenResponse.ok) throw new Error(`Token request failed: ${tokenResponse.status}`);
+    const result = await tokenResponse.json();
+    const downloadUrl = `${absoluteBase}/music/download/${result.data.token}`;
+    window.open(downloadUrl, '_system');
+  } catch (e: any) {
+    alert(`다운로드 실패: ${e?.message || e}`);
   }
 }
 
@@ -64,30 +65,23 @@ async function fetchAudioBlob(jobId: string): Promise<Blob | null> {
       credentials: 'include',
     });
     if (response.ok) return await response.blob();
-  } catch (e) {
-    console.error('Server download failed:', e);
-  }
+  } catch {}
 
   try {
-    const tokenUrl = await getTokenDownloadUrl(jobId);
-    const response = await fetch(tokenUrl);
-    if (response.ok) return await response.blob();
-  } catch (e) {
-    console.error('Token download failed:', e);
-  }
+    const tokenResponse = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (tokenResponse.ok) {
+      const result = await tokenResponse.json();
+      const tokenUrl = `${API_BASE}/music/download/${result.data.token}`;
+      const response = await fetch(tokenUrl);
+      if (response.ok) return await response.blob();
+    }
+  } catch {}
 
   return null;
-}
-
-async function getTokenDownloadUrl(jobId: string): Promise<string> {
-  const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!response.ok) throw new Error('Failed to create download token');
-  const result = await response.json();
-  return `${API_BASE}/music/download/${result.data.token}`;
 }
 
 async function trySaveWithFilesystem(blob: Blob, filename: string): Promise<boolean> {
@@ -115,9 +109,7 @@ async function trySaveWithFilesystem(blob: Blob, filename: string): Promise<bool
         continue;
       }
     }
-  } catch (e) {
-    console.error('Filesystem plugin not available:', e);
-  }
+  } catch {}
 
   return false;
 }

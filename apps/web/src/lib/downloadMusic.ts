@@ -10,17 +10,20 @@ export async function downloadMusicFile(
 
   if (isNative) {
     try {
-      const apiBase = '/api';
-      const tokenRes = await fetch(`${apiBase}/music/jobs/${jobId}/download-token`, {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       if (tokenRes.ok) {
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          window.open(`${apiBase}/music/download/${token}`, '_blank');
+          window.open(`/api/music/download/${token}`, '_blank');
           return;
         }
       }

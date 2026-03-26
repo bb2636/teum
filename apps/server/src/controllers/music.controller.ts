@@ -3,6 +3,7 @@ import { musicService } from '../services/music/music.service';
 import { musicPollingService } from '../services/music/music-polling.service';
 import { generateMusicSchema } from '../validations/music';
 import { MUREKA_GENRES } from '../services/music/mureka-styles';
+import { logger } from '../config/logger';
 
 export class MusicController {
   /** 장르/스타일 목록 (뮤레카 스타일 태그) */
@@ -124,7 +125,8 @@ export class MusicController {
           if (done) {
             job = await musicService.getJob(req.user.userId, jobId);
           }
-        } catch (_error) {
+        } catch (pollError) {
+          logger.warn('Music job polling failed:', { jobId, error: pollError instanceof Error ? pollError.message : pollError });
         }
       }
 

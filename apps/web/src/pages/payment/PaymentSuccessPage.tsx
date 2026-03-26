@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { X, Sparkles, BookOpen, Music, PenLine, ChevronRight, type LucideIcon } from 'lucide-react';
+import { X, Sparkles, Music, PenLine, ChevronRight, type LucideIcon } from 'lucide-react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,8 +18,7 @@ export function PaymentSuccessPage() {
     subtitle: string | null;
     icon: LucideIcon | null;
     tips?: string[];
-    extraTitle?: string;
-    extraDesc?: string;
+    extraInfo?: string;
   };
 
   const GUIDE_PAGES: GuidePage[] = [
@@ -28,8 +27,6 @@ export function PaymentSuccessPage() {
       title: t('payment.success.subscriptionStarted'),
       subtitle: t('payment.success.analyzeAndCreate'),
       icon: null,
-      extraTitle: t('payment.success.moreDiaries'),
-      extraDesc: t('payment.success.moreDiariesDesc'),
     },
     {
       id: 'how-to',
@@ -48,6 +45,7 @@ export function PaymentSuccessPage() {
       icon: Music,
       title: t('payment.success.musicPerDiaries'),
       subtitle: t('payment.success.musicPerDiariesDesc'),
+      extraInfo: t('payment.success.moreDiaries'),
     },
   ];
 
@@ -91,7 +89,7 @@ export function PaymentSuccessPage() {
           </div>
         )}
 
-        <h1 className="text-2xl font-bold text-black leading-tight animate-fade-in whitespace-pre-line">
+        <h1 className="text-2xl font-bold text-[#4A2C1A] leading-tight animate-fade-in whitespace-pre-line">
           {page.title}
         </h1>
 
@@ -101,17 +99,9 @@ export function PaymentSuccessPage() {
           </p>
         )}
 
-        {page.extraTitle && (
+        {page.extraInfo && (
           <div className="mt-8 bg-[#F9F6F3] rounded-2xl p-5 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-[#665146]" />
-              </div>
-              <p className="text-sm font-semibold text-[#4A2C1A]">{page.extraTitle}</p>
-            </div>
-            {page.extraDesc && (
-              <p className="text-sm text-[#665146] leading-relaxed ml-11">{page.extraDesc}</p>
-            )}
+            <p className="text-sm font-medium text-[#665146] leading-relaxed">{page.extraInfo}</p>
           </div>
         )}
 

@@ -13,6 +13,7 @@ import { useT } from '@/hooks/useTranslation';
 import type { Diary } from '@/hooks/useDiaries';
 import { getFirstLine } from '@/lib/utils';
 import { useAudioDurations } from '@/hooks/useAudioDuration';
+import { downloadMusicFile } from '@/lib/downloadMusic';
 
 const MONTHLY_LIMIT = 5;
 
@@ -236,30 +237,7 @@ export function MusicHomePage() {
 
   const handleDownload = async (e: React.MouseEvent, job: MusicJobListItem) => {
     e.stopPropagation();
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBase}/music/jobs/${job.jobId}/download`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Download failed');
-      const disposition = response.headers.get('content-disposition');
-      let filename = `${(job.title || 'music')}.mp3`;
-      if (disposition) {
-        const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
-        if (utf8Match) filename = decodeURIComponent(utf8Match[1]);
-      }
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+    await downloadMusicFile(job.jobId, job.title);
   };
 
   const handleOpenCreateModal = () => {

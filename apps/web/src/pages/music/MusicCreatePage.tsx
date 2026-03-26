@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useGenerateMusic, useMusicGenres } from '@/hooks/useMusic';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
+import { downloadMusicFile } from '@/lib/downloadMusic';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { StorageImage } from '@/components/StorageImage';
@@ -146,30 +147,7 @@ export function MusicCreatePage() {
 
   const handleDownload = async () => {
     if (!completedJobId) return;
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBase}/music/jobs/${completedJobId}/download`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Download failed');
-      const disposition = response.headers.get('content-disposition');
-      let filename = `${(completedTitle || 'music')}.mp3`;
-      if (disposition) {
-        const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
-        if (utf8Match) filename = decodeURIComponent(utf8Match[1]);
-      }
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+    await downloadMusicFile(completedJobId, completedTitle);
   };
 
   const handleAddToMyMusic = () => {

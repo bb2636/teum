@@ -18,6 +18,8 @@ export function PaymentSuccessPage() {
     subtitle: string | null;
     icon: LucideIcon | null;
     tips?: string[];
+    extraTitle?: string;
+    extraDesc?: string;
   };
 
   const GUIDE_PAGES: GuidePage[] = [
@@ -26,12 +28,8 @@ export function PaymentSuccessPage() {
       title: t('payment.success.subscriptionStarted'),
       subtitle: t('payment.success.analyzeAndCreate'),
       icon: null,
-    },
-    {
-      id: 'why-diary',
-      icon: BookOpen,
-      title: t('payment.success.moreDiaries'),
-      subtitle: t('payment.success.moreDiariesDesc'),
+      extraTitle: t('payment.success.moreDiaries'),
+      extraDesc: t('payment.success.moreDiariesDesc'),
     },
     {
       id: 'how-to',
@@ -46,10 +44,10 @@ export function PaymentSuccessPage() {
       ],
     },
     {
-      id: 'music-create',
+      id: 'music-per-diaries',
       icon: Music,
-      title: t('payment.success.collectAndCreate'),
-      subtitle: t('payment.success.collectAndCreateDesc'),
+      title: t('payment.success.musicPerDiaries'),
+      subtitle: t('payment.success.musicPerDiariesDesc'),
     },
   ];
 
@@ -93,14 +91,28 @@ export function PaymentSuccessPage() {
           </div>
         )}
 
-        <h1 className="text-2xl font-bold text-black leading-tight animate-fade-in">
+        <h1 className="text-2xl font-bold text-black leading-tight animate-fade-in whitespace-pre-line">
           {page.title}
         </h1>
 
         {page.subtitle && (
-          <p className="text-base text-gray-500 leading-relaxed mt-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <p className="text-base text-gray-500 leading-relaxed mt-4 animate-fade-in whitespace-pre-line" style={{ animationDelay: '100ms' }}>
             {page.subtitle}
           </p>
+        )}
+
+        {page.extraTitle && (
+          <div className="mt-8 bg-[#F9F6F3] rounded-2xl p-5 animate-fade-in" style={{ animationDelay: '200ms' }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-[#665146]" />
+              </div>
+              <p className="text-sm font-semibold text-[#4A2C1A]">{page.extraTitle}</p>
+            </div>
+            {page.extraDesc && (
+              <p className="text-sm text-[#665146] leading-relaxed ml-11">{page.extraDesc}</p>
+            )}
+          </div>
         )}
 
         {page.tips && (

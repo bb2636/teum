@@ -237,12 +237,8 @@ export function SignupPage() {
     }
 
     try {
-      const result = await requestPhoneVerification.mutateAsync(phone);
+      await requestPhoneVerification.mutateAsync(phone);
       setShowPhoneVerificationModal(true);
-      if (result.code) {
-        setPhoneVerificationCode(result.code);
-        setPhoneVerificationInput(result.code);
-      }
     } catch (err) {
       const error = err as Error;
       setError(error.message || t('auth.verificationFailed'));

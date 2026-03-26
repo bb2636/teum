@@ -174,11 +174,8 @@ export function SocialOnboardingPage() {
     if (!email) return;
     setError(null);
     try {
-      const result = await requestEmailVerification.mutateAsync(email);
+      await requestEmailVerification.mutateAsync(email);
       setShowEmailVerificationModal(true);
-      if (result.code) {
-        setEmailVerificationCode(result.code);
-      }
     } catch (err: any) {
       setError(err?.message || t('auth.verificationFailed'));
     }

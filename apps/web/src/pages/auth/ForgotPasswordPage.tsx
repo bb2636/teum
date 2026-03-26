@@ -97,11 +97,11 @@ export function ForgotPasswordPage() {
     setError(null);
 
     try {
-      const result = await requestPhoneVerification.mutateAsync(phone);
-      setPhoneVerificationCode(result.code || null);
+      await requestPhoneVerification.mutateAsync(phone);
+      setPhoneVerificationCode(null);
       setShowPhoneVerificationModal(true);
       setPhoneVerified(false);
-      setPhoneVerificationInput(result.code || '');
+      setPhoneVerificationInput('');
     } catch (err: any) {
       setError(err?.message || '인증번호 발송에 실패했습니다');
     }

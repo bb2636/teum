@@ -165,6 +165,65 @@ ${resetLink}
       // Don't throw - welcome email is not critical
     }
   }
+  async sendVerificationCodeEmail(email: string, code: string): Promise<void> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>이메일 인증</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; font-size: 28px;">teum</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">기록이 곧, 당신만의 트랙이 됩니다</p>
+          </div>
+          
+          <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #8B4513; margin-top: 0;">이메일 인증번호</h2>
+            
+            <p>안녕하세요,</p>
+            <p>아래 인증번호를 입력하여 이메일 인증을 완료해주세요.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="display: inline-block; background-color: #f5ede4; border: 2px solid #8B4513; padding: 16px 40px; border-radius: 8px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4A2C1A;">
+                ${code}
+              </div>
+            </div>
+            
+            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                이 인증번호는 10분 동안 유효합니다.<br>
+                본인이 요청하지 않았다면 이 이메일을 무시하세요.
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+            <p>&copy; ${new Date().getFullYear()} teum. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `[teum] 이메일 인증번호: ${code}\n이 인증번호는 10분 동안 유효합니다.`;
+
+    try {
+      await this.provider.sendEmail({
+        to: email,
+        subject: '[teum] 이메일 인증번호',
+        html,
+        text,
+      });
+    } catch (error) {
+      logger.error('Failed to send verification code email', {
+        email,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
 }
 
 export const emailService = new EmailService();

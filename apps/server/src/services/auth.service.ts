@@ -5,6 +5,8 @@ import { termsConsentRepository } from '../repositories/terms-consent.repository
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
 import { logger } from '../config/logger';
+import { smsService } from './sms/sms.service';
+import { emailService } from './email/email.service';
 import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
@@ -202,16 +204,23 @@ export class AuthService {
       expiresAt,
     });
 
-    // TODO: Send SMS via real provider
     logger.info('Phone verification code generated', {
       phone: input.phone,
       expiresAt: expiresAt.toISOString(),
     });
 
+    try {
+      await smsService.sendVerificationCode(input.phone, code);
+    } catch (error) {
+      logger.error('Failed to send SMS verification code', {
+        phone: input.phone,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     return {
       message: 'Verification code sent',
       expiresIn: 600,
-      code,
     };
   }
 
@@ -299,16 +308,23 @@ export class AuthService {
       expiresAt,
     });
 
-    // TODO: Send email via real provider
     logger.info('Email verification code generated', {
       email: input.email,
       expiresAt: expiresAt.toISOString(),
     });
 
+    try {
+      await emailService.sendVerificationCodeEmail(input.email, code);
+    } catch (error) {
+      logger.error('Failed to send email verification code', {
+        email: input.email,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     return {
       message: 'Verification code sent',
       expiresIn: 600,
-      code,
     };
   }
 
@@ -337,16 +353,23 @@ export class AuthService {
       expiresAt,
     });
 
-    // TODO: Send email via real provider
     logger.info('Email verification code generated for password reset', {
       email: input.email,
       expiresAt: expiresAt.toISOString(),
     });
 
+    try {
+      await emailService.sendVerificationCodeEmail(input.email, code);
+    } catch (error) {
+      logger.error('Failed to send password reset email verification code', {
+        email: input.email,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     return {
       message: 'Verification code sent',
       expiresIn: 600,
-      code,
     };
   }
 

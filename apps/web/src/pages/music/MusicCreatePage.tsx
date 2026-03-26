@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { StorageImage } from '@/components/StorageImage';
 import { useT } from '@/hooks/useTranslation';
+import { getFirstLine } from '@/lib/utils';
 
 export function MusicCreatePage() {
   const navigate = useNavigate();
@@ -48,29 +49,6 @@ export function MusicCreatePage() {
   const genres = genresData?.genres ?? [];
   const selectedCount = selectedDiaryIds.length;
   const canGenerate = selectedCount === 7 && selectedGenres.length > 0;
-
-  const getFirstLine = (diary: { title?: string; content?: string; type?: string; answers?: Array<{ answer?: string; question?: { question?: string } }> }) => {
-    if (diary.title?.trim()) return diary.title.trim();
-    if (diary.type === 'question_based' && diary.answers?.length) {
-      const firstQuestion = diary.answers[0].question?.question?.trim();
-      if (firstQuestion) return firstQuestion;
-      const first = diary.answers[0].answer?.trim();
-      if (first) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = first;
-        const text = tmp.textContent || tmp.innerText || '';
-        return text.split('\n')[0].trim() || text;
-      }
-      return '';
-    }
-    if (diary.content?.trim()) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = diary.content;
-      const text = tmp.textContent || tmp.innerText || '';
-      return text.trim().split('\n')[0].trim();
-    }
-    return '';
-  };
 
   const getFolderDiaryCount = (folderId: string | undefined) => {
     if (folderId === undefined) return diariesAll.length;

@@ -10,7 +10,7 @@ interface AdModalProps {
 
 const AD_DURATION_SECONDS = 5;
 
-export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
+export function AdModal({ isOpen, onClose: _onClose, onAdComplete }: AdModalProps) {
   const t = useT();
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);

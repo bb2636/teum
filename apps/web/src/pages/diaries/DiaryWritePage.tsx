@@ -14,7 +14,7 @@ import { ColorPicker } from './ColorPicker';
 import { ExitConfirmModal } from './ExitConfirmModal';
 import { AdModal } from '@/components/AdModal';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -791,7 +791,8 @@ export function DiaryWritePage() {
   };
 
   const dateObj = new Date(selectedDate);
-  const formattedDate = format(dateObj, 'M월 d일 (E)', { locale: ko });
+  const locale = getDateLocale();
+  const formattedDate = format(dateObj, 'M월 d일 (E)', { locale });
 
   const handleBackClick = () => {
     setShowExitConfirm(true);

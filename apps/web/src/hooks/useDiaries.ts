@@ -21,7 +21,8 @@ export interface Diary {
     answer: string;
     question?: { id: string; question: string };
   }>;
-  aiMessage?: string; // Latest encouragement message from diaries table
+  aiMessage?: string;
+  aiSummary?: string;
   aiFeedback?: { id: string; outputText: string; kind: string; createdAt: string };
 }
 

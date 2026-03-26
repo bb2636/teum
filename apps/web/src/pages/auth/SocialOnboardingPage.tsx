@@ -69,7 +69,6 @@ export function SocialOnboardingPage() {
   const [dateDisplayValue, setDateDisplayValue] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
-  const [emailVerificationCode, setEmailVerificationCode] = useState<string | null>(null);
   const [emailVerificationInput, setEmailVerificationInput] = useState('');
 
   const requestEmailVerification = useRequestEmailVerification();
@@ -464,9 +463,6 @@ export function SocialOnboardingPage() {
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
               />
-              {emailVerificationCode && (
-                <p className="text-xs text-gray-500 text-center">Dev mode: code ({emailVerificationCode})</p>
-              )}
             </div>
             <Button onClick={handleConfirmEmailVerification} className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={emailVerificationInput.length !== 6 || confirmEmailVerification.isPending}>
               {confirmEmailVerification.isPending ? t('auth.verifying') : t('common.confirm')}

@@ -10,37 +10,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import { Diary } from '@/hooks/useDiaries';
-
-/** HTML 태그를 제거하고 텍스트만 반환 */
-function stripHTML(html: string): string {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-}
-
-/** 일기에서 목록에 쓸 "첫 줄" 텍스트 추출 */
-function getFirstLine(diary: Diary): string {
-  if (diary.title?.trim()) return diary.title.trim();
-  if (diary.type === 'question_based' && diary.answers?.length) {
-    // 질문기록일 때는 먼저 첫 번째 질문 제목을 확인
-    const firstQuestion = diary.answers[0].question?.question?.trim();
-    if (firstQuestion) return firstQuestion;
-    // 질문 제목이 없으면 답변 내용 확인
-    const first = diary.answers[0].answer?.trim();
-    if (first) return first.split('\n')[0].trim() || first;
-    // 질문 제목도 답변도 없으면 공백 반환
-    return '';
-  }
-  if (diary.content?.trim()) {
-    const textContent = stripHTML(diary.content);
-    return textContent.trim().split('\n')[0].trim();
-  }
-  // 질문기록이지만 답변이 없는 경우 공백 반환
-  if (diary.type === 'question_based') {
-    return '';
-  }
-  return '';
-}
+import { stripHTML, getFirstLine } from '@/lib/utils';
 
 function getDiaryPreviewText(diary: Diary, allLabel: string): string {
   if (diary.folder) {

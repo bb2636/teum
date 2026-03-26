@@ -12,13 +12,7 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
-
-/** HTML 태그를 제거하고 텍스트만 반환 */
-function stripHTML(html: string): string {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-}
+import { stripHTML } from '@/lib/utils';
 
 type SortOrder = 'newest' | 'oldest';
 type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';

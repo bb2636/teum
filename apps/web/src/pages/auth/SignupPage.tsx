@@ -76,7 +76,6 @@ export function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
-  const [phoneVerificationCode, setPhoneVerificationCode] = useState<string | null>(null);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -700,11 +699,6 @@ export function SignupPage() {
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
               />
-              {phoneVerificationCode && (
-                <p className="text-xs text-gray-500 text-center">
-                  Dev mode: code ({phoneVerificationCode})
-                </p>
-              )}
             </div>
             <Button
               onClick={handleConfirmPhoneVerification}

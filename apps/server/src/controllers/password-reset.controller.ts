@@ -8,11 +8,9 @@ export class PasswordResetController {
       const input = requestPasswordResetSchema.parse(req.body);
       const result = await passwordResetService.requestPasswordReset(input.email);
 
-      // In development, include token for testing
       res.json({
         success: true,
         message: '비밀번호 재설정 이메일이 발송되었습니다',
-        ...(result.token && { token: result.token, resetLink: result.resetLink }),
       });
     } catch (error) {
       if (error instanceof Error && error.message === '존재하지 않는 이메일입니다.') {
@@ -41,7 +39,7 @@ export class PasswordResetController {
       res.json({
         success: true,
         message: '비밀번호 재설정이 가능합니다.',
-        token: result.token,
+        token: result.token, 
       });
     } catch (error) {
       if (error instanceof Error) {

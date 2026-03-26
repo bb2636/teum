@@ -29,45 +29,17 @@ export class PasswordResetService {
       expiresAt,
     });
 
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/forgot-password?token=${token}`;
-    
-    // Send email
-    const emailEnabled = process.env.EMAIL_ENABLED === 'true';
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    let emailSent = false;
-    
-    if (emailEnabled) {
-      try {
-        await emailService.sendPasswordResetEmail(user.email, token);
-        logger.info('Password reset email sent', { email });
-        emailSent = true;
-      } catch (error) {
-        logger.error('Failed to send password reset email', {
-          email,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // In production, don't return token if email fails (security)
-        if (!isDevelopment) {
-          // Still return success to not reveal if user exists
-          return { success: true };
-        }
-      }
-    } else {
-      // Development mode: log token
-      logger.info('Password reset token generated (email disabled)', {
+    try {
+      await emailService.sendPasswordResetEmail(user.email, token);
+      logger.info('Password reset email sent', { email });
+    } catch (error) {
+      logger.error('Failed to send password reset email', {
         email,
-        token, // Only in development
-        resetLink,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 
-    // Return token only in development mode or if email was sent successfully
-    const shouldReturnToken = isDevelopment || (emailEnabled && emailSent);
-    
-    return {
-      success: true,
-      ...(shouldReturnToken && { token, resetLink }),
-    };
+    return { success: true };
   }
 
   async requestPasswordResetByPhone(email: string, phone: string) {

@@ -61,7 +61,7 @@ export class SolapiProvider implements SmsProvider {
         body: errorBody,
         to,
       });
-      throw new Error(`SMS send failed: ${response.status} ${errorBody}`);
+      throw new Error(`SMS send failed: ${response.status}`);
     }
 
     const result = await response.json();

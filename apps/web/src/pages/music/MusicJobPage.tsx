@@ -8,6 +8,7 @@ import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
+import { downloadMusicFile } from '@/lib/downloadMusic';
 import { getFirstLine } from '@/lib/utils';
 
 export function MusicJobPage() {
@@ -175,26 +176,7 @@ export function MusicJobPage() {
                 {job.status === 'completed' && job.audioUrl && (
                   <Button
                     className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
-                    onClick={async () => {
-                      if (job.audioUrl) {
-                        try {
-                          const response = await fetch(job.audioUrl);
-                          const blob = await response.blob();
-                          const blobUrl = window.URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = blobUrl;
-                          const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-                          link.download = filename;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          window.URL.revokeObjectURL(blobUrl);
-                        } catch (error) {
-                          console.error('Download failed:', error);
-                          window.open(job.audioUrl, '_blank');
-                        }
-                      }
-                    }}
+                    onClick={() => downloadMusicFile(job.jobId, job.title, job.audioUrl)}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     {t('music.download')}
@@ -320,26 +302,7 @@ export function MusicJobPage() {
               <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
                 <Button
                   className="w-full bg-[#4A2C1A] hover:bg-[#3a2114] text-white rounded-full py-3"
-                  onClick={async () => {
-                    if (job.audioUrl) {
-                      try {
-                        const response = await fetch(job.audioUrl);
-                        const blob = await response.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = blobUrl;
-                        const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-                        link.download = filename;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        window.URL.revokeObjectURL(blobUrl);
-                      } catch (error) {
-                        console.error('Download failed:', error);
-                        window.open(job.audioUrl, '_blank');
-                      }
-                    }
-                  }}
+                  onClick={() => downloadMusicFile(job.jobId, job.title, job.audioUrl)}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   {t('music.download')}

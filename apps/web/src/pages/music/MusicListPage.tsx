@@ -44,7 +44,7 @@ export function MusicListPage() {
 
   const handleDownload = async (e: React.MouseEvent, job: MusicJobListItem) => {
     e.stopPropagation();
-    await downloadMusicFile(job.jobId, job.title);
+    await downloadMusicFile(job.jobId, job.title, job.audioUrl);
   };
 
   return (

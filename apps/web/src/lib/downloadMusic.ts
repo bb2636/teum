@@ -10,86 +10,85 @@ export async function downloadMusicFile(
   const sanitizedTitle = (title || 'music').replace(/[<>:"/\\|?*]/g, '_').trim() || 'music';
   const filename = `${sanitizedTitle}.mp3`;
 
-  if (Capacitor.isNativePlatform() && audioUrl) {
+  if (Capacitor.isNativePlatform()) {
     try {
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
-      const response = await fetch(audioUrl);
-      if (!response.ok) throw new Error('Audio fetch failed');
+      const sourceUrl = audioUrl || await getTokenDownloadUrl(jobId);
+      const response = await fetch(sourceUrl);
+      if (!response.ok) throw new Error('Fetch failed');
 
       const blob = await response.blob();
       const base64 = await blobToBase64(blob);
 
-      try {
-        await Filesystem.writeFile({
-          path: `Download/${filename}`,
-          data: base64,
-          directory: Directory.ExternalStorage,
-          recursive: true,
-        });
-      } catch {
+      const dirs = [
+        { path: `Download/${filename}`, directory: Directory.ExternalStorage },
+        { path: filename, directory: Directory.Documents },
+        { path: filename, directory: Directory.Data },
+      ];
+
+      for (const dir of dirs) {
         try {
           await Filesystem.writeFile({
-            path: filename,
+            path: dir.path,
             data: base64,
-            directory: Directory.Documents,
+            directory: dir.directory,
             recursive: true,
           });
+          alert(`'${filename}' 저장 완료`);
+          return;
         } catch {
-          await Filesystem.writeFile({
-            path: filename,
-            data: base64,
-            directory: Directory.Data,
-            recursive: true,
-          });
+          continue;
         }
       }
 
-      alert(`'${filename}' 저장 완료`);
-      return;
-    } catch (error) {
-      console.error('Native Filesystem download failed:', error);
+      throw new Error('All Filesystem directories failed');
+    } catch (fsError) {
+      console.error('Filesystem save failed:', fsError);
     }
-  }
 
-  if (Capacitor.isNativePlatform() && audioUrl) {
     try {
-      const response = await fetch(audioUrl);
-      if (!response.ok) throw new Error('Audio fetch failed');
-      const blob = await response.blob();
-      triggerBrowserDownload(blob, filename);
-      return;
-    } catch (error) {
-      console.error('Native blob download failed:', error);
+      const tokenUrl = await getTokenDownloadUrl(jobId);
+      window.open(tokenUrl, '_system');
+    } catch {
+      if (audioUrl) window.open(audioUrl, '_system');
     }
+    return;
   }
 
   try {
-    const downloadUrl = `${API_BASE}/music/jobs/${jobId}/download`;
-    const response = await fetch(downloadUrl, { credentials: 'include' });
-    if (!response.ok) throw new Error('Download API failed');
-
-    const disposition = response.headers.get('content-disposition');
-    let resolvedFilename = filename;
-    if (disposition) {
-      const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
-      if (utf8Match) resolvedFilename = decodeURIComponent(utf8Match[1]);
-    }
-
-    const blob = await response.blob();
-    triggerBrowserDownload(blob, resolvedFilename);
+    const tokenUrl = await getTokenDownloadUrl(jobId);
+    window.location.href = tokenUrl;
   } catch (error) {
-    console.error('Server download failed:', error);
-    if (audioUrl) {
-      try {
-        const response = await fetch(audioUrl);
-        const blob = await response.blob();
-        triggerBrowserDownload(blob, filename);
-      } catch {
-        window.open(audioUrl, '_blank');
+    console.error('Token download failed:', error);
+    try {
+      const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Fallback failed');
+
+      const disposition = response.headers.get('content-disposition');
+      let resolvedFilename = filename;
+      if (disposition) {
+        const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (utf8Match) resolvedFilename = decodeURIComponent(utf8Match[1]);
       }
+
+      const blob = await response.blob();
+      triggerBrowserDownload(blob, resolvedFilename);
+    } catch {
+      if (audioUrl) window.open(audioUrl, '_blank');
     }
   }
+}
+
+async function getTokenDownloadUrl(jobId: string): Promise<string> {
+  const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error('Failed to create download token');
+  const result = await response.json();
+  return `${API_BASE}/music/download/${result.data.token}`;
 }
 
 function blobToBase64(blob: Blob): Promise<string> {

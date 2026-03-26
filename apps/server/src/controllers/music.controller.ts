@@ -1,9 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { musicService } from '../services/music/music.service';
 import { musicPollingService } from '../services/music/music-polling.service';
 import { generateMusicSchema } from '../validations/music';
 import { MUREKA_GENRES } from '../services/music/mureka-styles';
 import { logger } from '../config/logger';
+
+const downloadTokens = new Map<string, { userId: string; jobId: string; expiresAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, data] of downloadTokens) {
+    if (data.expiresAt < now) downloadTokens.delete(token);
+  }
+}, 60000);
 
 export class MusicController {
   /** 장르/스타일 목록 (뮤레카 스타일 태그) */
@@ -148,6 +158,47 @@ export class MusicController {
     }
   }
 
+  async createDownloadToken(req: Request, res: Response): Promise<Response> {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
+    }
+    const jobId = req.params.id;
+    if (!jobId) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Job ID is required' } });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    downloadTokens.set(token, {
+      userId: req.user.userId,
+      jobId,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
+    return res.json({ success: true, data: { token } });
+  }
+
+  async downloadByToken(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      const { token } = req.params;
+      const tokenData = downloadTokens.get(token);
+      if (!tokenData || tokenData.expiresAt < Date.now()) {
+        downloadTokens.delete(token);
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Invalid or expired token' } });
+      }
+
+      downloadTokens.delete(token);
+
+      const job = await musicService.getJob(tokenData.userId, tokenData.jobId);
+      if (!job.audioUrl) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Audio not available' } });
+      }
+
+      await this.streamAudio(res, job.audioUrl, job.title);
+    } catch (error) {
+      if (!res.headersSent) next(error);
+    }
+  }
+
   async downloadJob(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       if (!req.user) {
@@ -173,50 +224,55 @@ export class MusicController {
         });
       }
 
-      const title = (job.title || 'music').replace(/[^\w가-힣\s\-]/g, '').trim() || 'music';
-      const filename = `${title}.mp3`;
-      const encodedFilename = encodeURIComponent(filename);
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
-      const audioResponse = await fetch(job.audioUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!audioResponse.ok || !audioResponse.body) {
-        return res.status(502).json({
-          success: false,
-          error: { code: 'UPSTREAM_ERROR', message: 'Failed to fetch audio' },
-        });
-      }
-
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`
-      );
-      const contentLength = audioResponse.headers.get('content-length');
-      if (contentLength) {
-        res.setHeader('Content-Length', contentLength);
-      }
-
-      const reader = audioResponse.body.getReader();
-      const pump = async (): Promise<void> => {
-        const { done, value } = await reader.read();
-        if (done) {
-          res.end();
-          return;
-        }
-        if (!res.write(Buffer.from(value))) {
-          await new Promise<void>((resolve) => res.once('drain', resolve));
-        }
-        return pump();
-      };
-      await pump();
+      await this.streamAudio(res, job.audioUrl, job.title);
     } catch (error) {
       if (!res.headersSent) {
         next(error);
       }
     }
+  }
+
+  private async streamAudio(res: Response, audioUrl: string, title?: string): Promise<void> {
+    const cleanTitle = (title || 'music').replace(/[^\w가-힣\s\-]/g, '').trim() || 'music';
+    const filename = `${cleanTitle}.mp3`;
+    const encodedFilename = encodeURIComponent(filename);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const audioResponse = await fetch(audioUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!audioResponse.ok || !audioResponse.body) {
+      res.status(502).json({
+        success: false,
+        error: { code: 'UPSTREAM_ERROR', message: 'Failed to fetch audio' },
+      });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`
+    );
+    const contentLength = audioResponse.headers.get('content-length');
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength);
+    }
+
+    const reader = audioResponse.body.getReader();
+    const pump = async (): Promise<void> => {
+      const { done, value } = await reader.read();
+      if (done) {
+        res.end();
+        return;
+      }
+      if (!res.write(Buffer.from(value))) {
+        await new Promise<void>((resolve) => res.once('drain', resolve));
+      }
+      return pump();
+    };
+    await pump();
   }
 
   /**

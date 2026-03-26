@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useGenerateMusic, useMusicGenres } from '@/hooks/useMusic';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
+import { downloadMusicFile } from '@/lib/downloadMusic';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { StorageImage } from '@/components/StorageImage';
@@ -144,24 +145,6 @@ export function MusicCreatePage() {
     }
   };
 
-  const downloadFile = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
-      window.open(url, '_blank');
-    }
-  };
-
   const handleDownload = async () => {
     if (!completedJobId) return;
     try {
@@ -172,9 +155,7 @@ export function MusicCreatePage() {
       if (!response.ok) throw new Error('Failed to get job');
       const result = await response.json();
       if (result.data?.audioUrl) {
-        const title = result.data.title || completedTitle || 'music';
-        const filename = `${title.replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-        await downloadFile(result.data.audioUrl, filename);
+        await downloadMusicFile(completedJobId, result.data.title || completedTitle, result.data.audioUrl);
       } else {
         navigate(`/music/jobs/${completedJobId}`);
       }

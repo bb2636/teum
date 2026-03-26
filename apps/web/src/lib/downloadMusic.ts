@@ -12,9 +12,9 @@ export async function downloadMusicFile(
       try {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
         const dirs = [
-          { path: `Download/${filename}`, directory: Directory.ExternalStorage },
-          { path: filename, directory: Directory.Documents },
-          { path: filename, directory: Directory.Data },
+          { label: 'ExternalStorage/Download', path: `Download/${filename}`, directory: Directory.ExternalStorage },
+          { label: 'Documents', path: filename, directory: Directory.Documents },
+          { label: 'Data', path: filename, directory: Directory.Data },
         ];
         for (const dir of dirs) {
           try {
@@ -24,16 +24,20 @@ export async function downloadMusicFile(
               directory: dir.directory,
               recursive: true,
             });
-            alert(`'${filename}' 저장 완료`);
+            alert(`'${filename}' 저장 완료 (${dir.label})`);
             return;
-          } catch {
+          } catch (e: any) {
+            console.error(`Filesystem ${dir.label} failed:`, e?.message || e);
             continue;
           }
         }
-      } catch {
+        alert(`모든 저장 경로 실패. 기본 다운로드로 전환합니다.`);
+      } catch (e: any) {
+        alert(`Filesystem import 실패: ${e?.message || e}`);
       }
     }
-  } catch {
+  } catch (e: any) {
+    alert(`Capacitor import 실패: ${e?.message || e}`);
   }
 
   try {

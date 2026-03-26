@@ -10,34 +10,37 @@ export async function downloadMusicFile(
     const { Capacitor } = await import('@capacitor/core');
     if (Capacitor.isNativePlatform()) {
       try {
+        const response = await fetch(audioUrl);
+        const blob = await response.blob();
+        const base64 = await blobToBase64(blob);
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
         const dirs = [
           { label: 'ExternalStorage/Download', path: `Download/${filename}`, directory: Directory.ExternalStorage },
           { label: 'Documents', path: filename, directory: Directory.Documents },
           { label: 'Data', path: filename, directory: Directory.Data },
         ];
+        const errors: string[] = [];
         for (const dir of dirs) {
           try {
-            await Filesystem.downloadFile({
-              url: audioUrl,
+            await Filesystem.writeFile({
               path: dir.path,
+              data: base64,
               directory: dir.directory,
               recursive: true,
             });
             alert(`'${filename}' 저장 완료 (${dir.label})`);
             return;
           } catch (e: any) {
-            console.error(`Filesystem ${dir.label} failed:`, e?.message || e);
+            errors.push(`${dir.label}: ${e?.message || e}`);
             continue;
           }
         }
-        alert(`모든 저장 경로 실패. 기본 다운로드로 전환합니다.`);
+        alert(`저장 경로 실패:\n${errors.join('\n')}`);
       } catch (e: any) {
-        alert(`Filesystem import 실패: ${e?.message || e}`);
+        alert(`Filesystem 처리 실패: ${e?.message || e}`);
       }
     }
-  } catch (e: any) {
-    alert(`Capacitor import 실패: ${e?.message || e}`);
+  } catch {
   }
 
   try {
@@ -55,4 +58,16 @@ export async function downloadMusicFile(
     console.error('Download failed:', error);
     window.open(audioUrl, '_blank');
   }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

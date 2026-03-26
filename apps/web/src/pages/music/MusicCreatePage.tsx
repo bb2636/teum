@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { useDiaries, useFolders } from '@/hooks/useDiaries';
 import { useGenerateMusic, useMusicGenres } from '@/hooks/useMusic';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
-import { apiRequest } from '@/lib/api';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { StorageImage } from '@/components/StorageImage';
@@ -145,9 +144,20 @@ export function MusicCreatePage() {
     }
   };
 
-  const downloadFile = async (url: string, filename: string) => {
+  const handleDownload = async () => {
+    if (!completedJobId) return;
     try {
-      const response = await fetch(url);
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiBase}/music/jobs/${completedJobId}/download`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const disposition = response.headers.get('content-disposition');
+      let filename = `${(completedTitle || 'music')}.mp3`;
+      if (disposition) {
+        const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (utf8Match) filename = decodeURIComponent(utf8Match[1]);
+      }
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -159,27 +169,6 @@ export function MusicCreatePage() {
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error('Download failed:', error);
-      window.open(url, '_blank');
-    }
-  };
-
-  const handleDownload = async () => {
-    if (!completedJobId) return;
-    
-    try {
-      const response = await apiRequest<{ data: { audioUrl?: string; title?: string } }>(
-        `/music/jobs/${completedJobId}`
-      );
-      if (response.data.audioUrl) {
-        const title = response.data.title || completedTitle || 'music';
-        const filename = `${title.replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-        await downloadFile(response.data.audioUrl, filename);
-      } else {
-        navigate(`/music/jobs/${completedJobId}`);
-      }
-    } catch (error) {
-      console.error('Failed to get job info:', error);
-      navigate(`/music/jobs/${completedJobId}`);
     }
   };
 

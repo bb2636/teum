@@ -237,12 +237,21 @@ export function MusicHomePage() {
   const handleDownload = async (e: React.MouseEvent, job: MusicJobListItem) => {
     e.stopPropagation();
     try {
-      const response = await fetch(job.audioUrl!);
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiBase}/music/jobs/${job.jobId}/download`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const disposition = response.headers.get('content-disposition');
+      let filename = `${(job.title || 'music')}.mp3`;
+      if (disposition) {
+        const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (utf8Match) filename = decodeURIComponent(utf8Match[1]);
+      }
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      const filename = `${(job.title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
@@ -250,7 +259,6 @@ export function MusicHomePage() {
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error('Download failed:', error);
-      window.open(job.audioUrl, '_blank');
     }
   };
 

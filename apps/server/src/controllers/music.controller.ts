@@ -148,6 +148,77 @@ export class MusicController {
     }
   }
 
+  async downloadJob(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const jobId = req.params.id;
+      if (!jobId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'Job ID is required' },
+        });
+      }
+
+      const job = await musicService.getJob(req.user.userId, jobId);
+      if (!job.audioUrl) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Audio not available' },
+        });
+      }
+
+      const title = (job.title || 'music').replace(/[^\w가-힣\s\-]/g, '').trim() || 'music';
+      const filename = `${title}.mp3`;
+      const encodedFilename = encodeURIComponent(filename);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      const audioResponse = await fetch(job.audioUrl, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!audioResponse.ok || !audioResponse.body) {
+        return res.status(502).json({
+          success: false,
+          error: { code: 'UPSTREAM_ERROR', message: 'Failed to fetch audio' },
+        });
+      }
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`
+      );
+      const contentLength = audioResponse.headers.get('content-length');
+      if (contentLength) {
+        res.setHeader('Content-Length', contentLength);
+      }
+
+      const reader = audioResponse.body.getReader();
+      const pump = async (): Promise<void> => {
+        const { done, value } = await reader.read();
+        if (done) {
+          res.end();
+          return;
+        }
+        if (!res.write(Buffer.from(value))) {
+          await new Promise<void>((resolve) => res.once('drain', resolve));
+        }
+        return pump();
+      };
+      await pump();
+    } catch (error) {
+      if (!res.headersSent) {
+        next(error);
+      }
+    }
+  }
+
   /**
    * Webhook endpoint for provider to notify job completion
    * POST /api/music/webhook/:jobId

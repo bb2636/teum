@@ -10,6 +10,7 @@ router.get('/jobs', musicController.getJobs.bind(musicController));
 router.get('/genres', musicController.getGenres.bind(musicController));
 router.post('/generate', musicController.generateMusic.bind(musicController));
 router.get('/jobs/:id', musicController.getJob.bind(musicController));
+router.get('/jobs/:id/download', musicController.downloadJob.bind(musicController));
 
 // Webhook endpoint (no auth required - should verify webhook signature in production)
 router.post('/webhook/:jobId', musicController.handleWebhook.bind(musicController));

@@ -45,7 +45,7 @@ export function PaymentSuccessPage() {
       icon: Music,
       title: t('payment.success.musicPerDiaries'),
       subtitle: t('payment.success.musicPerDiariesDesc'),
-      extraInfo: t('payment.success.moreDiaries'),
+      extraInfo: t('payment.success.musicPerDiariesExtra'),
     },
   ];
 

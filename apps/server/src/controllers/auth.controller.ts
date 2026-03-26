@@ -347,14 +347,16 @@ export class AuthController {
         });
       }
 
-      res.cookie('accessToken', result.accessToken, {
+      const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
+
+      res.cookie('accessToken', loginResult.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         path: '/',
         maxAge: 15 * 60 * 1000,
       });
-      res.cookie('refreshToken', result.refreshToken, {
+      res.cookie('refreshToken', loginResult.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -366,7 +368,7 @@ export class AuthController {
         success: true,
         data: {
           isNewUser: false,
-          user: result.user,
+          user: loginResult.user,
         },
       });
     } catch (error) {
@@ -400,14 +402,16 @@ export class AuthController {
         });
       }
 
-      res.cookie('accessToken', result.accessToken, {
+      const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
+
+      res.cookie('accessToken', loginResult.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         path: '/',
         maxAge: 15 * 60 * 1000,
       });
-      res.cookie('refreshToken', result.refreshToken, {
+      res.cookie('refreshToken', loginResult.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -419,7 +423,7 @@ export class AuthController {
         success: true,
         data: {
           isNewUser: false,
-          user: result.user,
+          user: loginResult.user,
         },
       });
     } catch (error) {

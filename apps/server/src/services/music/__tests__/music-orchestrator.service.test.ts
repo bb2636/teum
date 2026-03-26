@@ -60,6 +60,7 @@ describe('MusicOrchestratorService', () => {
         answers: [],
         imageUrl: null,
         aiMessage: null,
+        aiSummary: null,
         aiFeedback: [],
       }));
 
@@ -110,6 +111,7 @@ describe('MusicOrchestratorService', () => {
         answers: [],
         imageUrl: null,
         aiMessage: null,
+        aiSummary: null,
         aiFeedback: [],
       }));
 

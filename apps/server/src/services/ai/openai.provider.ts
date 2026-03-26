@@ -349,16 +349,16 @@ ${diaryText.substring(0, 2000)}`;
 
       if (!diaryText.trim()) return '';
 
-      const prompt = `사용자의 일기 내용을 읽고, 2-3줄로 핵심 내용을 요약해주세요.
+      const prompt = `아래 일기를 1-2줄로 짧게 요약해줘.
 
 규칙:
-- 일기에서 드러나는 감정, 상황, 키워드를 중심으로 요약
-- 객관적이고 담담한 톤 유지
-- "~했다", "~느꼈다" 등 서술형으로 작성
-- 이모지 사용하지 않기
-- 2-3문장으로 간결하게
+- 핵심 감정과 상황만 간결하게
+- 담담한 서술형 톤 ("~했다", "~느꼈다")
+- "사용자"라는 단어 절대 쓰지 않기
+- 이모지 쓰지 않기
+- 최대 2문장
 
-일기 내용:
+일기:
 ${diaryText.substring(0, 2000)}`;
 
       const response = await this.client.chat.completions.create({
@@ -366,7 +366,7 @@ ${diaryText.substring(0, 2000)}`;
         messages: [
           {
             role: 'system',
-            content: '당신은 일기 내용을 간결하게 요약하는 도우미입니다. 핵심 감정과 상황을 2-3문장으로 정리합니다.',
+            content: '일기 내용을 1-2문장으로 짧게 요약하는 도우미. "사용자"라는 단어는 절대 쓰지 않는다.',
           },
           {
             role: 'user',

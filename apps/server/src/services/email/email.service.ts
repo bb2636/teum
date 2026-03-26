@@ -194,7 +194,7 @@ ${resetLink}
             
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
               <p style="margin: 0; color: #856404; font-size: 14px;">
-                이 인증번호는 10분 동안 유효합니다.<br>
+                이 인증번호는 5분 동안 유효합니다.<br>
                 본인이 요청하지 않았다면 이 이메일을 무시하세요.
               </p>
             </div>
@@ -207,7 +207,7 @@ ${resetLink}
       </html>
     `;
 
-    const text = `[teum] 이메일 인증번호: ${code}\n이 인증번호는 10분 동안 유효합니다.`;
+    const text = `[teum] 이메일 인증번호: ${code}\n이 인증번호는 5분 동안 유효합니다.`;
 
     try {
       await this.provider.sendEmail({

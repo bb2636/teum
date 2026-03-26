@@ -193,7 +193,7 @@ export class AuthService {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
     await phoneVerificationRepository.markAsExpired(input.phone);
 
@@ -220,7 +220,7 @@ export class AuthService {
 
     return {
       message: 'Verification code sent',
-      expiresIn: 600,
+      expiresIn: 300,
     };
   }
 
@@ -294,9 +294,9 @@ export class AuthService {
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Set expiration (10 minutes)
+    // Set expiration (5 minutes)
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
     // Mark previous verifications as expired
     await emailVerificationRepository.markAsExpired(input.email);
@@ -324,7 +324,7 @@ export class AuthService {
 
     return {
       message: 'Verification code sent',
-      expiresIn: 600,
+      expiresIn: 300,
     };
   }
 
@@ -338,9 +338,9 @@ export class AuthService {
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Set expiration (10 minutes)
+    // Set expiration (5 minutes)
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
     // Mark previous verifications as expired
     await emailVerificationRepository.markAsExpired(input.email);
@@ -369,7 +369,7 @@ export class AuthService {
 
     return {
       message: 'Verification code sent',
-      expiresIn: 600,
+      expiresIn: 300,
     };
   }
 

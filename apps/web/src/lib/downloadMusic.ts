@@ -14,12 +14,21 @@ export async function downloadMusicFile(
       const response = await fetch(audioUrl);
       const blob = await response.blob();
       const base64 = await blobToBase64(blob);
-      await Filesystem.writeFile({
-        path: `Download/${filename}`,
-        data: base64,
-        directory: Directory.ExternalStorage,
-        recursive: true,
-      });
+      try {
+        await Filesystem.writeFile({
+          path: `Download/${filename}`,
+          data: base64,
+          directory: Directory.ExternalStorage,
+          recursive: true,
+        });
+      } catch {
+        await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Documents,
+          recursive: true,
+        });
+      }
       alert(`'${filename}' 저장 완료`);
     } catch (error) {
       console.error('Native download failed:', error);

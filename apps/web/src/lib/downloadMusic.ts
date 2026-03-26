@@ -10,85 +10,103 @@ export async function downloadMusicFile(
   const sanitizedTitle = (title || 'music').replace(/[<>:"/\\|?*]/g, '_').trim() || 'music';
   const filename = `${sanitizedTitle}.mp3`;
 
-  if (Capacitor.isNativePlatform()) {
-    try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
-
-      const sourceUrl = audioUrl || await getTokenDownloadUrl(jobId);
-      const response = await fetch(sourceUrl);
-      if (!response.ok) throw new Error('Fetch failed');
-
-      const blob = await response.blob();
-      const base64 = await blobToBase64(blob);
-
-      const dirs = [
-        { path: `Download/${filename}`, directory: Directory.ExternalStorage },
-        { path: filename, directory: Directory.Documents },
-        { path: filename, directory: Directory.Data },
-      ];
-
-      for (const dir of dirs) {
-        try {
-          await Filesystem.writeFile({
-            path: dir.path,
-            data: base64,
-            directory: dir.directory,
-            recursive: true,
-          });
-          alert(`'${filename}' 저장 완료`);
-          return;
-        } catch {
-          continue;
-        }
-      }
-
-      throw new Error('All Filesystem directories failed');
-    } catch (fsError) {
-      console.error('Filesystem save failed:', fsError);
-    }
-
-    try {
-      const tokenUrl = await getTokenDownloadUrl(jobId);
-      window.open(tokenUrl, '_system');
-    } catch {
-      if (audioUrl) window.open(audioUrl, '_system');
-    }
+  const blob = await fetchAudioBlob(jobId, audioUrl);
+  if (!blob) {
+    alert('다운로드에 실패했습니다. 다시 시도해주세요.');
     return;
   }
 
-  try {
-    const tokenUrl = await getTokenDownloadUrl(jobId);
-    window.location.href = tokenUrl;
-  } catch (error) {
-    console.error('Token download failed:', error);
-    try {
-      const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download`, { credentials: 'include' });
-      if (!response.ok) throw new Error('Fallback failed');
-
-      const disposition = response.headers.get('content-disposition');
-      let resolvedFilename = filename;
-      if (disposition) {
-        const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
-        if (utf8Match) resolvedFilename = decodeURIComponent(utf8Match[1]);
-      }
-
-      const blob = await response.blob();
-      triggerBrowserDownload(blob, resolvedFilename);
-    } catch {
-      if (audioUrl) window.open(audioUrl, '_blank');
-    }
+  if (Capacitor.isNativePlatform()) {
+    await saveWithCapacitorFilesystem(blob, filename);
+  } else {
+    saveBlobAsFile(blob, filename);
   }
 }
 
-async function getTokenDownloadUrl(jobId: string): Promise<string> {
-  const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!response.ok) throw new Error('Failed to create download token');
-  const result = await response.json();
-  return `${API_BASE}/music/download/${result.data.token}`;
+async function fetchAudioBlob(jobId: string, audioUrl?: string | null): Promise<Blob | null> {
+  if (audioUrl) {
+    try {
+      const response = await fetch(audioUrl);
+      if (response.ok) return await response.blob();
+    } catch (e) {
+      console.error('Direct audio fetch failed:', e);
+    }
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download`, {
+      credentials: 'include',
+    });
+    if (response.ok) return await response.blob();
+  } catch (e) {
+    console.error('Server download API failed:', e);
+  }
+
+  try {
+    const tokenResponse = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (tokenResponse.ok) {
+      const result = await tokenResponse.json();
+      const tokenUrl = `${API_BASE}/music/download/${result.data.token}`;
+      const response = await fetch(tokenUrl);
+      if (response.ok) return await response.blob();
+    }
+  } catch (e) {
+    console.error('Token download failed:', e);
+  }
+
+  return null;
+}
+
+async function saveWithCapacitorFilesystem(blob: Blob, filename: string): Promise<void> {
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+    const base64 = await blobToBase64(blob);
+
+    const attempts = [
+      { path: `Download/${filename}`, directory: Directory.ExternalStorage },
+      { path: filename, directory: Directory.Documents },
+      { path: filename, directory: Directory.Cache },
+    ];
+
+    for (const attempt of attempts) {
+      try {
+        await Filesystem.writeFile({
+          path: attempt.path,
+          data: base64,
+          directory: attempt.directory,
+          recursive: true,
+        });
+        alert(`'${filename}' 저장 완료`);
+        return;
+      } catch {
+        continue;
+      }
+    }
+
+    saveBlobAsFile(blob, filename);
+  } catch (e) {
+    console.error('Capacitor Filesystem not available:', e);
+    saveBlobAsFile(blob, filename);
+  }
+}
+
+function saveBlobAsFile(blob: Blob, filename: string) {
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  }, 1000);
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -101,15 +119,4 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
-}
-
-function triggerBrowserDownload(blob: Blob, filename: string) {
-  const blobUrl = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = blobUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
 }

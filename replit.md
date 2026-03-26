@@ -48,6 +48,15 @@ teum/
 - `VITE_GOOGLE_CLIENT_ID` - Google OAuth Client ID (frontend)
 - `VITE_APPLE_CLIENT_ID` - Apple Sign In Service ID (frontend)
 - `VITE_APPLE_REDIRECT_URI` - Apple Sign In redirect URI (frontend)
+
+## AdMob Integration
+
+- **Plugin**: `@capacitor-community/admob` v8
+- **App ID**: `ca-app-pub-3503508648798732~4006393534`
+- **Interstitial Ad Unit**: `ca-app-pub-3503508648798732/4090154015`
+- **Config locations**: `AndroidManifest.xml` (meta-data), `capacitor.config.ts` (AdMob plugin), `AdModal.tsx` (ad unit ID)
+- **Behavior**: Native (Android) → real AdMob interstitial; Web → countdown fallback UI
+- **Trigger**: Free users see interstitial ad before diary save completes
 - `FIREBASE_SERVICE_ACCOUNT` - Firebase 서비스 계정 JSON (서버 푸시 알림 발송용; Replit Secrets에만 저장)
 - `NICEPAY_MERCHANT_ID` - NicePay 상점 ID (clientId); 샌드박스=`S2_...`, 운영=`R2_...`
 - `NICEPAY_API_SECRET` - NicePay API Secret Key

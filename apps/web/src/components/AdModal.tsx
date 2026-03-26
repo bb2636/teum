@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useT } from '@/hooks/useTranslation';
+import { Capacitor } from '@capacitor/core';
 
 interface AdModalProps {
   isOpen: boolean;
@@ -9,38 +10,113 @@ interface AdModalProps {
 }
 
 const AD_DURATION_SECONDS = 5;
+const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/4090154015';
+
+async function showNativeInterstitial(): Promise<boolean> {
+  try {
+    const { AdMob, InterstitialAdPluginEvents } = await import('@capacitor-community/admob');
+
+    await AdMob.initialize({
+      initializeForTesting: false,
+    });
+
+    return new Promise<boolean>((resolve) => {
+      let resolved = false;
+      let dismissHandle: { remove: () => void } | null = null;
+      let failHandle: { remove: () => void } | null = null;
+
+      const cleanup = () => {
+        dismissHandle?.remove();
+        failHandle?.remove();
+      };
+
+      AdMob.addListener(
+        InterstitialAdPluginEvents.Dismissed,
+        () => {
+          if (!resolved) { resolved = true; resolve(true); }
+          cleanup();
+        }
+      ).then((h) => { dismissHandle = h; });
+
+      AdMob.addListener(
+        InterstitialAdPluginEvents.FailedToLoad,
+        () => {
+          if (!resolved) { resolved = true; resolve(false); }
+          cleanup();
+        }
+      ).then((h) => { failHandle = h; });
+
+      AdMob.prepareInterstitial({ adId: ADMOB_INTERSTITIAL_ID })
+        .then(() => AdMob.showInterstitial())
+        .catch(() => {
+          if (!resolved) { resolved = true; resolve(false); }
+          cleanup();
+        });
+
+      setTimeout(() => {
+        if (!resolved) { resolved = true; resolve(false); }
+        cleanup();
+      }, 30000);
+    });
+  } catch {
+    return false;
+  }
+}
 
 export function AdModal({ isOpen, onClose: _onClose, onAdComplete }: AdModalProps) {
   const t = useT();
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const attemptedRef = useRef(false);
+  const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
     if (!isOpen) {
       setCountdown(AD_DURATION_SECONDS);
       setCanSkip(false);
+      setShowFallback(false);
+      attemptedRef.current = false;
       return;
     }
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setCanSkip(true);
-          return 0;
+    if (isNative && !attemptedRef.current) {
+      attemptedRef.current = true;
+      showNativeInterstitial().then((success) => {
+        if (success) {
+          onAdComplete();
+        } else {
+          setShowFallback(true);
         }
-        return prev - 1;
       });
-    }, 1000);
+      return;
+    }
 
-    return () => clearInterval(timer);
-  }, [isOpen]);
+    if (!isNative || showFallback) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setCanSkip(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [isOpen, isNative, showFallback, onAdComplete]);
 
   const handleComplete = useCallback(() => {
     onAdComplete();
   }, [onAdComplete]);
 
   if (!isOpen) return null;
+
+  if (isNative && !showFallback) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center">

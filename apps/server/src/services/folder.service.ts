@@ -3,7 +3,6 @@ import { diaryRepository } from '../repositories/diary.repository';
 import { paymentService } from './payment.service';
 
 const FREE_USER_MAX_FOLDERS = 2;
-const FREE_USER_DIARY_THRESHOLD = 3;
 
 export class FolderService {
   async getFolders(userId: string) {
@@ -25,13 +24,10 @@ export class FolderService {
   }) {
     const activeSub = await paymentService.getActiveSubscription(userId);
     if (!activeSub) {
-      const diaryCount = await diaryRepository.countByUserId(userId);
-      if (diaryCount < FREE_USER_DIARY_THRESHOLD) {
-        const allFolders = await folderRepository.findByUserId(userId);
-        const nonDefaultCount = allFolders.filter(f => !f.isDefault).length;
-        if (nonDefaultCount >= FREE_USER_MAX_FOLDERS) {
-          throw new Error('FOLDER_LIMIT_REACHED');
-        }
+      const allFolders = await folderRepository.findByUserId(userId);
+      const nonDefaultCount = allFolders.filter(f => !f.isDefault).length;
+      if (nonDefaultCount >= FREE_USER_MAX_FOLDERS) {
+        throw new Error('FOLDER_LIMIT_REACHED');
       }
     }
 

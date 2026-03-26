@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft, ChevronRight, Music } from 'lucide-react';
+import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft, ChevronRight, Music, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
@@ -58,6 +58,7 @@ export function HomePage() {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showFolderLimitModal, setShowFolderLimitModal] = useState(false);
   
   // 폴더 생성 모달이 열릴 때 하단바 숨기기
   useEffect(() => {
@@ -107,6 +108,13 @@ export function HomePage() {
   // 기본은 전체(undefined), 폴더 로드 시에도 전체 유지
 
   const handleAddFolder = () => {
+    if (!activeSubscription && folders) {
+      const nonDefaultCount = folders.filter((f: any) => !f.isDefault).length;
+      if (nonDefaultCount >= 2) {
+        setShowFolderLimitModal(true);
+        return;
+      }
+    }
     setShowCreateFolderModal(true);
   };
 
@@ -178,11 +186,7 @@ export function HomePage() {
       console.error('Failed to create folder:', error);
       const msg = error?.message || '';
       if (msg.includes('2 folders') || msg.includes('FOLDER_LIMIT')) {
-        const toastId = Date.now().toString();
-        setToastMessages((prev) => [...prev, { id: toastId, message: t('diary.folderLimitReached') }]);
-        setTimeout(() => {
-          setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
-        }, 4000);
+        setShowFolderLimitModal(true);
       } else {
         alert(t('diary.folderCreateFailed'));
       }
@@ -527,11 +531,11 @@ export function HomePage() {
               onClick={() => navigate('/music/create')}
               className="w-full flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Music className="w-5 h-5 text-gray-700" />
+              <div className="w-10 h-10 bg-[#f5ede4] rounded-full flex items-center justify-center flex-shrink-0">
+                <Music className="w-5 h-5 text-[#4A2C1A]" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-semibold text-gray-900">teum</p>
+                <p className="text-sm font-semibold text-[#4A2C1A]">teum</p>
                 <p className="text-xs text-gray-500">{t('home.musicReady')}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -759,7 +763,41 @@ export function HomePage() {
         </div>
       )}
 
-      {/* 일기 작성 타입 선택 모달 */}
+      {/* 폴더 제한 팝업 모달 */}
+      {showFolderLimitModal && (
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShowFolderLimitModal(false)}>
+          <div
+            className="bg-white rounded-2xl w-[85%] max-w-sm mx-auto p-6 animate-modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-12 h-12 bg-[#f5ede4] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-6 h-6 text-[#4A2C1A]" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{t('diary.folderLimitReached')}</h3>
+              <p className="text-sm text-gray-500 whitespace-pre-line mb-6">{t('diary.folderLimitMessage')}</p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    setShowFolderLimitModal(false);
+                    navigate('/settings/subscription');
+                  }}
+                  className="w-full py-3 bg-[#4A2C1A] text-white rounded-full font-medium hover:bg-[#665146] transition-colors"
+                >
+                  {t('diary.goToSubscribe')}
+                </button>
+                <button
+                  onClick={() => setShowFolderLimitModal(false)}
+                  className="w-full py-3 text-gray-500 rounded-full font-medium hover:bg-gray-100 transition-colors"
+                >
+                  {t('common.close')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 폴더 생성 모달 */}
       {showCreateFolderModal && (
         <div className="fixed inset-0 z-[60] bg-black/50 flex items-end animate-overlay-fade" onClick={() => setShowCreateFolderModal(false)}>

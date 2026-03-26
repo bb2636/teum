@@ -1,6 +1,14 @@
 import { EmailProvider } from './email.provider';
+import { resendProvider } from './resend.provider';
 import { nodemailerProvider } from './nodemailer.provider';
 import { logger } from '../../config/logger';
+
+function getDefaultProvider(): EmailProvider {
+  if (process.env.RESEND_API_KEY) {
+    return resendProvider;
+  }
+  return nodemailerProvider;
+}
 
 /**
  * Email Service
@@ -11,7 +19,7 @@ import { logger } from '../../config/logger';
 export class EmailService {
   private provider: EmailProvider;
 
-  constructor(provider: EmailProvider = nodemailerProvider) {
+  constructor(provider: EmailProvider = getDefaultProvider()) {
     this.provider = provider;
   }
 

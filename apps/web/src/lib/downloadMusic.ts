@@ -1,5 +1,3 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
-
 export async function downloadMusicFile(
   jobId: string,
   title?: string,
@@ -8,15 +6,12 @@ export async function downloadMusicFile(
   if (!audioUrl) return;
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
 
-  let isNative = false;
-  try {
-    const { Capacitor } = await import('@capacitor/core');
-    isNative = Capacitor.isNativePlatform();
-  } catch {}
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
   if (isNative) {
     try {
-      const tokenRes = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
+      const apiBase = '/api';
+      const tokenRes = await fetch(`${apiBase}/music/jobs/${jobId}/download-token`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -25,13 +20,11 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          window.open(`${API_BASE}/music/download/${token}`, '_blank');
+          window.open(`${apiBase}/music/download/${token}`, '_blank');
           return;
         }
       }
     } catch {}
-    window.open(audioUrl, '_blank');
-    return;
   }
 
   try {

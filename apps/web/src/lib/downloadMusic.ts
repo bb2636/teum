@@ -23,16 +23,7 @@ export async function downloadMusicFile(
   }
 }
 
-async function fetchAudioBlob(jobId: string, audioUrl?: string | null): Promise<Blob | null> {
-  if (audioUrl) {
-    try {
-      const response = await fetch(audioUrl);
-      if (response.ok) return await response.blob();
-    } catch (e) {
-      console.error('Direct audio fetch failed:', e);
-    }
-  }
-
+async function fetchAudioBlob(jobId: string, _audioUrl?: string | null): Promise<Blob | null> {
   try {
     const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download`, {
       credentials: 'include',

@@ -235,6 +235,7 @@ export class MusicController {
   private async streamAudio(res: Response, audioUrl: string, title?: string): Promise<void> {
     const cleanTitle = (title || 'music').replace(/[^\w가-힣\s\-]/g, '').trim() || 'music';
     const filename = `${cleanTitle}.mp3`;
+    const asciiFilename = cleanTitle.replace(/[^\x20-\x7E]/g, '_').replace(/_+/g, '_').trim() || 'music';
     const encodedFilename = encodeURIComponent(filename);
 
     const controller = new AbortController();
@@ -253,7 +254,7 @@ export class MusicController {
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`
+      `attachment; filename="${asciiFilename}.mp3"; filename*=UTF-8''${encodedFilename}`
     );
     const contentLength = audioResponse.headers.get('content-length');
     if (contentLength) {

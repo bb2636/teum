@@ -7,6 +7,7 @@ import { useCreateFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { getStorageImageSrc } from '@/lib/api';
 import { useT } from '@/hooks/useTranslation';
+import { Toast } from '@/components/Toast';
 
 interface FolderSelectModalProps {
   selectedFolderId?: string;
@@ -32,6 +33,7 @@ export function FolderSelectModal({
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [uploadErrorToast, setUploadErrorToast] = useState(false);
   
   // Show all folders including default folder
   const filteredFolders = folders;
@@ -74,7 +76,7 @@ export function FolderSelectModal({
           coverImageUrl = await uploadImage.mutateAsync(coverImage);
         } catch (error) {
           console.error('Failed to upload cover image:', error);
-          // Continue without cover image
+          setUploadErrorToast(true);
         }
       }
 
@@ -231,6 +233,12 @@ export function FolderSelectModal({
             </div>
           </div>
         </div>
+
+        <Toast
+          message={t('error.imageUploadFailed')}
+          isVisible={uploadErrorToast}
+          onClose={() => setUploadErrorToast(false)}
+        />
       </div>
     );
   }
@@ -304,6 +312,12 @@ export function FolderSelectModal({
           </button>
         </div>
       </div>
+
+      <Toast
+        message={t('error.imageUploadFailed')}
+        isVisible={uploadErrorToast}
+        onClose={() => setUploadErrorToast(false)}
+      />
     </div>
   );
 }

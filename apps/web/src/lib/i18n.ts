@@ -371,6 +371,7 @@ const ko: Record<string, string> = {
   'tab.write': '쓰기',
   'tab.music': '음악',
   'tab.my': 'MY',
+  'error.imageUploadFailed': '이미지 업로드에 실패했습니다. 문제가 계속되면 고객센터로 문의해주세요.',
 };
 
 const en: Record<string, string> = {
@@ -734,6 +735,7 @@ const en: Record<string, string> = {
   'tab.write': 'Write',
   'tab.music': 'Music',
   'tab.my': 'MY',
+  'error.imageUploadFailed': 'Image upload failed. If the issue persists, please contact support.',
 };
 
 const translations: Record<Language, Record<string, string>> = { ko, en };

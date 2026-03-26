@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import { stripHTML } from '@/lib/utils';
+import { Toast } from '@/components/Toast';
 
 type SortOrder = 'newest' | 'oldest';
 type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';
@@ -52,6 +53,7 @@ export function HomePage() {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [uploadErrorToast, setUploadErrorToast] = useState(false);
   const [showFolderLimitModal, setShowFolderLimitModal] = useState(false);
   
   // 폴더 생성 모달이 열릴 때 하단바 숨기기
@@ -145,7 +147,7 @@ export function HomePage() {
           coverImageUrl = await uploadImage.mutateAsync(coverImage);
         } catch (error) {
           console.error('Failed to upload cover image:', error);
-          // Continue without cover image
+          setUploadErrorToast(true);
         }
       }
 
@@ -923,6 +925,12 @@ export function HomePage() {
           </div>
         ))}
       </div>
+
+      <Toast
+        message={t('error.imageUploadFailed')}
+        isVisible={uploadErrorToast}
+        onClose={() => setUploadErrorToast(false)}
+      />
     </div>
   );
 }

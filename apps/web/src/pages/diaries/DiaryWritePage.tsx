@@ -19,6 +19,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getStorageImageSrc } from '@/lib/api';
+import { useT } from '@/hooks/useTranslation';
+import { Toast } from '@/components/Toast';
 
 type TextStyle = 'title' | 'header' | 'subheader' | 'body' | 'mono';
 type FormatType = 'bold' | 'italic' | 'underline' | 'strikethrough' | 'unorderedList' | 'orderedList';
@@ -65,7 +67,9 @@ export function DiaryWritePage() {
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [fileToUrlMap, setFileToUrlMap] = useState<Map<File, string>>(new Map()); // Track uploaded files
+  const [fileToUrlMap, setFileToUrlMap] = useState<Map<File, string>>(new Map());
+  const [uploadErrorToast, setUploadErrorToast] = useState(false);
+  const t = useT();
   const [selectedDate, setSelectedDate] = useState(
     searchParams.get('date') || format(new Date(), 'yyyy-MM-dd')
   );
@@ -491,7 +495,10 @@ export function DiaryWritePage() {
         }
       } catch (error) {
         console.error('Failed to upload image:', error);
-        // Keep preview URL even if upload fails
+        setSelectedImages((prev) => prev.filter((url) => url !== previewUrl));
+        setSelectedFiles((prev) => prev.filter((f) => f !== file));
+        URL.revokeObjectURL(previewUrl);
+        setUploadErrorToast(true);
       }
     }
     
@@ -1155,6 +1162,12 @@ export function DiaryWritePage() {
         isOpen={showAdModal}
         onClose={() => setShowAdModal(false)}
         onAdComplete={handleAdComplete}
+      />
+
+      <Toast
+        message={t('error.imageUploadFailed')}
+        isVisible={uploadErrorToast}
+        onClose={() => setUploadErrorToast(false)}
       />
     </div>
   );

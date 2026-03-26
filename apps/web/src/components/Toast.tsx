@@ -21,7 +21,7 @@ export function Toast({ message, isVisible, onClose, duration = 3000 }: ToastPro
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-sm px-4">
+    <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[70] w-full max-w-sm px-4">
       <div className="bg-gray-500 text-white px-6 py-3 rounded-lg shadow-xl animate-slide-up">
         <p className="text-sm text-center font-medium">{message}</p>
       </div>

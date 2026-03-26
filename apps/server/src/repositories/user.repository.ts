@@ -224,8 +224,9 @@ export class UserRepository {
     return result?.tokenVersion ?? 0;
   }
 
-  async getTokenVersion(userId: string): Promise<number> {
+  async getTokenVersion(userId: string): Promise<number | null> {
     const user = await this.findById(userId);
+    if (!user) return null;
     return (user as any)?.tokenVersion ?? 0;
   }
 }

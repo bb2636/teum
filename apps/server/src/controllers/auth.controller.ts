@@ -203,7 +203,13 @@ export class AuthController {
       };
       res.clearCookie('accessToken', cookieOpts);
       res.clearCookie('refreshToken', cookieOpts);
-      next(error);
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or expired token',
+        },
+      });
     }
   }
 

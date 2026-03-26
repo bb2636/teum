@@ -336,8 +336,13 @@ ${diaryText.substring(0, 2000)}`;
         diaryText += input.content;
       }
 
+      let isQuestionBased = false;
       if (input.type === 'question_based' && input.answers && input.answers.length > 0) {
+        isQuestionBased = true;
         diaryText = '';
+        if (input.title) {
+          diaryText += `제목: ${input.title}\n\n`;
+        }
         input.answers.forEach((qa, index) => {
           if (qa.question) {
             diaryText += `질문: ${qa.question}\n답변: ${qa.answer}\n\n`;
@@ -349,6 +354,10 @@ ${diaryText.substring(0, 2000)}`;
 
       if (!diaryText.trim()) return '';
 
+      const questionBasedRules = isQuestionBased
+        ? `- 질문과 답변을 하나의 흐름으로 연결하여 요약 (질문 내용도 반영)\n`
+        : '';
+
       const prompt = `아래 일기를 1-2줄로 짧게 요약해줘.
 
 규칙:
@@ -357,7 +366,7 @@ ${diaryText.substring(0, 2000)}`;
 - "사용자"라는 단어 절대 쓰지 않기
 - 이모지 쓰지 않기
 - 최대 2문장
-
+${questionBasedRules}
 일기:
 ${diaryText.substring(0, 2000)}`;
 

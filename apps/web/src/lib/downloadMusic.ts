@@ -11,25 +11,31 @@ export async function downloadMusicFile(
 
   if (Capacitor.isNativePlatform()) {
     try {
-      const response = await fetch(audioUrl);
-      const blob = await response.blob();
-      const base64 = await blobToBase64(blob);
-      try {
-        await Filesystem.writeFile({
-          path: `Download/${filename}`,
-          data: base64,
-          directory: Directory.ExternalStorage,
-          recursive: true,
-        });
-      } catch {
-        await Filesystem.writeFile({
-          path: filename,
-          data: base64,
-          directory: Directory.Documents,
-          recursive: true,
-        });
+      const dirs = [
+        { path: `Download/${filename}`, directory: Directory.ExternalStorage },
+        { path: filename, directory: Directory.Documents },
+        { path: filename, directory: Directory.Data },
+      ];
+      let saved = false;
+      for (const dir of dirs) {
+        try {
+          await Filesystem.downloadFile({
+            url: audioUrl,
+            path: dir.path,
+            directory: dir.directory,
+            recursive: true,
+          });
+          saved = true;
+          break;
+        } catch {
+          continue;
+        }
       }
-      alert(`'${filename}' 저장 완료`);
+      if (saved) {
+        alert(`'${filename}' 저장 완료`);
+      } else {
+        window.open(audioUrl, '_blank');
+      }
     } catch (error) {
       console.error('Native download failed:', error);
       window.open(audioUrl, '_blank');
@@ -51,16 +57,4 @@ export async function downloadMusicFile(
       window.open(audioUrl, '_blank');
     }
   }
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }

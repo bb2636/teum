@@ -415,7 +415,7 @@ export function HomePage() {
         <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => handleFolderClick(undefined)}
-            className="relative pb-1 flex-shrink-0"
+            className="relative flex-shrink-0 h-7 flex items-center"
           >
             <span className={`text-sm font-medium ${
               selectedFolderId === undefined ? 'text-[#4A2C1A]' : 'text-gray-600'
@@ -430,7 +430,7 @@ export function HomePage() {
             <div
               key={folder.id}
               data-folder-id={folder.id}
-              className="relative pb-1 flex-shrink-0 max-w-[120px] group"
+              className="relative flex-shrink-0 max-w-[120px] group h-7 flex items-center"
             >
               {editingFolderId === folder.id ? (
                 // 편집 모드

@@ -1,12 +1,12 @@
 import { EmailProvider } from './email.provider';
 import { resendProvider } from './resend.provider';
-import { nodemailerProvider } from './nodemailer.provider';
 import { logger } from '../../config/logger';
 
 function getDefaultProvider(): EmailProvider {
   if (process.env.RESEND_API_KEY) {
     return resendProvider;
   }
+  const { nodemailerProvider } = require('./nodemailer.provider');
   return nodemailerProvider;
 }
 

@@ -85,6 +85,33 @@ export function DiaryWritePage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+      setShowExitConfirm(true);
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    let backButtonListener: any = null;
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App }) => {
+        backButtonListener = App.addListener('backButton', () => {
+          setShowExitConfirm(true);
+        });
+      });
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (backButtonListener) {
+        backButtonListener.then?.((l: any) => l.remove?.()) || backButtonListener?.remove?.();
+      }
+    };
+  }, []);
+
   const {
     register,
     handleSubmit,

@@ -2,49 +2,76 @@ import { Capacitor } from '@capacitor/core';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+function getAbsoluteApiBase(): string {
+  if (API_BASE.startsWith('http')) return API_BASE;
+  return `${window.location.origin}${API_BASE}`;
+}
+
 export async function downloadMusicFile(
   jobId: string,
   title?: string,
-  audioUrl?: string | null
+  _audioUrl?: string | null
 ): Promise<void> {
   const sanitizedTitle = (title || 'music').replace(/[<>:"/\\|?*]/g, '_').trim() || 'music';
   const filename = `${sanitizedTitle}.mp3`;
 
-  const blob = await fetchAudioBlob(jobId, audioUrl);
-  if (!blob) {
-    alert('다운로드에 실패했습니다. 다시 시도해주세요.');
-    return;
-  }
-
   if (Capacitor.isNativePlatform()) {
-    await saveWithCapacitorFilesystem(blob, filename);
+    await downloadForNative(jobId, filename);
   } else {
-    saveBlobAsFile(blob, filename);
+    await downloadForWeb(jobId, filename);
   }
 }
 
-async function fetchAudioBlob(jobId: string, _audioUrl?: string | null): Promise<Blob | null> {
+async function downloadForWeb(jobId: string, filename: string): Promise<void> {
+  try {
+    const blob = await fetchAudioBlob(jobId);
+    if (!blob) {
+      alert('다운로드에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+    triggerBlobDownload(blob, filename);
+  } catch {
+    alert('다운로드에 실패했습니다. 다시 시도해주세요.');
+  }
+}
+
+async function downloadForNative(jobId: string, filename: string): Promise<void> {
+  let savedWithFilesystem = false;
+
+  try {
+    const blob = await fetchAudioBlob(jobId);
+    if (blob) {
+      savedWithFilesystem = await trySaveWithFilesystem(blob, filename);
+    }
+  } catch (e) {
+    console.error('Native download attempt failed:', e);
+  }
+
+  if (savedWithFilesystem) return;
+
+  try {
+    const tokenUrl = await getTokenDownloadUrl(jobId);
+    const absoluteUrl = tokenUrl.startsWith('http') ? tokenUrl : `${getAbsoluteApiBase().replace(/\/api$/, '')}${tokenUrl}`;
+    window.open(absoluteUrl, '_system');
+  } catch {
+    alert('다운로드에 실패했습니다. 다시 시도해주세요.');
+  }
+}
+
+async function fetchAudioBlob(jobId: string): Promise<Blob | null> {
   try {
     const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download`, {
       credentials: 'include',
     });
     if (response.ok) return await response.blob();
   } catch (e) {
-    console.error('Server download API failed:', e);
+    console.error('Server download failed:', e);
   }
 
   try {
-    const tokenResponse = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (tokenResponse.ok) {
-      const result = await tokenResponse.json();
-      const tokenUrl = `${API_BASE}/music/download/${result.data.token}`;
-      const response = await fetch(tokenUrl);
-      if (response.ok) return await response.blob();
-    }
+    const tokenUrl = await getTokenDownloadUrl(jobId);
+    const response = await fetch(tokenUrl);
+    if (response.ok) return await response.blob();
   } catch (e) {
     console.error('Token download failed:', e);
   }
@@ -52,10 +79,20 @@ async function fetchAudioBlob(jobId: string, _audioUrl?: string | null): Promise
   return null;
 }
 
-async function saveWithCapacitorFilesystem(blob: Blob, filename: string): Promise<void> {
+async function getTokenDownloadUrl(jobId: string): Promise<string> {
+  const response = await fetch(`${API_BASE}/music/jobs/${jobId}/download-token`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) throw new Error('Failed to create download token');
+  const result = await response.json();
+  return `${API_BASE}/music/download/${result.data.token}`;
+}
+
+async function trySaveWithFilesystem(blob: Blob, filename: string): Promise<boolean> {
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
-
     const base64 = await blobToBase64(blob);
 
     const attempts = [
@@ -73,20 +110,19 @@ async function saveWithCapacitorFilesystem(blob: Blob, filename: string): Promis
           recursive: true,
         });
         alert(`'${filename}' 저장 완료`);
-        return;
+        return true;
       } catch {
         continue;
       }
     }
-
-    saveBlobAsFile(blob, filename);
   } catch (e) {
-    console.error('Capacitor Filesystem not available:', e);
-    saveBlobAsFile(blob, filename);
+    console.error('Filesystem plugin not available:', e);
   }
+
+  return false;
 }
 
-function saveBlobAsFile(blob: Blob, filename: string) {
+function triggerBlobDownload(blob: Blob, filename: string) {
   const blobUrl = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = blobUrl;

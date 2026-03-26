@@ -19,11 +19,13 @@ interface MurekaQueryResponse {
   id?: string;
   status?: string;
   result_url?: string;
-  result?: { url?: string; cover_url?: string; thumbnail_url?: string };
+  result?: { url?: string; cover_url?: string; thumbnail_url?: string; duration?: number };
   audio_url?: string;
   cover_url?: string;
   thumbnail_url?: string;
   cover?: string;
+  duration?: number;
+  choices?: Array<{ url?: string; cover_url?: string; duration?: number }>;
   error?: { message?: string };
 }
 
@@ -160,6 +162,7 @@ export class MurekaProvider {
     status: 'pending' | 'processing' | 'completed' | 'failed';
     audioUrl?: string;
     thumbnailUrl?: string;
+    durationSeconds?: number;
     error?: string;
     raw?: unknown;
   }> {
@@ -185,7 +188,7 @@ export class MurekaProvider {
       }
 
       const status = this.normalizeStatus(data.status);
-      const firstChoice = (data as any).choices?.[0];
+      const firstChoice = data.choices?.[0];
       const audioUrl =
         data.result_url ?? data.result?.url ?? data.audio_url ?? firstChoice?.url;
       const thumbnailUrl =
@@ -195,11 +198,14 @@ export class MurekaProvider {
         data.result?.cover_url ??
         data.result?.thumbnail_url ??
         firstChoice?.cover_url;
+      const durationSeconds =
+        data.duration ?? data.result?.duration ?? firstChoice?.duration;
 
       return {
         status,
         audioUrl: audioUrl || undefined,
         thumbnailUrl: thumbnailUrl || undefined,
+        durationSeconds: durationSeconds ? Math.round(durationSeconds) : undefined,
         error: data.error?.message,
         raw: data,
       };

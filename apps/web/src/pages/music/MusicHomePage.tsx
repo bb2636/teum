@@ -12,6 +12,7 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import type { Diary } from '@/hooks/useDiaries';
 import { getFirstLine } from '@/lib/utils';
+import { useAudioDurations } from '@/hooks/useAudioDuration';
 
 const MONTHLY_LIMIT = 5;
 
@@ -21,6 +22,7 @@ interface MusicCardCarouselProps {
   onCardClick: (jobId: string) => void;
   onDownload: (e: React.MouseEvent, job: MusicJobListItem) => void;
   formatDuration: (seconds?: number) => string;
+  audioDurations: Map<string, number>;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -58,7 +60,7 @@ function getCardDotColor(index: number): string {
   return CARD_DOT_COLORS[getCardColorIndex(index)];
 }
 
-function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDuration, t }: MusicCardCarouselProps) {
+function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDuration, audioDurations, t }: MusicCardCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const locale = getDateLocale();
@@ -113,7 +115,7 @@ function MusicCardCarousel({ jobs, diaryMap, onCardClick, onDownload, formatDura
                     {job.title || t('music.untitledSong')}
                   </h3>
                   <span className="text-white/70 text-sm flex-shrink-0 mt-0.5">
-                    {isLyricsOnly ? t('music.lyrics') : formatDuration(job.durationSeconds)}
+                    {isLyricsOnly ? t('music.lyrics') : formatDuration(audioDurations.get(job.jobId) || job.durationSeconds)}
                   </span>
                 </div>
 
@@ -210,6 +212,14 @@ export function MusicHomePage() {
   const activeSubscription = getEffectiveSubscription(subscriptions);
   const subscriptionStartDate = activeSubscription?.startDate;
   const completedJobs = jobs.filter((j) => j.status === 'completed' || j.status === 'lyrics_only');
+
+  const audioJobsForDuration = useMemo(
+    () => completedJobs
+      .filter((j) => j.status === 'completed' && j.audioUrl)
+      .map((j) => ({ jobId: j.jobId, audioUrl: j.audioUrl! })),
+    [completedJobs]
+  );
+  const audioDurations = useAudioDurations(audioJobsForDuration);
 
   const diaryMap = useMemo(() => {
     const map = new Map<string, Diary>();
@@ -336,6 +346,7 @@ export function MusicHomePage() {
             onCardClick={(jobId) => navigate(`/music/jobs/${jobId}`)}
             onDownload={handleDownload}
             formatDuration={formatDuration}
+            audioDurations={audioDurations}
             t={t}
           />
         )}
@@ -376,7 +387,7 @@ export function MusicHomePage() {
                       {job.title || t('music.untitledSong')}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {isLyricsOnly ? t('music.lyrics') : formatDuration(job.durationSeconds)}
+                      {isLyricsOnly ? t('music.lyrics') : formatDuration(audioDurations.get(job.jobId) || job.durationSeconds)}
                     </p>
                   </div>
                   {job.status === 'completed' && job.audioUrl && (

@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import type { Diary } from '@/hooks/useDiaries';
+import { useAudioDurations } from '@/hooks/useAudioDuration';
 
 export function MusicListPage() {
   const navigate = useNavigate();
@@ -18,6 +19,14 @@ export function MusicListPage() {
 
   const jobs = jobsData?.jobs ?? [];
   const completedJobs = jobs.filter((j) => j.status === 'completed' || j.status === 'lyrics_only');
+
+  const audioJobsForDuration = useMemo(
+    () => completedJobs
+      .filter((j) => j.status === 'completed' && j.audioUrl)
+      .map((j) => ({ jobId: j.jobId, audioUrl: j.audioUrl! })),
+    [completedJobs]
+  );
+  const audioDurations = useAudioDurations(audioJobsForDuration);
 
   const diaryMap = useMemo(() => {
     const map = new Map<string, Diary>();
@@ -111,7 +120,7 @@ export function MusicListPage() {
                       {job.title || t('music.songTitle')}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {isLyricsOnly ? t('music.lyrics') : formatDuration(job.durationSeconds)}
+                      {isLyricsOnly ? t('music.lyrics') : formatDuration(audioDurations.get(job.jobId) || job.durationSeconds)}
                       {job.createdAt && ` · ${format(new Date(job.createdAt), 'M/d', { locale })}`}
                     </p>
                   </div>

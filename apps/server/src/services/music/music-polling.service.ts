@@ -43,7 +43,11 @@ export class MusicPollingService {
       const status = await murekaProvider.getJobStatus(job.providerJobId, mode);
 
       if (status.status === 'completed' && status.audioUrl) {
-        // Job completed, update database (오디오 + 썸네일 + 재생 길이)
+        let duration: number | undefined = status.durationSeconds ?? undefined;
+        if (!duration) {
+          duration = (await this.getAudioDuration(status.audioUrl)) ?? undefined;
+        }
+
         await db
           .update(musicJobs)
           .set({
@@ -51,7 +55,7 @@ export class MusicPollingService {
             audioUrl: status.audioUrl,
             thumbnailUrl: status.thumbnailUrl ?? null,
             completedAt: new Date(),
-            durationSeconds: 120, // 1곡 최대 2분으로 제한
+            durationSeconds: duration || 120,
           })
           .where(eq(musicJobs.id, jobId));
 
@@ -94,6 +98,102 @@ export class MusicPollingService {
       });
       // Don't mark as failed on polling error - might be temporary
       return false;
+    }
+  }
+
+  private isAllowedAudioUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') return false;
+      const host = parsed.hostname.toLowerCase();
+      if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') return false;
+      if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/.test(host)) return false;
+      if (host.endsWith('.internal') || host.endsWith('.local')) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private findMp3FrameBitrate(buffer: Buffer, startOffset: number): number | null {
+    const MPEG1_L3_BITRATES = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+    const MPEG2_L3_BITRATES = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
+
+    for (let i = startOffset; i < buffer.length - 4; i++) {
+      if (buffer[i] === 0xff && (buffer[i + 1] & 0xe0) === 0xe0) {
+        const versionBits = (buffer[i + 1] >> 3) & 0x03;
+        const layerBits = (buffer[i + 1] >> 1) & 0x03;
+        const bitrateIndex = (buffer[i + 2] >> 4) & 0x0f;
+        if (bitrateIndex === 0 || bitrateIndex === 0x0f) continue;
+        if (layerBits === 0x01) {
+          const bitrates = (versionBits === 0x03) ? MPEG1_L3_BITRATES : MPEG2_L3_BITRATES;
+          return bitrates[bitrateIndex] || null;
+        }
+        if (layerBits === 0x00) continue;
+        return MPEG1_L3_BITRATES[bitrateIndex] || null;
+      }
+    }
+    return null;
+  }
+
+  private async getAudioDuration(audioUrl: string): Promise<number | null> {
+    if (!this.isAllowedAudioUrl(audioUrl)) {
+      logger.warn('Audio URL blocked by allowlist', { audioUrl: audioUrl.substring(0, 80) });
+      return null;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(audioUrl, {
+        method: 'GET',
+        headers: { Range: 'bytes=0-65535' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      let frameStart = 0;
+      if (buffer.length > 10 && buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) {
+        const size =
+          ((buffer[6] & 0x7f) << 21) |
+          ((buffer[7] & 0x7f) << 14) |
+          ((buffer[8] & 0x7f) << 7) |
+          (buffer[9] & 0x7f);
+        frameStart = 10 + size;
+      }
+
+      const bitrate = this.findMp3FrameBitrate(buffer, frameStart);
+      if (bitrate) {
+        const totalSize = parseInt(response.headers.get('content-range')?.split('/')[1] || '0', 10)
+          || parseInt(response.headers.get('content-length') || '0', 10);
+        if (totalSize > 0) {
+          const durationSec = Math.round((totalSize * 8) / (bitrate * 1000));
+          if (durationSec > 0 && durationSec < 600) {
+            logger.info('Audio duration from MP3 header', { durationSec, bitrate });
+            return durationSec;
+          }
+        }
+      }
+
+      const headController = new AbortController();
+      const headTimeout = setTimeout(() => headController.abort(), 5000);
+      const fullResponse = await fetch(audioUrl, { method: 'HEAD', signal: headController.signal });
+      clearTimeout(headTimeout);
+      const contentLength = parseInt(fullResponse.headers.get('content-length') || '0', 10);
+      if (contentLength > 0) {
+        const durationSec = Math.round((contentLength * 8) / (128 * 1000));
+        if (durationSec > 0 && durationSec < 600) {
+          logger.info('Audio duration estimated from content-length', { durationSec });
+          return durationSec;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      logger.warn('Failed to get audio duration', { error: error instanceof Error ? error.message : error });
+      return null;
     }
   }
 

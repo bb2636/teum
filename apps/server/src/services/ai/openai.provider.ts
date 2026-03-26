@@ -317,6 +317,76 @@ ${diaryText.substring(0, 2000)}`;
     }
   }
 
+  async generateSummary(input: {
+    title?: string;
+    content?: string;
+    type: 'free_form' | 'question_based';
+    answers?: Array<{ question: string; answer: string }>;
+  }): Promise<string> {
+    if (!this.enabled || !this.client) {
+      return '';
+    }
+
+    try {
+      let diaryText = '';
+      if (input.title) {
+        diaryText += `제목: ${input.title}\n\n`;
+      }
+      if (input.content) {
+        diaryText += input.content;
+      }
+
+      if (input.type === 'question_based' && input.answers && input.answers.length > 0) {
+        diaryText = '';
+        input.answers.forEach((qa, index) => {
+          if (qa.question) {
+            diaryText += `질문: ${qa.question}\n답변: ${qa.answer}\n\n`;
+          } else {
+            diaryText += `답변 ${index + 1}: ${qa.answer}\n\n`;
+          }
+        });
+      }
+
+      if (!diaryText.trim()) return '';
+
+      const prompt = `사용자의 일기 내용을 읽고, 2-3줄로 핵심 내용을 요약해주세요.
+
+규칙:
+- 일기에서 드러나는 감정, 상황, 키워드를 중심으로 요약
+- 객관적이고 담담한 톤 유지
+- "~했다", "~느꼈다" 등 서술형으로 작성
+- 이모지 사용하지 않기
+- 2-3문장으로 간결하게
+
+일기 내용:
+${diaryText.substring(0, 2000)}`;
+
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: '당신은 일기 내용을 간결하게 요약하는 도우미입니다. 핵심 감정과 상황을 2-3문장으로 정리합니다.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.5,
+        max_tokens: 200,
+      });
+
+      const message = response.choices[0]?.message?.content?.trim();
+      return message || '';
+    } catch (error) {
+      logger.error('OpenAI summary generation failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return '';
+    }
+  }
+
   async analyzeForMusic(input: {
     diaries: Array<{
       id: string;
@@ -372,7 +442,7 @@ ${combinedText.substring(0, 4000)}
   "mood": "분위기 (예: warm, reflective, slightly hopeful)",
   "keywords": ["키워드1", "키워드2", "키워드3", "키워드4"],
   "lyricalTheme": "가사 테마 (한국어로, 일기 내용을 바탕으로 한 주제)",
-  "lyrics": "완성된 가사 (한국어, 2분 분량에 맞게 최소 5문단 ~ 최대 10문단, 각 문단 3-4줄, 문단 사이 빈 줄로 구분). 반드시 일기 원문을 그대로 인용하지 말고, 일기에서 느껴지는 감정·상황·분위기를 바탕으로 시적이고 음악적으로 재구성할 것. 노래 가사답게 은유, 비유, 감성적 표현을 사용하여 공감할 수 있는 가사를 작성할 것",
+  "lyrics": "완성된 가사 (한국어, 2분 분량에 맞게 최소 5문단 ~ 최대 10문단, 각 문단 3-4줄, 문단 사이 빈 줄로 구분). 반드시 일기 원문을 그대로 인용하지 말고, 일기에서 느껴지는 감정·상황·분위기를 바탕으로 완전히 새롭게 시적이고 음악적으로 재구성할 것. 원문의 문장 구조나 표현을 직접적으로 옮기지 말고, 감정의 핵심만 추출하여 노래 가사에 맞게 창작할 것. 은유, 비유, 감성적 표현을 풍부하게 사용할 것. 중요: 일기에 부정적이거나 우울한 내용이 있더라도 가사는 반드시 희망적이고 위로가 되는 방향으로 승화시킬 것. 슬픔을 인정하되 극복과 치유의 메시지를 담을 것",
   "musicPrompt": "음악 생성 프롬프트 (영어, genre, mood, tempo, instrumentation, atmosphere를 포함)"
 }
 

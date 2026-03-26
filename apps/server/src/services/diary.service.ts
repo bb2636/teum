@@ -5,6 +5,7 @@ import { folderRepository } from '../repositories/folder.repository';
 import { questionRepository } from '../repositories/question.repository';
 import { questionService } from './question.service';
 import { encouragementService } from './ai/encouragement.service';
+import { summaryService } from './ai/summary.service';
 import { logger } from '../config/logger';
 
 export class DiaryService {
@@ -135,14 +136,22 @@ export class DiaryService {
     });
 
     try {
-      await encouragementService.generateAndSaveEncouragement(diary.id, userId, {
-        title: data.title,
-        content: data.content,
-        type: data.type,
-        answers: questionAnswers,
-      });
+      await Promise.all([
+        encouragementService.generateAndSaveEncouragement(diary.id, userId, {
+          title: data.title,
+          content: data.content,
+          type: data.type,
+          answers: questionAnswers,
+        }),
+        summaryService.generateAndSaveSummary(diary.id, {
+          title: data.title,
+          content: data.content,
+          type: data.type,
+          answers: questionAnswers,
+        }),
+      ]);
     } catch (error) {
-      logger.error('Failed to generate encouragement (non-blocking)', {
+      logger.error('Failed to generate AI content (non-blocking)', {
         error: error instanceof Error ? error.message : String(error),
         diaryId: diary.id,
       });
@@ -242,24 +251,21 @@ export class DiaryService {
         });
       }
       
-      encouragementService
-        .generateAndSaveEncouragement(id, userId, {
-          title: updatedDiary.title || undefined,
-          content: updatedDiary.content || undefined,
-          type: updatedDiary.type,
-          answers: questionAnswers.length > 0 ? questionAnswers : undefined,
-        })
-        .catch((error) => {
-          logger.error('Failed to regenerate encouragement (non-blocking)', { 
-            error: error instanceof Error ? error.message : String(error),
-            errorName: error instanceof Error ? error.name : undefined,
-            errorCode: (error as any)?.code,
-            errorStatus: (error as any)?.status,
-            diaryId: id,
-            diaryType: updatedDiary.type,
-            hasAnswers: questionAnswers.length > 0,
-          });
+      const aiData = {
+        title: updatedDiary.title || undefined,
+        content: updatedDiary.content || undefined,
+        type: updatedDiary.type,
+        answers: questionAnswers.length > 0 ? questionAnswers : undefined,
+      };
+      Promise.all([
+        encouragementService.generateAndSaveEncouragement(id, userId, aiData),
+        summaryService.generateAndSaveSummary(id, aiData),
+      ]).catch((error) => {
+        logger.error('Failed to regenerate AI content (non-blocking)', { 
+          error: error instanceof Error ? error.message : String(error),
+          diaryId: id,
         });
+      });
     }
 
     return updatedDiary;

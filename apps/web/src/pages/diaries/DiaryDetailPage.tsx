@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiary, useDeleteDiary } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
@@ -18,6 +18,7 @@ export function DiaryDetailPage() {
   const deleteDiary = useDeleteDiary();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -62,7 +63,6 @@ export function DiaryDetailPage() {
   return (
     <div className="min-h-screen bg-beige-50">
       <div className="max-w-md mx-auto">
-        {/* Header - Fixed */}
         <div className="sticky top-0 z-30 bg-beige-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
           <Link to="/home">
             <Button variant="ghost" size="icon">
@@ -86,10 +86,8 @@ export function DiaryDetailPage() {
           </div>
         </div>
 
-        {/* Diary Content */}
         <div className="px-4 py-6">
           <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
-          {/* Date and Type */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
               {format(new Date(diary.date), 'yyyy.MM.dd', { locale })}
@@ -101,12 +99,10 @@ export function DiaryDetailPage() {
             )}
           </div>
 
-          {/* Title */}
           {diary.title && (
             <h1 className="text-2xl font-bold text-[#4A2C1A]">{diary.title}</h1>
           )}
 
-          {/* Images */}
           {diary.images && diary.images.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {diary.images.map((img) => (
@@ -119,18 +115,14 @@ export function DiaryDetailPage() {
             </div>
           )}
 
-          {/* Content */}
           {diary.content && (
             <div className="prose prose-sm max-w-none">
               <div className="text-brown-800 leading-relaxed whitespace-pre-wrap">
                 {(() => {
-                  // HTML 태그 제거 (기존 데이터에 <br> 태그가 있을 수 있음)
                   const tmp = document.createElement('div');
                   tmp.innerHTML = diary.content;
                   let text = tmp.textContent || tmp.innerText || '';
-                  // <br> 태그를 줄바꿈으로 변환
                   text = text.replace(/<br\s*\/?>/gi, '\n');
-                  // HTML 엔티티 디코딩
                   text = text.replace(/&nbsp;/g, ' ');
                   return text;
                 })()}
@@ -138,7 +130,6 @@ export function DiaryDetailPage() {
             </div>
           )}
 
-          {/* Question-based answers */}
           {diary.type === 'question_based' && diary.answers && diary.answers.length > 0 && (
             <div className="space-y-4 pt-4 border-t">
               {diary.answers.map((answer) => (
@@ -153,7 +144,6 @@ export function DiaryDetailPage() {
           )}
           </div>
 
-          {/* AI 응원 메시지 - 맨 밑 별도 섹션 */}
           {(diary.aiMessage || diary.aiFeedback?.outputText) && (
             <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300 mt-4">
               <p className="text-sm font-semibold text-amber-800 mb-2">{t('diary.encouragementMessage')}</p>
@@ -162,16 +152,51 @@ export function DiaryDetailPage() {
               </p>
             </div>
           )}
+
+          {diary.aiSummary && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-300 mt-4">
+              <p className="text-sm font-semibold text-blue-800 mb-2">{t('diary.aiSummary')}</p>
+              <p className="text-base text-brown-800 leading-relaxed">
+                {diary.aiSummary}
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowComingSoon(true)}
+            className="w-full mt-4 py-3.5 px-4 rounded-full bg-[#F5F0EB] text-[#4A2C1A] font-medium transition-colors hover:bg-[#EDE5DC] flex items-center justify-center gap-2"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {t('diary.chatWithAi')}
+          </button>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       <DiaryDeleteModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
         isLoading={isDeleting}
       />
+
+      {showComingSoon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowComingSoon(false)}>
+          <div className="bg-white rounded-2xl p-6 mx-6 max-w-sm w-full text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full bg-[#F5F0EB] flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="w-6 h-6 text-[#665146]" />
+            </div>
+            <p className="text-base text-[#4A2C1A] whitespace-pre-line leading-relaxed">
+              {t('diary.chatWithAiComingSoon')}
+            </p>
+            <button
+              onClick={() => setShowComingSoon(false)}
+              className="mt-5 w-full py-3 rounded-full bg-[#665146] text-white font-medium hover:bg-[#5A453A] transition-colors"
+            >
+              {t('common.confirm')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ export const diaries = pgTable('diaries', {
   questionSetId: uuid('question_set_id'), // For question-based diaries
   date: timestamp('date').notNull(),
   aiMessage: text('ai_message'), // Latest encouragement message
+  aiSummary: text('ai_summary'), // AI-generated diary summary
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

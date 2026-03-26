@@ -61,12 +61,14 @@ export function MyPage() {
     return () => setHideTabBar(false);
   }, [setHideTabBar]);
 
-  // 사용자 프로필의 국가 정보로 언어 설정
   useEffect(() => {
     if (user?.profile?.country) {
-      setLanguageFromCountry(user.profile.country);
+      const hasExplicitLanguage = localStorage.getItem('teum_language');
+      if (!hasExplicitLanguage) {
+        setLanguageFromCountry(user.profile.country);
+      }
     }
-  }, [user?.profile?.country]);
+  }, [user?.profile?.country, setLanguageFromCountry]);
   
   // 다음 결제일 (endDate = 한 달 뒤)
   const nextPaymentDateStr = activeSubscription?.endDate

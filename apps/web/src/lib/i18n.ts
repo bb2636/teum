@@ -744,8 +744,6 @@ export function getCurrentLanguage(): Language {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
   const saved = localStorage.getItem('teum_language') as Language | null;
   if (saved && translations[saved]) return saved;
-  const country = localStorage.getItem('teum_user_country');
-  if (country && COUNTRY_TO_LANGUAGE[country]) return COUNTRY_TO_LANGUAGE[country];
   return DEFAULT_LANGUAGE;
 }
 

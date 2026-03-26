@@ -1,46 +1,36 @@
+import { apiRequest } from '@/lib/api';
+
 export async function downloadMusicFile(
-  _jobId: string,
+  jobId: string,
   title?: string,
   audioUrl?: string | null
 ): Promise<void> {
   if (!audioUrl) return;
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
 
+  let isNative = false;
   try {
     const { Capacitor } = await import('@capacitor/core');
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const response = await fetch(audioUrl);
-        const blob = await response.blob();
-        const base64 = await blobToBase64(blob);
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        const dirs = [
-          { label: 'ExternalStorage/Download', path: `Download/${filename}`, directory: Directory.ExternalStorage },
-          { label: 'Documents', path: filename, directory: Directory.Documents },
-          { label: 'Data', path: filename, directory: Directory.Data },
-        ];
-        const errors: string[] = [];
-        for (const dir of dirs) {
-          try {
-            await Filesystem.writeFile({
-              path: dir.path,
-              data: base64,
-              directory: dir.directory,
-              recursive: true,
-            });
-            alert(`'${filename}' 저장 완료 (${dir.label})`);
-            return;
-          } catch (e: any) {
-            errors.push(`${dir.label}: ${e?.message || e}`);
-            continue;
-          }
-        }
-        alert(`저장 경로 실패:\n${errors.join('\n')}`);
-      } catch (e: any) {
-        alert(`Filesystem 처리 실패: ${e?.message || e}`);
+    isNative = Capacitor.isNativePlatform();
+  } catch {}
+
+  if (isNative) {
+    try {
+      const result: any = await apiRequest(`/music/jobs/${jobId}/download-token`, {
+        method: 'POST',
+      });
+      const token = result?.data?.token;
+      if (token) {
+        const apiBase = import.meta.env.VITE_API_URL || '/api';
+        const downloadUrl = `${apiBase}/music/download/${token}`;
+        window.open(downloadUrl, '_system');
+        return;
       }
+    } catch (error) {
+      console.error('Token download failed:', error);
     }
-  } catch {
+    window.open(audioUrl, '_blank');
+    return;
   }
 
   try {
@@ -58,16 +48,4 @@ export async function downloadMusicFile(
     console.error('Download failed:', error);
     window.open(audioUrl, '_blank');
   }
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }

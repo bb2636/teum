@@ -8,6 +8,7 @@ const router: Router = Router();
 router.use(authenticate);
 
 router.get('/', diaryController.getDiaries.bind(diaryController));
+router.get('/count', diaryController.getDiaryCount.bind(diaryController));
 router.get('/all', diaryController.getAllDiaries.bind(diaryController));
 router.get('/calendar', diaryController.getCalendarDiaries.bind(diaryController));
 router.get('/:id', diaryController.getDiary.bind(diaryController));

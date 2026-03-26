@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateDiary, useUpdateDiary, useDiary } from '@/hooks/useDiaries';
+import { useCreateDiary, useUpdateDiary, useDiary, useDiaryCount } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
+import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { Capacitor } from '@capacitor/core';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useRandomQuestions } from '@/hooks/useQuestions';
@@ -11,6 +12,7 @@ import { FolderSelectModal } from './FolderSelectModal';
 import { FormatMenu } from './FormatMenu';
 import { ColorPicker } from './ColorPicker';
 import { ExitConfirmModal } from './ExitConfirmModal';
+import { AdModal } from '@/components/AdModal';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { z } from 'zod';
@@ -46,7 +48,12 @@ export function DiaryWritePage() {
   const createDiary = useCreateDiary();
   const updateDiary = useUpdateDiary();
   const uploadImage = useUploadImage();
+  const { data: subscriptions = [] } = useSubscriptions();
+  const { data: diaryCount = 0 } = useDiaryCount();
+  const activeSubscription = getEffectiveSubscription(subscriptions);
   const { data: randomQuestions = [], isLoading: questionsLoading } = useRandomQuestions(3);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [pendingFolderId, setPendingFolderId] = useState<string | undefined>(undefined);
   
   // Invalidate random questions cache when page mounts to get fresh questions
   useEffect(() => {
@@ -610,24 +617,38 @@ export function DiaryWritePage() {
     setShowFolderModal(true);
   };
 
+  const needsAd = !isEditMode && !activeSubscription && diaryCount >= 3;
+
   const handleFolderSelect = (folderId: string) => {
     setShowFolderModal(false);
-    // Validate folderId
     if (!folderId || folderId.trim() === '') {
       console.error('Invalid folderId:', folderId);
       alert('폴더를 선택해주세요.');
       return;
     }
-    // Update form with selected folder
     const event = {
       target: { value: folderId },
     } as React.ChangeEvent<HTMLInputElement>;
     register('folderId').onChange(event);
-    // Submit diary with selected folder
-    setTimeout(() => {
-      submitDiary(folderId);
-    }, 100);
+
+    if (needsAd) {
+      setPendingFolderId(folderId);
+      setShowAdModal(true);
+    } else {
+      setTimeout(() => {
+        submitDiary(folderId);
+      }, 100);
+    }
   };
+
+  const handleAdComplete = useCallback(() => {
+    setShowAdModal(false);
+    if (pendingFolderId) {
+      setTimeout(() => {
+        submitDiary(pendingFolderId);
+      }, 100);
+    }
+  }, [pendingFolderId]);
 
 
   const submitDiary = async (folderId?: string) => {
@@ -1127,6 +1148,13 @@ export function DiaryWritePage() {
           onConfirm={handleExitConfirm}
         />
       )}
+
+      {/* Ad Modal for free users */}
+      <AdModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onAdComplete={handleAdComplete}
+      />
     </div>
   );
 }

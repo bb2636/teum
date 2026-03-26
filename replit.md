@@ -61,7 +61,8 @@ teum/
 2. **Calendar View**: Track entries and emotions on a calendar; same-folder entries grouped with count display
 3. **AI Feedback**: OpenAI-generated encouraging messages (content 변경 시에만 재생성); AI 일기 요약 (2-3문장, 담담한 톤); "AI와 대화하기" 버튼 (개발 중)
 4. **AI Music**: Mureka API generates custom music from diary content; 가사 생성 시 일기 원문 재구성 (직접 인용 금지); 부정적 내용도 희망적으로 승화; 음악 상세 페이지에서 곡 정보 확인 및 다운로드; 실제 오디오 메타데이터에서 곡 길이 표시; on quota/rate-limit failure, saves AI-generated lyrics with `lyrics_only` status
-5. **Gamification**: Daily random questions to prompt writing
+5. **Free User Restrictions**: 일기 3개 작성 전 폴더 최대 2개 제한; 4번째 일기부터 광고 시청 후 저장 (AdModal 5초 카운트다운)
+6. **Gamification**: Daily random questions to prompt writing
 6. **Admin Panel**: Manage users, diaries, questions, and legal terms
 7. **Payments**: NicePay JS SDK 연동 (신용/체크카드, 계좌이체, 휴대폰 결제); 결제 세션 DB 영구 저장(`payment_sessions` 테이블, 30분 TTL 자동 정리); `PAYMENT_MOCK_SUCCESS=true`로 테스트 모드 지원; 결제 실패 페이지(`/payment/fail`); 결제 성공 후 가이드 페이지(`/payment/success`)
 8. **Push Notifications**: Firebase FCM을 통한 푸시 알림 (음악 완성, 문의 답변 시 자동 발송)

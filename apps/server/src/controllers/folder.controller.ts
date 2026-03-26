@@ -57,6 +57,12 @@ export class FolderController {
         data: { folder },
       });
     } catch (error) {
+      if (error instanceof Error && error.message === 'FOLDER_LIMIT_REACHED') {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FOLDER_LIMIT_REACHED', message: 'Free users can create up to 2 folders before writing 3 diaries' },
+        });
+      }
       next(error);
     }
   }

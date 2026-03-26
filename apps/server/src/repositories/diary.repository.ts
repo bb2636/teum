@@ -1,4 +1,4 @@
-import { eq, and, isNull, gte, lte, desc, inArray } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, desc, inArray, count } from 'drizzle-orm';
 import { db } from '../db';
 import { diaries, diaryImages, diaryAnswers } from '../db/schema';
 import { questions } from '../db/schema/questions';
@@ -342,6 +342,13 @@ export class DiaryRepository {
         question: true,
       },
     });
+  }
+  async countByUserId(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ value: count() })
+      .from(diaries)
+      .where(and(eq(diaries.userId, userId), isNull(diaries.deletedAt)));
+    return result?.value ?? 0;
   }
 }
 

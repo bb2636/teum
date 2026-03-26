@@ -93,6 +93,18 @@ export function useCalendarDiaries(year: number, month: number) {
   });
 }
 
+export function useDiaryCount() {
+  return useQuery<number>({
+    queryKey: ['diaries', 'count'],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: { count: number } }>('/diaries/count');
+      return response.data.count;
+    },
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
+  });
+}
+
 // Create diary mutation with optimistic update
 export function useCreateDiary() {
   const queryClient = useQueryClient();
@@ -160,6 +172,9 @@ export function useCreateDiary() {
 
       // Invalidate all diary queries
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
+      
+      // Invalidate diary count
+      queryClient.invalidateQueries({ queryKey: ['diaries', 'count'] });
       
       // Invalidate folders to update diary counts
       queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -307,6 +322,7 @@ export function useDeleteDiary() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
+      queryClient.invalidateQueries({ queryKey: ['diaries', 'count'] });
       queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
     },

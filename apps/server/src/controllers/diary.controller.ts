@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { diaryService } from '../services/diary.service';
+import { diaryRepository } from '../repositories/diary.repository';
 import {
   createDiarySchema,
   updateDiarySchema,
@@ -149,6 +150,24 @@ export class DiaryController {
       res.json({
         success: true,
         data: { diaries },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getDiaryCount(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const count = await diaryRepository.countByUserId(req.user.userId);
+      res.json({
+        success: true,
+        data: { count },
       });
     } catch (error) {
       next(error);

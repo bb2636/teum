@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft, ChevronRight, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
-import { useDiaries, useFolders } from '@/hooks/useDiaries';
+import { useDiaries, useFolders, useDiaryCount } from '@/hooks/useDiaries';
 import { useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
@@ -25,10 +25,12 @@ type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';
 
 export function HomePage() {
   const t = useT();
+  const navigate = useNavigate();
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const { data: diaries = [], isLoading: diariesLoading } = useDiaries(selectedFolderId);
   const { data: subscriptions = [] } = useSubscriptions();
+  const { data: diaryCount = 0 } = useDiaryCount();
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
@@ -172,9 +174,19 @@ export function HomePage() {
       setTimeout(() => {
         setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create folder:', error);
-      alert(t('diary.folderCreateFailed'));
+      const msg = error?.message || '';
+      if (msg.includes('2 folders') || msg.includes('FOLDER_LIMIT')) {
+        const toastId = Date.now().toString();
+        setToastMessages((prev) => [...prev, { id: toastId, message: t('diary.folderLimitReached') }]);
+        setTimeout(() => {
+          setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
+        }, 4000);
+      } else {
+        alert(t('diary.folderCreateFailed'));
+      }
+      setShowCreateFolderModal(false);
     } finally {
       setIsCreating(false);
     }
@@ -507,6 +519,25 @@ export function HomePage() {
             <Plus className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Music Creation Banner - paid users with 7+ diaries */}
+        {activeSubscription && diaryCount >= 7 && (
+          <div className="px-4 pb-2">
+            <button
+              onClick={() => navigate('/music/create')}
+              className="w-full flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+            >
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Music className="w-5 h-5 text-gray-700" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-gray-900">teum</p>
+                <p className="text-xs text-gray-500">{t('home.musicReady')}</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            </button>
+          </div>
+        )}
 
         {/* Main Content */}
         {diariesLoading ? (

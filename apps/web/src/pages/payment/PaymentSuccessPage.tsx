@@ -25,7 +25,7 @@ export function PaymentSuccessPage() {
     {
       id: 'welcome',
       title: t('payment.success.subscriptionStarted'),
-      subtitle: t('payment.success.analyzeAndCreate'),
+      subtitle: null,
       icon: null,
     },
     {
@@ -89,12 +89,12 @@ export function PaymentSuccessPage() {
           </div>
         )}
 
-        <h1 className="text-2xl font-bold text-[#4A2C1A] leading-tight animate-fade-in whitespace-pre-line">
+        <h1 className="text-[28px] font-bold text-[#4A2C1A] leading-snug animate-fade-in whitespace-pre-line">
           {page.title}
         </h1>
 
         {page.subtitle && (
-          <p className="text-base text-gray-500 leading-relaxed mt-4 animate-fade-in whitespace-pre-line" style={{ animationDelay: '100ms' }}>
+          <p className="text-lg text-gray-500 leading-relaxed mt-5 animate-fade-in whitespace-pre-line" style={{ animationDelay: '100ms' }}>
             {page.subtitle}
           </p>
         )}

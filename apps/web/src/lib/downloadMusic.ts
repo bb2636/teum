@@ -29,14 +29,7 @@ export async function downloadMusicFile(
       }
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', filename);
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.location.href = downloadUrl;
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }

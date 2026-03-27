@@ -8,6 +8,7 @@ export async function downloadMusicFile(
   const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
   if (isNative) {
+    let token: string | null = null;
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 5000);
@@ -20,21 +21,33 @@ export async function downloadMusicFile(
       clearTimeout(timer);
       if (tokenRes.ok) {
         const tokenData = await tokenRes.json();
-        const token = tokenData?.data?.token;
-        if (token) {
-          const pageUrl = `${window.location.origin}/music/download?token=${token}&name=${encodeURIComponent(filename)}`;
-          if (navigator.share) {
-            await navigator.share({
-              title: `${title || 'music'} 다운로드`,
-              url: pageUrl,
-            });
-            return;
-          }
-        }
+        token = tokenData?.data?.token || null;
       }
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return;
+    } catch {}
+
+    if (!token) {
+      alert('토큰 발급 실패');
+      return;
     }
+
+    const pageUrl = `${window.location.origin}/music/download?token=${token}&name=${encodeURIComponent(filename)}`;
+    alert(`공유할 URL: ${pageUrl}`);
+
+    if (!navigator.share) {
+      alert('navigator.share 미지원');
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: `${title || 'music'} 다운로드`,
+        url: pageUrl,
+      });
+      alert('공유 완료 (Chrome에서 다운로드 페이지가 열렸어야 합니다)');
+    } catch (e: any) {
+      alert(`공유 실패/취소: ${e?.name} - ${e?.message}`);
+    }
+    return;
   }
 
   try {

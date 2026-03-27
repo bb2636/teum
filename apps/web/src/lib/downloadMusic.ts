@@ -1,3 +1,5 @@
+import { apiRequest } from './api';
+
 export async function downloadMusicFile(
   jobId: string,
   title?: string,
@@ -9,20 +11,11 @@ export async function downloadMusicFile(
 
   if (isNative) {
     try {
-      const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
+      const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!tokenRes.ok) {
-        const body = await tokenRes.text().catch(() => '');
-        alert(`다운로드 준비 실패 (${tokenRes.status}: ${body.substring(0, 100)})`);
-        return;
-      }
-
-      const tokenData = await tokenRes.json();
-      const token = tokenData?.data?.token;
+      const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
       if (!token) {
         alert('다운로드 토큰이 없습니다');
         return;

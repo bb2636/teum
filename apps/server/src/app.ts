@@ -140,8 +140,21 @@ app.use('/api/*', (req, res) => {
 // In production, serve the frontend build
 if (process.env.NODE_ENV === 'production') {
   const webDistPath = path.resolve(__dirname, '../../web/dist');
-  app.use(express.static(webDistPath));
+  app.use(express.static(webDistPath, {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    },
+  }));
   app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(webDistPath, 'index.html'));
   });
 } else {

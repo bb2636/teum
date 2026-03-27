@@ -22,27 +22,6 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          const downloadUrl = `${window.location.origin}/api/music/download/${token}`;
-          const opened = window.open(downloadUrl, '_system') || window.open(downloadUrl, '_blank');
-          if (opened) return;
-        }
-      }
-    } catch {}
-
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-      const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if (tokenRes.ok) {
-        const tokenData = await tokenRes.json();
-        const token = tokenData?.data?.token;
-        if (token) {
           const audioRes = await fetch(`/api/music/download/${token}`);
           if (audioRes.ok) {
             const blob = await audioRes.blob();
@@ -53,7 +32,7 @@ export async function downloadMusicFile(
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            window.URL.revokeObjectURL(blobUrl);
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
             return;
           }
         }
@@ -71,7 +50,7 @@ export async function downloadMusicFile(
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    window.URL.revokeObjectURL(blobUrl);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
   } catch {
     window.open(audioUrl, '_blank');
   }

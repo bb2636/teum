@@ -22,7 +22,7 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          const downloadUrl = `${window.location.origin}/api/music/download/${token}`;
+          const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
           if (navigator.share) {
             await navigator.share({
               title: filename,

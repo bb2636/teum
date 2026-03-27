@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/auth';
 const router: Router = Router();
 
 router.get('/download/:token', musicController.downloadByToken.bind(musicController));
+router.get('/download/:token/:filename', musicController.downloadByToken.bind(musicController));
 router.post('/webhook/:jobId', musicController.handleWebhook.bind(musicController));
 
 router.use(authenticate);

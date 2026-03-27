@@ -42,6 +42,7 @@ export async function downloadMusicFile(
             const blob = await audioRes.blob();
 
             const swReady = await ensureServiceWorker();
+            alert(`SW=${swReady}, blob=${blob.size}`);
             if (swReady) {
               const cacheUrl = `/download-cache/${encodeURIComponent(filename)}`;
               const cache = await caches.open('download-cache-v1');
@@ -54,15 +55,19 @@ export async function downloadMusicFile(
                   },
                 })
               );
+              const cached = await cache.match(cacheUrl);
+              alert(`캐시저장=${!!cached}, URL=${cacheUrl}`);
               const link = document.createElement('a');
               link.href = cacheUrl;
               link.download = filename;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
+              alert('SW link.click 실행됨. 다운로드 확인해주세요');
               return;
             }
 
+            alert('SW 실패, blob 폴백');
             const blobUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = blobUrl;

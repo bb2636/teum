@@ -3,34 +3,34 @@ export async function downloadMusicFile(
   title?: string,
   audioUrl?: string | null
 ): Promise<void> {
-  alert(`downloadMusicFile 호출됨: jobId=${jobId}, title=${title}, audioUrl=${audioUrl ? '있음' : '없음'}`);
   if (!audioUrl) return;
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
 
-  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
-  alert(`isNative=${isNative}`);
-
-  if (isNative) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-      const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if (tokenRes.ok) {
-        const tokenData = await tokenRes.json();
-        const token = tokenData?.data?.token;
-        if (token) {
-          window.open(`/api/music/download/${token}`, '_blank');
-          return;
-        }
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (tokenRes.ok) {
+      const tokenData = await tokenRes.json();
+      const token = tokenData?.data?.token;
+      if (token) {
+        const link = document.createElement('a');
+        link.href = `/api/music/download/${token}`;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
   try {
     const response = await fetch(audioUrl);

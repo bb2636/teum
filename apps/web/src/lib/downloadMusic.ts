@@ -8,34 +8,38 @@ export async function downloadMusicFile(
   const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
   if (isNative) {
-    let token: string | null = null;
-    let debugInfo = '';
     try {
       const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
-      debugInfo = `status=${tokenRes.status}`;
-      if (tokenRes.ok) {
-        const tokenData = await tokenRes.json();
-        token = tokenData?.data?.token || null;
-        if (!token) debugInfo += ' token=null';
-      } else {
-        const body = await tokenRes.text();
-        debugInfo += ` body=${body.substring(0, 200)}`;
+
+      if (!tokenRes.ok) {
+        const body = await tokenRes.text().catch(() => '');
+        alert(`다운로드 준비 실패 (${tokenRes.status}: ${body.substring(0, 100)})`);
+        return;
       }
-    } catch (e: any) {
-      debugInfo = `fetch error: ${e?.message}`;
-    }
 
-    if (!token) {
-      alert(`토큰 발급 실패 (${debugInfo})`);
-      return;
-    }
+      const tokenData = await tokenRes.json();
+      const token = tokenData?.data?.token;
+      if (!token) {
+        alert('다운로드 토큰이 없습니다');
+        return;
+      }
 
-    const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-    window.open(downloadUrl, '_system');
+      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      alert(`다운로드 오류: ${err?.message || String(err)}`);
+    }
     return;
   }
 

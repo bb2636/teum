@@ -22,38 +22,8 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          const audioRes = await fetch(`/api/music/download/${token}`);
-          if (audioRes.ok) {
-            const blob = await audioRes.blob();
-            const base64 = await blobToBase64(blob);
-            try {
-              const { Filesystem, Directory } = await import('@capacitor/filesystem');
-              alert(`Filesystem import 성공`);
-              const dirs = [
-                { label: 'Documents', path: filename, directory: Directory.Documents },
-                { label: 'Data', path: filename, directory: Directory.Data },
-              ];
-              const errors: string[] = [];
-              for (const dir of dirs) {
-                try {
-                  await Filesystem.writeFile({
-                    path: dir.path,
-                    data: base64,
-                    directory: dir.directory,
-                    recursive: true,
-                  });
-                  alert(`'${filename}' 저장 완료 (${dir.label})`);
-                  return;
-                } catch (e: any) {
-                  errors.push(`${dir.label}: ${e?.message || e}`);
-                  continue;
-                }
-              }
-              alert(`writeFile 모두 실패:\n${errors.join('\n')}`);
-            } catch (e: any) {
-              alert(`Filesystem import 실패: ${e?.message || e}`);
-            }
-          }
+          window.location.href = `/api/music/download/${token}`;
+          return;
         }
       }
     } catch {}
@@ -73,16 +43,4 @@ export async function downloadMusicFile(
   } catch {
     window.open(audioUrl, '_blank');
   }
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }

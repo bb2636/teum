@@ -9,31 +9,33 @@ export async function downloadMusicFile(
 
   if (isNative) {
     let token: string | null = null;
+    let debugInfo = '';
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
       const tokenRes = await fetch(`/api/music/jobs/${jobId}/download-token`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
       });
-      clearTimeout(timer);
+      debugInfo = `status=${tokenRes.status}`;
       if (tokenRes.ok) {
         const tokenData = await tokenRes.json();
         token = tokenData?.data?.token || null;
+        if (!token) debugInfo += ' token=null';
+      } else {
+        const body = await tokenRes.text();
+        debugInfo += ` body=${body.substring(0, 200)}`;
       }
-    } catch {}
+    } catch (e: any) {
+      debugInfo = `fetch error: ${e?.message}`;
+    }
 
     if (!token) {
-      alert('다운로드 토큰 발급에 실패했습니다. 다시 시도해 주세요.');
+      alert(`토큰 발급 실패 (${debugInfo})`);
       return;
     }
 
     const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-
-    const intentUrl = `intent://${downloadUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
-    window.location.href = intentUrl;
+    window.open(downloadUrl, '_system');
     return;
   }
 

@@ -22,16 +22,26 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          const downloadUrl = `/api/music/download/${token}`;
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = downloadUrl;
-          document.body.appendChild(iframe);
-          setTimeout(() => {
-            try { document.body.removeChild(iframe); } catch {}
-          }, 60000);
-          alert(`다운로드 시작: ${filename}`);
-          return;
+          const audioRes = await fetch(`/api/music/download/${token}`);
+          if (audioRes.ok) {
+            const blob = await audioRes.blob();
+            const file = new File([blob], filename, { type: 'audio/mpeg' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file] });
+              return;
+            }
+
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+            return;
+          }
         }
       }
     } catch {}

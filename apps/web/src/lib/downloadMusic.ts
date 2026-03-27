@@ -22,12 +22,11 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+          const pageUrl = `${window.location.origin}/music/download?token=${token}&name=${encodeURIComponent(filename)}`;
           if (navigator.share) {
             await navigator.share({
-              title: filename,
-              text: `${title || 'music'} 다운로드`,
-              url: downloadUrl,
+              title: `${title || 'music'} 다운로드`,
+              url: pageUrl,
             });
             return;
           }

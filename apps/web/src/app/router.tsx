@@ -16,6 +16,7 @@ import { MusicHomePage } from '../pages/music/MusicHomePage';
 import { MusicCreatePage } from '../pages/music/MusicCreatePage';
 import { MusicJobPage } from '../pages/music/MusicJobPage';
 import { MusicListPage } from '../pages/music/MusicListPage';
+import { MusicDownloadPage } from '../pages/music/MusicDownloadPage';
 import { MyPage } from '../pages/my/MyPage';
 import { ProfileEditPage } from '../pages/my/ProfileEditPage';
 import { PaymentIntroPage } from '../pages/payment/PaymentIntroPage';
@@ -253,6 +254,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/music/download" element={<MusicDownloadPage />} />
               <Route path="/" element={<Navigate to="/splash" replace />} />
               </Routes>
             </Layout>

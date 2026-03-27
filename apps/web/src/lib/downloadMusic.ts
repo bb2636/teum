@@ -22,7 +22,15 @@ export async function downloadMusicFile(
         const tokenData = await tokenRes.json();
         const token = tokenData?.data?.token;
         if (token) {
-          window.location.href = `/api/music/download/${token}`;
+          const downloadUrl = `/api/music/download/${token}`;
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = downloadUrl;
+          document.body.appendChild(iframe);
+          setTimeout(() => {
+            try { document.body.removeChild(iframe); } catch {}
+          }, 60000);
+          alert(`다운로드 시작: ${filename}`);
           return;
         }
       }

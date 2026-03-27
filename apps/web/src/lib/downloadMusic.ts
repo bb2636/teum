@@ -22,7 +22,7 @@ export async function downloadMusicFile(
       }
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      window.location.href = downloadUrl;
+      window.open(downloadUrl, '_blank');
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }

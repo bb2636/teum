@@ -26,27 +26,14 @@ export async function downloadMusicFile(
     } catch {}
 
     if (!token) {
-      alert('토큰 발급 실패');
+      alert('다운로드 토큰 발급에 실패했습니다. 다시 시도해 주세요.');
       return;
     }
 
-    const pageUrl = `${window.location.origin}/music/download?token=${token}&name=${encodeURIComponent(filename)}`;
-    alert(`공유할 URL: ${pageUrl}`);
+    const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
 
-    if (!navigator.share) {
-      alert('navigator.share 미지원');
-      return;
-    }
-
-    try {
-      await navigator.share({
-        title: `${title || 'music'} 다운로드`,
-        url: pageUrl,
-      });
-      alert('공유 완료 (Chrome에서 다운로드 페이지가 열렸어야 합니다)');
-    } catch (e: any) {
-      alert(`공유 실패/취소: ${e?.name} - ${e?.message}`);
-    }
+    const intentUrl = `intent://${downloadUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+    window.location.href = intentUrl;
     return;
   }
 

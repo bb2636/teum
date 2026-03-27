@@ -3,10 +3,12 @@ export async function downloadMusicFile(
   title?: string,
   audioUrl?: string | null
 ): Promise<void> {
+  alert(`downloadMusicFile 호출됨: jobId=${jobId}, title=${title}, audioUrl=${audioUrl ? '있음' : '없음'}`);
   if (!audioUrl) return;
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
 
   const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  alert(`isNative=${isNative}`);
 
   if (isNative) {
     try {

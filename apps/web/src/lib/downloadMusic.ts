@@ -20,14 +20,19 @@ export async function downloadMusicFile(
       const tokenData = await tokenRes.json();
       const token = tokenData?.data?.token;
       if (token) {
-        const link = document.createElement('a');
-        link.href = `/api/music/download/${token}`;
-        link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        return;
+        const audioRes = await fetch(`/api/music/download/${token}`);
+        if (audioRes.ok) {
+          const blob = await audioRes.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+          return;
+        }
       }
     }
   } catch {}

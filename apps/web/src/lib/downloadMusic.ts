@@ -28,10 +28,12 @@ export async function downloadMusicFile(
             const base64 = await blobToBase64(blob);
             try {
               const { Filesystem, Directory } = await import('@capacitor/filesystem');
+              alert(`Filesystem import 성공`);
               const dirs = [
                 { label: 'Documents', path: filename, directory: Directory.Documents },
                 { label: 'Data', path: filename, directory: Directory.Data },
               ];
+              const errors: string[] = [];
               for (const dir of dirs) {
                 try {
                   await Filesystem.writeFile({
@@ -42,11 +44,15 @@ export async function downloadMusicFile(
                   });
                   alert(`'${filename}' 저장 완료 (${dir.label})`);
                   return;
-                } catch {
+                } catch (e: any) {
+                  errors.push(`${dir.label}: ${e?.message || e}`);
                   continue;
                 }
               }
-            } catch {}
+              alert(`writeFile 모두 실패:\n${errors.join('\n')}`);
+            } catch (e: any) {
+              alert(`Filesystem import 실패: ${e?.message || e}`);
+            }
           }
         }
       }

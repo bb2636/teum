@@ -20,15 +20,8 @@ export async function downloadMusicFile(
         return;
       }
 
-      const serverPath = `teum.replit.app/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      const fallbackUrl = `https://${serverPath}`;
-      const intentUrl = `intent://${serverPath}#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
-
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = intentUrl;
-      document.body.appendChild(iframe);
-      setTimeout(() => document.body.removeChild(iframe), 3000);
+      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+      showDownloadOverlay(downloadUrl, filename);
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }
@@ -49,4 +42,46 @@ export async function downloadMusicFile(
   } catch {
     window.open(audioUrl, '_blank');
   }
+}
+
+function showDownloadOverlay(url: string, filename: string) {
+  const existing = document.getElementById('download-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'download-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+  const card = document.createElement('div');
+  card.style.cssText = 'background:white;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center;';
+
+  const titleEl = document.createElement('p');
+  titleEl.textContent = filename;
+  titleEl.style.cssText = 'font-size:16px;font-weight:bold;color:#333;margin:0 0 8px 0;word-break:break-all;';
+
+  const desc = document.createElement('p');
+  desc.textContent = '아래 버튼을 탭하면 다운로드가 시작됩니다';
+  desc.style.cssText = 'font-size:13px;color:#888;margin:0 0 20px 0;';
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.textContent = '다운로드';
+  link.style.cssText = 'display:block;background:#4A2C1A;color:white;padding:14px 0;border-radius:999px;font-size:16px;font-weight:600;text-decoration:none;';
+
+  const cancel = document.createElement('button');
+  cancel.textContent = '닫기';
+  cancel.style.cssText = 'display:block;width:100%;margin-top:12px;background:none;border:none;color:#888;font-size:14px;padding:8px;cursor:pointer;';
+  cancel.onclick = () => overlay.remove();
+
+  card.appendChild(titleEl);
+  card.appendChild(desc);
+  card.appendChild(link);
+  card.appendChild(cancel);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
 }

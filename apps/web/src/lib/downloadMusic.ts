@@ -1,5 +1,18 @@
 import { apiRequest } from './api';
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function downloadMusicFile(
   jobId: string,
   title?: string,
@@ -14,7 +27,6 @@ export async function downloadMusicFile(
       const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
         method: 'POST',
       });
-
       const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
       if (!token) {
         alert('다운로드 토큰이 없습니다');
@@ -22,7 +34,38 @@ export async function downloadMusicFile(
       }
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      window.open(downloadUrl, '_blank');
+
+      const res = await fetch(downloadUrl);
+      if (!res.ok) {
+        alert(`다운로드 실패 (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const base64Data = await blobToBase64(blob);
+
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        await Filesystem.writeFile({
+          path: `Download/${filename}`,
+          data: base64Data,
+          directory: Directory.ExternalStorage,
+          recursive: true,
+        });
+        alert(`'${filename}' 다운로드 완료! Download 폴더에 저장되었습니다.`);
+      } catch (fsErr: any) {
+        try {
+          const { Filesystem, Directory } = await import('@capacitor/filesystem');
+          await Filesystem.writeFile({
+            path: filename,
+            data: base64Data,
+            directory: Directory.Documents,
+            recursive: true,
+          });
+          alert(`'${filename}' 다운로드 완료! Documents 폴더에 저장되었습니다.`);
+        } catch (fsErr2: any) {
+          alert(`파일 저장 실패: ${fsErr?.message || fsErr} / ${fsErr2?.message || fsErr2}`);
+        }
+      }
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }

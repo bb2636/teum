@@ -1,18 +1,5 @@
 import { apiRequest } from './api';
 
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
 export async function downloadMusicFile(
   jobId: string,
   title?: string,
@@ -33,39 +20,15 @@ export async function downloadMusicFile(
         return;
       }
 
-      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+      const serverPath = `teum.replit.app/api/music/download/${token}/${encodeURIComponent(filename)}`;
+      const fallbackUrl = `https://${serverPath}`;
+      const intentUrl = `intent://${serverPath}#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
 
-      const res = await fetch(downloadUrl);
-      if (!res.ok) {
-        alert(`다운로드 실패 (${res.status})`);
-        return;
-      }
-      const blob = await res.blob();
-      const base64Data = await blobToBase64(blob);
-
-      try {
-        const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        await Filesystem.writeFile({
-          path: `Download/${filename}`,
-          data: base64Data,
-          directory: Directory.ExternalStorage,
-          recursive: true,
-        });
-        alert(`'${filename}' 다운로드 완료! Download 폴더에 저장되었습니다.`);
-      } catch (fsErr: any) {
-        try {
-          const { Filesystem, Directory } = await import('@capacitor/filesystem');
-          await Filesystem.writeFile({
-            path: filename,
-            data: base64Data,
-            directory: Directory.Documents,
-            recursive: true,
-          });
-          alert(`'${filename}' 다운로드 완료! Documents 폴더에 저장되었습니다.`);
-        } catch (fsErr2: any) {
-          alert(`파일 저장 실패: ${fsErr?.message || fsErr} / ${fsErr2?.message || fsErr2}`);
-        }
-      }
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = intentUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 3000);
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }

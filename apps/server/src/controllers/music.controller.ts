@@ -253,7 +253,7 @@ export class MusicController {
       return;
     }
 
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${asciiFilename}.mp3"; filename*=UTF-8''${encodedFilename}`

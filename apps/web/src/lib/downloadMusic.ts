@@ -20,14 +20,8 @@ export async function downloadMusicFile(
         return;
       }
 
-      const serverPath = `teum.replit.app/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      const fallbackUrl = `https://${serverPath}`;
-      const intentUrl = `intent://${serverPath}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
-
-      const ok = confirm('Chrome에서 다운로드합니다.\n다운로드 후 뒤로가기를 눌러 앱으로 돌아오세요.');
-      if (ok) {
-        window.location.href = intentUrl;
-      }
+      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+      window.location.href = downloadUrl;
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }

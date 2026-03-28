@@ -22,6 +22,19 @@ export async function downloadMusicFile(
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
 
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `${title || '음악'} 다운로드`,
+            text: 'Chrome에서 열면 다운로드됩니다',
+            url: downloadUrl,
+          });
+          return;
+        } catch (shareErr: any) {
+          if (shareErr?.name === 'AbortError') return;
+        }
+      }
+
       try {
         await navigator.clipboard.writeText(downloadUrl);
         alert('다운로드 링크가 복사되었습니다!\n\nChrome 브라우저를 열고 주소창에 붙여넣기 하면 다운로드가 시작됩니다.');

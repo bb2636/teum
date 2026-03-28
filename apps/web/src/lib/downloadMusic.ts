@@ -21,7 +21,13 @@ export async function downloadMusicFile(
       }
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      window.location.href = downloadUrl;
+
+      try {
+        await navigator.clipboard.writeText(downloadUrl);
+        alert('다운로드 링크가 복사되었습니다!\n\nChrome 브라우저를 열고 주소창에 붙여넣기 하면 다운로드가 시작됩니다.');
+      } catch {
+        prompt('아래 링크를 복사해서 Chrome 주소창에 붙여넣기 하세요:', downloadUrl);
+      }
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
     }

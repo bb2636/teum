@@ -70,12 +70,6 @@ build = ["sh", "-c", "pnpm --filter web build"]
 [userenv]
 
 [userenv.shared]
-OPENAI_BASE_URL = "http://localhost:1106/modelfarm/openai"
-VITE_APPLE_CLIENT_ID = "app.teum.teum1"
-VITE_APPLE_REDIRECT_URI = "https://teum.replit.app/api/auth/apple/callback"
-PAYMENT_MOCK_SUCCESS = "false"
-JWT_SECRET = "W7IGFRB08/pmeq8jddS2DBR1LWkgmHTWBZdJDlktQxLYWuWJy34vnCmKkE90LKZf"
-JWT_REFRESH_SECRET = "KnO0/yRT0w8XEVKp6CBhSu2Lg/rcpx4Row4MhAbjT1DS6jIAV4bkxrKWVjJ/8geJ"
 
 [userenv.production]
 FRONTEND_URL = "https://teum.replit.app"

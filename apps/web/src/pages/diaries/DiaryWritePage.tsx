@@ -1111,6 +1111,7 @@ export function DiaryWritePage() {
 
           {selectedImages.length > 0 && (
             <div className="px-4 py-2">
+              <p className="text-xs text-gray-400 mb-1.5">첨부된 이미지는 홈 화면에서 카드 이미지로 표시됩니다</p>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {selectedImages.map((url, index) => (
                   <div key={index} className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">

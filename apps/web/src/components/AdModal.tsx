@@ -10,7 +10,13 @@ interface AdModalProps {
 }
 
 const AD_DURATION_SECONDS = 5;
-const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/4090154015';
+const ADMOB_ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/4090154015';
+const ADMOB_IOS_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/6264812635';
+
+function getInterstitialAdId(): string {
+  const platform = Capacitor.getPlatform();
+  return platform === 'ios' ? ADMOB_IOS_INTERSTITIAL_ID : ADMOB_ANDROID_INTERSTITIAL_ID;
+}
 
 async function showNativeInterstitial(): Promise<boolean> {
   try {
@@ -46,7 +52,7 @@ async function showNativeInterstitial(): Promise<boolean> {
         }
       ).then((h) => { failHandle = h; });
 
-      AdMob.prepareInterstitial({ adId: ADMOB_INTERSTITIAL_ID })
+      AdMob.prepareInterstitial({ adId: getInterstitialAdId() })
         .then(() => AdMob.showInterstitial())
         .catch(() => {
           if (!resolved) { resolved = true; resolve(false); }

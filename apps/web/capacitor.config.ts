@@ -27,6 +27,7 @@ const config: CapacitorConfig = {
     },
     AdMob: {
       appIdAndroid: 'ca-app-pub-3503508648798732~4006393534',
+      appIdIos: 'ca-app-pub-3503508648798732~6807941370',
     },
   },
 };

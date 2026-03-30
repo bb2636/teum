@@ -68,6 +68,7 @@ export function SocialOnboardingPage() {
           email: queryParams.get('email') || '',
           name: queryParams.get('name') || '',
           picture: queryParams.get('picture') || undefined,
+          isEmailHidden: queryParams.get('isEmailHidden') === 'true',
         }
       : undefined);
   const onboardingToken: string | undefined =

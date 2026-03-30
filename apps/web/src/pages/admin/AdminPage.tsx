@@ -368,7 +368,7 @@ export function AdminPage() {
             {/* Table Header */}
             <div className="bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-8 gap-4 px-4 py-3 text-sm font-medium text-gray-700">
-                <div className="text-center">사용자 ID</div>
+                <div className="text-left">사용자 ID</div>
                 <div className="text-center">닉네임</div>
                 <div className="text-center">이름</div>
                 <div className="text-center">생년월일</div>
@@ -395,7 +395,7 @@ export function AdminPage() {
                       setUserDetailTab('profile');
                     }}
                   >
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-start gap-2">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                         <User className="w-4 h-4 text-gray-500" />
                       </div>

@@ -408,7 +408,7 @@ export class AuthController {
         }),
       });
 
-      const tokenData = await tokenResponse.json();
+      const tokenData = await tokenResponse.json() as { id_token?: string };
       if (!tokenData.id_token) {
         return res.redirect('/splash?error=token_exchange_failed');
       }

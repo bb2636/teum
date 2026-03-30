@@ -6,6 +6,7 @@ import { LoginPage } from '../pages/auth/LoginPage';
 import { SignupPage } from '../pages/auth/SignupPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { SocialOnboardingPage } from '../pages/auth/SocialOnboardingPage';
+import { MobileLoginCompletePage } from '../pages/auth/MobileLoginCompletePage';
 import { HomePage } from '../pages/home/HomePage';
 import { CalendarPage } from '../pages/calendar/CalendarPage';
 import { DiaryListPage } from '../pages/diaries/DiaryListPage';
@@ -95,6 +96,7 @@ export default function App() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/social-onboarding" element={<SocialOnboardingPage />} />
+              <Route path="/mobile-login-complete" element={<MobileLoginCompletePage />} />
               <Route
                 path="/home"
                 element={

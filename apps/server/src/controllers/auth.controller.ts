@@ -437,6 +437,7 @@ export class AuthController {
           picture: result.socialProfile?.picture || '',
           providerAccountId: result.socialProfile?.providerAccountId || '',
         });
+        if (isMobile) params.set('mobile', 'true');
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
 
@@ -535,6 +536,7 @@ export class AuthController {
           providerAccountId: result.socialProfile?.providerAccountId || '',
           isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
         });
+        if (isMobile) params.set('mobile', 'true');
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
 

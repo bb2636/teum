@@ -102,7 +102,12 @@ export function useSocialOnboarding() {
     onSuccess: () => {
       sessionStorage.removeItem('teum_logged_out');
       queryClient.clear();
-      navigate('/home');
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mobile') === 'true') {
+        navigate('/mobile-login-complete');
+      } else {
+        navigate('/home');
+      }
     },
   });
 }

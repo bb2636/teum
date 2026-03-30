@@ -69,7 +69,7 @@ async function showNativeInterstitial(): Promise<boolean> {
   }
 }
 
-export function AdModal({ isOpen, onClose: _onClose, onAdComplete }: AdModalProps) {
+export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
   const t = useT();
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);
@@ -125,8 +125,8 @@ export function AdModal({ isOpen, onClose: _onClose, onAdComplete }: AdModalProp
   }
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center">
-      <div className="bg-white rounded-2xl w-full max-w-sm mx-4 overflow-hidden shadow-xl">
+    <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center" onClick={canSkip ? onClose : undefined}>
+      <div className="bg-white rounded-2xl w-full max-w-sm mx-4 overflow-hidden shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="relative">
           <div className="bg-gradient-to-br from-[#f5ede4] to-[#e8ddd1] p-8 flex flex-col items-center justify-center min-h-[300px]">
             <div className="w-16 h-16 bg-white/80 rounded-full flex items-center justify-center mb-4">

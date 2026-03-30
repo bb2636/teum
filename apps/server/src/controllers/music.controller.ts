@@ -171,7 +171,7 @@ export class MusicController {
     downloadTokens.set(token, {
       userId: req.user.userId,
       jobId,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + 30 * 60 * 1000,
     });
 
     return res.json({ success: true, data: { token } });
@@ -185,8 +185,6 @@ export class MusicController {
         downloadTokens.delete(token);
         return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Invalid or expired token' } });
       }
-
-      downloadTokens.delete(token);
 
       const job = await musicService.getJob(tokenData.userId, tokenData.jobId);
       if (!job.audioUrl) {

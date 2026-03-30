@@ -21,6 +21,7 @@ export function QuestionDeleteModal({
 
   const handleConfirm = async () => {
     await onConfirm();
+    onClose();
   };
 
   if (!isOpen) return null;

@@ -59,16 +59,25 @@ export function TermsManagementTab() {
     }
 
     if (content.trim() && content !== lastContentRef.current) {
+      let cancelled = false;
       autoSaveTimer.current = setTimeout(async () => {
+        if (cancelled) return;
         try {
           await updateMutation.mutateAsync({ content, autoSave: true });
+          if (cancelled) return;
           setLastAutoSave(new Date());
           lastContentRef.current = content;
           setHasChanges(false);
         } catch (error) {
           console.error('Auto-save failed:', error);
         }
-      }, 10000); // 10 seconds
+      }, 10000);
+      return () => {
+        cancelled = true;
+        if (autoSaveTimer.current) {
+          clearTimeout(autoSaveTimer.current);
+        }
+      };
     }
 
     return () => {

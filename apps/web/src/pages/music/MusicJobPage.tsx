@@ -42,15 +42,23 @@ export function MusicJobPage() {
       const audio = new Audio();
       audioRef.current = audio;
       audio.preload = 'metadata';
-      audio.addEventListener('loadedmetadata', () => {
+      const onLoaded = () => {
         if (audio.duration && isFinite(audio.duration)) {
           setAudioDuration(Math.round(audio.duration));
         }
-      });
-      audio.addEventListener('error', () => {
+      };
+      const onError = () => {
         setAudioDuration(null);
-      });
+      };
+      audio.addEventListener('loadedmetadata', onLoaded);
+      audio.addEventListener('error', onError);
       audio.src = job.audioUrl;
+      return () => {
+        audio.removeEventListener('loadedmetadata', onLoaded);
+        audio.removeEventListener('error', onError);
+        audio.src = '';
+        audioRef.current = null;
+      };
     }
     return () => {
       if (audioRef.current) {
@@ -95,7 +103,7 @@ export function MusicJobPage() {
     return (
       <div className="min-h-screen bg-beige-50 pb-20">
         <div className="max-w-md mx-auto px-4 py-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/music')} className="mb-4">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="text-center py-12">

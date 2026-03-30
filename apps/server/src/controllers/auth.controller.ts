@@ -383,9 +383,15 @@ export class AuthController {
     }
   }
 
+  private sendMobileCloseResponse(res: Response, message: string = '로그인 완료') {
+    return res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${message}</title></head><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#665146;color:white"><div style="text-align:center"><p style="font-size:18px">${message}</p><p style="font-size:14px;opacity:0.7">이 창을 닫아주세요</p></div></body></html>`);
+  }
+
   async googleOAuthCallback(req: Request, res: Response, next: NextFunction) {
     try {
-      const { code } = req.query;
+      const { code, state } = req.query;
+      const isMobile = typeof state === 'string' && state.includes('platform=mobile');
+
       if (!code || typeof code !== 'string') {
         return res.redirect('/splash?error=no_code');
       }
@@ -451,6 +457,10 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
+      if (isMobile) {
+        return this.sendMobileCloseResponse(res, '로그인 완료');
+      }
+
       if (loginResult.user.role === 'admin') {
         return res.redirect('/admin');
       }
@@ -465,6 +475,8 @@ export class AuthController {
     try {
       const code = (req.body?.code || req.query?.code) as string | undefined;
       const userJson = req.body?.user as string | undefined;
+      const stateParam = (req.body?.state || req.query?.state) as string | undefined;
+      const isMobile = typeof stateParam === 'string' && stateParam.includes('platform=mobile');
       if (!code) {
         return res.redirect('/splash?error=no_code');
       }
@@ -542,6 +554,10 @@ export class AuthController {
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
+
+      if (isMobile) {
+        return this.sendMobileCloseResponse(res, '로그인 완료');
+      }
 
       if (loginResult.user.role === 'admin') {
         return res.redirect('/admin');

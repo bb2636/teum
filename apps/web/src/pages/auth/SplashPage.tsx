@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useGoogleLogin } from '@/hooks/useSocialAuth';
 import { useMe } from '@/hooks/useProfile';
 import { useT } from '@/hooks/useTranslation';
+import { Capacitor } from '@capacitor/core';
 
 declare global {
   interface Window {
@@ -132,11 +133,38 @@ export function SplashPage() {
     }
   };
 
+  const openOAuthUrl = async (authUrl: string) => {
+    if (Capacitor.isNativePlatform()) {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: authUrl, windowName: '_blank' });
+
+      const handleFinished = async () => {
+        await Browser.removeAllListeners();
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          sessionStorage.removeItem('teum_logged_out');
+          queryClient.clear();
+          if (data?.data?.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/home');
+          }
+        }
+      };
+
+      Browser.addListener('browserFinished', handleFinished);
+    } else {
+      window.location.href = authUrl;
+    }
+  };
+
   const openGoogleOAuthPopup = (clientId: string) => {
     const redirectUri = `${window.location.origin}/api/auth/google/callback`;
     const scope = 'openid email profile';
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
-    window.location.href = authUrl;
+    const state = Capacitor.isNativePlatform() ? 'platform=mobile' : '';
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account${state ? `&state=${encodeURIComponent(state)}` : ''}`;
+    openOAuthUrl(authUrl);
   };
 
   const handleAppleLogin = () => {
@@ -148,8 +176,9 @@ export function SplashPage() {
 
     const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
     const scope = 'name email';
-    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post`;
-    window.location.href = authUrl;
+    const state = Capacitor.isNativePlatform() ? 'platform=mobile' : '';
+    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post${state ? `&state=${encodeURIComponent(state)}` : ''}`;
+    openOAuthUrl(authUrl);
   };
 
   return (

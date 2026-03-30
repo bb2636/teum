@@ -832,10 +832,10 @@ export function DiaryWritePage() {
     setShowExitConfirm(true);
   };
 
-  const handleExitConfirm = () => {
+  const handleExitConfirm = useCallback(() => {
     setShowExitConfirm(false);
-    navigate(-1);
-  };
+    navigate('/', { replace: true });
+  }, [navigate]);
 
   // Free Form Diary - Note style
   // Show loading state when editing and diary is loading

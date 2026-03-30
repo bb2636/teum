@@ -479,10 +479,19 @@ export class AuthController {
         return res.redirect('/splash?error=apple_not_configured');
       }
 
+      let formattedKey = privateKey.replace(/\\n/g, '\n');
+      if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
+      }
+      formattedKey = formattedKey
+        .replace(/-----BEGIN PRIVATE KEY-----/, '-----BEGIN PRIVATE KEY-----\n')
+        .replace(/-----END PRIVATE KEY-----/, '\n-----END PRIVATE KEY-----')
+        .replace(/\n{2,}/g, '\n');
+
       const now = Math.floor(Date.now() / 1000);
       const clientSecret = jwtLib.sign(
         { iss: teamId, iat: now, exp: now + 600, aud: 'https://appleid.apple.com', sub: clientId },
-        privateKey.replace(/\\n/g, '\n'),
+        formattedKey,
         { algorithm: 'ES256', header: { alg: 'ES256', kid: keyId } }
       );
 

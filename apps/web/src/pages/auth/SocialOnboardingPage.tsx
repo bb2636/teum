@@ -458,8 +458,8 @@ export function SocialOnboardingPage() {
       </div>
 
       {showEmailVerificationModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={() => setShowEmailVerificationModal(false)}>
-          <div className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4 animate-modal-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4" onClick={() => setShowEmailVerificationModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('auth.emailVerifyTitle')}</h2>
               <button onClick={() => setShowEmailVerificationModal(false)} className="p-2 rounded-full hover:bg-gray-100">

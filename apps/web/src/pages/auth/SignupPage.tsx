@@ -670,11 +670,11 @@ export function SignupPage() {
 
       {showPhoneVerificationModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4"
           onClick={() => setShowPhoneVerificationModal(false)}
         >
           <div
-            className="bg-white rounded-t-2xl w-full max-w-md p-6 space-y-4 animate-modal-sheet"
+            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

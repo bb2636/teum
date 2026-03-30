@@ -93,9 +93,14 @@ teum/
 - teum 브랜드 HTML 템플릿
 - `RESEND_API_KEY` 미설정 시 nodemailer 폴백
 
-### 10. Social Login (OAuth)
-- **Google**: Google Identity Services (GSI) - ID token 방식
-- **Apple**: Apple Sign In JS SDK - ID token 디코딩
+### 10. Social Login (OAuth - 서버 리다이렉트 방식)
+- **Google**: 서버측 OAuth 2.0 리다이렉트 플로우 (`/api/auth/google/url` → Google 로그인 → `/api/auth/google/callback`)
+- **Apple**: 서버측 OAuth 리다이렉트 플로우 (`/api/auth/apple/url` → Apple 로그인 → `/api/auth/apple/callback`)
+- **Capacitor APK**: `@capacitor/browser`의 `Browser.open()`으로 Chrome Custom Tab에서 OAuth 진행
+  - `state=platform=mobile` 파라미터로 모바일 요청 식별
+  - 기존 유저: 서버에서 쿠키 설정 후 닫기 안내 HTML 반환 (`sendMobileCloseResponse`)
+  - 신규 유저: Custom Tab 안에서 `/social-onboarding` 진행 후 홈으로 리다이렉트
+  - `browserFinished` 이벤트 감지 → `/api/auth/me`로 인증 확인 → 홈 이동
 - 신규 유저는 `/social-onboarding`으로 리다이렉트 (닉네임, 이름, 생년월일, 약관 동의)
 - `auth_accounts` 테이블에 provider별 계정 연결 (email/google/apple)
 
@@ -160,8 +165,10 @@ teum/
 - `CORS_ORIGIN` / `FRONTEND_URL` - Frontend URL for CORS
 - `GOOGLE_CLIENT_ID` - Google OAuth Client ID (server)
 - `VITE_GOOGLE_CLIENT_ID` - Google OAuth Client ID (frontend)
-- `VITE_APPLE_CLIENT_ID` - Apple Sign In Service ID (frontend)
-- `VITE_APPLE_REDIRECT_URI` - Apple Sign In redirect URI (frontend)
+- `APPLE_CLIENT_ID` - Apple Sign In Service ID (서버, `app.teum.teum1`)
+- `APPLE_KEY_ID` - Apple Sign In Key ID
+- `APPLE_TEAM_ID` - Apple Developer Team ID
+- `APPLE_PRIVATE_KEY` - Apple Sign In 비공개 키 (.p8 내용)
 - `FIREBASE_SERVICE_ACCOUNT` - Firebase 서비스 계정 JSON (Replit Secrets에만 저장)
 - `NICEPAY_MERCHANT_ID` - NicePay 상점 ID; 샌드박스=`S2_...`, 운영=`R2_...`
 - `NICEPAY_API_SECRET` - NicePay API Secret Key
@@ -181,6 +188,8 @@ teum/
 - **CORS**: Capacitor origin (`capacitor://localhost`, `https://localhost`) 허용
 - **쿠키**: 프로덕션 환경에서 `sameSite: 'none'` + `secure: true`
 - **Camera**: `@capacitor/camera` 사용, 네이티브/웹 자동 감지
+- **Browser**: `@capacitor/browser` — OAuth 시 Chrome Custom Tab으로 인앱 브라우저 열기
+- **Filesystem**: `@capacitor/filesystem` — 음악 다운로드 시 기기 Download/Documents 폴더에 직접 저장 (실패 시 URL 공유/복사 폴백)
 - **Android 빌드**: 로컬에서 `git pull` → `pnpm install` → `pnpm --filter web build` → `npx cap sync android` → Android Studio 빌드
 
 ## UI Conventions

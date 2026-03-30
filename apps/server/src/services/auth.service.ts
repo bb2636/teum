@@ -9,7 +9,7 @@ import { smsService } from './sms/sms.service';
 import { emailService } from './email/email.service';
 import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import {
   SignupInput,
   LoginInput,

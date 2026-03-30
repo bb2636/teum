@@ -12,6 +12,7 @@ import {
 } from '../validations/auth';
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
+import jwtLib from 'jsonwebtoken';
 import { getClientIp, detectCountryFromIp } from '../utils/ip-geolocation';
 import { userRepository } from '../repositories/user.repository';
 
@@ -395,7 +396,8 @@ export class AuthController {
         return res.redirect('/splash?error=not_configured');
       }
 
-      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+      const proto = req.get('x-forwarded-proto') || req.protocol;
+      const redirectUri = `${proto}://${req.get('host')}/api/auth/google/callback`;
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -408,8 +410,9 @@ export class AuthController {
         }),
       });
 
-      const tokenData = await tokenResponse.json() as { id_token?: string };
+      const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string };
       if (!tokenData.id_token) {
+        logger.error({ tokenError: tokenData.error, tokenErrorDesc: tokenData.error_description, redirectUri }, 'Google token exchange failed');
         return res.redirect('/splash?error=token_exchange_failed');
       }
 
@@ -474,15 +477,15 @@ export class AuthController {
         return res.redirect('/splash?error=apple_not_configured');
       }
 
-      const jwt = await import('jsonwebtoken');
       const now = Math.floor(Date.now() / 1000);
-      const clientSecret = jwt.default.sign(
+      const clientSecret = jwtLib.sign(
         { iss: teamId, iat: now, exp: now + 600, aud: 'https://appleid.apple.com', sub: clientId },
         privateKey.replace(/\\n/g, '\n'),
         { algorithm: 'ES256', header: { alg: 'ES256', kid: keyId } }
       );
 
-      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/apple/callback`;
+      const appleProto = req.get('x-forwarded-proto') || req.protocol;
+      const redirectUri = `${appleProto}://${req.get('host')}/api/auth/apple/callback`;
       const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

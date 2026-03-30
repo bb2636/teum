@@ -23,11 +23,10 @@ import {
 export class AuthService {
   private async generateTokensForUser(user: { id: string; email: string; role: string }) {
     const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
-    const accessPayload: JWTPayload = { userId: user.id, email: user.email, role: user.role };
-    const refreshPayload: JWTPayload = { ...accessPayload, tokenVersion: newTokenVersion };
+    const payload: JWTPayload = { userId: user.id, email: user.email, role: user.role, tokenVersion: newTokenVersion };
     return {
-      accessToken: generateAccessToken(accessPayload),
-      refreshToken: generateRefreshToken(refreshPayload),
+      accessToken: generateAccessToken(payload),
+      refreshToken: generateRefreshToken(payload),
     };
   }
 

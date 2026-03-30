@@ -67,6 +67,19 @@ export async function apiRequest<T>(
   });
 
   if (response.status === 401 && endpoint !== '/auth/refresh') {
+    const errorBody = await response.json().catch(() => null);
+    if (errorBody?.error?.code === 'SESSION_EXPIRED') {
+      sessionStorage.setItem('teum_logged_out', '1');
+      if (typeof window !== 'undefined') {
+        alert(errorBody.error.message || '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.');
+        window.location.href = '/splash';
+      }
+      const err = new Error(errorBody.error.message) as Error & { status?: number; code?: string };
+      err.status = 401;
+      err.code = 'SESSION_EXPIRED';
+      throw err;
+    }
+
     try {
       await refreshToken();
       const retryIsFormData = options?.body instanceof FormData;
@@ -83,6 +96,15 @@ export async function apiRequest<T>(
       });
 
       if (retryResponse.status === 401) {
+        const retryError = await retryResponse.json().catch(() => null);
+        if (retryError?.error?.code === 'SESSION_EXPIRED') {
+          sessionStorage.setItem('teum_logged_out', '1');
+          if (typeof window !== 'undefined') {
+            alert(retryError.error.message || '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.');
+            window.location.href = '/splash';
+          }
+          throw new Error(retryError.error.message);
+        }
         if (endpoint === '/users/me') {
           const err = new Error('Unauthorized') as Error & { status?: number };
           err.status = 401;

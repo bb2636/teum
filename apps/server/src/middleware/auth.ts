@@ -10,6 +10,25 @@ declare global {
   }
 }
 
+const clearAuthCookies = (res: Response) => {
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+    path: '/',
+  };
+  res.clearCookie('accessToken', cookieOpts);
+  res.clearCookie('refreshToken', cookieOpts);
+};
+
+const SESSION_EXPIRED_RESPONSE = {
+  success: false,
+  error: {
+    code: 'SESSION_EXPIRED',
+    message: '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.',
+  },
+};
+
 export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
   try {
     const token = req.cookies?.accessToken;
@@ -26,6 +45,15 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     try {
       const payload = verifyAccessToken(token);
+
+      if (payload.tokenVersion !== undefined) {
+        const currentVersion = await userRepository.getTokenVersion(payload.userId);
+        if (currentVersion === null || payload.tokenVersion !== currentVersion) {
+          clearAuthCookies(res);
+          return res.status(401).json(SESSION_EXPIRED_RESPONSE);
+        }
+      }
+
       req.user = payload;
       next();
     } catch (error) {
@@ -37,27 +65,15 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
           const currentVersion = await userRepository.getTokenVersion(refreshPayload.userId);
           if (currentVersion === null || refreshPayload.tokenVersion === undefined || refreshPayload.tokenVersion !== currentVersion) {
-            const cookieOpts = {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-              path: '/',
-            };
-            res.clearCookie('accessToken', cookieOpts);
-            res.clearCookie('refreshToken', cookieOpts);
-            return res.status(401).json({
-              success: false,
-              error: {
-                code: 'SESSION_EXPIRED',
-                message: '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.',
-              },
-            });
+            clearAuthCookies(res);
+            return res.status(401).json(SESSION_EXPIRED_RESPONSE);
           }
 
           const newAccessToken = generateAccessToken({
             userId: refreshPayload.userId,
             email: refreshPayload.email,
             role: refreshPayload.role,
+            tokenVersion: currentVersion,
           });
 
           res.cookie('accessToken', newAccessToken, {
@@ -72,17 +88,11 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
             userId: refreshPayload.userId,
             email: refreshPayload.email,
             role: refreshPayload.role,
+            tokenVersion: currentVersion,
           };
           next();
         } catch (refreshError) {
-          const cookieOpts = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-            path: '/',
-          };
-          res.clearCookie('accessToken', cookieOpts);
-          res.clearCookie('refreshToken', cookieOpts);
+          clearAuthCookies(res);
           return res.status(401).json({
             success: false,
             error: {

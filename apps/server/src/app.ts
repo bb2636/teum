@@ -34,6 +34,7 @@ app.use(cors({
       'https://localhost',
       'https://pay.nicepay.co.kr',
       'https://sandbox-pay.nicepay.co.kr',
+      'https://appleid.apple.com',
     ].filter(Boolean) as string[];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);

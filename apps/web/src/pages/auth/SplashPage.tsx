@@ -19,12 +19,6 @@ declare global {
         };
       };
     };
-    AppleID?: {
-      auth: {
-        init: (config: any) => void;
-        signIn: () => Promise<any>;
-      };
-    };
   }
 }
 
@@ -33,6 +27,7 @@ export function SplashPage() {
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const t = useT();
+  const isNative = Capacitor.isNativePlatform();
   const [skipAutoRedirect] = useState(() => {
     return !!sessionStorage.getItem('teum_logged_out');
   });
@@ -73,6 +68,8 @@ export function SplashPage() {
   );
 
   useEffect(() => {
+    if (isNative) return;
+
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -89,52 +86,14 @@ export function SplashPage() {
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
     };
-  }, [handleGoogleCredentialResponse]);
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.position = 'fixed';
-    document.documentElement.style.width = '100%';
-    document.documentElement.style.height = '100%';
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.height = '';
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.documentElement.style.width = '';
-      document.documentElement.style.height = '';
-    };
-  }, []);
-
-  const handleGoogleLogin = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      console.error('Google Client ID is not configured');
-      return;
-    }
-
-    if (window.google) {
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-          openGoogleOAuthPopup(clientId);
-        }
-      });
-    } else {
-      openGoogleOAuthPopup(clientId);
-    }
-  };
+  }, [handleGoogleCredentialResponse, isNative]);
 
   const openOAuthUrl = async (authUrl: string) => {
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
       const { Browser } = await import('@capacitor/browser');
       await Browser.open({ url: authUrl, windowName: '_blank' });
 
@@ -159,10 +118,33 @@ export function SplashPage() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.error('Google Client ID is not configured');
+      return;
+    }
+
+    if (isNative) {
+      openGoogleOAuthPopup(clientId);
+      return;
+    }
+
+    if (window.google) {
+      window.google.accounts.id.prompt((notification: any) => {
+        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+          openGoogleOAuthPopup(clientId);
+        }
+      });
+    } else {
+      openGoogleOAuthPopup(clientId);
+    }
+  };
+
   const openGoogleOAuthPopup = (clientId: string) => {
     const redirectUri = `${window.location.origin}/api/auth/google/callback`;
     const scope = 'openid email profile';
-    const state = Capacitor.isNativePlatform() ? 'platform=mobile' : '';
+    const state = isNative ? 'platform=mobile' : '';
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account${state ? `&state=${encodeURIComponent(state)}` : ''}`;
     openOAuthUrl(authUrl);
   };
@@ -176,15 +158,15 @@ export function SplashPage() {
 
     const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
     const scope = 'name email';
-    const state = Capacitor.isNativePlatform() ? 'platform=mobile' : '';
+    const state = isNative ? 'platform=mobile' : '';
     const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post${state ? `&state=${encodeURIComponent(state)}` : ''}`;
     openOAuthUrl(authUrl);
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#665146]">
-      <div className="w-full h-screen bg-[#665146] relative overflow-hidden flex flex-col items-center justify-center px-4" style={{ touchAction: 'manipulation' }}>
-        <div className="w-full flex flex-col items-center justify-center space-y-6">
+    <div className="fixed inset-0 w-full h-full flex items-center justify-center bg-[#665146]">
+      <div className="w-full h-full flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-md flex flex-col items-center justify-center space-y-6">
           <div className="flex flex-col justify-center items-center text-center space-y-2">
             <div>
               <Logo size="md" />
@@ -217,14 +199,16 @@ export function SplashPage() {
               </div>
             </div>
 
-            <div className="flex justify-center items-center gap-6">
+            <div className="flex justify-center items-center gap-6 relative z-10">
               <button
+                type="button"
                 onClick={handleGoogleLogin}
-                className="w-14 h-14 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors shadow-md"
+                onTouchEnd={(e) => { e.preventDefault(); handleGoogleLogin(); }}
+                className="w-14 h-14 rounded-full bg-white flex items-center justify-center active:bg-gray-100 transition-colors shadow-md"
                 aria-label="Google로 로그인"
                 disabled={googleLogin.isPending}
               >
-                <svg className="w-8 h-8" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 pointer-events-none" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -233,12 +217,13 @@ export function SplashPage() {
               </button>
 
               <button
+                type="button"
                 onClick={handleAppleLogin}
-                className="w-14 h-14 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors shadow-md"
+                onTouchEnd={(e) => { e.preventDefault(); handleAppleLogin(); }}
+                className="w-14 h-14 rounded-full bg-black flex items-center justify-center active:bg-gray-800 transition-colors shadow-md"
                 aria-label="Apple로 로그인"
-                disabled={false}
               >
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-white pointer-events-none" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                 </svg>
               </button>

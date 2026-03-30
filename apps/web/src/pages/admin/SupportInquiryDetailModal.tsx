@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAdminSupportInquiry, useUpdateInquiryAnswer } from '@/hooks/useSupport';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ export function SupportInquiryDetailModal({
   inquiryId,
   onClose,
 }: SupportInquiryDetailModalProps) {
+  const queryClient = useQueryClient();
   const { data: inquiry, isLoading } = useAdminSupportInquiry(inquiryId);
   const updateAnswer = useUpdateInquiryAnswer();
   const [answer, setAnswer] = useState('');
@@ -55,12 +57,14 @@ export function SupportInquiryDetailModal({
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to send answer:', error);
+      setShowConfirmModal(false);
       alert('답변 전송에 실패했습니다.');
     }
   };
 
-  const handleSuccessClose = () => {
+  const handleSuccessClose = async () => {
     setShowSuccessModal(false);
+    await queryClient.invalidateQueries({ queryKey: ['support'] });
     onClose();
   };
 
@@ -107,19 +111,16 @@ export function SupportInquiryDetailModal({
 
   return (
     <>
-      {/* Overlay */}
       <div
         className="fixed inset-0 bg-black/50 z-40 animate-overlay-fade"
         onClick={handleClose}
       />
       
-      {/* Main Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
         <div
           className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto pointer-events-auto animate-modal-pop"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-[#4A2C1A]">1:1 문의 상세</h2>
@@ -136,9 +137,7 @@ export function SupportInquiryDetailModal({
             </button>
           </div>
 
-          {/* Content */}
           <div className="p-6 space-y-6">
-            {/* User Info */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {userProfileImage ? (
@@ -164,21 +163,18 @@ export function SupportInquiryDetailModal({
               </div>
             </div>
 
-            {/* Inquiry Subject */}
             <div>
               <h3 className="text-base font-semibold text-[#4A2C1A] mb-2">
                 {inquiry.subject}
               </h3>
             </div>
 
-            {/* Inquiry Message */}
             <div>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">
                 {inquiry.message}
               </p>
             </div>
 
-            {/* Admin Answer Section */}
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-base font-semibold text-[#4A2C1A]">관리자 답변</h4>
@@ -189,7 +185,7 @@ export function SupportInquiryDetailModal({
                 )}
               </div>
               
-              {inquiry.answer ? (
+              {inquiry.status === 'answered' && inquiry.answer ? (
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {inquiry.answer}
@@ -207,8 +203,7 @@ export function SupportInquiryDetailModal({
             </div>
           </div>
 
-          {/* Footer */}
-          {!inquiry.answer && (
+          {inquiry.status !== 'answered' && (
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
               <Button
                 onClick={handleClose}
@@ -220,7 +215,7 @@ export function SupportInquiryDetailModal({
               <Button
                 onClick={handleSendAnswer}
                 disabled={!answer.trim() || updateAnswer.isPending}
-                className={`${
+                className={`rounded-full ${
                   answer.trim() && !updateAnswer.isPending
                     ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2215]'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -233,7 +228,6 @@ export function SupportInquiryDetailModal({
         </div>
       </div>
 
-      {/* Confirm Modal */}
       {showConfirmModal && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={() => setShowConfirmModal(false)} />
@@ -258,7 +252,7 @@ export function SupportInquiryDetailModal({
                   disabled={updateAnswer.isPending}
                   className="bg-[#4A2C1A] text-white hover:bg-[#3A2215] rounded-xl px-6"
                 >
-                  {updateAnswer.isPending ? '전송 중...' : '수정'}
+                  {updateAnswer.isPending ? '전송 중...' : '전송'}
                 </Button>
               </div>
             </div>
@@ -266,7 +260,6 @@ export function SupportInquiryDetailModal({
         </>
       )}
 
-      {/* Success Modal */}
       {showSuccessModal && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={handleSuccessClose} />
@@ -280,8 +273,7 @@ export function SupportInquiryDetailModal({
               </p>
               <Button
                 onClick={handleSuccessClose}
-                variant="ghost"
-                className="text-gray-900 hover:bg-transparent hover:text-gray-700"
+                className="bg-[#4A2C1A] text-white hover:bg-[#3A2215] rounded-xl px-6"
               >
                 완료
               </Button>

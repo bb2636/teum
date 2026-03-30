@@ -86,7 +86,7 @@ export class SupportRepository {
   }
 
   async updateAnswer(id: string, answer: string, answeredBy: string) {
-    const [inquiry] = await db
+    await db
       .update(supportInquiries)
       .set({
         answer,
@@ -95,9 +95,19 @@ export class SupportRepository {
         status: 'answered',
         updatedAt: new Date(),
       })
-      .where(eq(supportInquiries.id, id))
-      .returning();
-    return inquiry;
+      .where(eq(supportInquiries.id, id));
+
+    const updated = await db.query.supportInquiries.findFirst({
+      where: (inquiries, { eq }) => eq(inquiries.id, id),
+      with: {
+        user: {
+          with: {
+            profile: true,
+          },
+        },
+      },
+    });
+    return updated;
   }
 }
 

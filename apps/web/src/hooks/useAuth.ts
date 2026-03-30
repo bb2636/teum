@@ -71,7 +71,6 @@ export function useSignup() {
 }
 
 export function useLogout() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({

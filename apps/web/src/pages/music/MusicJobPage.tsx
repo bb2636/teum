@@ -20,6 +20,19 @@ export function MusicJobPage() {
   const { data: diariesAll = [] } = useDiaries();
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!job || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadMusicFile(job.jobId, job.title, job.audioUrl);
+    } catch (err: any) {
+      console.error('Download failed:', err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const wasProcessingRef = useRef(false);
   
@@ -184,10 +197,16 @@ export function MusicJobPage() {
                 {job.status === 'completed' && job.audioUrl && (
                   <Button
                     className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
-                    onClick={() => downloadMusicFile(job.jobId, job.title, job.audioUrl)}
+                    disabled={isDownloading}
+                    onTouchEnd={(e) => { e.preventDefault(); handleDownload(); }}
+                    onClick={handleDownload}
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    {t('music.download')}
+                    {isDownloading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    {isDownloading ? t('music.downloading') || '다운로드 중...' : t('music.download')}
                   </Button>
                 )}
                 <Button 
@@ -310,10 +329,16 @@ export function MusicJobPage() {
               <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
                 <Button
                   className="w-full bg-[#4A2C1A] hover:bg-[#3a2114] text-white rounded-full py-3"
-                  onClick={() => downloadMusicFile(job.jobId, job.title, job.audioUrl)}
+                  disabled={isDownloading}
+                  onTouchEnd={(e) => { e.preventDefault(); handleDownload(); }}
+                  onClick={handleDownload}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t('music.download')}
+                  {isDownloading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {isDownloading ? t('music.downloading') || '다운로드 중...' : t('music.download')}
                 </Button>
               </div>
             )}

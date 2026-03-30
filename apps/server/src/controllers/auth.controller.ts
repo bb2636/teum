@@ -382,6 +382,82 @@ export class AuthController {
     }
   }
 
+  async googleOAuthCallback(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { code } = req.query;
+      if (!code || typeof code !== 'string') {
+        return res.redirect('/splash?error=no_code');
+      }
+
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      if (!clientId || !clientSecret) {
+        return res.redirect('/splash?error=not_configured');
+      }
+
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+      if (!tokenData.id_token) {
+        return res.redirect('/splash?error=token_exchange_failed');
+      }
+
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
+
+      const result = await authService.googleLogin(tokenData.id_token);
+
+      if (result.isNewUser) {
+        const params = new URLSearchParams({
+          isNewUser: 'true',
+          onboardingToken: result.onboardingToken || '',
+          provider: 'google',
+          email: result.socialProfile?.email || '',
+          name: result.socialProfile?.name || '',
+          picture: result.socialProfile?.picture || '',
+          providerAccountId: result.socialProfile?.providerAccountId || '',
+        });
+        return res.redirect(`/social-onboarding?${params.toString()}`);
+      }
+
+      const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
+
+      res.cookie('accessToken', loginResult.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
+      res.cookie('refreshToken', loginResult.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      if (loginResult.user.role === 'admin') {
+        return res.redirect('/admin');
+      }
+      return res.redirect('/home');
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      return res.redirect('/splash?error=login_failed');
+    }
+  }
+
   async appleLogin(req: Request, res: Response, next: NextFunction) {
     try {
       const parsed = appleOAuthCallbackSchema.parse(req.body);

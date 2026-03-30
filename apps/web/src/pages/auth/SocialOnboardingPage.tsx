@@ -57,8 +57,21 @@ export function SocialOnboardingPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const t = useT();
-  const socialProfile = location.state?.socialProfile as SocialProfile | undefined;
-  const onboardingToken = location.state?.onboardingToken as string | undefined;
+
+  const queryParams = new URLSearchParams(location.search);
+  const socialProfile: SocialProfile | undefined =
+    location.state?.socialProfile ||
+    (queryParams.get('isNewUser') === 'true'
+      ? {
+          provider: (queryParams.get('provider') || 'google') as 'google' | 'apple',
+          providerAccountId: queryParams.get('providerAccountId') || '',
+          email: queryParams.get('email') || '',
+          name: queryParams.get('name') || '',
+          picture: queryParams.get('picture') || undefined,
+        }
+      : undefined);
+  const onboardingToken: string | undefined =
+    location.state?.onboardingToken || queryParams.get('onboardingToken') || undefined;
   const socialOnboarding = useSocialOnboarding();
 
   const [step, setStep] = useState<1 | 2>(1);

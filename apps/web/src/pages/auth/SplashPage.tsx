@@ -121,9 +121,23 @@ export function SplashPage() {
       console.error('Google Client ID is not configured');
       return;
     }
+
     if (window.google) {
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.prompt((notification: any) => {
+        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+          openGoogleOAuthPopup(clientId);
+        }
+      });
+    } else {
+      openGoogleOAuthPopup(clientId);
     }
+  };
+
+  const openGoogleOAuthPopup = (clientId: string) => {
+    const redirectUri = `${window.location.origin}/api/auth/google/callback`;
+    const scope = 'openid email profile';
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+    window.location.href = authUrl;
   };
 
   const handleAppleLogin = async () => {

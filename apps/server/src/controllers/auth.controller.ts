@@ -469,7 +469,7 @@ export class AuthController {
       const teamId = process.env.APPLE_TEAM_ID;
       const keyId = process.env.APPLE_KEY_ID;
       const privateKey = process.env.APPLE_PRIVATE_KEY;
-      const clientId = process.env.VITE_APPLE_CLIENT_ID;
+      const clientId = process.env.APPLE_CLIENT_ID || process.env.VITE_APPLE_CLIENT_ID;
       if (!teamId || !keyId || !privateKey || !clientId) {
         return res.redirect('/splash?error=apple_not_configured');
       }

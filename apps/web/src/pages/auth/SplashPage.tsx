@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
@@ -15,6 +15,8 @@ declare global {
           initialize: (config: any) => void;
           prompt: (callback?: (notification: any) => void) => void;
           renderButton: (element: HTMLElement, config: any) => void;
+          disableAutoSelect: () => void;
+          revoke: (hint: string, callback?: () => void) => void;
         };
       };
     };
@@ -26,6 +28,7 @@ export function SplashPage() {
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const t = useT();
+  const gsiInitialized = useRef(false);
   const [skipAutoRedirect] = useState(() => {
     return !!sessionStorage.getItem('teum_logged_out');
   });
@@ -43,50 +46,58 @@ export function SplashPage() {
     }
   }, [user, isCheckingAuth, navigate, skipAutoRedirect]);
 
-  const handleGoogleCredentialResponse = useCallback(
-    async (response: any) => {
-      try {
-        const result = await googleLogin.mutateAsync(response.credential);
-        if (result.isNewUser && result.socialProfile) {
-          navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
-        } else if (result.user) {
-          sessionStorage.removeItem('teum_logged_out');
-          queryClient.clear();
-          if (result.user.role === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/home');
-          }
-        }
-      } catch (err) {
-        console.error('Google login error:', err);
-      }
-    },
-    [googleLogin, navigate, queryClient]
-  );
-
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (clientId && window.google) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleCredentialResponse,
-        });
-      }
-    };
-    document.head.appendChild(script);
+    if (gsiInitialized.current) return;
 
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const initGsi = () => {
+      if (gsiInitialized.current) return;
+      if (!window.google) return;
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response: any) => {
+          try {
+            const result = await googleLogin.mutateAsync(response.credential);
+            if (result.isNewUser && result.socialProfile) {
+              navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
+            } else if (result.user) {
+              sessionStorage.removeItem('teum_logged_out');
+              queryClient.clear();
+              if (result.user.role === 'admin') {
+                navigate('/admin');
+              } else {
+                navigate('/home');
+              }
+            }
+          } catch (err) {
+            console.error('Google login error:', err);
+          }
+        },
+        auto_select: false,
+      });
+      gsiInitialized.current = true;
     };
-  }, [handleGoogleCredentialResponse]);
+
+    if (window.google) {
+      initGsi();
+    } else {
+      const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+      if (existingScript) {
+        existingScript.addEventListener('load', initGsi);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initGsi;
+      document.head.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -105,15 +116,7 @@ export function SplashPage() {
       return;
     }
 
-    if (window.google) {
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-          openGoogleOAuthRedirect(clientId);
-        }
-      });
-    } else {
-      openGoogleOAuthRedirect(clientId);
-    }
+    openGoogleOAuthRedirect(clientId);
   };
 
   const openGoogleOAuthRedirect = (clientId: string) => {

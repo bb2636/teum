@@ -91,6 +91,11 @@ export function useLogout() {
       }
     },
     onSettled: () => {
+      try {
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.disableAutoSelect();
+        }
+      } catch {}
       sessionStorage.setItem('teum_logged_out', '1');
       queryClient.setQueryData(['user', 'me'], null);
       queryClient.removeQueries({ queryKey: ['user', 'me'] });

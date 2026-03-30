@@ -93,35 +93,44 @@ export function SplashPage() {
   }, [handleGoogleCredentialResponse, isNative]);
 
   const openOAuthUrl = async (authUrl: string) => {
-    if (isNative) {
-      const { Browser } = await import('@capacitor/browser');
-      await Browser.open({ url: authUrl, windowName: '_blank' });
+    try {
+      if (isNative) {
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: authUrl, windowName: '_blank' });
 
-      const handleFinished = async () => {
-        await Browser.removeAllListeners();
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          sessionStorage.removeItem('teum_logged_out');
-          queryClient.clear();
-          if (data?.data?.role === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/home');
-          }
+          const handleFinished = async () => {
+            await Browser.removeAllListeners();
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            if (res.ok) {
+              const data = await res.json();
+              sessionStorage.removeItem('teum_logged_out');
+              queryClient.clear();
+              if (data?.data?.role === 'admin') {
+                navigate('/admin');
+              } else {
+                navigate('/home');
+              }
+            }
+          };
+
+          Browser.addListener('browserFinished', handleFinished);
+        } catch (browserErr) {
+          alert(`Browser plugin 오류: ${browserErr instanceof Error ? browserErr.message : String(browserErr)}\n\n일반 브라우저로 전환합니다.`);
+          window.open(authUrl, '_blank');
         }
-      };
-
-      Browser.addListener('browserFinished', handleFinished);
-    } else {
-      window.location.href = authUrl;
+      } else {
+        window.location.href = authUrl;
+      }
+    } catch (err) {
+      alert(`OAuth 오류: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
   const handleGoogleLogin = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      alert('Google Client ID가 설정되지 않았습니다. 환경변수를 확인해주세요.');
+      alert('Google Client ID가 설정되지 않았습니다.\n\nVITE_GOOGLE_CLIENT_ID 환경변수를 확인해주세요.');
       return;
     }
 
@@ -152,7 +161,7 @@ export function SplashPage() {
   const handleAppleLogin = () => {
     const clientId = import.meta.env.VITE_APPLE_CLIENT_ID;
     if (!clientId) {
-      alert('Apple Client ID가 설정되지 않았습니다. 환경변수를 확인해주세요.');
+      alert('Apple Client ID가 설정되지 않았습니다.\n\nVITE_APPLE_CLIENT_ID 환경변수를 확인해주세요.');
       return;
     }
 

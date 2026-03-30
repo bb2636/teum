@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { useGoogleLogin, useAppleLogin } from '@/hooks/useSocialAuth';
+import { useGoogleLogin } from '@/hooks/useSocialAuth';
 import { useMe } from '@/hooks/useProfile';
 import { useT } from '@/hooks/useTranslation';
 
@@ -31,7 +31,6 @@ export function SplashPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
-  const appleLogin = useAppleLogin();
   const t = useT();
   const [skipAutoRedirect] = useState(() => {
     return !!sessionStorage.getItem('teum_logged_out');
@@ -140,57 +139,17 @@ export function SplashPage() {
     window.location.href = authUrl;
   };
 
-  const handleAppleLogin = async () => {
-    try {
-      const clientId = import.meta.env.VITE_APPLE_CLIENT_ID;
-      const redirectUri = import.meta.env.VITE_APPLE_REDIRECT_URI || `${window.location.origin}/api/auth/apple/callback`;
-
-      if (!clientId) {
-        console.error('Apple Client ID is not configured');
-        return;
-      }
-
-      if (!window.AppleID) {
-        const script = document.createElement('script');
-        script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-        script.async = true;
-        await new Promise<void>((resolve) => {
-          script.onload = () => resolve();
-          document.head.appendChild(script);
-        });
-      }
-
-      window.AppleID!.auth.init({
-        clientId,
-        scope: 'name email',
-        redirectURI: redirectUri,
-        usePopup: true,
-      });
-
-      const appleResponse = await window.AppleID!.auth.signIn();
-
-      const result = await appleLogin.mutateAsync({
-        idToken: appleResponse.authorization.id_token,
-        authorizationCode: appleResponse.authorization.code,
-        user: appleResponse.user,
-      });
-
-      if (result.isNewUser && result.socialProfile) {
-        navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
-      } else if (result.user) {
-        sessionStorage.removeItem('teum_logged_out');
-        queryClient.clear();
-        if (result.user.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/home');
-        }
-      }
-    } catch (err: any) {
-      if (err?.error !== 'popup_closed_by_user') {
-        console.error('Apple login error:', err);
-      }
+  const handleAppleLogin = () => {
+    const clientId = import.meta.env.VITE_APPLE_CLIENT_ID;
+    if (!clientId) {
+      console.error('Apple Client ID is not configured');
+      return;
     }
+
+    const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
+    const scope = 'name email';
+    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post`;
+    window.location.href = authUrl;
   };
 
   return (
@@ -248,7 +207,7 @@ export function SplashPage() {
                 onClick={handleAppleLogin}
                 className="w-14 h-14 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors shadow-md"
                 aria-label="Apple로 로그인"
-                disabled={appleLogin.isPending}
+                disabled={false}
               >
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />

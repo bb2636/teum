@@ -19,6 +19,8 @@ router.post('/phone/confirm', authController.confirmPhoneVerification.bind(authC
 // Social login routes
 router.get('/google/callback', authController.googleOAuthCallback.bind(authController));
 router.post('/google/login', loginLimiter, authController.googleLogin.bind(authController));
+router.get('/apple/callback', authController.appleOAuthCallback.bind(authController));
+router.post('/apple/callback', authController.appleOAuthCallback.bind(authController));
 router.post('/apple/login', loginLimiter, authController.appleLogin.bind(authController));
 router.post('/social/onboarding', signupLimiter, authController.socialOnboarding.bind(authController));
 

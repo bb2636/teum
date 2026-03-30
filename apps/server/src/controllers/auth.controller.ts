@@ -458,6 +458,98 @@ export class AuthController {
     }
   }
 
+  async appleOAuthCallback(req: Request, res: Response, next: NextFunction) {
+    try {
+      const code = (req.body?.code || req.query?.code) as string | undefined;
+      const userJson = req.body?.user as string | undefined;
+      if (!code) {
+        return res.redirect('/splash?error=no_code');
+      }
+
+      const teamId = process.env.APPLE_TEAM_ID;
+      const keyId = process.env.APPLE_KEY_ID;
+      const privateKey = process.env.APPLE_PRIVATE_KEY;
+      const clientId = process.env.VITE_APPLE_CLIENT_ID;
+      if (!teamId || !keyId || !privateKey || !clientId) {
+        return res.redirect('/splash?error=apple_not_configured');
+      }
+
+      const jwt = await import('jsonwebtoken');
+      const now = Math.floor(Date.now() / 1000);
+      const clientSecret = jwt.default.sign(
+        { iss: teamId, iat: now, exp: now + 600, aud: 'https://appleid.apple.com', sub: clientId },
+        privateKey.replace(/\\n/g, '\n'),
+        { algorithm: 'ES256', header: { alg: 'ES256', kid: keyId } }
+      );
+
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/apple/callback`;
+      const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          grant_type: 'authorization_code',
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      const tokenData = await tokenResponse.json() as { id_token?: string };
+      if (!tokenData.id_token) {
+        return res.redirect('/splash?error=apple_token_failed');
+      }
+
+      let userData: { email?: string; name?: { firstName?: string; lastName?: string } } | undefined;
+      if (userJson) {
+        try { userData = JSON.parse(userJson); } catch {}
+      }
+
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
+
+      const result = await authService.appleLogin(tokenData.id_token, userData);
+
+      if (result.isNewUser) {
+        const params = new URLSearchParams({
+          isNewUser: 'true',
+          onboardingToken: result.onboardingToken || '',
+          provider: 'apple',
+          email: result.socialProfile?.email || '',
+          name: result.socialProfile?.name || '',
+          providerAccountId: result.socialProfile?.providerAccountId || '',
+          isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
+        });
+        return res.redirect(`/social-onboarding?${params.toString()}`);
+      }
+
+      const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
+
+      res.cookie('accessToken', loginResult.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
+      res.cookie('refreshToken', loginResult.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      if (loginResult.user.role === 'admin') {
+        return res.redirect('/admin');
+      }
+      return res.redirect('/home');
+    } catch (error) {
+      console.error('Apple OAuth callback error:', error);
+      return res.redirect('/splash?error=apple_login_failed');
+    }
+  }
+
   async appleLogin(req: Request, res: Response, next: NextFunction) {
     try {
       const parsed = appleOAuthCallbackSchema.parse(req.body);

@@ -539,7 +539,8 @@ export function DiaryWritePage() {
     const selection = window.getSelection();
     const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
     
-    // Create container for image and delete button
+    const isRangeInsideContent = range && contentEditableRef.current.contains(range.startContainer);
+    
     const container = document.createElement('div');
     container.className = 'relative block my-2';
     container.style.display = 'block';
@@ -548,7 +549,6 @@ export function DiaryWritePage() {
     container.style.maxWidth = '100%';
     container.style.overflow = 'hidden';
     
-    // Create img element
     const img = document.createElement('img');
     img.src = getStorageImageSrc(imageUrl);
     img.alt = 'Uploaded image';
@@ -558,9 +558,8 @@ export function DiaryWritePage() {
     img.style.height = 'auto';
     img.style.display = 'block';
     img.style.objectFit = 'contain';
-    img.dataset.imageUrl = imageUrl; // Store image URL for deletion
+    img.dataset.imageUrl = imageUrl;
     
-    // Create delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors';
@@ -575,18 +574,13 @@ export function DiaryWritePage() {
     container.appendChild(img);
     container.appendChild(deleteBtn);
     
-    // Insert container at cursor position or at the end
-    if (range && !range.collapsed) {
-      range.deleteContents();
+    if (isRangeInsideContent && range) {
+      if (!range.collapsed) {
+        range.deleteContents();
+      }
       range.insertNode(container);
     } else {
-      // Insert at cursor or at the end
-      if (range) {
-        range.insertNode(container);
-      } else {
-        // Append at the end
-        contentEditableRef.current.appendChild(container);
-      }
+      contentEditableRef.current.appendChild(container);
     }
     
     // Add a line break and empty text node after container to ensure text input works

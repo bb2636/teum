@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Type, Image as ImageIcon, Camera } from 'lucide-react';
+import { ArrowLeft, Check, Type, Image as ImageIcon, Camera, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateDiary, useUpdateDiary, useDiary, useDiaryCount } from '@/hooks/useDiaries';
 import { useUploadImage } from '@/hooks/useUpload';
@@ -1108,6 +1108,33 @@ export function DiaryWritePage() {
               </div>
             )}
           </div>
+
+          {selectedImages.length > 0 && (
+            <div className="px-4 py-2">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {selectedImages.map((url, index) => (
+                  <div key={index} className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                    <img
+                      src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+                        setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+                        setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+                      }}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="shrink-0 px-4 py-2 bg-white" style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
             <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">

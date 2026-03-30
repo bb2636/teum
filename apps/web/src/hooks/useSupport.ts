@@ -124,17 +124,15 @@ export function useUpdateInquiryAnswer() {
     onSuccess: (updatedInquiry) => {
       if (!updatedInquiry) return;
       const id = updatedInquiry.id;
-      // 상세 캐시 즉시 반영 (기존 user 등 관계 유지)
       queryClient.setQueryData<SupportInquiry>(['support', 'admin', 'inquiry', id], (old) =>
         old ? { ...old, ...updatedInquiry } : updatedInquiry
       );
-      // 목록 캐시에서 해당 문의만 답변 완료로 갱신
       queryClient.setQueryData<SupportInquiry[]>(['support', 'admin', 'all'], (old) =>
         old
-          ? old.map((inv) => (inv.id === id ? { ...inv, ...updatedInquiry } : inv))
+          ? old.map((inv) => (inv.id === id ? { ...inv, status: 'answered' as const, answer: updatedInquiry.answer, answeredAt: updatedInquiry.answeredAt, answeredBy: updatedInquiry.answeredBy } : inv))
           : old
       );
-      queryClient.invalidateQueries({ queryKey: ['support'] });
+      queryClient.refetchQueries({ queryKey: ['support', 'admin', 'all'] });
     },
   });
 }

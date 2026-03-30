@@ -64,7 +64,7 @@ export function SupportInquiryDetailModal({
 
   const handleSuccessClose = async () => {
     setShowSuccessModal(false);
-    await queryClient.invalidateQueries({ queryKey: ['support'] });
+    await queryClient.refetchQueries({ queryKey: ['support', 'admin', 'all'] });
     onClose();
   };
 

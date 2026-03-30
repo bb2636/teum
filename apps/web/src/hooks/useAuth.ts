@@ -97,10 +97,9 @@ export function useLogout() {
         }
       } catch {}
       sessionStorage.setItem('teum_logged_out', '1');
-      queryClient.setQueryData(['user', 'me'], null);
-      queryClient.removeQueries({ queryKey: ['user', 'me'] });
+      queryClient.cancelQueries();
       queryClient.clear();
-      navigate('/splash', { replace: true });
+      window.location.href = '/splash';
     },
   });
 }

@@ -22,6 +22,9 @@ export async function downloadMusicFile(
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
 
+      const saved = await tryFilesystemDownload(downloadUrl, filename);
+      if (saved) return;
+
       if (navigator.share) {
         try {
           await navigator.share({
@@ -61,4 +64,52 @@ export async function downloadMusicFile(
   } catch {
     window.open(audioUrl, '_blank');
   }
+}
+
+async function tryFilesystemDownload(url: string, filename: string): Promise<boolean> {
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+    const response = await fetch(url);
+    if (!response.ok) return false;
+
+    const blob = await response.blob();
+    const base64 = await blobToBase64(blob);
+
+    try {
+      await Filesystem.writeFile({
+        path: `Download/${filename}`,
+        data: base64,
+        directory: Directory.ExternalStorage,
+        recursive: true,
+      });
+      alert(`"${filename}" 파일이 다운로드 폴더에 저장되었습니다.`);
+      return true;
+    } catch {
+      await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+      alert(`"${filename}" 파일이 Documents 폴더에 저장되었습니다.`);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Filesystem download failed, falling back:', err);
+    return false;
+  }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

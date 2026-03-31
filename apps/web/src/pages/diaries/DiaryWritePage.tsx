@@ -96,6 +96,7 @@ export function DiaryWritePage() {
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const isUserInputRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -377,15 +378,14 @@ export function DiaryWritePage() {
 
   const applyTextStyle = (style: TextStyle) => {
     setSelectedTextStyle(style);
+    restoreSelection();
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
-      // If no selection, apply to current cursor position (next text)
       return;
     }
 
     const range = selection.getRangeAt(0);
     
-    // If collapsed selection (no text selected), don't apply
     if (range.collapsed) {
       return;
     }
@@ -418,6 +418,7 @@ export function DiaryWritePage() {
 
   const applyTextColor = (color: string) => {
     setTextColor(color);
+    restoreSelection();
     const selection = window.getSelection();
     
     if (selection && selection.rangeCount > 0) {
@@ -455,6 +456,30 @@ export function DiaryWritePage() {
     handleContentChange();
   };
 
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const currentRange = sel.getRangeAt(0);
+      if (contentEditableRef.current?.contains(currentRange.startContainer) && !currentRange.collapsed) {
+        return;
+      }
+    }
+    const range = savedSelectionRef.current;
+    if (range) {
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  };
+
   const updateActiveFormats = () => {
     const formats = new Set<FormatType>();
     if (document.queryCommandState('bold')) formats.add('bold');
@@ -467,7 +492,9 @@ export function DiaryWritePage() {
   };
 
   const handleFormatToggle = (format: FormatType) => {
+    restoreSelection();
     applyFormat(format);
+    saveSelection();
   };
 
 
@@ -939,52 +966,54 @@ export function DiaryWritePage() {
             </div>
 
           </form>
-          <div
-            className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
-            style={{
-              bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
-              paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
-            }}
-          >
-            <div className="max-w-md mx-auto">
-              <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
-                <button
-                  type="button"
-                  onClick={() => setShowFormatMenu(true)}
-                  className="cursor-pointer p-1"
-                >
-                  <Type className="w-6 h-6 text-gray-600" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCameraClick}
-                  className="cursor-pointer p-1"
-                >
-                  <Camera className="w-6 h-6 text-gray-600" />
-                </button>
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-                <label className="cursor-pointer p-1">
-                  <ImageIcon className="w-6 h-6 text-gray-600" />
+          {!showFormatMenu && !showColorPicker && (
+            <div
+              className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
+              style={{
+                bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
+                paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
+              }}
+            >
+              <div className="max-w-md mx-auto">
+                <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
+                  <button
+                    type="button"
+                    onPointerDown={(e) => { e.preventDefault(); saveSelection(); }}
+                    onClick={() => setShowFormatMenu(true)}
+                    className="cursor-pointer p-1"
+                  >
+                    <Type className="w-6 h-6 text-gray-600" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCameraClick}
+                    className="cursor-pointer p-1"
+                  >
+                    <Camera className="w-6 h-6 text-gray-600" />
+                  </button>
                   <input
+                    ref={cameraInputRef}
                     type="file"
-                    multiple
                     accept="image/*"
+                    capture="environment"
                     onChange={handleImageSelect}
                     className="hidden"
                   />
-                </label>
+                  <label className="cursor-pointer p-1">
+                    <ImageIcon className="w-6 h-6 text-gray-600" />
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Format Menu */}
           {showFormatMenu && (
             <FormatMenu
               onClose={() => setShowFormatMenu(false)}
@@ -1177,48 +1206,50 @@ export function DiaryWritePage() {
 
         </form>
       </div>
-      <div
-        className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
-        style={{
-          bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
-          paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
-        }}
-      >
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
-            <button
-              type="button"
-              onClick={() => setShowFormatMenu(true)}
-              className="cursor-pointer p-1"
-            >
-              <Type className="w-6 h-6 text-gray-600" />
-            </button>
-            <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
-              <Camera className="w-6 h-6 text-gray-600" />
-            </button>
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-            <label className="cursor-pointer p-1">
-              <ImageIcon className="w-6 h-6 text-gray-600" />
+      {!showFormatMenu && !showColorPicker && (
+        <div
+          className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
+          style={{
+            bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
+            paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
+              <button
+                type="button"
+                onPointerDown={(e) => { e.preventDefault(); saveSelection(); }}
+                onClick={() => setShowFormatMenu(true)}
+                className="cursor-pointer p-1"
+              >
+                <Type className="w-6 h-6 text-gray-600" />
+              </button>
+              <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
+                <Camera className="w-6 h-6 text-gray-600" />
+              </button>
               <input
+                ref={cameraInputRef}
                 type="file"
-                multiple
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageSelect}
                 className="hidden"
               />
-            </label>
+              <label className="cursor-pointer p-1">
+                <ImageIcon className="w-6 h-6 text-gray-600" />
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Format Menu for question-based */}
       {showFormatMenu && (
         <FormatMenu
           onClose={() => setShowFormatMenu(false)}

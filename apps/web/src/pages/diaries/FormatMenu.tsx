@@ -32,12 +32,19 @@ export function FormatMenu({
     { value: 'mono', label: '모노 스타' },
   ];
 
+  const preventBlur = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
+    <div
+      className="fixed left-0 right-0 z-50"
+      style={{ bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px' }}
+      onPointerDown={preventBlur}
+    >
       <div
         className="w-full max-w-md mx-auto animate-modal-sheet"
-        style={{ backgroundColor: '#D1D1D6', marginBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}
-        onClick={(e) => e.stopPropagation()}
+        style={{ backgroundColor: '#D1D1D6' }}
       >
         <div className="px-4 pt-3 pb-1 flex items-center justify-between">
           <span className="text-[15px] font-medium text-black">포맷</span>
@@ -52,6 +59,7 @@ export function FormatMenu({
               {textStyles.map((style) => (
                 <button
                   key={style.value}
+                  onPointerDown={preventBlur}
                   onClick={() => onStyleSelect(style.value)}
                   className={`px-4 py-[6px] rounded-md text-[15px] font-medium transition-colors whitespace-nowrap ${
                     selectedStyle === style.value
@@ -67,6 +75,7 @@ export function FormatMenu({
 
           <div className="rounded-lg overflow-hidden flex" style={{ backgroundColor: '#C7C7CC' }}>
             <button
+              onPointerDown={preventBlur}
               onClick={() => onFormatToggle('bold')}
               className={`flex-1 py-[10px] text-[16px] font-bold transition-colors ${
                 activeFormats.has('bold')
@@ -78,6 +87,7 @@ export function FormatMenu({
             </button>
             <div className="w-[1px]" style={{ backgroundColor: '#C7C7CC' }} />
             <button
+              onPointerDown={preventBlur}
               onClick={() => onFormatToggle('italic')}
               className={`flex-1 py-[10px] text-[16px] italic transition-colors ${
                 activeFormats.has('italic')
@@ -89,6 +99,7 @@ export function FormatMenu({
             </button>
             <div className="w-[1px]" style={{ backgroundColor: '#C7C7CC' }} />
             <button
+              onPointerDown={preventBlur}
               onClick={() => onFormatToggle('underline')}
               className={`flex-1 py-[10px] text-[16px] underline transition-colors ${
                 activeFormats.has('underline')
@@ -100,6 +111,7 @@ export function FormatMenu({
             </button>
             <div className="w-[1px]" style={{ backgroundColor: '#C7C7CC' }} />
             <button
+              onPointerDown={preventBlur}
               onClick={() => onFormatToggle('strikethrough')}
               className={`flex-1 py-[10px] text-[16px] line-through transition-colors ${
                 activeFormats.has('strikethrough')
@@ -114,6 +126,7 @@ export function FormatMenu({
           <div className="flex items-center justify-between">
             <div className="rounded-lg overflow-hidden flex" style={{ backgroundColor: '#C7C7CC', width: 'calc(50% - 0.25rem)' }}>
               <button
+                onPointerDown={preventBlur}
                 onClick={() => onFormatToggle('orderedList')}
                 className={`flex-1 py-[10px] flex items-center justify-center transition-colors ${
                   activeFormats.has('orderedList')
@@ -125,6 +138,7 @@ export function FormatMenu({
               </button>
               <div className="w-[1px]" style={{ backgroundColor: '#C7C7CC' }} />
               <button
+                onPointerDown={preventBlur}
                 onClick={() => onFormatToggle('unorderedList')}
                 className={`flex-1 py-[10px] flex items-center justify-center transition-colors ${
                   activeFormats.has('unorderedList')
@@ -136,6 +150,7 @@ export function FormatMenu({
               </button>
             </div>
             <button
+              onPointerDown={preventBlur}
               onClick={() => {
                 onClose();
                 onColorSelect();

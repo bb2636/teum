@@ -29,7 +29,7 @@ export class PaymentController {
         });
       }
 
-      const allowedMethods = ['CARD', 'BANK', 'CELLPHONE'];
+      const allowedMethods = ['CARD'];
       if (!allowedMethods.includes(paymentMethod)) {
         return res.status(400).json({
           success: false,

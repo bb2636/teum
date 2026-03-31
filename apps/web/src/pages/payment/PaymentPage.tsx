@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-type PaymentMethod = 'CARD' | 'BANK' | 'CELLPHONE';
+type PaymentMethod = 'CARD';
 
 const NICEPAY_CARD_COMPANIES = [
   { code: '06', name: '신한카드' },
@@ -45,7 +45,7 @@ export function PaymentPage() {
     };
   }, [setHideTabBar]);
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const paymentMethod: PaymentMethod = 'CARD';
   const [cardCode, setCardCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
@@ -62,20 +62,11 @@ export function PaymentPage() {
     return `${y}.${m}.${d}`;
   }, []);
 
-  const isPaymentMethodValid = () => {
-    if (!paymentMethod) return false;
-    if (paymentMethod === 'CARD' && !cardCode) return false;
-    return true;
-  };
-
-  const isButtonEnabled = isPaymentMethodValid();
+  const isButtonEnabled = !!cardCode;
 
   const handlePaymentClick = () => {
-    if (!isPaymentMethodValid()) {
-      if (paymentMethod === 'CARD' && !cardCode) {
-        alert(t('payment.selectCardCompany'));
-        return;
-      }
+    if (!cardCode) {
+      alert(t('payment.selectCardCompany'));
       return;
     }
     setShowTermsSheet(true);
@@ -89,11 +80,6 @@ export function PaymentPage() {
   };
 
   const handleConfirmPayment = async () => {
-    if (!paymentMethod) {
-      alert(t('payment.selectPaymentMethod'));
-      return;
-    }
-
     setIsProcessing(true);
     setShowConfirmModal(false);
 
@@ -228,78 +214,29 @@ export function PaymentPage() {
             <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">{t('payment.method')}</h2>
 
             <div className="space-y-3 mb-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="CARD"
-                  checked={paymentMethod === 'CARD'}
-                  onChange={(e) => {
-                    setPaymentMethod(e.target.value as PaymentMethod);
-                    setCardCode('');
-                  }}
-                  className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
-                />
-                <span className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</span>
-              </label>
-
-              {paymentMethod === 'CARD' && (
-                <div className="ml-8 relative">
-                  <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">
-                    <span className="text-sm text-gray-600">
-                      {NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode)?.name || t('payment.selectCard')}
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <select
-                    value={cardCode}
-                    onChange={(e) => setCardCode(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  >
-                    <option value="">{t('payment.selectCard')}</option>
-                    {NICEPAY_CARD_COMPANIES.map((card) => (
-                      <option key={card.code} value={card.code}>
-                        {card.name}
-                      </option>
-                    ))}
-                  </select>
+              <p className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</p>
+              <div className="relative">
+                <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">
+                  <span className="text-sm text-gray-600">
+                    {NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode)?.name || t('payment.selectCard')}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
-              )}
+                <select
+                  value={cardCode}
+                  onChange={(e) => setCardCode(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                >
+                  <option value="">{t('payment.selectCard')}</option>
+                  {NICEPAY_CARD_COMPANIES.map((card) => (
+                    <option key={card.code} value={card.code}>
+                      {card.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="space-y-3 mb-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="BANK"
-                  checked={paymentMethod === 'BANK'}
-                  onChange={(e) => {
-                    setPaymentMethod(e.target.value as PaymentMethod);
-                    setCardCode('');
-                  }}
-                  className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
-                />
-                <span className="font-medium text-[#4A2C1A]">{t('payment.bankTransfer')}</span>
-              </label>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="CELLPHONE"
-                  checked={paymentMethod === 'CELLPHONE'}
-                  onChange={(e) => {
-                    setPaymentMethod(e.target.value as PaymentMethod);
-                    setCardCode('');
-                  }}
-                  className="w-5 h-5 text-[#665146] focus:ring-[#665146]"
-                />
-                <span className="font-medium text-[#4A2C1A]">{t('payment.mobilePayment')}</span>
-              </label>
-            </div>
           </div>
         </div>
 

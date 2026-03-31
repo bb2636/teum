@@ -58,8 +58,6 @@ export class PaymentService {
 
     const nicepayMethodMap: Record<string, string> = {
       CARD: 'card',
-      BANK: 'bank',
-      CELLPHONE: 'cellphone',
     };
 
     return {

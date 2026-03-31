@@ -379,10 +379,10 @@ export function MusicHomePage() {
                   {job.status === 'completed' && job.audioUrl && (
                     <div
                       role="button"
-                      onClick={(e) => handleDownload(e, job)}
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDownload(e, job); }}
                       className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 flex-shrink-0"
                     >
-                      <Play className="w-3.5 h-3.5 text-gray-600" />
+                      <Download className="w-3.5 h-3.5 text-gray-600" />
                     </div>
                   )}
                 </button>

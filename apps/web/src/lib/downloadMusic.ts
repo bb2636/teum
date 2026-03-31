@@ -71,15 +71,7 @@ async function handleIOSDownload(downloadUrl: string, filename: string, title?: 
       recursive: true,
     });
 
-    try {
-      const { Share } = await import('@capacitor/share');
-      await Share.share({
-        title: title || '음악 다운로드',
-        url: result.uri,
-      });
-    } catch {
-      alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
-    }
+    alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
   } catch (fsErr) {
     console.warn('iOS filesystem download failed:', fsErr);
     try {

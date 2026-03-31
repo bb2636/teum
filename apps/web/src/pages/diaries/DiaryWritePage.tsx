@@ -207,21 +207,41 @@ export function DiaryWritePage() {
   };
 
   useEffect(() => {
+    let cleanups: (() => void)[] = [];
+
     if (Capacitor.isNativePlatform()) {
-      let showListener: any;
-      let hideListener: any;
+      let pluginWorking = false;
       import('@capacitor/keyboard').then(({ Keyboard }) => {
-        showListener = Keyboard.addListener('keyboardWillShow', (info) => {
+        const showP = Keyboard.addListener('keyboardWillShow', (info) => {
+          pluginWorking = true;
           setKeyboardHeight(info.keyboardHeight);
         });
-        hideListener = Keyboard.addListener('keyboardWillHide', () => {
+        const hideP = Keyboard.addListener('keyboardWillHide', () => {
           setKeyboardHeight(0);
         });
+        cleanups.push(() => {
+          showP.then?.((h: any) => h.remove());
+          hideP.then?.((h: any) => h.remove());
+        });
       }).catch(() => {});
-      return () => {
-        if (showListener) showListener.then?.((h: any) => h.remove());
-        if (hideListener) hideListener.then?.((h: any) => h.remove());
-      };
+
+      const vv = window.visualViewport;
+      if (vv) {
+        let lastKbHeight = 0;
+        const handleViewport = () => {
+          if (pluginWorking) return;
+          const kbHeight = window.innerHeight - vv.height;
+          const newHeight = kbHeight > 50 ? kbHeight : 0;
+          if (newHeight !== lastKbHeight) {
+            lastKbHeight = newHeight;
+            setKeyboardHeight(newHeight);
+          }
+        };
+        vv.addEventListener('resize', handleViewport);
+        cleanups.push(() => vv.removeEventListener('resize', handleViewport));
+      }
+
+      return () => cleanups.forEach(fn => fn());
     }
 
     const vv = window.visualViewport;
@@ -695,7 +715,15 @@ export function DiaryWritePage() {
         }
       }
     } else {
-      cameraInputRef.current?.click();
+      if (cameraInputRef.current) {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          cameraInputRef.current.setAttribute('capture', 'environment');
+        } else {
+          cameraInputRef.current.removeAttribute('capture');
+        }
+        cameraInputRef.current.click();
+      }
     }
   };
 
@@ -1010,7 +1038,6 @@ export function DiaryWritePage() {
                     ref={cameraInputRef}
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handleImageSelect}
                     className="hidden"
                   />
@@ -1260,7 +1287,6 @@ export function DiaryWritePage() {
                 ref={cameraInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handleImageSelect}
                 className="hidden"
               />

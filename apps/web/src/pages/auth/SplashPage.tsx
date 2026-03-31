@@ -99,6 +99,8 @@ export function SplashPage() {
 
       if (isNewUser === 'true') {
         if (!unmounted) {
+          localStorage.clear();
+          forceFullCacheClear();
           navigate('/social-onboarding', {
             state: {
               socialProfile: {
@@ -119,6 +121,7 @@ export function SplashPage() {
       if (token) {
         sessionStorage.removeItem('teum_oauth_pending');
         try {
+          localStorage.clear();
           forceFullCacheClear();
           const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
             method: 'POST',
@@ -126,6 +129,7 @@ export function SplashPage() {
           });
           if (unmounted) return;
           sessionStorage.removeItem('teum_logged_out');
+          localStorage.clear();
           forceFullCacheClear();
           if (result.data.role === 'admin') {
             window.location.href = '/admin';
@@ -182,6 +186,7 @@ export function SplashPage() {
             if (unmounted) return;
             if (meRes?.data?.id) {
               sessionStorage.removeItem('teum_logged_out');
+              localStorage.clear();
               forceFullCacheClear();
               if (meRes.data.role === 'admin') {
                 window.location.href = '/admin';

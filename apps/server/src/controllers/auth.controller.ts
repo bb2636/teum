@@ -20,49 +20,7 @@ import { userRepository } from '../repositories/user.repository';
 const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: string; user: { id: string; role: string }; expiresAt: number }>();
 
 function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
-  const pathAndQuery = deepLinkUrl.replace('com.teum.app://', '');
-  const intentUrl = `intent://${pathAndQuery}#Intent;scheme=com.teum.app;S.browser_fallback_url=${encodeURIComponent(deepLinkUrl)};end`;
-
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:18px;margin-bottom:12px}p{font-size:14px;opacity:0.8;margin-bottom:20px}.btn{display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}</style></head>
-<body><div class="c"><h2>로그인 처리 중...</h2><p id="msg">자동으로 앱으로 이동합니다.</p><a id="openBtn" class="btn" href="${deepLinkUrl}">앱으로 돌아가기</a></div>
-<script>
-(function(){
-  var deepLink="${deepLinkUrl}";
-  var intentLink="${intentUrl}";
-  var tried=0;
-  function tryOpen(){
-    tried++;
-    if(tried>3){
-      document.getElementById("msg").textContent="아래 버튼을 눌러 앱으로 돌아가세요.";
-      return;
-    }
-    window.location.href=deepLink;
-    setTimeout(function(){
-      if(!document.hidden){
-        if(tried===1){
-          window.location.href=intentLink;
-        } else {
-          window.location.href=deepLink;
-        }
-        setTimeout(function(){
-          if(!document.hidden){tryOpen();}
-        },1500);
-      }
-    },800);
-  }
-  var btn=document.getElementById("openBtn");
-  if(btn){
-    btn.addEventListener("click",function(e){
-      e.preventDefault();
-      tried=0;
-      window.location.href=deepLink;
-    });
-  }
-  setTimeout(tryOpen,300);
-})();
-</script></body></html>`);
+  res.redirect(deepLinkUrl);
 }
 
 setInterval(() => {

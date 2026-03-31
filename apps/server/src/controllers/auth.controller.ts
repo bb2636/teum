@@ -31,12 +31,17 @@ function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
 (function(){
   var deepLink="${deepLinkUrl}";
   var intentLink="${intentUrl}";
-  var isAndroid=/android/i.test(navigator.userAgent);
+  var ua=navigator.userAgent||"";
+  var isAndroid=/android/i.test(ua);
+  var isChrome=/Chrome\\//.test(ua)&&!/SamsungBrowser/.test(ua)&&!/OPR\\//.test(ua)&&!/Edg\\//.test(ua);
   var tried=0;
   function tryOpen(){
     tried++;
-    if(tried>3)return;
-    if(isAndroid){
+    if(tried>3){
+      document.getElementById("msg").textContent="아래 버튼을 눌러 앱으로 돌아가세요.";
+      return;
+    }
+    if(isAndroid&&isChrome){
       window.location.href=intentLink;
     } else {
       window.location.href=deepLink;
@@ -50,13 +55,8 @@ function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
     btn.addEventListener("click",function(e){
       e.preventDefault();
       tried=0;
-      if(isAndroid){
-        window.location.href=intentLink;
-      } else {
-        window.location.href=deepLink;
-      }
+      window.location.href=deepLink;
     });
-    if(isAndroid){btn.href=intentLink;}
   }
   setTimeout(tryOpen,300);
 })();

@@ -23,7 +23,7 @@ const COUNTRY_TO_LANGUAGE: Record<string, string> = {
   AT: 'de',
   CH: 'de',
   // 프랑스
-  FR: 'be',
+  FR: 'fr',
   // 스페인
   ES: 'es',
   MX: 'es',

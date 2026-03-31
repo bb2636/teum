@@ -25,6 +25,7 @@ export class EncouragementService {
       content?: string;
       type: 'free_form' | 'question_based';
       answers?: Array<{ question: string; answer: string }>;
+      language?: string;
     }
   ): Promise<void> {
     const enabled = process.env.AI_ENCOURAGEMENT_ENABLED === 'true';
@@ -52,8 +53,9 @@ export class EncouragementService {
         messagePreview: message?.substring(0, 100) || 'empty',
       });
 
-      // Only save if we got a valid message (not fallback)
-      if (message && message.trim() && !message.includes('오늘 하루도 수고하셨어요')) {
+      const fallbackMessages = ['오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.', 'Great job today. Your record is precious.'];
+      const isFallback = fallbackMessages.some(fb => message === fb);
+      if (message && message.trim() && !isFallback) {
         // Save to ai_feedback table
         await db.insert(aiFeedback).values({
           userId,

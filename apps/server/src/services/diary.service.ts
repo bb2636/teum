@@ -3,9 +3,11 @@ import { db } from '../db';
 import { diaryRepository } from '../repositories/diary.repository';
 import { folderRepository } from '../repositories/folder.repository';
 import { questionRepository } from '../repositories/question.repository';
+import { userRepository } from '../repositories/user.repository';
 import { questionService } from './question.service';
 import { encouragementService } from './ai/encouragement.service';
 import { summaryService } from './ai/summary.service';
+import { getLanguageFromCountry } from '../utils/country-to-language';
 import { logger } from '../config/logger';
 
 export class DiaryService {
@@ -125,7 +127,17 @@ export class DiaryService {
       });
     }
 
-    // Generate AI encouragement synchronously so it's included in the response
+    // Get user language from profile country
+    let userLanguage = 'ko';
+    try {
+      const userWithProfile = await userRepository.findByIdWithProfile(userId);
+      if (userWithProfile?.profile?.country) {
+        userLanguage = getLanguageFromCountry(userWithProfile.profile.country);
+      }
+    } catch (err) {
+      logger.warn('Failed to fetch user language, defaulting to ko', { userId });
+    }
+
     logger.info('Generating AI encouragement', {
       diaryId: diary.id,
       type: data.type,
@@ -133,6 +145,7 @@ export class DiaryService {
       contentLength: data.content?.length || 0,
       hasAnswers: questionAnswers.length > 0,
       answersCount: questionAnswers.length,
+      userLanguage,
     });
 
     try {
@@ -142,12 +155,14 @@ export class DiaryService {
           content: data.content,
           type: data.type,
           answers: questionAnswers,
+          language: userLanguage,
         }),
         summaryService.generateAndSaveSummary(diary.id, {
           title: data.title,
           content: data.content,
           type: data.type,
           answers: questionAnswers,
+          language: userLanguage,
         }),
       ]);
     } catch (error) {
@@ -260,11 +275,22 @@ export class DiaryService {
         });
       }
       
+      let updateLanguage = 'ko';
+      try {
+        const userWithProfile = await userRepository.findByIdWithProfile(userId);
+        if (userWithProfile?.profile?.country) {
+          updateLanguage = getLanguageFromCountry(userWithProfile.profile.country);
+        }
+      } catch (err) {
+        logger.warn('Failed to fetch user language for update, defaulting to ko', { userId });
+      }
+
       const aiData = {
         title: updatedDiary.title || undefined,
         content: updatedDiary.content || undefined,
         type: updatedDiary.type,
         answers: questionAnswers.length > 0 ? questionAnswers : undefined,
+        language: updateLanguage,
       };
       Promise.all([
         encouragementService.generateAndSaveEncouragement(id, userId, aiData),

@@ -12,6 +12,7 @@ export class SummaryService {
       content?: string;
       type: 'free_form' | 'question_based';
       answers?: Array<{ question: string; answer: string }>;
+      language?: string;
     }
   ): Promise<void> {
     const enabled = process.env.AI_ENCOURAGEMENT_ENABLED === 'true';

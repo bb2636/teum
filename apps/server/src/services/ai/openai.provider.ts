@@ -50,16 +50,30 @@ export class OpenAIProvider implements AIProvider {
     }
   }
 
+  private getLanguageName(langCode: string): string {
+    const map: Record<string, string> = {
+      ko: 'Korean', en: 'English', ja: 'Japanese', zh: 'Chinese',
+      de: 'German', es: 'Spanish', fr: 'French', it: 'Italian',
+      pt: 'Portuguese', ru: 'Russian', ar: 'Arabic', vi: 'Vietnamese',
+      th: 'Thai', nl: 'Dutch', sv: 'Swedish', no: 'Norwegian',
+      da: 'Danish', fi: 'Finnish', pl: 'Polish', tr: 'Turkish',
+      id: 'Indonesian', ms: 'Malay', tl: 'Filipino',
+    };
+    return map[langCode] || 'English';
+  }
+
   async generateEncouragement(input: {
     title?: string;
     content?: string;
     type: 'free_form' | 'question_based';
     answers?: Array<{ question: string; answer: string }>;
+    language?: string;
   }): Promise<string> {
     if (!this.enabled || !this.client) {
-      // Fallback message if AI is disabled
       logger.warn('OpenAI provider is disabled, returning fallback message');
-      return '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+      return input.language && input.language !== 'ko'
+        ? 'Great job today. Your record is precious.'
+        : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
     }
 
     try {
@@ -90,7 +104,9 @@ export class OpenAIProvider implements AIProvider {
         const validAnswers = input.answers.filter(qa => qa.answer?.trim());
         if (validAnswers.length === 0) {
           logger.warn('No valid answers found for question-based diary');
-          return '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+          return input.language && input.language !== 'ko'
+            ? 'Great job today. Your record is precious.'
+            : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
         }
         
         diaryText += '\n\n=== 질문과 답변 ===\n\n';
@@ -105,13 +121,19 @@ export class OpenAIProvider implements AIProvider {
 
         if (!diaryText.trim()) {
           logger.warn('Diary text is empty after processing answers');
-          return '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+          return input.language && input.language !== 'ko'
+            ? 'Great job today. Your record is precious.'
+            : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
         }
         
         logger.info('Diary text prepared for AI', { 
           textLength: diaryText.length,
           preview: diaryText.substring(0, 200),
         });
+
+        const lang = input.language || 'ko';
+        const langName = this.getLanguageName(lang);
+        const langRule = lang !== 'ko' ? `\n- You MUST write your response in ${langName}` : '';
 
         prompt = `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다.
 
@@ -133,15 +155,20 @@ export class OpenAIProvider implements AIProvider {
 - 사용자의 답변에서 느껴지는 감정과 경험에 공감하며 응원하는 메시지를 작성하세요
 - 매번 다른 표현과 관점으로 메시지를 작성하세요 (반복하지 마세요)
 - 구체적인 내용을 언급하거나 그에 대한 공감을 표현하세요
-- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요
+- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요${langRule}
 
 일기 내용:
 ${diaryText.substring(0, 2000)}`;
       } else {
-        // 자유형식일 때는 기존 로직
         if (!diaryText.trim()) {
-          return '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+          return input.language && input.language !== 'ko'
+            ? 'Great job today. Your record is precious.'
+            : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
         }
+
+        const lang = input.language || 'ko';
+        const langName = this.getLanguageName(lang);
+        const langRule = lang !== 'ko' ? `\n- You MUST write your response in ${langName}` : '';
 
         prompt = `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다.
 
@@ -161,7 +188,7 @@ ${diaryText.substring(0, 2000)}`;
 - 이모지를 사용하지 마세요
 - 매번 다른 표현과 관점으로 메시지를 작성하세요 (반복하지 마세요)
 - 구체적인 내용을 언급하거나 그에 대한 공감을 표현하세요
-- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요
+- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요${langRule}
 
 일기 내용:
 ${diaryText.substring(0, 2000)}`;
@@ -183,6 +210,12 @@ ${diaryText.substring(0, 2000)}`;
         throw error;
       }
       
+      const lang = input.language || 'ko';
+      const langName = this.getLanguageName(lang);
+      const systemLangNote = lang !== 'ko'
+        ? ` Always respond in ${langName}.`
+        : '';
+
       let response;
       try {
         response = await this.client.chat.completions.create({
@@ -190,7 +223,7 @@ ${diaryText.substring(0, 2000)}`;
           messages: [
             {
               role: 'system',
-              content: '당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다. 매번 다른 관점과 표현으로 개인화된 메시지를 한 문장으로 작성하세요. 반복하지 마세요.',
+              content: `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다. 매번 다른 관점과 표현으로 개인화된 메시지를 한 문장으로 작성하세요. 반복하지 마세요.${systemLangNote}`,
             },
             {
               role: 'user',
@@ -322,6 +355,7 @@ ${diaryText.substring(0, 2000)}`;
     content?: string;
     type: 'free_form' | 'question_based';
     answers?: Array<{ question: string; answer: string }>;
+    language?: string;
   }): Promise<string> {
     if (!this.enabled || !this.client) {
       return '';
@@ -354,6 +388,11 @@ ${diaryText.substring(0, 2000)}`;
 
       if (!diaryText.trim()) return '';
 
+      const lang = input.language || 'ko';
+      const langName = this.getLanguageName(lang);
+      const langRule = lang !== 'ko' ? `- You MUST write your response in ${langName}\n` : '';
+      const systemLangNote = lang !== 'ko' ? ` Always respond in ${langName}.` : '';
+
       const questionBasedRules = isQuestionBased
         ? `- 질문과 답변을 하나의 흐름으로 연결하여 요약 (질문 내용도 반영)\n`
         : '';
@@ -366,7 +405,7 @@ ${diaryText.substring(0, 2000)}`;
 - "사용자"라는 단어 절대 쓰지 않기
 - 이모지 쓰지 않기
 - 최대 2문장
-${questionBasedRules}
+${questionBasedRules}${langRule}
 일기:
 ${diaryText.substring(0, 2000)}`;
 
@@ -375,7 +414,7 @@ ${diaryText.substring(0, 2000)}`;
         messages: [
           {
             role: 'system',
-            content: '일기 내용을 1-2문장으로 짧게 요약하는 도우미. "사용자"라는 단어는 절대 쓰지 않는다.',
+            content: `일기 내용을 1-2문장으로 짧게 요약하는 도우미. "사용자"라는 단어는 절대 쓰지 않는다.${systemLangNote}`,
           },
           {
             role: 'user',

@@ -616,7 +616,6 @@ export function ProfileEditPage() {
                   type="button"
                   onClick={() => {
                     setValue('country', value);
-                    setLanguageFromCountry(value);
                     setShowCountryList(false);
                   }}
                   className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"

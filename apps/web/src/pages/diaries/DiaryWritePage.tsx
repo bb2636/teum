@@ -709,7 +709,7 @@ export function DiaryWritePage() {
     setShowFolderModal(false);
     if (!folderId || folderId.trim() === '') {
       console.error('Invalid folderId:', folderId);
-      alert('폴더를 선택해주세요.');
+      alert(t('diary.selectFolder'));
       return;
     }
     const event = {
@@ -860,7 +860,7 @@ export function DiaryWritePage() {
       }
     } catch (error) {
       console.error('Failed to create diary:', error);
-      alert('일기 저장에 실패했습니다.');
+      alert(t('diary.saveFailed'));
     } finally {
       setUploading(false);
     }

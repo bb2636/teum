@@ -9,8 +9,10 @@ export async function downloadMusicFile(
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
   const capacitor = (window as any).Capacitor;
   const isNative = !!capacitor?.isNativePlatform?.();
+  const platform = capacitor?.getPlatform?.() || 'web';
+  const isIOS = platform === 'ios' || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  if (isNative) {
+  if (isNative || isIOS) {
     try {
       const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
         method: 'POST',
@@ -22,15 +24,24 @@ export async function downloadMusicFile(
       }
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      const platform = capacitor?.getPlatform?.() || 'web';
 
-      if (platform === 'ios') {
-        await handleIOSDownload(downloadUrl, filename, title);
-      } else {
-        const saved = await tryFilesystemDownload(downloadUrl, filename);
+      if (isNative && platform === 'android') {
+        const saved = await tryFilesystemDownload(downloadUrl, filename, 'android');
         if (saved) return;
+      }
 
-        await handleFallbackDownload(downloadUrl, title);
+      if (isNative && platform === 'ios') {
+        const saved = await tryFilesystemDownload(downloadUrl, filename, 'ios');
+        if (saved) return;
+      }
+
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url: downloadUrl });
+        return;
+      } catch {
+        window.open(downloadUrl, '_system');
+        return;
       }
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
@@ -54,58 +65,7 @@ export async function downloadMusicFile(
   }
 }
 
-async function handleIOSDownload(downloadUrl: string, filename: string, _title?: string): Promise<void> {
-  try {
-    const { Filesystem, Directory } = await import('@capacitor/filesystem');
-
-    const response = await fetch(downloadUrl);
-    if (!response.ok) throw new Error('파일을 가져올 수 없습니다');
-
-    const blob = await response.blob();
-    const base64 = await blobToBase64(blob);
-
-    await Filesystem.writeFile({
-      path: filename,
-      data: base64,
-      directory: Directory.Documents,
-      recursive: true,
-    });
-
-    alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
-  } catch (fsErr) {
-    console.warn('iOS filesystem download failed:', fsErr);
-    try {
-      const { Browser } = await import('@capacitor/browser');
-      await Browser.open({ url: downloadUrl });
-    } catch {
-      window.open(downloadUrl, '_blank');
-    }
-  }
-}
-
-async function handleFallbackDownload(downloadUrl: string, title?: string): Promise<void> {
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: `${title || '음악'} 다운로드`,
-        text: 'Chrome에서 열면 다운로드됩니다',
-        url: downloadUrl,
-      });
-      return;
-    } catch (shareErr: any) {
-      if (shareErr?.name === 'AbortError') return;
-    }
-  }
-
-  try {
-    await navigator.clipboard.writeText(downloadUrl);
-    alert('다운로드 링크가 복사되었습니다!\n\nChrome 브라우저를 열고 주소창에 붙여넣기 하면 다운로드가 시작됩니다.');
-  } catch {
-    prompt('아래 링크를 복사해서 Chrome 주소창에 붙여넣기 하세요:', downloadUrl);
-  }
-}
-
-async function tryFilesystemDownload(url: string, filename: string): Promise<boolean> {
+async function tryFilesystemDownload(url: string, filename: string, platform: string): Promise<boolean> {
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
@@ -115,27 +75,47 @@ async function tryFilesystemDownload(url: string, filename: string): Promise<boo
     const blob = await response.blob();
     const base64 = await blobToBase64(blob);
 
-    try {
-      await Filesystem.writeFile({
-        path: `Download/${filename}`,
-        data: base64,
-        directory: Directory.ExternalStorage,
-        recursive: true,
-      });
-      alert(`"${filename}" 파일이 다운로드 폴더에 저장되었습니다.`);
-      return true;
-    } catch {
-      await Filesystem.writeFile({
-        path: filename,
-        data: base64,
-        directory: Directory.Documents,
-        recursive: true,
-      });
-      alert(`"${filename}" 파일이 Documents 폴더에 저장되었습니다.`);
-      return true;
+    if (platform === 'android') {
+      try {
+        await Filesystem.writeFile({
+          path: `Download/${filename}`,
+          data: base64,
+          directory: Directory.ExternalStorage,
+          recursive: true,
+        });
+        alert(`"${filename}" 파일이 다운로드 폴더에 저장되었습니다.`);
+        return true;
+      } catch {
+        await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Documents,
+          recursive: true,
+        });
+        alert(`"${filename}" 파일이 Documents 폴더에 저장되었습니다.`);
+        return true;
+      }
     }
+
+    if (platform === 'ios') {
+      try {
+        await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Documents,
+          recursive: true,
+        });
+        alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
+        return true;
+      } catch (err) {
+        console.warn('iOS Filesystem write failed:', err);
+        return false;
+      }
+    }
+
+    return false;
   } catch (err) {
-    console.warn('Filesystem download failed, falling back:', err);
+    console.warn('Filesystem download failed:', err);
     return false;
   }
 }

@@ -171,10 +171,13 @@ export function useCreateDiary() {
       updateList(newDiary.folderId || '전체');
       if (newDiary.folderId) updateList('전체');
 
-      queryClient.invalidateQueries({ queryKey: ['diaries'] });
+      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
+      queryClient.invalidateQueries({
+        queryKey: ['diaries'],
+        predicate: (query) => !query.queryKey.includes('calendar'),
+      });
       queryClient.invalidateQueries({ queryKey: ['diaries', 'count'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });
 }
@@ -246,10 +249,8 @@ export function useUpdateDiary() {
       }
     },
     onSuccess: (updatedDiary) => {
-      // Update single diary cache
       queryClient.setQueryData<Diary>(['diary', updatedDiary.id], updatedDiary);
 
-      // Update list cache
       queryClient.setQueriesData<Diary[]>({ queryKey: ['diaries'] }, (old) => {
         if (!old) return undefined;
         return old.map((diary) =>
@@ -257,8 +258,11 @@ export function useUpdateDiary() {
         );
       });
 
-      queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
+      queryClient.invalidateQueries({
+        queryKey: ['diaries'],
+        predicate: (query) => !query.queryKey.includes('calendar'),
+      });
     },
   });
 }
@@ -300,10 +304,13 @@ export function useDeleteDiary() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['diaries'] });
+      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
+      queryClient.invalidateQueries({
+        queryKey: ['diaries'],
+        predicate: (query) => !query.queryKey.includes('calendar'),
+      });
       queryClient.invalidateQueries({ queryKey: ['diaries', 'count'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });
 }

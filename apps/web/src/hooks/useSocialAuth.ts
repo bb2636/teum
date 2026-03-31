@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/lib/api';
 import type { User } from './useAuth';
 
@@ -17,7 +16,8 @@ export function useGoogleLogin() {
 
   return useMutation({
     onMutate: () => {
-      queryClient.getQueryCache().clear();
+      queryClient.cancelQueries();
+      queryClient.clear();
     },
     mutationFn: async (idToken: string) => {
       const response = await apiRequest<{
@@ -34,7 +34,8 @@ export function useGoogleLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.getQueryCache().clear();
+      queryClient.cancelQueries();
+      queryClient.clear();
       if (!data.isNewUser) {
         sessionStorage.removeItem('teum_logged_out');
       }
@@ -47,7 +48,8 @@ export function useAppleLogin() {
 
   return useMutation({
     onMutate: () => {
-      queryClient.getQueryCache().clear();
+      queryClient.cancelQueries();
+      queryClient.clear();
     },
     mutationFn: async (data: {
       idToken: string;
@@ -71,7 +73,8 @@ export function useAppleLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.getQueryCache().clear();
+      queryClient.cancelQueries();
+      queryClient.clear();
       if (!data.isNewUser) {
         sessionStorage.removeItem('teum_logged_out');
       }
@@ -80,7 +83,6 @@ export function useAppleLogin() {
 }
 
 export function useSocialOnboarding() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -101,8 +103,9 @@ export function useSocialOnboarding() {
     },
     onSuccess: () => {
       sessionStorage.removeItem('teum_logged_out');
+      queryClient.cancelQueries();
       queryClient.clear();
-      navigate('/home');
+      window.location.href = '/home';
     },
   });
 }

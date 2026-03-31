@@ -454,9 +454,9 @@ export class AuthController {
       });
 
       if (loginResult.user.role === 'admin') {
-        return res.redirect('/admin');
+        return res.redirect('/login-redirect?to=/admin');
       }
-      return res.redirect('/home');
+      return res.redirect('/login-redirect');
     } catch (error) {
       console.error('Google OAuth callback error:', error);
       return res.redirect('/splash?error=login_failed');
@@ -555,9 +555,9 @@ export class AuthController {
       });
 
       if (loginResult.user.role === 'admin') {
-        return res.redirect('/admin');
+        return res.redirect('/login-redirect?to=/admin');
       }
-      return res.redirect('/home');
+      return res.redirect('/login-redirect');
     } catch (error) {
       console.error('Apple OAuth callback error:', error);
       return res.redirect('/splash?error=apple_login_failed');

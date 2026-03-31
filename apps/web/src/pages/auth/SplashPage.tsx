@@ -65,11 +65,12 @@ export function SplashPage() {
               navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
             } else if (result.user) {
               sessionStorage.removeItem('teum_logged_out');
+              queryClient.cancelQueries();
               queryClient.clear();
               if (result.user.role === 'admin') {
-                navigate('/admin');
+                window.location.href = '/admin';
               } else {
-                navigate('/home');
+                window.location.href = '/home';
               }
             }
           } catch (err) {

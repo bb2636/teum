@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/lib/api';
 
 export interface User {
@@ -15,12 +14,12 @@ export interface User {
 }
 
 export function useLogin() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
     onMutate: () => {
-      queryClient.getQueryCache().clear();
+      queryClient.cancelQueries();
+      queryClient.clear();
     },
     mutationFn: async (data: { email: string; password: string }) => {
       const response = await apiRequest<{ data: { user: User } }>('/auth/login', {
@@ -31,18 +30,18 @@ export function useLogin() {
     },
     onSuccess: (user) => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.getQueryCache().clear();
+      queryClient.cancelQueries();
+      queryClient.clear();
       if (user.role === 'admin') {
-        navigate('/admin');
+        window.location.href = '/admin';
       } else {
-        navigate('/home');
+        window.location.href = '/home';
       }
     },
   });
 }
 
 export function useSignup() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -64,8 +63,9 @@ export function useSignup() {
     },
     onSuccess: () => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.getQueryCache().clear();
-      navigate('/home');
+      queryClient.cancelQueries();
+      queryClient.clear();
+      window.location.href = '/home';
     },
   });
 }

@@ -13,30 +13,10 @@ export async function downloadMusicFile(
   const isIOS = platform === 'ios' || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   const downloadUrl = await getDownloadUrl(jobId, filename);
+  const targetUrl = downloadUrl || audioUrl;
 
   if (isNative) {
-    try {
-      if (platform === 'android') {
-        const saved = await tryNativeDownload(downloadUrl || audioUrl, filename, 'android');
-        if (saved) return;
-      }
-
-      if (platform === 'ios') {
-        const saved = await tryNativeDownload(downloadUrl || audioUrl, filename, 'ios');
-        if (saved) return;
-      }
-
-      try {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.open({ url: downloadUrl || audioUrl });
-        return;
-      } catch {
-        window.open(downloadUrl || audioUrl, '_system');
-        return;
-      }
-    } catch (err: any) {
-      alert(`다운로드 오류: ${err?.message || String(err)}`);
-    }
+    await handleNativeDownload(targetUrl, filename, platform);
     return;
   }
 
@@ -83,85 +63,88 @@ async function getDownloadUrl(jobId: string, filename: string): Promise<string |
   return null;
 }
 
-async function tryNativeDownload(url: string, filename: string, platform: string): Promise<boolean> {
+async function handleNativeDownload(url: string, filename: string, platform: string): Promise<void> {
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Download fetch failed: ${response.status}`);
-      return false;
-    }
-
-    const blob = await response.blob();
-    const base64 = await blobToBase64(blob);
-
     if (platform === 'android') {
       try {
-        await Filesystem.writeFile({
-          path: `Download/${filename}`,
-          data: base64,
-          directory: Directory.ExternalStorage,
-          recursive: true,
-        });
-        alert(`"${filename}" 파일이 다운로드 폴더에 저장되었습니다.`);
-        return true;
-      } catch (e1) {
-        console.warn('ExternalStorage write failed, trying Documents:', e1);
+        const permResult = await Filesystem.requestPermissions();
+        console.log('Filesystem permissions:', permResult);
+      } catch {
+        console.log('Permissions request not available (Android 10+)');
+      }
+    }
+
+    let base64Data: string;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      base64Data = await blobToBase64(blob);
+    } catch (fetchErr: any) {
+      alert(`파일 다운로드에 실패했습니다: ${fetchErr?.message || '네트워크 오류'}`);
+      return;
+    }
+
+    if (platform === 'android') {
+      const dirs = [
+        { path: `Download/${filename}`, dir: Directory.ExternalStorage, label: '다운로드 폴더' },
+        { path: filename, dir: Directory.Documents, label: 'Documents 폴더' },
+        { path: filename, dir: Directory.Data, label: '앱 저장소' },
+      ];
+      for (const { path, dir, label } of dirs) {
         try {
           await Filesystem.writeFile({
-            path: filename,
-            data: base64,
-            directory: Directory.Documents,
+            path,
+            data: base64Data,
+            directory: dir,
             recursive: true,
           });
-          alert(`"${filename}" 파일이 Documents 폴더에 저장되었습니다.`);
-          return true;
-        } catch (e2) {
-          console.warn('Documents write also failed:', e2);
-          try {
-            await Filesystem.writeFile({
-              path: filename,
-              data: base64,
-              directory: Directory.Cache,
-              recursive: true,
-            });
-            const fileUri = await Filesystem.getUri({
-              path: filename,
-              directory: Directory.Cache,
-            });
-            if (fileUri?.uri) {
-              alert(`파일이 저장되었습니다: ${fileUri.uri}`);
-              return true;
-            }
-          } catch (e3) {
-            console.warn('Cache write also failed:', e3);
-          }
+          alert(`"${filename}" 파일이 ${label}에 저장되었습니다.`);
+          return;
+        } catch (e) {
+          console.warn(`${label} write failed:`, e);
         }
       }
-      return false;
+      alert('파일 저장에 실패했습니다. 앱 설정에서 저장소 권한을 확인해주세요.');
+      return;
     }
 
     if (platform === 'ios') {
       try {
         await Filesystem.writeFile({
           path: filename,
-          data: base64,
+          data: base64Data,
           directory: Directory.Documents,
           recursive: true,
         });
         alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
-        return true;
+        return;
       } catch (err) {
-        console.warn('iOS Filesystem write failed:', err);
-        return false;
+        console.warn('iOS Documents write failed:', err);
       }
-    }
 
-    return false;
-  } catch (err) {
-    console.warn('Native download failed:', err);
-    return false;
+      try {
+        await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: Directory.Data,
+          recursive: true,
+        });
+        alert(`"${filename}" 파일이 앱 내부에 저장되었습니다.`);
+        return;
+      } catch (err2) {
+        console.warn('iOS Data write failed:', err2);
+      }
+
+      alert('파일 저장에 실패했습니다. 기기 저장 공간을 확인해주세요.');
+      return;
+    }
+  } catch (err: any) {
+    alert(`다운로드 오류: ${err?.message || String(err)}`);
   }
 }
 

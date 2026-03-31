@@ -20,17 +20,18 @@ export async function downloadMusicFile(
     return;
   }
 
+  if (isIOS) {
+    await handleIOSWebDownload(targetUrl, filename);
+    return;
+  }
+
   if (downloadUrl) {
-    if (isIOS) {
-      window.location.href = downloadUrl;
-    } else {
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     return;
   }
 
@@ -61,6 +62,35 @@ async function getDownloadUrl(jobId: string, filename: string): Promise<string |
     }
   } catch {}
   return null;
+}
+
+async function handleIOSWebDownload(url: string, filename: string): Promise<void> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const file = new File([blob], filename, { type: 'audio/mpeg' });
+
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: filename,
+      });
+      return;
+    }
+
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+  } catch (err: any) {
+    alert(`다운로드에 실패했습니다: ${err?.message || '네트워크 오류'}`);
+  }
 }
 
 async function handleNativeDownload(url: string, filename: string, platform: string): Promise<void> {

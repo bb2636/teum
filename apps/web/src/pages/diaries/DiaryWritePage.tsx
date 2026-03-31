@@ -94,6 +94,7 @@ export function DiaryWritePage() {
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
   const [textColor, setTextColor] = useState('#4A2C1A');
   const contentEditableRef = useRef<HTMLDivElement>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
   const isUserInputRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
@@ -933,7 +934,7 @@ export function DiaryWritePage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white">
+            <div ref={editorScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-white">
               <input
                 {...register('title')}
                 type="text"
@@ -958,7 +959,7 @@ export function DiaryWritePage() {
                   lineHeight: '24px',
                   fontSize: '16px',
                   paddingTop: '12px',
-                  paddingBottom: '120px',
+                  paddingBottom: showFormatMenu || showColorPicker ? '320px' : '120px',
                   wordWrap: 'break-word',
                   overflowWrap: 'break-word',
                 }}
@@ -979,7 +980,21 @@ export function DiaryWritePage() {
                   <button
                     type="button"
                     onPointerDown={(e) => { e.preventDefault(); saveSelection(); }}
-                    onClick={() => setShowFormatMenu(true)}
+                    onClick={() => {
+                      setShowFormatMenu(true);
+                      setTimeout(() => {
+                        const container = editorScrollRef.current;
+                        const sel = savedSelectionRef.current || (window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0) : null);
+                        if (container && sel) {
+                          const caretRect = sel.getBoundingClientRect();
+                          const containerRect = container.getBoundingClientRect();
+                          if (caretRect && caretRect.top > 0) {
+                            const offset = caretRect.top - containerRect.top + container.scrollTop - 100;
+                            container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+                          }
+                        }
+                      }, 50);
+                    }}
                     className="cursor-pointer p-1"
                   >
                     <Type className="w-6 h-6 text-gray-600" />
@@ -1219,7 +1234,21 @@ export function DiaryWritePage() {
               <button
                 type="button"
                 onPointerDown={(e) => { e.preventDefault(); saveSelection(); }}
-                onClick={() => setShowFormatMenu(true)}
+                onClick={() => {
+                  setShowFormatMenu(true);
+                  setTimeout(() => {
+                    const container = editorScrollRef.current;
+                    const sel = savedSelectionRef.current || (window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0) : null);
+                    if (container && sel) {
+                      const caretRect = sel.getBoundingClientRect();
+                      const containerRect = container.getBoundingClientRect();
+                      if (caretRect && caretRect.top > 0) {
+                        const offset = caretRect.top - containerRect.top + container.scrollTop - 100;
+                        container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+                      }
+                    }
+                  }, 50);
+                }}
                 className="cursor-pointer p-1"
               >
                 <Type className="w-6 h-6 text-gray-600" />

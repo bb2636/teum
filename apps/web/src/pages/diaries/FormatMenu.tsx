@@ -33,7 +33,7 @@ export function FormatMenu({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-overlay-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
       <div
         className="w-full max-w-md mx-auto animate-modal-sheet"
         style={{ backgroundColor: '#D1D1D6', marginBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}

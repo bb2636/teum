@@ -1080,6 +1080,11 @@ export function DiaryWritePage() {
                             }))
                           }
                           onClick={(e) => e.stopPropagation()}
+                          onFocus={(e) => {
+                            setTimeout(() => {
+                              e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 300);
+                          }}
                           placeholder="글쓰기 시작..."
                           className="flex-1 w-full min-h-[200px] mt-3 bg-gray-100 rounded-lg resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto p-3"
                           style={{

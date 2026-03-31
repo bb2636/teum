@@ -82,6 +82,7 @@ export function DiaryWritePage() {
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
   const [textColor, setTextColor] = useState('#4A2C1A');
   const contentEditableRef = useRef<HTMLDivElement>(null);
+  const isUserInputRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -255,10 +256,13 @@ export function DiaryWritePage() {
     };
   }, []);
 
-  // Update contentEditable when form content changes
+  // Update contentEditable when form content changes (only for external/programmatic changes)
   useEffect(() => {
+    if (isUserInputRef.current) {
+      isUserInputRef.current = false;
+      return;
+    }
     if (contentEditableRef.current && content !== contentEditableRef.current.innerHTML) {
-      // If content is HTML, use innerHTML; otherwise use innerText
       if (content && content.includes('<')) {
         contentEditableRef.current.innerHTML = content;
       } else {
@@ -301,7 +305,7 @@ export function DiaryWritePage() {
   // Handle contentEditable changes
   const handleContentChange = () => {
     if (contentEditableRef.current) {
-      // HTML을 순수 텍스트로 변환하여 저장
+      isUserInputRef.current = true;
       const html = contentEditableRef.current.innerHTML;
       const plainText = htmlToPlainText(html);
       const event = {

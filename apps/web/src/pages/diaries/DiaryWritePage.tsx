@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Type, Image as ImageIcon, Camera, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -57,14 +57,26 @@ export function DiaryWritePage() {
   const [showAdModal, setShowAdModal] = useState(false);
   const [pendingFolderId, setPendingFolderId] = useState<string | undefined>(undefined);
   
-  // Invalidate random questions cache when page mounts to get fresh questions
+  // Invalidate random questions cache when page mounts to get fresh questions (only for new diaries)
   useEffect(() => {
-    if (type === 'question_based') {
+    if (type === 'question_based' && !isEditMode) {
       queryClient.invalidateQueries({ queryKey: ['questions', 'random'] });
     }
-  }, [type, queryClient]);
+  }, [type, queryClient, isEditMode]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
+
+  const editQuestions = useMemo(() => {
+    if (isEditMode && existingDiary?.type === 'question_based' && existingDiary.answers) {
+      return existingDiary.answers.map((a) => ({
+        id: a.questionId,
+        question: a.question?.question || '삭제된 질문',
+      }));
+    }
+    return [];
+  }, [isEditMode, existingDiary]);
+
+  const activeQuestions = isEditMode ? editQuestions : randomQuestions;
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileToUrlMap, setFileToUrlMap] = useState<Map<File, string>>(new Map());
@@ -754,8 +766,8 @@ export function DiaryWritePage() {
 
       // Prepare answers for question-based diary
       const answerArray =
-        type === 'question_based' && randomQuestions.length > 0
-          ? randomQuestions
+        type === 'question_based' && activeQuestions.length > 0
+          ? activeQuestions
               .filter((q) => answers[q.id] && answers[q.id].trim())
               .map((q) => ({
                 questionId: q.id,
@@ -1040,12 +1052,12 @@ export function DiaryWritePage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-hidden px-4 py-5">
-            {questionsLoading ? (
+            {(isEditMode ? isLoadingDiary : questionsLoading) ? (
               <div className="text-center py-8 text-gray-500">질문을 불러오는 중...</div>
-            ) : randomQuestions.length > 0 ? (
+            ) : activeQuestions.length > 0 ? (
               // 3개 질문 카드: 클릭한 카드만 인라인으로 확장
               <div className="space-y-4 overflow-y-auto">
-                {randomQuestions.map((question) => (
+                {activeQuestions.map((question) => (
                   <div
                     key={question.id}
                     className={`w-full text-left bg-gray-100 rounded-xl transition-all ${

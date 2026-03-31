@@ -212,17 +212,20 @@ export function DiaryWritePage() {
 
     const vv = window.visualViewport;
     if (vv) {
+      let lastKbHeight = 0;
       const handleViewport = () => {
         const kbHeight = window.innerHeight - vv.height;
-        setKeyboardHeight(kbHeight > 50 ? kbHeight : 0);
+        const newHeight = kbHeight > 50 ? kbHeight : 0;
+        if (newHeight !== lastKbHeight) {
+          lastKbHeight = newHeight;
+          setKeyboardHeight(newHeight);
+        }
       };
 
       vv.addEventListener('resize', handleViewport);
-      vv.addEventListener('scroll', handleViewport);
 
       return () => {
         vv.removeEventListener('resize', handleViewport);
-        vv.removeEventListener('scroll', handleViewport);
       };
     }
 
@@ -911,7 +914,15 @@ export function DiaryWritePage() {
               />
             </div>
 
-            <div className="shrink-0 px-4 py-2 bg-white" style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
+          </form>
+          <div
+            className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
+            style={{
+              bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
+              paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
+            }}
+          >
+            <div className="max-w-md mx-auto">
               <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
                 <button
                   type="button"
@@ -947,7 +958,7 @@ export function DiaryWritePage() {
                 </label>
               </div>
             </div>
-          </form>
+          </div>
 
           {/* Format Menu */}
           {showFormatMenu && (
@@ -1140,39 +1151,47 @@ export function DiaryWritePage() {
             </div>
           )}
 
-          <div className="shrink-0 px-4 py-2 bg-white" style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
-            <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
-              <button
-                type="button"
-                onClick={() => setShowFormatMenu(true)}
-                className="cursor-pointer p-1"
-              >
-                <Type className="w-6 h-6 text-gray-600" />
-              </button>
-              <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
-                <Camera className="w-6 h-6 text-gray-600" />
-              </button>
+        </form>
+      </div>
+      <div
+        className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
+        style={{
+          bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
+          paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
+        }}
+      >
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-full shadow-lg px-4 py-3 flex items-center justify-center gap-4 w-fit">
+            <button
+              type="button"
+              onClick={() => setShowFormatMenu(true)}
+              className="cursor-pointer p-1"
+            >
+              <Type className="w-6 h-6 text-gray-600" />
+            </button>
+            <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
+              <Camera className="w-6 h-6 text-gray-600" />
+            </button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <label className="cursor-pointer p-1">
+              <ImageIcon className="w-6 h-6 text-gray-600" />
               <input
-                ref={cameraInputRef}
                 type="file"
+                multiple
                 accept="image/*"
-                capture="environment"
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <label className="cursor-pointer p-1">
-                <ImageIcon className="w-6 h-6 text-gray-600" />
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-              </label>
-            </div>
+            </label>
           </div>
-        </form>
+        </div>
       </div>
 
       {/* Format Menu for question-based */}

@@ -131,17 +131,8 @@ async function tryNativeDownload(url: string, filename: string, platform: string
               directory: Directory.Cache,
             });
             if (fileUri?.uri) {
-              try {
-                const { Share } = await import('@capacitor/share');
-                await Share.share({
-                  title: filename,
-                  url: fileUri.uri,
-                });
-                return true;
-              } catch {
-                alert(`파일이 저장되었습니다: ${fileUri.uri}`);
-                return true;
-              }
+              alert(`파일이 저장되었습니다: ${fileUri.uri}`);
+              return true;
             }
           } catch (e3) {
             console.warn('Cache write also failed:', e3);

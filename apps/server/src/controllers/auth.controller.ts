@@ -21,7 +21,7 @@ const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: st
 
 function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
   const pathAndQuery = deepLinkUrl.replace('com.teum.app://', '');
-  const intentUrl = `intent://${pathAndQuery}#Intent;scheme=com.teum.app;package=com.teum.app;end`;
+  const intentUrl = `intent://${pathAndQuery}#Intent;scheme=com.teum.app;S.browser_fallback_url=${encodeURIComponent(deepLinkUrl)};end`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
@@ -31,9 +31,6 @@ function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
 (function(){
   var deepLink="${deepLinkUrl}";
   var intentLink="${intentUrl}";
-  var ua=navigator.userAgent||"";
-  var isAndroid=/android/i.test(ua);
-  var isChrome=/Chrome\\//.test(ua)&&!/SamsungBrowser/.test(ua)&&!/OPR\\//.test(ua)&&!/Edg\\//.test(ua);
   var tried=0;
   function tryOpen(){
     tried++;
@@ -41,14 +38,19 @@ function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
       document.getElementById("msg").textContent="아래 버튼을 눌러 앱으로 돌아가세요.";
       return;
     }
-    if(isAndroid&&isChrome){
-      window.location.href=intentLink;
-    } else {
-      window.location.href=deepLink;
-    }
+    window.location.href=deepLink;
     setTimeout(function(){
-      if(!document.hidden){tryOpen();}
-    },1500);
+      if(!document.hidden){
+        if(tried===1){
+          window.location.href=intentLink;
+        } else {
+          window.location.href=deepLink;
+        }
+        setTimeout(function(){
+          if(!document.hidden){tryOpen();}
+        },1500);
+      }
+    },800);
   }
   var btn=document.getElementById("openBtn");
   if(btn){

@@ -49,14 +49,13 @@ export function LoginPage() {
     watch,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const email = watch('email');
   const password = watch('password');
   
-  // 버튼 활성화 조건: 이메일과 비밀번호가 모두 입력되어야 함
-  const isFormValid = email && email.length > 0 && password && password.length > 0 && !errors.email && !errors.password;
+  const isFormValid = email && email.length > 0 && password && password.length > 0;
 
   const onSubmit = async (data: LoginFormData) => {
     setError(null);

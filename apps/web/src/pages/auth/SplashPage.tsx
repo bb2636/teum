@@ -35,7 +35,11 @@ function getCapacitorPlatform(): { isNative: boolean; platform: string } {
   const cap = (window as any).Capacitor;
   const capNative = !!cap?.isNativePlatform?.();
   const isNative = capNative || isWebView();
-  const platform = cap?.getPlatform?.() || (isWebView() ? 'android' : 'web');
+  let platform = cap?.getPlatform?.() || 'web';
+  if (platform === 'web' && isWebView()) {
+    const ua = navigator.userAgent || '';
+    platform = /iPhone|iPad|iPod/.test(ua) ? 'ios' : 'android';
+  }
   return { isNative, platform };
 }
 
@@ -286,14 +290,15 @@ export function SplashPage() {
     const redirectUri = `${window.location.origin}/api/auth/google/callback`;
     const scope = 'openid email profile';
 
-    const { isNative } = getCapacitorPlatform();
+    const { isNative, platform } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
-    const state = isNative ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
+    const isIOS = platform === 'ios';
+    const state = (isNative && !isIOS) ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
     try { sessionStorage.setItem('oauth_nonce', nonce); } catch {}
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
 
-    if (isNative) {
+    if (isNative && !isIOS) {
       try { sessionStorage.setItem('teum_oauth_pending', String(Date.now())); } catch {}
       await openInBrowser(authUrl);
     } else {
@@ -311,14 +316,15 @@ export function SplashPage() {
     const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
     const scope = 'name email';
 
-    const { isNative } = getCapacitorPlatform();
+    const { isNative, platform } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
-    const state = isNative ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
+    const isIOS = platform === 'ios';
+    const state = (isNative && !isIOS) ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
     try { sessionStorage.setItem('oauth_nonce', nonce); } catch {}
 
     const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
 
-    if (isNative) {
+    if (isNative && !isIOS) {
       try { sessionStorage.setItem('teum_oauth_pending', String(Date.now())); } catch {}
       await openInBrowser(authUrl);
     } else {

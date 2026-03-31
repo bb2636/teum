@@ -76,9 +76,11 @@ export function SplashPage() {
     const { isNative } = getCapacitorPlatform();
     if (!isNative) return;
 
-    let cleanup: (() => void) | undefined;
+    let unmounted = false;
+    const handles: { remove: () => void }[] = [];
 
     const handleDeepLink = async (url: string) => {
+      if (unmounted) return;
       if (!url.startsWith('com.teum.app://auth-callback')) return;
 
       try {
@@ -90,7 +92,7 @@ export function SplashPage() {
 
       const error = params.get('error');
       if (error) {
-        alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+        if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
         return;
       }
 
@@ -98,29 +100,33 @@ export function SplashPage() {
       const isNewUser = params.get('isNewUser');
 
       if (isNewUser === 'true') {
-        navigate('/social-onboarding', {
-          state: {
-            socialProfile: {
-              provider: params.get('provider') || '',
-              email: params.get('email') || '',
-              name: params.get('name') || '',
-              picture: params.get('picture') || '',
-              providerAccountId: params.get('providerAccountId') || '',
-              isEmailHidden: params.get('isEmailHidden') === 'true',
+        if (!unmounted) {
+          navigate('/social-onboarding', {
+            state: {
+              socialProfile: {
+                provider: params.get('provider') || '',
+                email: params.get('email') || '',
+                name: params.get('name') || '',
+                picture: params.get('picture') || '',
+                providerAccountId: params.get('providerAccountId') || '',
+                isEmailHidden: params.get('isEmailHidden') === 'true',
+              },
+              onboardingToken: params.get('onboardingToken') || '',
             },
-            onboardingToken: params.get('onboardingToken') || '',
-          },
-        });
+          });
+        }
         return;
       }
 
       if (token) {
+        sessionStorage.removeItem('teum_oauth_pending');
         try {
           forceFullCacheClear();
           const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
             method: 'POST',
             body: JSON.stringify({ token }),
           });
+          if (unmounted) return;
           sessionStorage.removeItem('teum_logged_out');
           forceFullCacheClear();
           if (result.data.role === 'admin') {
@@ -129,33 +135,53 @@ export function SplashPage() {
             window.location.href = '/home';
           }
         } catch {
-          alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+          if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
         }
       }
     };
 
-    const cleanups: (() => void)[] = [];
-
     (async () => {
       try {
         const { App } = await import('@capacitor/app');
+        if (unmounted) return;
 
         const launchUrl = await App.getLaunchUrl();
         if (launchUrl?.url) {
-          handleDeepLink(launchUrl.url);
+          const processedKey = 'teum_processed_launch_url';
+          const lastProcessed = sessionStorage.getItem(processedKey);
+          if (lastProcessed !== launchUrl.url) {
+            sessionStorage.setItem(processedKey, launchUrl.url);
+            handleDeepLink(launchUrl.url);
+          }
         }
 
         const handle = await App.addListener('appUrlOpen', (event) => {
-          handleDeepLink(event.url);
+          if (!unmounted) handleDeepLink(event.url);
         });
-        cleanups.push(() => handle.remove());
+        if (unmounted) {
+          handle.remove();
+        } else {
+          handles.push(handle);
+        }
       } catch {}
 
       try {
         const { Browser } = await import('@capacitor/browser');
+        if (unmounted) return;
+
         const browserHandle = await Browser.addListener('browserFinished', async () => {
+          if (unmounted) return;
+          const pendingOAuth = sessionStorage.getItem('teum_oauth_pending');
+          if (!pendingOAuth) return;
+          const pendingTs = parseInt(pendingOAuth, 10);
+          if (isNaN(pendingTs) || Date.now() - pendingTs > 5 * 60 * 1000) {
+            sessionStorage.removeItem('teum_oauth_pending');
+            return;
+          }
+          sessionStorage.removeItem('teum_oauth_pending');
           try {
             const meRes = await apiRequest<{ success: boolean; data: any }>('/auth/me', { method: 'GET' });
+            if (unmounted) return;
             if (meRes?.data?.id) {
               sessionStorage.removeItem('teum_logged_out');
               forceFullCacheClear();
@@ -167,12 +193,17 @@ export function SplashPage() {
             }
           } catch {}
         });
-        cleanups.push(() => browserHandle.remove());
+        if (unmounted) {
+          browserHandle.remove();
+        } else {
+          handles.push(browserHandle);
+        }
       } catch {}
     })();
 
     return () => {
-      cleanups.forEach(fn => fn());
+      unmounted = true;
+      handles.forEach(h => h.remove());
     };
   }, [navigate, t]);
 
@@ -260,6 +291,7 @@ export function SplashPage() {
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
 
     if (isNative) {
+      try { sessionStorage.setItem('teum_oauth_pending', String(Date.now())); } catch {}
       await openInBrowser(authUrl);
     } else {
       window.location.href = authUrl;
@@ -284,6 +316,7 @@ export function SplashPage() {
     const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
 
     if (isNative) {
+      try { sessionStorage.setItem('teum_oauth_pending', String(Date.now())); } catch {}
       await openInBrowser(authUrl);
     } else {
       window.location.href = authUrl;

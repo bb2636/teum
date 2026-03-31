@@ -628,24 +628,11 @@ export function SignupPage() {
                 id="dateOfBirth"
                 type="text"
                 value={dateDisplayValue}
-                onFocus={() => setShowCalendar(true)}
+                readOnly
+                onFocus={(e) => { e.target.blur(); setShowCalendar(true); }}
                 onClick={() => setShowCalendar(true)}
-                onChange={(e) => {
-                  let value = e.target.value.replace(/[^0-9/\s]/g, '');
-                  setDateDisplayValue(value);
-                  const cleaned = value.replace(/[\s/]/g, '');
-                  if (cleaned.length === 8) {
-                    const year = cleaned.substring(0, 4);
-                    const month = cleaned.substring(4, 6);
-                    const day = cleaned.substring(6, 8);
-                    step2Form.setValue('dateOfBirth', `${year}-${month}-${day}`, { shouldValidate: true });
-                  } else {
-                    step2Form.setValue('dateOfBirth', '', { shouldValidate: true });
-                  }
-                }}
                 placeholder="YYYY / MM / DD"
-                className="bg-gray-100"
-                maxLength={14}
+                className="bg-gray-100 cursor-pointer"
               />
               {step2Errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{t(step2Errors.dateOfBirth.message || '')}</p>

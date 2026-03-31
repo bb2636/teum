@@ -524,6 +524,8 @@ export function SignupPage() {
                 id="dateOfBirth"
                 type="text"
                 value={dateDisplayValue}
+                onFocus={() => setShowCalendar(true)}
+                onClick={() => setShowCalendar(true)}
                 onChange={(e) => {
                   let value = e.target.value.replace(/[^0-9/\s]/g, '');
                   setDateDisplayValue(value);

@@ -440,6 +440,8 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                 type="text"
                 placeholder="2000 / 00 / 00"
                 value={dateDisplayValue}
+                onFocus={() => setShowCalendar(true)}
+                onClick={() => setShowCalendar(true)}
                 onChange={(e) => {
                   const input = e.target;
                   const oldValue = dateDisplayValue;

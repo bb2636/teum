@@ -171,23 +171,10 @@ export function useCreateDiary() {
       updateList(newDiary.folderId || '전체');
       if (newDiary.folderId) updateList('전체');
 
-      // Invalidate all diary queries
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
-      
-      // Invalidate diary count
       queryClient.invalidateQueries({ queryKey: ['diaries', 'count'] });
-      
-      // Invalidate folders to update diary counts
       queryClient.invalidateQueries({ queryKey: ['folders'] });
-      
-      // Invalidate calendar queries for the specific year/month of the new diary
-      const diaryDate = new Date(newDiary.date);
-      const year = diaryDate.getFullYear();
-      const month = diaryDate.getMonth() + 1;
-      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar', year, month] });
-      
-      // Also invalidate all calendar queries to be safe
-      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
+      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });
 }
@@ -270,17 +257,8 @@ export function useUpdateDiary() {
         );
       });
 
-      // Invalidate to refetch in background (gets any other updates)
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
-      
-      // Invalidate calendar queries for the specific year/month of the updated diary
-      const diaryDate = new Date(updatedDiary.date);
-      const year = diaryDate.getFullYear();
-      const month = diaryDate.getMonth() + 1;
-      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar', year, month] });
-      
-      // Also invalidate all calendar queries to be safe
-      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
+      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });
 }
@@ -324,8 +302,8 @@ export function useDeleteDiary() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
       queryClient.invalidateQueries({ queryKey: ['diaries', 'count'] });
-      queryClient.invalidateQueries({ queryKey: ['diaries', 'calendar'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.removeQueries({ queryKey: ['diaries', 'calendar'] });
     },
   });
 }

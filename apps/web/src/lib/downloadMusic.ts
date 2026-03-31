@@ -54,7 +54,7 @@ export async function downloadMusicFile(
   }
 }
 
-async function handleIOSDownload(downloadUrl: string, filename: string, title?: string): Promise<void> {
+async function handleIOSDownload(downloadUrl: string, filename: string, _title?: string): Promise<void> {
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
@@ -64,7 +64,7 @@ async function handleIOSDownload(downloadUrl: string, filename: string, title?: 
     const blob = await response.blob();
     const base64 = await blobToBase64(blob);
 
-    const result = await Filesystem.writeFile({
+    await Filesystem.writeFile({
       path: filename,
       data: base64,
       directory: Directory.Documents,

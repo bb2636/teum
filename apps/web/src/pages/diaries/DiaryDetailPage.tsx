@@ -8,6 +8,7 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import { useState } from 'react';
 import { DiaryDeleteModal } from './DiaryDeleteModal';
+import { Toast } from '@/components/Toast';
 
 export function DiaryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,8 @@ export function DiaryDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -28,13 +31,19 @@ export function DiaryDetailPage() {
     if (!id) return;
 
     setIsDeleting(true);
+    setShowDeleteModal(false);
     deleteDiary.mutate(id, {
       onSuccess: () => {
-        navigate('/home');
+        setToastMessage(t('diary.deleted'));
+        setShowToast(true);
+        setTimeout(() => {
+          navigate('/home', { replace: true });
+        }, 800);
       },
       onError: () => {
         setIsDeleting(false);
-        setShowDeleteModal(false);
+        setToastMessage(t('diary.deleteFailed'));
+        setShowToast(true);
       },
     });
   };
@@ -197,6 +206,12 @@ export function DiaryDetailPage() {
           </div>
         </div>
       )}
+
+      <Toast
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 }

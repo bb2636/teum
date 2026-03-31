@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+import { onUserChanged } from '@/lib/queryClient';
 
 export interface UserProfile {
   id: string;
@@ -31,21 +32,24 @@ export interface UpdateProfileInput {
   country?: string;
 }
 
-// Get current user with profile (공유 queryKey로 /users/me 한 번만 호출, 401 시 null 반환)
 export function useMe() {
   return useQuery<User | null>({
     queryKey: ['user', 'me'],
     queryFn: async () => {
       try {
         const response = await apiRequest<{ data: { user: User } }>('/users/me');
-        return response.data.user;
+        const user = response.data.user;
+        if (user) {
+          onUserChanged(user.id);
+        }
+        return user;
       } catch {
         return null;
       }
     },
     retry: false,
-    staleTime: Infinity,
-    gcTime: 1000 * 60 * 60,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 }
 

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+import { forceFullCacheClear } from '@/lib/queryClient';
 
 export interface User {
   id: string;
@@ -18,8 +19,7 @@ export function useLogin() {
 
   return useMutation({
     onMutate: () => {
-      queryClient.cancelQueries();
-      queryClient.clear();
+      forceFullCacheClear();
     },
     mutationFn: async (data: { email: string; password: string }) => {
       const response = await apiRequest<{ data: { user: User } }>('/auth/login', {
@@ -30,8 +30,8 @@ export function useLogin() {
     },
     onSuccess: (user) => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.cancelQueries();
-      queryClient.clear();
+      localStorage.clear();
+      forceFullCacheClear();
       if (user.role === 'admin') {
         window.location.href = '/admin';
       } else {
@@ -63,8 +63,8 @@ export function useSignup() {
     },
     onSuccess: () => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.cancelQueries();
-      queryClient.clear();
+      localStorage.clear();
+      forceFullCacheClear();
       window.location.href = '/home';
     },
   });
@@ -79,14 +79,12 @@ export function useLogout() {
         const { unregisterPushNotifications } = await import('@/lib/push-notifications');
         await unregisterPushNotifications();
       } catch {
-        // ignore push unregister failure
       }
       try {
         await apiRequest('/auth/logout', {
           method: 'POST',
         });
       } catch {
-        // ignore server logout failure
       }
     },
     onSettled: () => {
@@ -96,8 +94,8 @@ export function useLogout() {
         }
       } catch {}
       sessionStorage.setItem('teum_logged_out', '1');
-      queryClient.cancelQueries();
-      queryClient.clear();
+      localStorage.clear();
+      forceFullCacheClear();
       window.location.href = '/splash';
     },
   });

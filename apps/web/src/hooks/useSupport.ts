@@ -59,7 +59,7 @@ export function useSupportInquiries() {
       );
       return response.data.inquiries;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }

@@ -143,10 +143,13 @@ teum/
 
 ## Data Caching Strategy
 
-- 모든 주요 쿼리에 `staleTime: Infinity` 적용 — 탭 이동 시 캐시 데이터를 즉시 표시하고 네트워크 요청 없음
-- `gcTime: 1000*60*60` (1시간)
+- `staleTime: 1000*60*5` (5분) — 탭 이동 시 5분 이내면 캐시 표시, 이후 재요청
+- `gcTime: 1000*60*30` (30분, queryClient 기본) / 개별 훅은 `1000*60*60` (1시간)
+- 서버: 모든 `/api/` 응답에 `Cache-Control: no-store` 설정 (WebView HTTP 캐시 방지)
 - 데이터 갱신은 mutation의 `onSuccess`에서 `invalidateQueries()`로 처리 (CQRS 패턴)
 - 사용자 프로필 쿼리 키: `['user', 'me']` — 결제/구독 훅에서도 동일 키 사용 필수
+- 계정 전환 시: `forceFullCacheClear()` → `cancelQueries()` + `clear()` + `removeQueries()` + `localStorage.clear()`
+- `onUserChanged(userId)`: `/users/me` 응답 시 이전 userId와 다르면 자동 캐시 전체 초기화
 
 ## Internationalization (i18n)
 

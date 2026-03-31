@@ -110,7 +110,7 @@ export function useSubscriptions() {
       );
       return response.data.subscriptions;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }
@@ -125,7 +125,7 @@ export function usePayments() {
       );
       return response.data.payments;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }

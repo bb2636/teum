@@ -1,5 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+import { forceFullCacheClear } from '@/lib/queryClient';
 import type { User } from './useAuth';
 
 export interface SocialProfile {
@@ -12,12 +13,9 @@ export interface SocialProfile {
 }
 
 export function useGoogleLogin() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     onMutate: () => {
-      queryClient.cancelQueries();
-      queryClient.clear();
+      forceFullCacheClear();
     },
     mutationFn: async (idToken: string) => {
       const response = await apiRequest<{
@@ -34,8 +32,8 @@ export function useGoogleLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.cancelQueries();
-      queryClient.clear();
+      localStorage.clear();
+      forceFullCacheClear();
       if (!data.isNewUser) {
         sessionStorage.removeItem('teum_logged_out');
       }
@@ -44,12 +42,9 @@ export function useGoogleLogin() {
 }
 
 export function useAppleLogin() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     onMutate: () => {
-      queryClient.cancelQueries();
-      queryClient.clear();
+      forceFullCacheClear();
     },
     mutationFn: async (data: {
       idToken: string;
@@ -73,8 +68,8 @@ export function useAppleLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.cancelQueries();
-      queryClient.clear();
+      localStorage.clear();
+      forceFullCacheClear();
       if (!data.isNewUser) {
         sessionStorage.removeItem('teum_logged_out');
       }
@@ -83,8 +78,6 @@ export function useAppleLogin() {
 }
 
 export function useSocialOnboarding() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (data: {
       onboardingToken: string;
@@ -103,8 +96,8 @@ export function useSocialOnboarding() {
     },
     onSuccess: () => {
       sessionStorage.removeItem('teum_logged_out');
-      queryClient.cancelQueries();
-      queryClient.clear();
+      localStorage.clear();
+      forceFullCacheClear();
       window.location.href = '/home';
     },
   });

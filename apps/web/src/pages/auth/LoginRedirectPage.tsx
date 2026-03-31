@@ -1,30 +1,21 @@
 import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { forceFullCacheClear } from '@/lib/queryClient';
 
 export function LoginRedirectPage() {
-  const queryClient = useQueryClient();
-
   useEffect(() => {
-    const doRedirect = async () => {
-      try {
-        await queryClient.cancelQueries();
-      } catch {}
-      queryClient.clear();
-      queryClient.removeQueries();
-      sessionStorage.removeItem('teum_logged_out');
-      sessionStorage.clear();
+    forceFullCacheClear();
+    sessionStorage.removeItem('teum_logged_out');
+    sessionStorage.clear();
+    localStorage.clear();
 
-      const allowedPaths = ['/home', '/admin'];
-      const params = new URLSearchParams(window.location.search);
-      const requested = params.get('to');
-      const target = requested && allowedPaths.includes(requested) ? requested : '/home';
+    const allowedPaths = ['/home', '/admin'];
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('to');
+    const target = requested && allowedPaths.includes(requested) ? requested : '/home';
 
-      setTimeout(() => {
-        window.location.replace(target);
-      }, 100);
-    };
-
-    doRedirect();
+    setTimeout(() => {
+      window.location.replace(target);
+    }, 100);
   }, []);
 
   return (

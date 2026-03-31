@@ -45,7 +45,7 @@ export function useFolders() {
       const response = await apiRequest<{ data: { folders: Folder[] } }>('/folders');
       return response.data.folders;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }
@@ -61,7 +61,7 @@ export function useDiaries(folderId?: string) {
       );
       return response.data.diaries;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }
@@ -75,7 +75,7 @@ export function useDiary(id: string) {
       return response.data.diary;
     },
     enabled: !!id,
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }
@@ -89,7 +89,7 @@ export function useCalendarDiaries(year: number, month: number) {
       );
       return response.data.diaries;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }
@@ -101,7 +101,7 @@ export function useDiaryCount() {
       const response = await apiRequest<{ data: { count: number } }>('/diaries/count');
       return response.data.count;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
 }

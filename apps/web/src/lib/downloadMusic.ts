@@ -160,7 +160,7 @@ async function handleNativeDownload(url: string, filename: string, platform: str
         errors.push(`WebShare: ${shareErr?.message || String(shareErr)}`);
       }
 
-      alert(`파일 저장에 실패했습니다.\n\n상세: ${errors.join('\n')}`);
+      await showUrlCopyFallback(url, filename, errors);
       return;
     }
 
@@ -216,11 +216,21 @@ async function handleNativeDownload(url: string, filename: string, platform: str
         }
       }
 
-      alert(`파일 저장에 실패했습니다.\n\n상세: ${errors.join('\n')}`);
+      await showUrlCopyFallback(url, filename, errors);
       return;
     }
   } catch (err: any) {
     alert(`다운로드 오류: ${err?.message || String(err)}`);
+  }
+}
+
+async function showUrlCopyFallback(url: string, _filename?: string, _errors?: string[]): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(url);
+    alert(`다른 방법으로 다운로드해주세요.\n\n다운로드 URL이 클립보드에 복사되었습니다.\n브라우저에 붙여넣기하면 다운로드할 수 있습니다.`);
+  } catch {
+    const msg = `다운로드 URL을 복사해서 브라우저에서 열어주세요:\n\n${url}`;
+    alert(msg);
   }
 }
 

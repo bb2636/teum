@@ -49,11 +49,18 @@ export const createDiarySchema = z.object({
 
 export const updateDiarySchema = z.object({
   folderId: z.string().uuid().optional(),
+  type: z.enum(['free_form', 'question_based']).optional(),
   title: z.string().max(200).optional(),
   content: z.string().optional(),
   textStyle: z.string().optional(),
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   imageUrls: z.array(z.string().min(1)).optional(),
+  answers: z.array(
+    z.object({
+      questionId: z.string().uuid(),
+      answer: z.string().min(1),
+    })
+  ).optional(),
 });
 
 // Calendar query

@@ -173,6 +173,7 @@ export class DiaryService {
     textStyle?: string;
     date?: string;
     imageUrls?: string[];
+    answers?: Array<{ questionId: string; answer: string }>;
   }) {
     const diary = await diaryRepository.findById(id);
     if (!diary || diary.userId !== userId) {
@@ -204,6 +205,14 @@ export class DiaryService {
       await diaryRepository.deleteImages(id);
       if (data.imageUrls.length > 0) {
         await diaryRepository.createImages(id, data.imageUrls);
+      }
+    }
+
+    // Update answers if provided (question-based diary)
+    if (data.answers !== undefined) {
+      await diaryRepository.deleteAnswers(id);
+      if (data.answers.length > 0) {
+        await diaryRepository.createAnswers(id, data.answers);
       }
     }
 

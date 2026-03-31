@@ -10,8 +10,8 @@ interface AdModalProps {
 }
 
 const AD_DURATION_SECONDS = 5;
-const ADMOB_ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/4090154015';
-const ADMOB_IOS_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/6264812635';
+const ADMOB_ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
+const ADMOB_IOS_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
 
 function getInterstitialAdId(): string {
   const platform = Capacitor.getPlatform();

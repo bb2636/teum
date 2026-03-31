@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { useT } from '@/hooks/useTranslation';
 
 export function DiaryTypeModal() {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
+  const t = useT();
 
   useEffect(() => {
     const handleOpen = () => setShow(true);
@@ -20,6 +22,9 @@ export function DiaryTypeModal() {
     navigate(`/diaries/new?type=${type}&date=${today}`);
   };
 
+  const titleLines = t('diary.typeModalTitle').split('\n');
+  const descLines = t('diary.typeModalDesc').split('\n');
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShow(false)}>
       <div
@@ -27,23 +32,27 @@ export function DiaryTypeModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-xl font-bold text-[#4A2C1A] mb-3">
-          오늘은 어떤 방식으로<br />남기시겠습니까?
+          {titleLines.map((line, i) => (
+            <span key={i}>{line}{i < titleLines.length - 1 && <br />}</span>
+          ))}
         </h2>
         <p className="text-sm text-gray-500 mb-6">
-          빠르게 쓰거나, 질문에 따라<br />차근히 정리할 수 있습니다.
+          {descLines.map((line, i) => (
+            <span key={i}>{line}{i < descLines.length - 1 && <br />}</span>
+          ))}
         </p>
         <div className="space-y-3">
           <button
             onClick={() => handleSelect('free_form')}
             className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-full text-[#4A2C1A] font-medium transition-colors"
           >
-            자유작성
+            {t('diary.freeFormWrite')}
           </button>
           <button
             onClick={() => handleSelect('question_based')}
             className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-full text-[#4A2C1A] font-medium transition-colors"
           >
-            질문기록
+            {t('diary.questionBasedWrite')}
           </button>
         </div>
       </div>

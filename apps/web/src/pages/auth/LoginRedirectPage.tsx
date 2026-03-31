@@ -5,15 +5,26 @@ export function LoginRedirectPage() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    queryClient.cancelQueries();
-    queryClient.clear();
-    sessionStorage.removeItem('teum_logged_out');
+    const doRedirect = async () => {
+      try {
+        await queryClient.cancelQueries();
+      } catch {}
+      queryClient.clear();
+      queryClient.removeQueries();
+      sessionStorage.removeItem('teum_logged_out');
+      sessionStorage.clear();
 
-    const allowedPaths = ['/home', '/admin'];
-    const params = new URLSearchParams(window.location.search);
-    const requested = params.get('to');
-    const target = requested && allowedPaths.includes(requested) ? requested : '/home';
-    window.location.href = target;
+      const allowedPaths = ['/home', '/admin'];
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get('to');
+      const target = requested && allowedPaths.includes(requested) ? requested : '/home';
+
+      setTimeout(() => {
+        window.location.replace(target);
+      }, 100);
+    };
+
+    doRedirect();
   }, []);
 
   return (

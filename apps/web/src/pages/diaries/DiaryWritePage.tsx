@@ -96,6 +96,7 @@ export function DiaryWritePage() {
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const isUserInputRef = useRef(false);
+  const isInitializingRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -156,14 +157,29 @@ export function DiaryWritePage() {
         folderId: existingDiary.folderId,
       });
 
-      // Set contentEditable content
-      if (contentEditableRef.current && existingDiary.content) {
-        // 기존 내용이 순수 텍스트이므로 그대로 표시 (줄바꿈은 <br>로 변환)
-        const textWithBreaks = existingDiary.content.replace(/\n/g, '<br>');
+      // Set contentEditable content and restore images
+      if (contentEditableRef.current) {
+        isInitializingRef.current = true;
+        const textWithBreaks = existingDiary.content
+          ? existingDiary.content.replace(/\n/g, '<br>')
+          : '';
         contentEditableRef.current.innerHTML = textWithBreaks;
+
+        if (
+          existingDiary.type === 'free_form' &&
+          existingDiary.images &&
+          existingDiary.images.length > 0
+        ) {
+          existingDiary.images.forEach((img) => {
+            insertImageIntoContentEditable(img.imageUrl);
+          });
+        }
+        setTimeout(() => {
+          isInitializingRef.current = false;
+        }, 0);
       }
 
-      // Load images
+      // Load images for question_based (thumbnail display)
       if (existingDiary.images && existingDiary.images.length > 0) {
         const imageUrls = existingDiary.images.map((img) => img.imageUrl);
         setSelectedImages(imageUrls);
@@ -297,6 +313,9 @@ export function DiaryWritePage() {
   useEffect(() => {
     if (isUserInputRef.current) {
       isUserInputRef.current = false;
+      return;
+    }
+    if (isInitializingRef.current) {
       return;
     }
     if (contentEditableRef.current && content !== contentEditableRef.current.innerHTML) {

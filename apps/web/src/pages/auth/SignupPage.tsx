@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
-import { useEmailDuplicateCheck } from '@/hooks/useEmailVerification';
+import { useEmailDuplicateCheck, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
@@ -32,7 +32,7 @@ const step1Schema = z.object({
   email: z.string().email('auth.emailPlaceholder'),
   password: passwordSchema,
   confirmPassword: z.string(),
-  phone: z.string().min(10, 'auth.phoneRequired').max(15),
+  phone: z.string().max(15).optional().or(z.literal('')),
 });
 
 const step2Schema = z.object({
@@ -75,8 +75,12 @@ export function SignupPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationMode, setVerificationMode] = useState<'phone' | 'email'>('phone');
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
+  const [emailVerificationInput, setEmailVerificationInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [nicknameError, setNicknameError] = useState<string[]>([]);
@@ -89,6 +93,8 @@ export function SignupPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
+  const requestEmailVerification = useRequestEmailVerification();
+  const confirmEmailVerification = useConfirmEmailVerification();
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarButtonRef = useRef<HTMLButtonElement>(null);
@@ -155,13 +161,13 @@ export function SignupPage() {
   }, [shouldCheckEmail, emailDuplicateCheck.data]);
 
   const step1Errors = step1Form.formState.errors;
+  const isVerified = verificationMode === 'phone' ? phoneVerified : emailVerified;
   const isStep1Valid =
     step1Email &&
     step1Password &&
     step1ConfirmPassword &&
-    step1Phone &&
     !emailError &&
-    phoneVerified;
+    isVerified;
 
   const step2Errors = step2Form.formState.errors;
 
@@ -265,9 +271,60 @@ export function SignupPage() {
     }
   };
 
+  const handleRequestEmailVerification = async () => {
+    const email = step1Form.getValues('email');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError(t('auth.emailPlaceholder'));
+      return;
+    }
+
+    if (emailError) {
+      setError(t('auth.emailExistsDuplicate'));
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await requestEmailVerification.mutateAsync(email);
+      setShowEmailVerificationModal(true);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || t('auth.verificationFailed'));
+    }
+  };
+
+  const handleConfirmEmailVerification = async () => {
+    const email = step1Form.getValues('email');
+    if (!email || !emailVerificationInput) {
+      setError(t('auth.enterVerification'));
+      return;
+    }
+
+    if (emailVerificationInput.length !== 6) {
+      setError(t('auth.verification6Digits'));
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await confirmEmailVerification.mutateAsync({
+        email,
+        code: emailVerificationInput,
+      });
+      setEmailVerified(true);
+      setShowEmailVerificationModal(false);
+      setEmailVerificationInput('');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || t('auth.verificationInvalid'));
+    }
+  };
+
   const onStep1Submit = async (data: Step1FormData) => {
-    if (!phoneVerified) {
-      setError(t('auth.completePhoneVerification'));
+    if (!isVerified) {
+      setError(t('auth.completeVerification'));
       return;
     }
 
@@ -420,34 +477,78 @@ export function SignupPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">{t('auth.phone')}</Label>
-              <div className="relative">
-                <Input
-                  id="phone"
-                  type="tel"
-                  {...step1Form.register('phone')}
-                  placeholder={t('auth.phonePlaceholder')}
-                  className="pr-32"
-                  disabled={phoneVerified}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleRequestPhoneVerification}
-                  disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 10 || !step1Email || !!step1Errors.email}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
-                >
-                  {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
-                </Button>
+            {verificationMode === 'phone' ? (
+              <div className="space-y-2">
+                <Label htmlFor="phone">{t('auth.phone')}</Label>
+                <div className="relative">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    {...step1Form.register('phone')}
+                    placeholder={t('auth.phonePlaceholder')}
+                    className="pr-32"
+                    disabled={phoneVerified}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleRequestPhoneVerification}
+                    disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 10 || !step1Email || !!step1Errors.email}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  >
+                    {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
+                  </Button>
+                </div>
+                {step1Errors.phone && (
+                  <p className="text-sm text-red-500">{t(step1Errors.phone.message || '')}</p>
+                )}
+                {phoneVerified && (
+                  <p className="text-sm text-green-600">✓ {t('auth.phoneVerified')}</p>
+                )}
+                {!phoneVerified && (
+                  <button
+                    type="button"
+                    onClick={() => { setVerificationMode('email'); setError(null); }}
+                    className="text-sm text-[#665146] underline"
+                  >
+                    {t('auth.switchToEmailVerification')}
+                  </button>
+                )}
               </div>
-              {step1Errors.phone && (
-                <p className="text-sm text-red-500">{t(step1Errors.phone.message || '')}</p>
-              )}
-              {phoneVerified && (
-                <p className="text-sm text-green-600">✓ {t('auth.phoneVerified')}</p>
-              )}
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>{t('auth.email')} {t('auth.sendVerificationCode')}</Label>
+                <div className="relative">
+                  <Input
+                    type="email"
+                    value={step1Email || ''}
+                    disabled
+                    className="pr-32 bg-gray-50"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleRequestEmailVerification}
+                    disabled={requestEmailVerification.isPending || emailVerified || !step1Email || !!step1Errors.email || !!emailError}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  >
+                    {emailVerified ? t('auth.verificationComplete') : requestEmailVerification.isPending ? t('auth.sending') : t('auth.sendEmailVerificationCode')}
+                  </Button>
+                </div>
+                {emailVerified && (
+                  <p className="text-sm text-green-600">✓ {t('auth.emailVerified')}</p>
+                )}
+                {!emailVerified && (
+                  <button
+                    type="button"
+                    onClick={() => { setVerificationMode('phone'); setError(null); }}
+                    className="text-sm text-[#665146] underline"
+                  >
+                    {t('auth.switchToPhoneVerification')}
+                  </button>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"
@@ -697,6 +798,51 @@ export function SignupPage() {
               }
             >
               {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {showEmailVerificationModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4"
+          onClick={() => setShowEmailVerificationModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{t('auth.verificationCode')}</h2>
+              <button
+                onClick={() => setShowEmailVerificationModal(false)}
+                className="p-2 rounded-full hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">{t('auth.emailVerificationSent')}</p>
+            <div className="space-y-2">
+              <Label>{t('auth.verificationCode')}</Label>
+              <Input
+                type="text"
+                value={emailVerificationInput}
+                onChange={(e) =>
+                  setEmailVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                placeholder={t('auth.enterVerificationCode')}
+                maxLength={6}
+                className="text-center text-lg tracking-widest"
+              />
+            </div>
+            <Button
+              onClick={handleConfirmEmailVerification}
+              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              disabled={
+                emailVerificationInput.length !== 6 || confirmEmailVerification.isPending
+              }
+            >
+              {confirmEmailVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
           </div>
         </div>

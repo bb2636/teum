@@ -96,6 +96,9 @@ export function PaymentPage() {
         return;
       }
 
+      const capacitor = (window as any).Capacitor;
+      const isNative = !!capacitor?.isNativePlatform?.();
+
       const payParams: Record<string, unknown> = {
         clientId: initResult.clientId,
         method: initResult.method,
@@ -109,8 +112,12 @@ export function PaymentPage() {
         },
       };
 
-      if (paymentMethod === 'CARD' && cardCode) {
+      if (cardCode) {
         payParams.cardCode = cardCode;
+      }
+
+      if (isNative) {
+        payParams.appScheme = 'com.teum.app';
       }
 
       window.AUTHNICE.requestPay(payParams);

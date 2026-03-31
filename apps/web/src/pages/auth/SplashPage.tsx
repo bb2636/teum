@@ -185,18 +185,50 @@ export function SplashPage() {
             return;
           }
           sessionStorage.removeItem('teum_oauth_pending');
+
+          const nonce = sessionStorage.getItem('oauth_nonce');
+          if (!nonce) return;
+          sessionStorage.removeItem('oauth_nonce');
+
           try {
-            const meRes = await apiRequest<{ success: boolean; data: any }>('/auth/me', { method: 'GET' });
-            if (unmounted) return;
-            if (meRes?.data?.id) {
-              sessionStorage.removeItem('teum_logged_out');
+            const onboardingRes = await apiRequest<{ success: boolean; data: any }>(`/auth/exchange-mobile-token`, {
+              method: 'POST',
+              body: JSON.stringify({ token: `onboarding:${nonce}` }),
+            }).catch(() => null);
+
+            if (onboardingRes?.data?.onboardingData) {
+              if (unmounted) return;
+              const d = onboardingRes.data.onboardingData;
               localStorage.clear();
               forceFullCacheClear();
-              if (meRes.data.role === 'admin') {
-                window.location.href = '/admin';
-              } else {
-                window.location.href = '/home';
-              }
+              navigate('/social-onboarding', {
+                state: {
+                  socialProfile: {
+                    provider: d.provider || '',
+                    email: d.email || '',
+                    name: d.name || '',
+                    picture: d.picture || '',
+                    providerAccountId: d.providerAccountId || '',
+                    isEmailHidden: d.isEmailHidden === 'true',
+                  },
+                  onboardingToken: d.onboardingToken || '',
+                },
+              });
+              return;
+            }
+
+            const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
+              method: 'POST',
+              body: JSON.stringify({ token: nonce }),
+            });
+            if (unmounted) return;
+            sessionStorage.removeItem('teum_logged_out');
+            localStorage.clear();
+            forceFullCacheClear();
+            if (result.data.role === 'admin') {
+              window.location.href = '/admin';
+            } else {
+              window.location.href = '/home';
             }
           } catch {}
         });

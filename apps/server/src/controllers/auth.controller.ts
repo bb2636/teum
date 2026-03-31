@@ -19,8 +19,34 @@ import { userRepository } from '../repositories/user.repository';
 
 const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: string; user: { id: string; role: string }; expiresAt: number }>();
 
+function sendMobileCloseBrowserPage(res: Response) {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:20px;margin-bottom:16px}p{font-size:14px;opacity:0.8;line-height:1.6}</style></head>
+<body><div class="c"><h2>로그인 완료!</h2><p>이 창을 닫고 앱으로 돌아가주세요.<br>Login complete! Please close this window.</p></div>
+<script>try{window.close();}catch(e){}</script></body></html>`);
+}
+
 function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
-  res.redirect(deepLinkUrl);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:18px;margin-bottom:12px}p{font-size:14px;opacity:0.8;margin-bottom:20px}.btn{display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:14px;cursor:pointer}</style></head>
+<body><div class="c"><h2>로그인 처리 중...</h2><p id="msg">자동으로 앱으로 이동합니다.</p><a id="openBtn" class="btn" href="${deepLinkUrl}">앱으로 돌아가기</a></div>
+<script>
+(function(){
+  var deepLink="${deepLinkUrl}";
+  var tried=0;
+  function tryOpen(){
+    tried++;
+    if(tried>3){document.getElementById("msg").textContent="아래 버튼을 눌러 앱으로 돌아가세요.";return;}
+    window.location.href=deepLink;
+    setTimeout(function(){if(!document.hidden){tryOpen();}},1500);
+  }
+  var btn=document.getElementById("openBtn");
+  if(btn){btn.addEventListener("click",function(e){e.preventDefault();tried=0;window.location.href=deepLink;});}
+  setTimeout(tryOpen,300);
+})();
+</script></body></html>`);
 }
 
 setInterval(() => {
@@ -402,6 +428,7 @@ export class AuthController {
     try {
       const { code, state } = req.query;
       const isMobile = typeof state === 'string' && state.includes('platform=mobile');
+      const stateNonce = typeof state === 'string' ? new URLSearchParams(state).get('nonce') : null;
 
       if (!code || typeof code !== 'string') {
         if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code');
@@ -452,7 +479,16 @@ export class AuthController {
           providerAccountId: result.socialProfile?.providerAccountId || '',
         });
         if (isMobile) {
-          return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?${params.toString()}`);
+          if (stateNonce) {
+            mobileAuthTokens.set(`onboarding:${stateNonce}`, {
+              accessToken: '',
+              refreshToken: '',
+              user: { id: '', role: 'user' },
+              expiresAt: Date.now() + 5 * 60 * 1000,
+              onboardingData: Object.fromEntries(params),
+            } as any);
+          }
+          return sendMobileCloseBrowserPage(res);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -460,28 +496,14 @@ export class AuthController {
       const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
 
       if (isMobile) {
-        const tempToken = randomUUID();
-        mobileAuthTokens.set(tempToken, {
+        const tokenKey = stateNonce || randomUUID();
+        mobileAuthTokens.set(tokenKey, {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        res.cookie('accessToken', loginResult.accessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-          path: '/',
-          maxAge: 15 * 60 * 1000,
-        });
-        res.cookie('refreshToken', loginResult.refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-          path: '/',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-        return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
+        return sendMobileCloseBrowserPage(res);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {
@@ -505,9 +527,6 @@ export class AuthController {
       return res.redirect('/login-redirect');
     } catch (error) {
       console.error('Google OAuth callback error:', error);
-      if ((req.query.state as string)?.includes('platform=mobile')) {
-        return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=login_failed');
-      }
       return res.redirect('/splash?error=login_failed');
     }
   }
@@ -517,6 +536,7 @@ export class AuthController {
       const code = (req.body?.code || req.query?.code) as string | undefined;
       const stateParam = (req.body?.state || req.query?.state) as string | undefined;
       const isMobile = typeof stateParam === 'string' && stateParam.includes('platform=mobile');
+      const appleNonce = typeof stateParam === 'string' ? new URLSearchParams(stateParam).get('nonce') : null;
       const userJson = req.body?.user as string | undefined;
       if (!code) {
         if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code');
@@ -589,7 +609,16 @@ export class AuthController {
           isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
         });
         if (isMobile) {
-          return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?${params.toString()}`);
+          if (appleNonce) {
+            mobileAuthTokens.set(`onboarding:${appleNonce}`, {
+              accessToken: '',
+              refreshToken: '',
+              user: { id: '', role: 'user' },
+              expiresAt: Date.now() + 5 * 60 * 1000,
+              onboardingData: Object.fromEntries(params),
+            } as any);
+          }
+          return sendMobileCloseBrowserPage(res);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -597,28 +626,14 @@ export class AuthController {
       const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
 
       if (isMobile) {
-        const tempToken = randomUUID();
-        mobileAuthTokens.set(tempToken, {
+        const tokenKey = appleNonce || randomUUID();
+        mobileAuthTokens.set(tokenKey, {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        res.cookie('accessToken', loginResult.accessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-          path: '/',
-          maxAge: 15 * 60 * 1000,
-        });
-        res.cookie('refreshToken', loginResult.refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-          path: '/',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-        return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
+        return sendMobileCloseBrowserPage(res);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {
@@ -642,10 +657,6 @@ export class AuthController {
       return res.redirect('/login-redirect');
     } catch (error) {
       console.error('Apple OAuth callback error:', error);
-      const st = (req.body?.state || req.query?.state) as string | undefined;
-      if (st?.includes('platform=mobile')) {
-        return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_login_failed');
-      }
       return res.redirect('/splash?error=apple_login_failed');
     }
   }
@@ -751,13 +762,17 @@ export class AuthController {
         return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Token is required' } });
       }
 
-      const stored = mobileAuthTokens.get(token);
+      const stored = mobileAuthTokens.get(token) as any;
       if (!stored || stored.expiresAt < Date.now()) {
         mobileAuthTokens.delete(token);
         return res.status(401).json({ success: false, error: { code: 'TOKEN_EXPIRED', message: 'Token expired or invalid' } });
       }
 
       mobileAuthTokens.delete(token);
+
+      if (stored.onboardingData) {
+        return res.json({ success: true, data: { onboardingData: stored.onboardingData } });
+      }
 
       res.cookie('accessToken', stored.accessToken, {
         httpOnly: true,

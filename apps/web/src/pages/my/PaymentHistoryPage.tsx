@@ -57,7 +57,7 @@ export function PaymentHistoryPage() {
   return (
     <div className="min-h-screen bg-white pb-20">
       <div className="max-w-md mx-auto">
-        <div className="sticky top-0 z-30 bg-white px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 z-30 bg-white px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('payment.history')}</h1>
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <X className="w-5 h-5" />

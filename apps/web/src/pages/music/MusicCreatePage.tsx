@@ -179,7 +179,7 @@ export function MusicCreatePage() {
 
   return (
     <div className="min-h-screen bg-beige-50">
-      <div className="sticky top-0 z-10 bg-white border-b border-brown-100 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-white border-b border-brown-100 px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
         <h1 className="text-lg font-semibold text-brown-900">{t('music.generateTitle')}</h1>
         <button
           onClick={() => navigate('/music')}

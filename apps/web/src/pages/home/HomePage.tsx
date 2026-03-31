@@ -276,7 +276,7 @@ export function HomePage() {
     >
       <div className="max-w-md mx-auto">
         {/* Header - First Row */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white">
+        <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <img
             src="/home_logo.png"
             alt="teum logo"

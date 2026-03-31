@@ -31,7 +31,7 @@ export function PaymentIntroPage() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-md mx-auto">
-        <div className="sticky top-0 z-30 flex justify-end p-4 bg-white">
+        <div className="sticky top-0 z-30 flex justify-end p-4 bg-white" style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}>
           <button
             onClick={() => {
               if (window.history.length > 1) {

@@ -944,7 +944,7 @@ export function DiaryWritePage() {
           </div>
         )}
         <div className="max-w-md mx-auto w-full flex-1 flex flex-col overflow-hidden bg-white">
-          <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
             <button 
               onClick={handleBackClick} 
               className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
@@ -1116,7 +1116,7 @@ export function DiaryWritePage() {
         </div>
       )}
       <div className="max-w-md mx-auto w-full flex-1 flex flex-col overflow-hidden bg-white">
-        <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <button 
             onClick={handleBackClick} 
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"

@@ -63,7 +63,7 @@ export function DiaryDetailPage() {
   return (
     <div className="min-h-screen bg-beige-50">
       <div className="max-w-md mx-auto">
-        <div className="sticky top-0 z-30 bg-beige-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+        <div className="sticky top-0 z-30 bg-beige-50 px-4 py-3 flex items-center justify-between border-b border-gray-200" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <Link to="/home">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-5 h-5" />

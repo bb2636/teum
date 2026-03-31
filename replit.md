@@ -195,7 +195,7 @@ teum/
 - **Server URL**: APK는 `server.url: 'https://teum.replit.app'`으로 배포 서버에서 직접 로드
 - **CORS**: Capacitor origin (`capacitor://localhost`, `https://localhost`) 허용
 - **쿠키**: 프로덕션 환경에서 `sameSite: 'none'` + `secure: true`
-- **Camera**: `@capacitor/camera` 사용, 네이티브/웹 자동 감지
+- **Camera**: `@capacitor/camera` 사용, 네이티브/웹 자동 감지. Android manifest에 `CAMERA`, `READ_MEDIA_IMAGES` 권한 선언. iOS는 `capacitor.config.ts`에 `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription` 설정. 카메라 사용 전 `checkPermissions()` → `requestPermissions()` 흐름으로 권한 확인.
 - **Browser**: `@capacitor/browser` — OAuth 시 Chrome Custom Tab으로 인앱 브라우저 열기
 - **Filesystem**: `@capacitor/filesystem` — 음악 다운로드 시 기기 Download/Documents 폴더에 직접 저장 (실패 시 URL 공유/복사 폴백)
 - **Android 빌드**: 로컬에서 `git pull` → `pnpm install` → `pnpm --filter web build` → `npx cap sync android` → Android Studio 빌드

@@ -636,6 +636,14 @@ export function DiaryWritePage() {
   const handleCameraClick = async () => {
     if (Capacitor.isNativePlatform()) {
       try {
+        const perms = await CapCamera.checkPermissions();
+        if (perms.camera !== 'granted') {
+          const requested = await CapCamera.requestPermissions({ permissions: ['camera'] });
+          if (requested.camera !== 'granted') {
+            alert(t('diary.cameraPermissionDenied') || '카메라 권한이 필요합니다. 설정에서 카메라 권한을 허용해주세요.');
+            return;
+          }
+        }
         const photo = await CapCamera.getPhoto({
           quality: 80,
           allowEditing: false,
@@ -651,8 +659,12 @@ export function DiaryWritePage() {
           } as unknown as React.ChangeEvent<HTMLInputElement>;
           handleImageSelect(fakeEvent);
         }
-      } catch (err) {
-        console.log('Camera cancelled or error:', err);
+      } catch (err: any) {
+        if (err?.message?.includes('denied') || err?.message?.includes('permission')) {
+          alert(t('diary.cameraPermissionDenied') || '카메라 권한이 필요합니다. 설정에서 카메라 권한을 허용해주세요.');
+        } else if (!err?.message?.includes('cancelled') && !err?.message?.includes('User cancelled')) {
+          console.log('Camera error:', err);
+        }
       }
     } else {
       cameraInputRef.current?.click();

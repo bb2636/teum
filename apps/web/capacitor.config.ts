@@ -10,6 +10,12 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   plugins: {
+    Camera: {
+      ios: {
+        usageDescription: '일기에 사진을 첨부하기 위해 카메라 접근 권한이 필요합니다.',
+        photoLibraryUsageDescription: '일기에 사진을 첨부하기 위해 사진 라이브러리 접근 권한이 필요합니다.',
+      },
+    },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },

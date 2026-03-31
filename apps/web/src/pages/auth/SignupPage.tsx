@@ -97,7 +97,7 @@ export function SignupPage() {
 
   const step1Form = useForm<Step1FormData>({
     resolver: zodResolver(step1Schema),
-    mode: 'onSubmit',
+    mode: 'onBlur',
   });
 
   const step2Form = useForm<Step2FormData>({
@@ -415,6 +415,9 @@ export function SignupPage() {
                   )}
                 </button>
               </div>
+              {step1ConfirmPassword && step1Password && step1ConfirmPassword !== step1Password && step1Form.formState.touchedFields.confirmPassword && (
+                <p className="text-sm text-red-500">{t('auth.passwordMismatch')}</p>
+              )}
             </div>
 
             <div className="space-y-2">

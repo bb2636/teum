@@ -20,7 +20,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         RequestConfiguration configuration = new RequestConfiguration.Builder()
-            .setTestDeviceIds(Arrays.asList("33BE2250B43518CCDA7DE426D04EE231", "cf83971a-13f6-4dc2-82fd-bc11e897882d"))
+            .setTestDeviceIds(Arrays.asList("cf83971a-13f6-4dc2-82fd-bc11e897882d"))
             .build();
         MobileAds.setRequestConfiguration(configuration);
         MobileAds.initialize(this, initializationStatus -> {});

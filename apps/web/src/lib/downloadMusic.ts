@@ -7,7 +7,8 @@ export async function downloadMusicFile(
 ): Promise<void> {
   if (!audioUrl) return;
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  const capacitor = (window as any).Capacitor;
+  const isNative = !!capacitor?.isNativePlatform?.();
 
   if (isNative) {
     try {
@@ -21,28 +22,15 @@ export async function downloadMusicFile(
       }
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+      const platform = capacitor?.getPlatform?.() || 'web';
 
-      const saved = await tryFilesystemDownload(downloadUrl, filename);
-      if (saved) return;
+      if (platform === 'ios') {
+        await handleIOSDownload(downloadUrl, filename, title);
+      } else {
+        const saved = await tryFilesystemDownload(downloadUrl, filename);
+        if (saved) return;
 
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: `${title || '음악'} 다운로드`,
-            text: 'Chrome에서 열면 다운로드됩니다',
-            url: downloadUrl,
-          });
-          return;
-        } catch (shareErr: any) {
-          if (shareErr?.name === 'AbortError') return;
-        }
-      }
-
-      try {
-        await navigator.clipboard.writeText(downloadUrl);
-        alert('다운로드 링크가 복사되었습니다!\n\nChrome 브라우저를 열고 주소창에 붙여넣기 하면 다운로드가 시작됩니다.');
-      } catch {
-        prompt('아래 링크를 복사해서 Chrome 주소창에 붙여넣기 하세요:', downloadUrl);
+        await handleFallbackDownload(downloadUrl, title);
       }
     } catch (err: any) {
       alert(`다운로드 오류: ${err?.message || String(err)}`);
@@ -63,6 +51,65 @@ export async function downloadMusicFile(
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
   } catch {
     window.open(audioUrl, '_blank');
+  }
+}
+
+async function handleIOSDownload(downloadUrl: string, filename: string, title?: string): Promise<void> {
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+    const response = await fetch(downloadUrl);
+    if (!response.ok) throw new Error('파일을 가져올 수 없습니다');
+
+    const blob = await response.blob();
+    const base64 = await blobToBase64(blob);
+
+    const result = await Filesystem.writeFile({
+      path: filename,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+
+    try {
+      const { Share } = await import('@capacitor/share');
+      await Share.share({
+        title: title || '음악 다운로드',
+        url: result.uri,
+      });
+    } catch {
+      alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
+    }
+  } catch (fsErr) {
+    console.warn('iOS filesystem download failed:', fsErr);
+    try {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: downloadUrl });
+    } catch {
+      window.open(downloadUrl, '_blank');
+    }
+  }
+}
+
+async function handleFallbackDownload(downloadUrl: string, title?: string): Promise<void> {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `${title || '음악'} 다운로드`,
+        text: 'Chrome에서 열면 다운로드됩니다',
+        url: downloadUrl,
+      });
+      return;
+    } catch (shareErr: any) {
+      if (shareErr?.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(downloadUrl);
+    alert('다운로드 링크가 복사되었습니다!\n\nChrome 브라우저를 열고 주소창에 붙여넣기 하면 다운로드가 시작됩니다.');
+  } catch {
+    prompt('아래 링크를 복사해서 Chrome 주소창에 붙여넣기 하세요:', downloadUrl);
   }
 }
 

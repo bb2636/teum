@@ -12,7 +12,7 @@ export async function downloadMusicFile(
   const platform = capacitor?.getPlatform?.() || 'web';
   const isIOS = platform === 'ios' || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  if (isNative || isIOS) {
+  if (isNative) {
     try {
       const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
         method: 'POST',
@@ -25,12 +25,12 @@ export async function downloadMusicFile(
 
       const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
 
-      if (isNative && platform === 'android') {
+      if (platform === 'android') {
         const saved = await tryFilesystemDownload(downloadUrl, filename, 'android');
         if (saved) return;
       }
 
-      if (isNative && platform === 'ios') {
+      if (platform === 'ios') {
         const saved = await tryFilesystemDownload(downloadUrl, filename, 'ios');
         if (saved) return;
       }
@@ -48,6 +48,28 @@ export async function downloadMusicFile(
     }
     return;
   }
+
+  try {
+    const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
+      method: 'POST',
+    });
+    const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
+
+    if (token) {
+      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+      if (isIOS) {
+        window.location.href = downloadUrl;
+      } else {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      return;
+    }
+  } catch {}
 
   try {
     const response = await fetch(audioUrl);

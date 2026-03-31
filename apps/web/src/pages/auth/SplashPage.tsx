@@ -25,10 +25,18 @@ declare global {
   }
 }
 
+function isWebView(): boolean {
+  const ua = navigator.userAgent || '';
+  if (/; wv\)/.test(ua)) return true;
+  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) return true;
+  return false;
+}
+
 function getCapacitorPlatform(): { isNative: boolean; platform: string } {
   const cap = (window as any).Capacitor;
-  const isNative = !!cap?.isNativePlatform?.();
-  const platform = cap?.getPlatform?.() || 'web';
+  const capNative = !!cap?.isNativePlatform?.();
+  const isNative = capNative || isWebView();
+  const platform = cap?.getPlatform?.() || (isWebView() ? 'android' : 'web');
   return { isNative, platform };
 }
 
@@ -37,7 +45,7 @@ async function openInBrowser(url: string) {
     const { Browser } = await import('@capacitor/browser');
     await Browser.open({ url, windowName: '_blank' });
   } catch {
-    window.location.href = url;
+    window.open(url, '_system');
   }
 }
 
@@ -126,6 +134,8 @@ export function SplashPage() {
       }
     };
 
+    const cleanups: (() => void)[] = [];
+
     (async () => {
       try {
         const { App } = await import('@capacitor/app');
@@ -138,12 +148,31 @@ export function SplashPage() {
         const handle = await App.addListener('appUrlOpen', (event) => {
           handleDeepLink(event.url);
         });
-        cleanup = () => handle.remove();
+        cleanups.push(() => handle.remove());
+      } catch {}
+
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        const browserHandle = await Browser.addListener('browserFinished', async () => {
+          try {
+            const meRes = await apiRequest<{ success: boolean; data: any }>('/auth/me', { method: 'GET' });
+            if (meRes?.data?.id) {
+              sessionStorage.removeItem('teum_logged_out');
+              forceFullCacheClear();
+              if (meRes.data.role === 'admin') {
+                window.location.href = '/admin';
+              } else {
+                window.location.href = '/home';
+              }
+            }
+          } catch {}
+        });
+        cleanups.push(() => browserHandle.remove());
       } catch {}
     })();
 
     return () => {
-      if (cleanup) cleanup();
+      cleanups.forEach(fn => fn());
     };
   }, [navigate, t]);
 

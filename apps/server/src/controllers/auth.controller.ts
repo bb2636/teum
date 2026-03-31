@@ -19,6 +19,11 @@ import { userRepository } from '../repositories/user.repository';
 
 const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: string; user: { id: string; role: string }; expiresAt: number }>();
 
+function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:18px;margin-bottom:12px}p{font-size:14px;opacity:0.8;margin-bottom:20px}a{display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:14px}</style></head><body><div class="c"><h2>로그인 처리 중...</h2><p>자동으로 앱으로 이동합니다.</p><a href="${deepLinkUrl}">앱으로 돌아가기</a></div><script>window.location.href="${deepLinkUrl}";</script></body></html>`);
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of mobileAuthTokens) {
@@ -400,14 +405,14 @@ export class AuthController {
       const isMobile = typeof state === 'string' && state.includes('platform=mobile');
 
       if (!code || typeof code !== 'string') {
-        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=no_code');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code');
         return res.redirect('/splash?error=no_code');
       }
 
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
       if (!clientId || !clientSecret) {
-        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=not_configured');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=not_configured');
         return res.redirect('/splash?error=not_configured');
       }
 
@@ -428,7 +433,7 @@ export class AuthController {
       const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string };
       if (!tokenData.id_token) {
         logger.error({ tokenError: tokenData.error, tokenErrorDesc: tokenData.error_description, redirectUri }, 'Google token exchange failed');
-        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=token_exchange_failed');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=token_exchange_failed');
         return res.redirect('/splash?error=token_exchange_failed');
       }
 
@@ -448,7 +453,7 @@ export class AuthController {
           providerAccountId: result.socialProfile?.providerAccountId || '',
         });
         if (isMobile) {
-          return res.redirect(`com.teum.app://auth-callback?${params.toString()}`);
+          return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?${params.toString()}`);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -463,7 +468,7 @@ export class AuthController {
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        return res.redirect(`com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
+        return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {
@@ -488,7 +493,7 @@ export class AuthController {
     } catch (error) {
       console.error('Google OAuth callback error:', error);
       if ((req.query.state as string)?.includes('platform=mobile')) {
-        return res.redirect('com.teum.app://auth-callback?error=login_failed');
+        return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=login_failed');
       }
       return res.redirect('/splash?error=login_failed');
     }
@@ -501,7 +506,7 @@ export class AuthController {
       const isMobile = typeof stateParam === 'string' && stateParam.includes('platform=mobile');
       const userJson = req.body?.user as string | undefined;
       if (!code) {
-        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=no_code');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code');
         return res.redirect('/splash?error=no_code');
       }
 
@@ -510,7 +515,7 @@ export class AuthController {
       const privateKey = process.env.APPLE_PRIVATE_KEY;
       const clientId = process.env.APPLE_CLIENT_ID || process.env.VITE_APPLE_CLIENT_ID;
       if (!teamId || !keyId || !privateKey || !clientId) {
-        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=apple_not_configured');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_not_configured');
         return res.redirect('/splash?error=apple_not_configured');
       }
 
@@ -546,7 +551,7 @@ export class AuthController {
 
       const tokenData = await tokenResponse.json() as { id_token?: string };
       if (!tokenData.id_token) {
-        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=apple_token_failed');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_token_failed');
         return res.redirect('/splash?error=apple_token_failed');
       }
 
@@ -571,7 +576,7 @@ export class AuthController {
           isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
         });
         if (isMobile) {
-          return res.redirect(`com.teum.app://auth-callback?${params.toString()}`);
+          return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?${params.toString()}`);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -586,7 +591,7 @@ export class AuthController {
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        return res.redirect(`com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
+        return sendMobileDeepLinkPage(res, `com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {
@@ -612,7 +617,7 @@ export class AuthController {
       console.error('Apple OAuth callback error:', error);
       const st = (req.body?.state || req.query?.state) as string | undefined;
       if (st?.includes('platform=mobile')) {
-        return res.redirect('com.teum.app://auth-callback?error=apple_login_failed');
+        return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_login_failed');
       }
       return res.redirect('/splash?error=apple_login_failed');
     }

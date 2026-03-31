@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useGoogleLogin } from '@/hooks/useSocialAuth';
 import { useMe } from '@/hooks/useProfile';
 import { useT } from '@/hooks/useTranslation';
+import { forceFullCacheClear } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/api';
 
 declare global {
   interface Window {
@@ -23,20 +25,36 @@ declare global {
   }
 }
 
+function getCapacitorPlatform(): { isNative: boolean; platform: string } {
+  const cap = (window as any).Capacitor;
+  const isNative = !!cap?.isNativePlatform?.();
+  const platform = cap?.getPlatform?.() || 'web';
+  return { isNative, platform };
+}
+
+async function openInBrowser(url: string) {
+  try {
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.open({ url, windowName: '_blank' });
+  } catch {
+    window.location.href = url;
+  }
+}
+
 export function SplashPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const t = useT();
   const gsiInitialized = useRef(false);
-  const [skipAutoRedirect] = useState(() => {
-    return !!sessionStorage.getItem('teum_logged_out');
-  });
   const { data: user, isLoading: isCheckingAuth } = useMe();
+  const [skipAutoRedirect] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has('error') || sessionStorage.getItem('teum_logged_out') === '1';
+  });
 
   useEffect(() => {
-    if (skipAutoRedirect) return;
-    if (isCheckingAuth) return;
+    if (isCheckingAuth || skipAutoRedirect) return;
     if (user) {
       if (user.role === 'admin') {
         navigate('/admin', { replace: true });
@@ -47,10 +65,96 @@ export function SplashPage() {
   }, [user, isCheckingAuth, navigate, skipAutoRedirect]);
 
   useEffect(() => {
+    const { isNative } = getCapacitorPlatform();
+    if (!isNative) return;
+
+    let cleanup: (() => void) | undefined;
+
+    const handleDeepLink = async (url: string) => {
+      if (!url.startsWith('com.teum.app://auth-callback')) return;
+
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.close();
+      } catch {}
+
+      const params = new URL(url.replace('com.teum.app://', 'https://placeholder/')).searchParams;
+
+      const error = params.get('error');
+      if (error) {
+        alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+        return;
+      }
+
+      const token = params.get('token');
+      const isNewUser = params.get('isNewUser');
+
+      if (isNewUser === 'true') {
+        navigate('/social-onboarding', {
+          state: {
+            socialProfile: {
+              provider: params.get('provider') || '',
+              email: params.get('email') || '',
+              name: params.get('name') || '',
+              picture: params.get('picture') || '',
+              providerAccountId: params.get('providerAccountId') || '',
+              isEmailHidden: params.get('isEmailHidden') === 'true',
+            },
+            onboardingToken: params.get('onboardingToken') || '',
+          },
+        });
+        return;
+      }
+
+      if (token) {
+        try {
+          forceFullCacheClear();
+          const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+          });
+          sessionStorage.removeItem('teum_logged_out');
+          forceFullCacheClear();
+          if (result.data.role === 'admin') {
+            window.location.href = '/admin';
+          } else {
+            window.location.href = '/home';
+          }
+        } catch {
+          alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+        }
+      }
+    };
+
+    (async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+
+        const launchUrl = await App.getLaunchUrl();
+        if (launchUrl?.url) {
+          handleDeepLink(launchUrl.url);
+        }
+
+        const handle = await App.addListener('appUrlOpen', (event) => {
+          handleDeepLink(event.url);
+        });
+        cleanup = () => handle.remove();
+      } catch {}
+    })();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [navigate, t]);
+
+  useEffect(() => {
     if (gsiInitialized.current) return;
 
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) return;
+
+    const { isNative } = getCapacitorPlatform();
+    if (isNative) return;
 
     const initGsi = () => {
       if (gsiInitialized.current) return;
@@ -65,8 +169,7 @@ export function SplashPage() {
               navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
             } else if (result.user) {
               sessionStorage.removeItem('teum_logged_out');
-              queryClient.cancelQueries();
-              queryClient.clear();
+              forceFullCacheClear();
               if (result.user.role === 'admin') {
                 window.location.href = '/admin';
               } else {
@@ -110,24 +213,31 @@ export function SplashPage() {
     };
   }, []);
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
       console.error('Google Client ID is not configured');
       return;
     }
 
-    openGoogleOAuthRedirect(clientId);
-  };
-
-  const openGoogleOAuthRedirect = (clientId: string) => {
     const redirectUri = `${window.location.origin}/api/auth/google/callback`;
     const scope = 'openid email profile';
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account`;
-    window.location.href = authUrl;
+
+    const { isNative } = getCapacitorPlatform();
+    const nonce = crypto.randomUUID();
+    const state = isNative ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
+    try { sessionStorage.setItem('oauth_nonce', nonce); } catch {}
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
+
+    if (isNative) {
+      await openInBrowser(authUrl);
+    } else {
+      window.location.href = authUrl;
+    }
   };
 
-  const handleAppleLogin = () => {
+  const handleAppleLogin = async () => {
     const clientId = import.meta.env.VITE_APPLE_CLIENT_ID;
     if (!clientId) {
       console.error('Apple Client ID is not configured');
@@ -136,8 +246,19 @@ export function SplashPage() {
 
     const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
     const scope = 'name email';
-    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post`;
-    window.location.href = authUrl;
+
+    const { isNative } = getCapacitorPlatform();
+    const nonce = crypto.randomUUID();
+    const state = isNative ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
+    try { sessionStorage.setItem('oauth_nonce', nonce); } catch {}
+
+    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
+
+    if (isNative) {
+      await openInBrowser(authUrl);
+    } else {
+      window.location.href = authUrl;
+    }
   };
 
   return (

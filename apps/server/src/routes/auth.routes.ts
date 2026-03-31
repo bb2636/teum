@@ -23,6 +23,7 @@ router.get('/apple/callback', authController.appleOAuthCallback.bind(authControl
 router.post('/apple/callback', authController.appleOAuthCallback.bind(authController));
 router.post('/apple/login', loginLimiter, authController.appleLogin.bind(authController));
 router.post('/social/onboarding', signupLimiter, authController.socialOnboarding.bind(authController));
+router.post('/exchange-mobile-token', loginLimiter, authController.exchangeMobileToken.bind(authController));
 
 // Protected routes
 router.post('/logout', authenticate, authController.logout.bind(authController));

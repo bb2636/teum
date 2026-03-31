@@ -96,11 +96,13 @@ teum/
 ### 10. Social Login (OAuth - 서버 리다이렉트 방식)
 - **Google**: 서버측 OAuth 2.0 리다이렉트 플로우 (`/api/auth/google/url` → Google 로그인 → `/api/auth/google/callback`)
 - **Apple**: 서버측 OAuth 리다이렉트 플로우 (`/api/auth/apple/url` → Apple 로그인 → `/api/auth/apple/callback`)
-- **Capacitor APK**: `@capacitor/browser`의 `Browser.open()`으로 Chrome Custom Tab에서 OAuth 진행
-  - `state=platform=mobile` 파라미터로 모바일 요청 식별
-  - 기존 유저: 서버에서 쿠키 설정 후 닫기 안내 HTML 반환 (`sendMobileCloseResponse`)
-  - 신규 유저: Custom Tab 안에서 `/social-onboarding` 진행 후 홈으로 리다이렉트
-  - `browserFinished` 이벤트 감지 → `/api/auth/me`로 인증 확인 → 홈 이동
+- **Capacitor 네이티브 (iOS/Android)**: `@capacitor/browser`의 `Browser.open()`으로 OAuth 진행
+  - `state=platform=mobile&nonce=<random>` 파라미터로 모바일 요청 식별 + CSRF 방어
+  - 기존 유저: 서버에서 임시 토큰 생성 (in-memory Map, 5분 TTL) → `com.teum.app://auth-callback?token=xxx` 딥링크로 리다이렉트
+  - 신규 유저: `com.teum.app://auth-callback?isNewUser=true&...` 딥링크로 소셜 프로필 전달
+  - 앱에서 딥링크 수신 (`App.addListener('appUrlOpen')` + `App.getLaunchUrl()` cold start 처리)
+  - 토큰 교환: `POST /api/auth/exchange-mobile-token` (rate limited, 1회용, 쿠키 설정)
+- **웹**: 기존 서버 리다이렉트 + 쿠키 설정 방식 유지
 - 신규 유저는 `/social-onboarding`으로 리다이렉트 (닉네임, 이름, 생년월일, 약관 동의)
 - `auth_accounts` 테이블에 provider별 계정 연결 (email/google/apple)
 

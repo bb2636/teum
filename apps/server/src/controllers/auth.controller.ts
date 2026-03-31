@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 import { authService } from '../services/auth.service';
 import {
   signupSchema,
@@ -15,6 +16,15 @@ import { logger } from '../config/logger';
 import jwtLib from 'jsonwebtoken';
 import { getClientIp, detectCountryFromIp } from '../utils/ip-geolocation';
 import { userRepository } from '../repositories/user.repository';
+
+const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: string; user: { id: string; role: string }; expiresAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of mobileAuthTokens) {
+    if (val.expiresAt < now) mobileAuthTokens.delete(key);
+  }
+}, 60_000);
 
 export class AuthController {
   async signup(req: Request, res: Response, next: NextFunction) {
@@ -386,15 +396,18 @@ export class AuthController {
 
   async googleOAuthCallback(req: Request, res: Response, next: NextFunction) {
     try {
-      const { code } = req.query;
+      const { code, state } = req.query;
+      const isMobile = typeof state === 'string' && state.includes('platform=mobile');
 
       if (!code || typeof code !== 'string') {
+        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=no_code');
         return res.redirect('/splash?error=no_code');
       }
 
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
       if (!clientId || !clientSecret) {
+        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=not_configured');
         return res.redirect('/splash?error=not_configured');
       }
 
@@ -415,6 +428,7 @@ export class AuthController {
       const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string };
       if (!tokenData.id_token) {
         logger.error({ tokenError: tokenData.error, tokenErrorDesc: tokenData.error_description, redirectUri }, 'Google token exchange failed');
+        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=token_exchange_failed');
         return res.redirect('/splash?error=token_exchange_failed');
       }
 
@@ -433,10 +447,24 @@ export class AuthController {
           picture: result.socialProfile?.picture || '',
           providerAccountId: result.socialProfile?.providerAccountId || '',
         });
+        if (isMobile) {
+          return res.redirect(`com.teum.app://auth-callback?${params.toString()}`);
+        }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
 
       const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
+
+      if (isMobile) {
+        const tempToken = randomUUID();
+        mobileAuthTokens.set(tempToken, {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.refreshToken,
+          user: { id: loginResult.user.id, role: loginResult.user.role },
+          expiresAt: Date.now() + 5 * 60 * 1000,
+        });
+        return res.redirect(`com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
+      }
 
       res.cookie('accessToken', loginResult.accessToken, {
         httpOnly: true,
@@ -459,6 +487,9 @@ export class AuthController {
       return res.redirect('/login-redirect');
     } catch (error) {
       console.error('Google OAuth callback error:', error);
+      if ((req.query.state as string)?.includes('platform=mobile')) {
+        return res.redirect('com.teum.app://auth-callback?error=login_failed');
+      }
       return res.redirect('/splash?error=login_failed');
     }
   }
@@ -466,8 +497,11 @@ export class AuthController {
   async appleOAuthCallback(req: Request, res: Response, next: NextFunction) {
     try {
       const code = (req.body?.code || req.query?.code) as string | undefined;
+      const stateParam = (req.body?.state || req.query?.state) as string | undefined;
+      const isMobile = typeof stateParam === 'string' && stateParam.includes('platform=mobile');
       const userJson = req.body?.user as string | undefined;
       if (!code) {
+        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=no_code');
         return res.redirect('/splash?error=no_code');
       }
 
@@ -476,6 +510,7 @@ export class AuthController {
       const privateKey = process.env.APPLE_PRIVATE_KEY;
       const clientId = process.env.APPLE_CLIENT_ID || process.env.VITE_APPLE_CLIENT_ID;
       if (!teamId || !keyId || !privateKey || !clientId) {
+        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=apple_not_configured');
         return res.redirect('/splash?error=apple_not_configured');
       }
 
@@ -511,6 +546,7 @@ export class AuthController {
 
       const tokenData = await tokenResponse.json() as { id_token?: string };
       if (!tokenData.id_token) {
+        if (isMobile) return res.redirect('com.teum.app://auth-callback?error=apple_token_failed');
         return res.redirect('/splash?error=apple_token_failed');
       }
 
@@ -534,10 +570,24 @@ export class AuthController {
           providerAccountId: result.socialProfile?.providerAccountId || '',
           isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
         });
+        if (isMobile) {
+          return res.redirect(`com.teum.app://auth-callback?${params.toString()}`);
+        }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
 
       const loginResult = result as { accessToken: string; refreshToken: string; isNewUser: false; user: { id: string; email: string; role: string } };
+
+      if (isMobile) {
+        const tempToken = randomUUID();
+        mobileAuthTokens.set(tempToken, {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.refreshToken,
+          user: { id: loginResult.user.id, role: loginResult.user.role },
+          expiresAt: Date.now() + 5 * 60 * 1000,
+        });
+        return res.redirect(`com.teum.app://auth-callback?token=${tempToken}&role=${loginResult.user.role}`);
+      }
 
       res.cookie('accessToken', loginResult.accessToken, {
         httpOnly: true,
@@ -560,6 +610,10 @@ export class AuthController {
       return res.redirect('/login-redirect');
     } catch (error) {
       console.error('Apple OAuth callback error:', error);
+      const st = (req.body?.state || req.query?.state) as string | undefined;
+      if (st?.includes('platform=mobile')) {
+        return res.redirect('com.teum.app://auth-callback?error=apple_login_failed');
+      }
       return res.redirect('/splash?error=apple_login_failed');
     }
   }
@@ -653,6 +707,42 @@ export class AuthController {
         success: true,
         data: { user: result.user },
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exchangeMobileToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.body;
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Token is required' } });
+      }
+
+      const stored = mobileAuthTokens.get(token);
+      if (!stored || stored.expiresAt < Date.now()) {
+        mobileAuthTokens.delete(token);
+        return res.status(401).json({ success: false, error: { code: 'TOKEN_EXPIRED', message: 'Token expired or invalid' } });
+      }
+
+      mobileAuthTokens.delete(token);
+
+      res.cookie('accessToken', stored.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
+      res.cookie('refreshToken', stored.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json({ success: true, data: { role: stored.user.role } });
     } catch (error) {
       next(error);
     }

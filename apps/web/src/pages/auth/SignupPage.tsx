@@ -24,9 +24,9 @@ const nicknameSchema = z
 
 const passwordSchema = z
   .string()
-  .min(8, 'auth.passwordRequirements')
-  .refine((val) => /[a-zA-Z]/.test(val), 'auth.passwordRequirements')
-  .refine((val) => /[0-9]/.test(val), 'auth.passwordRequirements');
+  .min(8, 'auth.passwordMinLength')
+  .refine((val) => /[a-zA-Z]/.test(val), 'auth.passwordNeedLetter')
+  .refine((val) => /[0-9]/.test(val), 'auth.passwordNeedNumber');
 
 const step1Schema = z.object({
   email: z.string().email('auth.emailPlaceholder'),
@@ -97,17 +97,17 @@ export function SignupPage() {
 
   const step1Form = useForm<Step1FormData>({
     resolver: zodResolver(step1Schema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const step2Form = useForm<Step2FormData>({
     resolver: zodResolver(step2Schema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const step3Form = useForm<Step3FormData>({
     resolver: zodResolver(step3Schema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const step1Email = step1Form.watch('email');
@@ -160,10 +160,7 @@ export function SignupPage() {
     step1Password &&
     step1ConfirmPassword &&
     step1Phone &&
-    !step1Errors.email &&
-    !step1Errors.password &&
     !emailError &&
-    step1Password === step1ConfirmPassword &&
     phoneVerified;
 
   const step2Errors = step2Form.formState.errors;
@@ -188,9 +185,6 @@ export function SignupPage() {
     step2Nickname &&
     step2Name &&
     step2DateOfBirth &&
-    !step2Errors.nickname &&
-    !step2Errors.name &&
-    !step2Errors.dateOfBirth &&
     nicknameError.length === 0 &&
     isValidDateOfBirth(step2DateOfBirth);
 
@@ -214,7 +208,6 @@ export function SignupPage() {
         }
       }
       setNicknameError(errors);
-      step2Form.trigger('nickname');
     } else {
       setNicknameError([]);
     }
@@ -369,10 +362,10 @@ export function SignupPage() {
                 type="email"
                 {...step1Form.register('email')}
                 placeholder={t('auth.emailPlaceholder')}
-                className={step1Errors.email || emailError ? 'border-red-500' : ''}
+                className={emailError ? 'border-red-500' : ''}
               />
               {step1Errors.email && (
-                <p className="text-sm text-red-500">{step1Errors.email.message}</p>
+                <p className="text-sm text-red-500">{t(step1Errors.email.message || '')}</p>
               )}
               {!step1Errors.email && emailError && (
                 <p className="text-sm text-red-500">{emailError}</p>
@@ -387,7 +380,6 @@ export function SignupPage() {
                   type={showPassword ? 'text' : 'password'}
                   {...step1Form.register('password')}
                   placeholder={t('auth.passwordPlaceholder')}
-                  className={step1Errors.password ? 'border-red-500' : ''}
                 />
                 <button
                   type="button"
@@ -398,7 +390,7 @@ export function SignupPage() {
                 </button>
               </div>
               {step1Errors.password && (
-                <p className="text-sm text-red-500">{step1Errors.password.message}</p>
+                <p className="text-sm text-red-500">{t(step1Errors.password.message || '')}</p>
               )}
             </div>
 
@@ -410,11 +402,6 @@ export function SignupPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...step1Form.register('confirmPassword')}
                   placeholder={t('auth.passwordPlaceholder')}
-                  className={
-                    step1Password && step1ConfirmPassword !== step1Password
-                      ? 'border-red-500'
-                      : ''
-                  }
                 />
                 <button
                   type="button"
@@ -428,9 +415,6 @@ export function SignupPage() {
                   )}
                 </button>
               </div>
-              {step1Password && step1ConfirmPassword !== step1Password && (
-                <p className="text-sm text-red-500">{t('auth.passwordMismatch')}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -441,7 +425,7 @@ export function SignupPage() {
                   type="tel"
                   {...step1Form.register('phone')}
                   placeholder={t('auth.phonePlaceholder')}
-                  className={`pr-32 ${step1Errors.phone ? 'border-red-500' : ''}`}
+                  className="pr-32"
                   disabled={phoneVerified}
                 />
                 <Button
@@ -455,7 +439,7 @@ export function SignupPage() {
                 </Button>
               </div>
               {step1Errors.phone && (
-                <p className="text-sm text-red-500">{step1Errors.phone.message}</p>
+                <p className="text-sm text-red-500">{t(step1Errors.phone.message || '')}</p>
               )}
               {phoneVerified && (
                 <p className="text-sm text-green-600">✓ {t('auth.phoneVerified')}</p>
@@ -483,7 +467,7 @@ export function SignupPage() {
                   {...step2Form.register('nickname')}
                   placeholder={t('auth.enterNickname')}
                   className={`pr-10 bg-gray-100 ${
-                    step2Errors.nickname || nicknameError.length > 0 ? 'border-red-500' : ''
+                    nicknameError.length > 0 ? 'border-red-500' : ''
                   }`}
                 />
                 {step2Nickname && 
@@ -505,7 +489,7 @@ export function SignupPage() {
                 </div>
               )}
               {step2Errors.nickname && nicknameError.length === 0 && (
-                <p className="text-sm text-red-500">{step2Errors.nickname.message}</p>
+                <p className="text-sm text-red-500">{t(step2Errors.nickname.message || '')}</p>
               )}
             </div>
 
@@ -516,10 +500,10 @@ export function SignupPage() {
                 type="text"
                 {...step2Form.register('name')}
                 placeholder={t('auth.enterName')}
-                className={`bg-gray-100 ${step2Errors.name ? 'border-red-500' : ''}`}
+                className="bg-gray-100"
               />
               {step2Errors.name && (
-                <p className="text-sm text-red-500">{step2Errors.name.message}</p>
+                <p className="text-sm text-red-500">{t(step2Errors.name.message || '')}</p>
               )}
             </div>
 
@@ -554,11 +538,11 @@ export function SignupPage() {
                   }
                 }}
                 placeholder="YYYY / MM / DD"
-                className={`bg-gray-100 ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
+                className="bg-gray-100"
                 maxLength={14}
               />
               {step2Errors.dateOfBirth && (
-                <p className="text-sm text-red-500">{step2Errors.dateOfBirth.message}</p>
+                <p className="text-sm text-red-500">{t(step2Errors.dateOfBirth.message || '')}</p>
               )}
             </div>
 

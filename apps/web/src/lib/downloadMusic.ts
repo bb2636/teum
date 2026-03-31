@@ -12,35 +12,26 @@ export async function downloadMusicFile(
   const platform = capacitor?.getPlatform?.() || 'web';
   const isIOS = platform === 'ios' || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
+  const downloadUrl = await getDownloadUrl(jobId, filename);
+
   if (isNative) {
     try {
-      const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
-        method: 'POST',
-      });
-      const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
-      if (!token) {
-        alert('다운로드 토큰이 없습니다');
-        return;
-      }
-
-      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-
       if (platform === 'android') {
-        const saved = await tryFilesystemDownload(downloadUrl, filename, 'android');
+        const saved = await tryNativeDownload(downloadUrl || audioUrl, filename, 'android');
         if (saved) return;
       }
 
       if (platform === 'ios') {
-        const saved = await tryFilesystemDownload(downloadUrl, filename, 'ios');
+        const saved = await tryNativeDownload(downloadUrl || audioUrl, filename, 'ios');
         if (saved) return;
       }
 
       try {
         const { Browser } = await import('@capacitor/browser');
-        await Browser.open({ url: downloadUrl });
+        await Browser.open({ url: downloadUrl || audioUrl });
         return;
       } catch {
-        window.open(downloadUrl, '_system');
+        window.open(downloadUrl || audioUrl, '_system');
         return;
       }
     } catch (err: any) {
@@ -49,27 +40,19 @@ export async function downloadMusicFile(
     return;
   }
 
-  try {
-    const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
-      method: 'POST',
-    });
-    const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
-
-    if (token) {
-      const downloadUrl = `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
-      if (isIOS) {
-        window.location.href = downloadUrl;
-      } else {
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-      return;
+  if (downloadUrl) {
+    if (isIOS) {
+      window.location.href = downloadUrl;
+    } else {
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
-  } catch {}
+    return;
+  }
 
   try {
     const response = await fetch(audioUrl);
@@ -87,12 +70,28 @@ export async function downloadMusicFile(
   }
 }
 
-async function tryFilesystemDownload(url: string, filename: string, platform: string): Promise<boolean> {
+async function getDownloadUrl(jobId: string, filename: string): Promise<string | null> {
+  try {
+    const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
+      method: 'POST',
+    });
+    const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
+    if (token) {
+      return `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
+    }
+  } catch {}
+  return null;
+}
+
+async function tryNativeDownload(url: string, filename: string, platform: string): Promise<boolean> {
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
     const response = await fetch(url);
-    if (!response.ok) return false;
+    if (!response.ok) {
+      console.warn(`Download fetch failed: ${response.status}`);
+      return false;
+    }
 
     const blob = await response.blob();
     const base64 = await blobToBase64(blob);
@@ -107,16 +106,49 @@ async function tryFilesystemDownload(url: string, filename: string, platform: st
         });
         alert(`"${filename}" 파일이 다운로드 폴더에 저장되었습니다.`);
         return true;
-      } catch {
-        await Filesystem.writeFile({
-          path: filename,
-          data: base64,
-          directory: Directory.Documents,
-          recursive: true,
-        });
-        alert(`"${filename}" 파일이 Documents 폴더에 저장되었습니다.`);
-        return true;
+      } catch (e1) {
+        console.warn('ExternalStorage write failed, trying Documents:', e1);
+        try {
+          await Filesystem.writeFile({
+            path: filename,
+            data: base64,
+            directory: Directory.Documents,
+            recursive: true,
+          });
+          alert(`"${filename}" 파일이 Documents 폴더에 저장되었습니다.`);
+          return true;
+        } catch (e2) {
+          console.warn('Documents write also failed:', e2);
+          try {
+            await Filesystem.writeFile({
+              path: filename,
+              data: base64,
+              directory: Directory.Cache,
+              recursive: true,
+            });
+            const fileUri = await Filesystem.getUri({
+              path: filename,
+              directory: Directory.Cache,
+            });
+            if (fileUri?.uri) {
+              try {
+                const { Share } = await import('@capacitor/share');
+                await Share.share({
+                  title: filename,
+                  url: fileUri.uri,
+                });
+                return true;
+              } catch {
+                alert(`파일이 저장되었습니다: ${fileUri.uri}`);
+                return true;
+              }
+            }
+          } catch (e3) {
+            console.warn('Cache write also failed:', e3);
+          }
+        }
       }
+      return false;
     }
 
     if (platform === 'ios') {
@@ -137,7 +169,7 @@ async function tryFilesystemDownload(url: string, filename: string, platform: st
 
     return false;
   } catch (err) {
-    console.warn('Filesystem download failed:', err);
+    console.warn('Native download failed:', err);
     return false;
   }
 }

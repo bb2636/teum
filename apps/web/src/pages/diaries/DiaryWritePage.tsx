@@ -468,7 +468,7 @@ export function DiaryWritePage() {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const currentRange = sel.getRangeAt(0);
-      if (contentEditableRef.current?.contains(currentRange.startContainer) && !currentRange.collapsed) {
+      if (contentEditableRef.current?.contains(currentRange.startContainer)) {
         return;
       }
     }
@@ -951,7 +951,7 @@ export function DiaryWritePage() {
                 onKeyDown={handleContentKeyDown}
                 onBlur={updateActiveFormats}
                 onFocus={updateActiveFormats}
-                onSelect={updateActiveFormats}
+                onSelect={() => { updateActiveFormats(); saveSelection(); }}
                 data-placeholder="글쓰기 시작..."
                 className="w-full resize-none outline-none bg-white min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 

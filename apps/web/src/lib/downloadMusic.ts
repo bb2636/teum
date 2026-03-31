@@ -67,15 +67,6 @@ async function handleNativeDownload(url: string, filename: string, platform: str
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
-    if (platform === 'android') {
-      try {
-        const permResult = await Filesystem.requestPermissions();
-        console.log('Filesystem permissions:', permResult);
-      } catch {
-        console.log('Permissions request not available (Android 10+)');
-      }
-    }
-
     let base64Data: string;
     try {
       const response = await fetch(url);
@@ -90,12 +81,40 @@ async function handleNativeDownload(url: string, filename: string, platform: str
     }
 
     if (platform === 'android') {
-      const dirs = [
+      try {
+        await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: Directory.Cache,
+          recursive: true,
+        });
+        const fileUri = await Filesystem.getUri({
+          path: filename,
+          directory: Directory.Cache,
+        });
+        if (fileUri?.uri) {
+          try {
+            const { Share } = await import('@capacitor/share');
+            await Share.share({
+              title: filename,
+              url: fileUri.uri,
+            });
+            return;
+          } catch {
+            alert(`"${filename}" 파일이 저장되었습니다.`);
+            return;
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('Cache+Share failed:', cacheErr);
+      }
+
+      const fallbackDirs = [
         { path: `Download/${filename}`, dir: Directory.ExternalStorage, label: '다운로드 폴더' },
         { path: filename, dir: Directory.Documents, label: 'Documents 폴더' },
         { path: filename, dir: Directory.Data, label: '앱 저장소' },
       ];
-      for (const { path, dir, label } of dirs) {
+      for (const { path, dir, label } of fallbackDirs) {
         try {
           await Filesystem.writeFile({
             path,
@@ -109,7 +128,7 @@ async function handleNativeDownload(url: string, filename: string, platform: str
           console.warn(`${label} write failed:`, e);
         }
       }
-      alert('파일 저장에 실패했습니다. 앱 설정에서 저장소 권한을 확인해주세요.');
+      alert('파일 저장에 실패했습니다. 다시 시도해주세요.');
       return;
     }
 
@@ -131,13 +150,28 @@ async function handleNativeDownload(url: string, filename: string, platform: str
         await Filesystem.writeFile({
           path: filename,
           data: base64Data,
-          directory: Directory.Data,
+          directory: Directory.Cache,
           recursive: true,
         });
-        alert(`"${filename}" 파일이 앱 내부에 저장되었습니다.`);
-        return;
+        const fileUri = await Filesystem.getUri({
+          path: filename,
+          directory: Directory.Cache,
+        });
+        if (fileUri?.uri) {
+          try {
+            const { Share } = await import('@capacitor/share');
+            await Share.share({
+              title: filename,
+              url: fileUri.uri,
+            });
+            return;
+          } catch {
+            alert(`"${filename}" 파일이 저장되었습니다.`);
+            return;
+          }
+        }
       } catch (err2) {
-        console.warn('iOS Data write failed:', err2);
+        console.warn('iOS Cache+Share failed:', err2);
       }
 
       alert('파일 저장에 실패했습니다. 기기 저장 공간을 확인해주세요.');

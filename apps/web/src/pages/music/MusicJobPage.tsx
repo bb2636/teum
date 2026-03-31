@@ -279,7 +279,7 @@ export function MusicJobPage() {
                         onClick={() => navigate(`/diaries/${diary.id}`)}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-brown-50 transition-colors text-left"
                       >
-                        <div className="w-16 h-16 rounded-lg bg-brown-100 flex-shrink-0 overflow-hidden">
+                        <div className="w-16 h-16 rounded-lg bg-[#f5f0eb] flex-shrink-0 overflow-hidden">
                           {firstImage ? (
                             <StorageImage
                               url={firstImage}
@@ -287,8 +287,8 @@ export function MusicJobPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-brown-400">
-                              <span className="text-lg">📝</span>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <img src="/logo.png" alt="teum" className="w-10 h-10 object-contain opacity-30" />
                             </div>
                           )}
                         </div>
@@ -375,7 +375,7 @@ export function MusicJobPage() {
                         onClick={() => navigate(`/diaries/${diary.id}`)}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-brown-50 transition-colors text-left"
                       >
-                        <div className="w-16 h-16 rounded-lg bg-brown-100 flex-shrink-0 overflow-hidden">
+                        <div className="w-16 h-16 rounded-lg bg-[#f5f0eb] flex-shrink-0 overflow-hidden">
                           {firstImage ? (
                             <StorageImage
                               url={firstImage}
@@ -383,8 +383,8 @@ export function MusicJobPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-brown-400">
-                              <span className="text-lg">📝</span>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <img src="/logo.png" alt="teum" className="w-10 h-10 object-contain opacity-30" />
                             </div>
                           )}
                         </div>

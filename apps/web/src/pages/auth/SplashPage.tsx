@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { useGoogleLogin } from '@/hooks/useSocialAuth';
@@ -51,7 +50,6 @@ async function openInBrowser(url: string) {
 
 export function SplashPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const googleLogin = useGoogleLogin();
   const t = useT();
   const gsiInitialized = useRef(false);

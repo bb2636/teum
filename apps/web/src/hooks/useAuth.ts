@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import { forceFullCacheClear } from '@/lib/queryClient';
 
@@ -15,8 +15,6 @@ export interface User {
 }
 
 export function useLogin() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     onMutate: () => {
       forceFullCacheClear();
@@ -42,8 +40,6 @@ export function useLogin() {
 }
 
 export function useSignup() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (data: {
       email: string;
@@ -71,8 +67,6 @@ export function useSignup() {
 }
 
 export function useLogout() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async () => {
       try {

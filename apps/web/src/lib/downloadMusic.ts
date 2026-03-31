@@ -97,114 +97,126 @@ async function handleNativeDownload(url: string, filename: string, platform: str
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
 
-    let base64Data: string;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      base64Data = await blobToBase64(blob);
-    } catch (fetchErr: any) {
-      alert(`파일 다운로드에 실패했습니다: ${fetchErr?.message || '네트워크 오류'}`);
-      return;
-    }
-
     if (platform === 'android') {
-      try {
-        await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: Directory.Cache,
-          recursive: true,
-        });
-        const fileUri = await Filesystem.getUri({
-          path: filename,
-          directory: Directory.Cache,
-        });
-        if (fileUri?.uri) {
-          try {
-            const { Share } = await import('@capacitor/share');
-            await Share.share({
-              title: filename,
-              url: fileUri.uri,
+      const downloadDirs = [
+        { path: filename, dir: Directory.Cache, label: 'Cache' },
+        { path: filename, dir: Directory.Data, label: 'Data' },
+        { path: filename, dir: Directory.Documents, label: 'Documents' },
+        { path: `Download/${filename}`, dir: Directory.ExternalStorage, label: 'ExternalStorage' },
+      ];
+
+      let savedUri: string | null = null;
+      const errors: string[] = [];
+
+      for (const { path, dir, label } of downloadDirs) {
+        try {
+          if (typeof (Filesystem as any).downloadFile === 'function') {
+            await (Filesystem as any).downloadFile({
+              url,
+              path,
+              directory: dir,
+              recursive: true,
             });
-            return;
-          } catch {
-            alert(`"${filename}" 파일이 저장되었습니다.`);
-            return;
+          } else {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const blob = await response.blob();
+            const base64 = await blobToBase64(blob);
+            await Filesystem.writeFile({
+              path,
+              data: base64,
+              directory: dir,
+              recursive: true,
+            });
           }
+          const uriResult = await Filesystem.getUri({ path, directory: dir });
+          savedUri = uriResult?.uri || null;
+          break;
+        } catch (e: any) {
+          errors.push(`${label}: ${e?.message || String(e)}`);
         }
-      } catch (cacheErr) {
-        console.warn('Cache+Share failed:', cacheErr);
       }
 
-      const fallbackDirs = [
-        { path: `Download/${filename}`, dir: Directory.ExternalStorage, label: '다운로드 폴더' },
-        { path: filename, dir: Directory.Documents, label: 'Documents 폴더' },
-        { path: filename, dir: Directory.Data, label: '앱 저장소' },
-      ];
-      for (const { path, dir, label } of fallbackDirs) {
+      if (savedUri) {
         try {
-          await Filesystem.writeFile({
-            path,
-            data: base64Data,
-            directory: dir,
-            recursive: true,
-          });
-          alert(`"${filename}" 파일이 ${label}에 저장되었습니다.`);
-          return;
-        } catch (e) {
-          console.warn(`${label} write failed:`, e);
+          const { Share } = await import('@capacitor/share');
+          await Share.share({ title: filename, url: savedUri });
+        } catch {
+          alert(`"${filename}" 파일이 저장되었습니다.`);
         }
+        return;
       }
-      alert('파일 저장에 실패했습니다. 다시 시도해주세요.');
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        const file = new File([blob], filename, { type: 'audio/mpeg' });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          return;
+        }
+      } catch (shareErr: any) {
+        errors.push(`WebShare: ${shareErr?.message || String(shareErr)}`);
+      }
+
+      alert(`파일 저장에 실패했습니다.\n\n상세: ${errors.join('\n')}`);
       return;
     }
 
     if (platform === 'ios') {
-      try {
-        await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: Directory.Documents,
-          recursive: true,
-        });
-        alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
-        return;
-      } catch (err) {
-        console.warn('iOS Documents write failed:', err);
-      }
+      const iosDirs = [
+        { path: filename, dir: Directory.Documents, label: 'Documents' },
+        { path: filename, dir: Directory.Cache, label: 'Cache' },
+        { path: filename, dir: Directory.Data, label: 'Data' },
+      ];
 
-      try {
-        await Filesystem.writeFile({
-          path: filename,
-          data: base64Data,
-          directory: Directory.Cache,
-          recursive: true,
-        });
-        const fileUri = await Filesystem.getUri({
-          path: filename,
-          directory: Directory.Cache,
-        });
-        if (fileUri?.uri) {
-          try {
-            const { Share } = await import('@capacitor/share');
-            await Share.share({
-              title: filename,
-              url: fileUri.uri,
+      const errors: string[] = [];
+
+      for (const { path, dir, label } of iosDirs) {
+        try {
+          if (typeof (Filesystem as any).downloadFile === 'function') {
+            await (Filesystem as any).downloadFile({
+              url,
+              path,
+              directory: dir,
+              recursive: true,
             });
-            return;
-          } catch {
-            alert(`"${filename}" 파일이 저장되었습니다.`);
-            return;
+          } else {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const blob = await response.blob();
+            const base64 = await blobToBase64(blob);
+            await Filesystem.writeFile({
+              path,
+              data: base64,
+              directory: dir,
+              recursive: true,
+            });
           }
+
+          if (label === 'Documents') {
+            alert(`"${filename}" 파일이 저장되었습니다.\n\n파일 앱 > 이 iPhone > Teum 폴더에서 확인할 수 있습니다.`);
+          } else {
+            const uriResult = await Filesystem.getUri({ path, directory: dir });
+            if (uriResult?.uri) {
+              try {
+                const { Share } = await import('@capacitor/share');
+                await Share.share({ title: filename, url: uriResult.uri });
+              } catch {
+                alert(`"${filename}" 파일이 저장되었습니다.`);
+              }
+            } else {
+              alert(`"${filename}" 파일이 저장되었습니다.`);
+            }
+          }
+          return;
+        } catch (e: any) {
+          errors.push(`${label}: ${e?.message || String(e)}`);
         }
-      } catch (err2) {
-        console.warn('iOS Cache+Share failed:', err2);
       }
 
-      alert('파일 저장에 실패했습니다. 기기 저장 공간을 확인해주세요.');
+      alert(`파일 저장에 실패했습니다.\n\n상세: ${errors.join('\n')}`);
       return;
     }
   } catch (err: any) {

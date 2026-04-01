@@ -456,7 +456,7 @@ export function CalendarPage() {
                     !isCurrentMonth 
                       ? 'opacity-30 bg-gray-50' 
                       : isToday || isSelected
-                      ? 'bg-pink-50'
+                      ? 'bg-[#f6efed]'
                       : 'bg-white'
                   }`}
                 >
@@ -488,7 +488,7 @@ export function CalendarPage() {
                         if (!groups.some(([name]) => name)) {
                           return (
                             <div className="flex justify-center">
-                              <div className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
+                              <div className="w-1.5 h-1.5 bg-[#4A2C1A] rounded-full" />
                             </div>
                           );
                         }
@@ -501,13 +501,17 @@ export function CalendarPage() {
                             {visibleGroups.map(([name, count]) => (
                               <div
                                 key={name}
-                                className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded truncate text-center"
+                                className={`w-full text-[10px] px-1 py-0.5 rounded truncate text-center ${
+                                  isToday ? 'bg-[#4A2C1A] text-white' : 'bg-[#f6efed] text-[#4A2C1A]'
+                                }`}
                               >
                                 {name}{count > 1 ? ` +${count - 1}` : ''}
                               </div>
                             ))}
                             {remainingCount > 0 && (
-                              <div className="w-full bg-pink-100 text-pink-700 text-[10px] px-1 py-0.5 rounded text-center">
+                              <div className={`w-full text-[10px] px-1 py-0.5 rounded text-center ${
+                                isToday ? 'bg-[#4A2C1A] text-white' : 'bg-[#f6efed] text-[#4A2C1A]'
+                              }`}>
                                 +{remainingCount}
                               </div>
                             )}

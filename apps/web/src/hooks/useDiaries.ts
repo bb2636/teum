@@ -223,9 +223,8 @@ export function useUpdateDiary() {
         });
       }
 
-      // Update in lists
       queryClient.setQueriesData<Diary[]>({ queryKey: ['diaries'] }, (old) => {
-        if (!old) return undefined;
+        if (!old || !Array.isArray(old)) return old;
         return old.map((diary) =>
           diary.id === id
             ? { ...diary, ...variables, updatedAt: new Date().toISOString() }
@@ -252,7 +251,7 @@ export function useUpdateDiary() {
       queryClient.setQueryData<Diary>(['diary', updatedDiary.id], updatedDiary);
 
       queryClient.setQueriesData<Diary[]>({ queryKey: ['diaries'] }, (old) => {
-        if (!old) return undefined;
+        if (!old || !Array.isArray(old)) return old;
         return old.map((diary) =>
           diary.id === updatedDiary.id ? updatedDiary : diary
         );
@@ -287,7 +286,7 @@ export function useDeleteDiary() {
 
       // Optimistically remove from cache
       queryClient.setQueriesData<Diary[]>({ queryKey: ['diaries'] }, (old) => {
-        if (!old) return undefined;
+        if (!old || !Array.isArray(old)) return old;
         return old.filter((diary) => diary.id !== id);
       });
 

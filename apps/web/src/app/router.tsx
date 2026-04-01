@@ -28,6 +28,7 @@ import { PaymentFailPage } from '../pages/payment/PaymentFailPage';
 import { SupportPage } from '../pages/my/SupportPage';
 import { SupportInquiryPage } from '../pages/my/SupportInquiryPage';
 import { AdminPage } from '../pages/admin/AdminPage';
+import { PrivacyPolicyPage } from '../pages/legal/PrivacyPolicyPage';
 import { useMe } from '../hooks/useProfile';
 
 // Protected Route Component
@@ -85,6 +86,8 @@ export default function App() {
         }
       />
       
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+
       {/* Other routes - with Layout wrapper */}
       <Route
         path="*"

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 export interface Question {
   id: string;
@@ -10,20 +11,20 @@ export interface Question {
   updatedAt: string;
 }
 
-// Get random questions (excludes questions used in last 7 days)
 export function useRandomQuestions(count: number = 3) {
+  const lang = getCurrentLanguage();
   return useQuery<Question[]>({
-    queryKey: ['questions', 'random', count],
+    queryKey: ['questions', 'random', count, lang],
     queryFn: async () => {
       const response = await apiRequest<{ data: { questions: Question[] } }>(
-        `/questions/random?count=${count}&_t=${Date.now()}` // Add timestamp to query string to bypass cache
+        `/questions/random?count=${count}&lang=${lang}&_t=${Date.now()}`
       );
       return response.data.questions;
     },
-    staleTime: 0, // Always fetch fresh random questions
-    gcTime: 0, // Don't cache random questions
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
   });
 }
 

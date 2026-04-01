@@ -3,6 +3,7 @@ import { questionService } from '../services/question.service';
 import { createQuestionSchema, updateQuestionSchema } from '../validations/question';
 import { requireRole } from '../middleware/auth';
 import { logger } from '../config/logger';
+import { getTranslatedQuestions } from '../services/question-translation.service';
 
 export class QuestionController {
   // Get random questions for user (excludes questions used in last 7 days)
@@ -16,11 +17,16 @@ export class QuestionController {
       }
 
       const count = parseInt(req.query.count as string) || 3;
+      const lang = (req.query.lang as string) || 'ko';
       const questions = await questionService.getRandomQuestions(req.user.userId, count);
+
+      const translatedQuestions = lang !== 'ko'
+        ? await getTranslatedQuestions(questions, lang)
+        : questions;
 
       res.json({
         success: true,
-        data: { questions },
+        data: { questions: translatedQuestions },
       });
     } catch (error) {
       next(error);

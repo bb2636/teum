@@ -443,7 +443,9 @@ export class AuthController {
       }
 
       const proto = req.get('x-forwarded-proto') || req.protocol;
-      const redirectUri = `${proto}://${req.get('host')}/api/auth/google/callback`;
+      const host = req.get('host');
+      const redirectUri = `${proto}://${host}/api/auth/google/callback`;
+      logger.info({ redirectUri, host, proto }, 'Google OAuth callback - exchanging code for token');
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -457,6 +459,7 @@ export class AuthController {
       });
 
       const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string };
+      logger.info({ hasIdToken: !!tokenData.id_token, error: tokenData.error }, 'Google token exchange result');
       if (!tokenData.id_token) {
         logger.error({ tokenError: tokenData.error, tokenErrorDesc: tokenData.error_description, redirectUri }, 'Google token exchange failed');
         if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=token_exchange_failed');
@@ -526,7 +529,7 @@ export class AuthController {
       }
       return res.redirect('/login-redirect');
     } catch (error) {
-      console.error('Google OAuth callback error:', error);
+      logger.error({ err: error }, 'Google OAuth callback error');
       return res.redirect('/splash?error=login_failed');
     }
   }

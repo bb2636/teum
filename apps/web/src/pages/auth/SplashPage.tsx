@@ -143,6 +143,59 @@ export function SplashPage() {
         } catch {
           if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
         }
+        return;
+      }
+
+      const success = params.get('success');
+      if (success === 'true') {
+        const nonce = sessionStorage.getItem('oauth_nonce');
+        if (!nonce) return;
+        sessionStorage.removeItem('oauth_nonce');
+        sessionStorage.removeItem('teum_oauth_pending');
+
+        try {
+          const onboardingRes = await apiRequest<{ success: boolean; data: any }>('/auth/exchange-mobile-token', {
+            method: 'POST',
+            body: JSON.stringify({ token: `onboarding:${nonce}` }),
+          }).catch(() => null);
+
+          if (onboardingRes?.data?.onboardingData) {
+            if (unmounted) return;
+            const d = onboardingRes.data.onboardingData;
+            localStorage.clear();
+            forceFullCacheClear();
+            navigate('/social-onboarding', {
+              state: {
+                socialProfile: {
+                  provider: d.provider || '',
+                  email: d.email || '',
+                  name: d.name || '',
+                  picture: d.picture || '',
+                  providerAccountId: d.providerAccountId || '',
+                  isEmailHidden: d.isEmailHidden === 'true',
+                },
+                onboardingToken: d.onboardingToken || '',
+              },
+            });
+            return;
+          }
+
+          const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
+            method: 'POST',
+            body: JSON.stringify({ token: nonce }),
+          });
+          if (unmounted) return;
+          sessionStorage.removeItem('teum_logged_out');
+          localStorage.clear();
+          forceFullCacheClear();
+          if (result.data.role === 'admin') {
+            window.location.href = '/admin';
+          } else {
+            window.location.href = '/home';
+          }
+        } catch {
+          if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+        }
       }
     };
 

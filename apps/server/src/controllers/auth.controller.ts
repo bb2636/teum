@@ -22,9 +22,20 @@ const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: st
 function sendMobileCloseBrowserPage(res: Response) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:20px;margin-bottom:16px}p{font-size:14px;opacity:0.8;line-height:1.6}</style></head>
-<body><div class="c"><h2>로그인 완료!</h2><p>이 창을 닫고 앱으로 돌아가주세요.<br>Login complete! Please close this window.</p></div>
-<script>try{window.close();}catch(e){}</script></body></html>`);
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:20px;margin-bottom:16px}p{font-size:14px;opacity:0.8;line-height:1.6}.btn{display:inline-block;margin-top:24px;padding:14px 40px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:15px;font-weight:500;cursor:pointer}</style></head>
+<body><div class="c"><h2>로그인 완료!</h2><p>앱으로 자동 이동합니다...</p><a id="btn" class="btn" style="display:none" href="com.teum.app://auth-callback?success=true">앱으로 돌아가기</a></div>
+<script>
+(function(){
+  var deepLink="com.teum.app://auth-callback?success=true";
+  var btn=document.getElementById("btn");
+  try{window.location.href=deepLink;}catch(e){}
+  setTimeout(function(){
+    try{window.close();}catch(e){}
+    if(btn){btn.style.display="inline-block";}
+    document.querySelector("p").textContent="아래 버튼을 눌러 앱으로 돌아가세요.";
+  },1500);
+})();
+</script></body></html>`);
 }
 
 function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {

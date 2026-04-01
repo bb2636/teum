@@ -277,14 +277,17 @@ export function HomePage() {
       <div className="max-w-md mx-auto">
         {/* Header - First Row */}
         <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
-          <img
-            src="/home_logo.png"
-            alt="teum logo"
-            className="h-8 w-auto object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="teum logo"
+              className="h-8 w-auto object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <span className="text-sm font-medium" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
+          </div>
           <div className="flex items-center gap-2">
             {activeSubscription ? (
               <Button

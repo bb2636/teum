@@ -365,8 +365,8 @@ export function SplashPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#665146]">
-      <div className="w-full h-screen bg-[#665146] relative overflow-hidden flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-white">
+      <div className="w-full h-screen bg-white relative overflow-hidden flex flex-col items-center justify-center px-4">
         <div className="w-full flex flex-col items-center justify-center space-y-6">
           <div className="flex flex-col justify-center items-center text-center space-y-2">
             <div>
@@ -381,9 +381,9 @@ export function SplashPage() {
             <Button
               className="w-full rounded-xl py-4 text-base font-medium border"
               style={{
-                backgroundColor: 'rgba(253, 253, 253, 0.2)',
-                borderColor: 'rgba(253, 253, 253, 0.6)',
-                color: '#fdfdfd',
+                backgroundColor: '#4A2C1A',
+                borderColor: '#4A2C1A',
+                color: '#ffffff',
               }}
               size="lg"
               onClick={() => navigate('/login')}
@@ -393,10 +393,10 @@ export function SplashPage() {
 
             <div className="relative flex items-center justify-center my-3">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t" style={{ borderColor: 'rgba(253, 253, 253, 0.8)' }}></div>
+                <div className="w-full border-t" style={{ borderColor: 'rgba(74, 44, 26, 0.3)' }}></div>
               </div>
-              <div className="relative bg-[#665146] px-4">
-                <span className="text-sm" style={{ color: 'rgba(253, 253, 253, 0.8)' }}>{t('common.or')}</span>
+              <div className="relative bg-white px-4">
+                <span className="text-sm" style={{ color: 'rgba(74, 44, 26, 0.6)' }}>{t('common.or')}</span>
               </div>
             </div>
 

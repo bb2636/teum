@@ -1,17 +1,18 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDiary, useDeleteDiary } from '@/hooks/useDiaries';
+import { useDiary, useDeleteDiary, useCalendarDiaries } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
-import { useState } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { DiaryDeleteModal } from './DiaryDeleteModal';
 import { Toast } from '@/components/Toast';
 
 export function DiaryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const t = useT();
   const locale = getDateLocale();
@@ -22,6 +23,91 @@ export function DiaryDetailPage() {
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+
+  const fromCalendar = searchParams.get('from') === 'calendar';
+  const dateParam = searchParams.get('date');
+  const calYear = dateParam ? parseInt(dateParam.split('-')[0]) : new Date().getFullYear();
+  const calMonth = dateParam ? parseInt(dateParam.split('-')[1]) : new Date().getMonth() + 1;
+  const { data: calendarDiaries = [] } = useCalendarDiaries(calYear, calMonth);
+
+  const sortedCalendarDiaries = useMemo(() => {
+    if (!fromCalendar) return [];
+    return [...calendarDiaries].sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      if (da !== db) return da - db;
+      return a.id.localeCompare(b.id);
+    });
+  }, [calendarDiaries, fromCalendar]);
+
+  const currentIndex = useMemo(() => {
+    if (!fromCalendar || !id) return -1;
+    return sortedCalendarDiaries.findIndex((d) => d.id === id);
+  }, [sortedCalendarDiaries, id, fromCalendar]);
+
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const navigateToDiary = useCallback((index: number) => {
+    if (index < 0 || index >= sortedCalendarDiaries.length) return;
+    const targetDiary = sortedCalendarDiaries[index];
+    const targetDate = format(new Date(targetDiary.date), 'yyyy-MM-dd');
+    navigate(`/diaries/${targetDiary.id}?from=calendar&date=${targetDate}`, { replace: true });
+  }, [sortedCalendarDiaries, navigate]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!fromCalendar || isTransitioning) return;
+    swipeStartX.current = e.touches[0].clientX;
+    swipeStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (swipeStartX.current === null || swipeStartY.current === null || isTransitioning || !fromCalendar) return;
+    const diffX = e.touches[0].clientX - swipeStartX.current;
+    const diffY = e.touches[0].clientY - swipeStartY.current;
+    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffX) < 10) return;
+    if (Math.abs(diffX) > 10) {
+      e.preventDefault();
+    }
+    const hasPrev = currentIndex > 0;
+    const hasNext = currentIndex < sortedCalendarDiaries.length - 1;
+    if ((diffX > 0 && !hasPrev) || (diffX < 0 && !hasNext)) {
+      setSwipeOffset(diffX * 0.3);
+    } else {
+      setSwipeOffset(diffX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeStartX.current === null || isTransitioning || !fromCalendar) {
+      swipeStartX.current = null;
+      swipeStartY.current = null;
+      return;
+    }
+    const threshold = 60;
+    if (Math.abs(swipeOffset) > threshold) {
+      const direction = swipeOffset > 0 ? -1 : 1;
+      const targetIndex = currentIndex + direction;
+      if (targetIndex >= 0 && targetIndex < sortedCalendarDiaries.length) {
+        setIsTransitioning(true);
+        const targetOffset = swipeOffset > 0 ? window.innerWidth : -window.innerWidth;
+        setSwipeOffset(targetOffset);
+        setTimeout(() => {
+          navigateToDiary(targetIndex);
+          setSwipeOffset(0);
+          setIsTransitioning(false);
+        }, 200);
+      } else {
+        setSwipeOffset(0);
+      }
+    } else {
+      setSwipeOffset(0);
+    }
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+  };
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -48,6 +134,8 @@ export function DiaryDetailPage() {
     });
   };
 
+  const backPath = fromCalendar ? '/calendar' : '/home';
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
@@ -70,10 +158,21 @@ export function DiaryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-beige-50">
-      <div className="max-w-md mx-auto">
+    <div
+      className="min-h-screen bg-beige-50"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div
+        className="max-w-md mx-auto"
+        style={{
+          transform: `translateX(${swipeOffset}px)`,
+          transition: isTransitioning ? 'transform 0.2s ease-out' : 'none',
+        }}
+      >
         <div className="sticky top-0 z-30 bg-beige-50 px-4 py-3 flex items-center justify-between border-b border-gray-200" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
-          <Link to="/home">
+          <Link to={backPath}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -179,6 +278,22 @@ export function DiaryDetailPage() {
             {t('diary.chatWithAi')}
           </button>
         </div>
+
+        {fromCalendar && sortedCalendarDiaries.length > 1 && (
+          <div className="flex justify-center gap-1 pb-6">
+            {sortedCalendarDiaries.map((d, i) => (
+              <div
+                key={d.id}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  i === currentIndex ? 'bg-[#4A2C1A]' : 'bg-gray-300'
+                }`}
+              />
+            )).slice(
+              Math.max(0, currentIndex - 4),
+              Math.min(sortedCalendarDiaries.length, currentIndex + 5)
+            )}
+          </div>
+        )}
       </div>
 
       <DiaryDeleteModal

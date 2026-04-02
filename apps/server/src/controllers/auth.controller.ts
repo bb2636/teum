@@ -498,6 +498,7 @@ export class AuthController {
 
       if (isMobile) {
         const tokenKey = stateNonce || randomUUID();
+        logger.info({ tokenKey: tokenKey.substring(0, 8), userId: loginResult.user.id }, 'Google OAuth: storing mobile token for exchange');
         mobileAuthTokens.set(tokenKey, {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
@@ -626,6 +627,7 @@ export class AuthController {
 
       if (isMobile) {
         const tokenKey = appleNonce || randomUUID();
+        logger.info({ tokenKey: tokenKey.substring(0, 8), userId: loginResult.user.id }, 'Apple OAuth: storing mobile token for exchange');
         mobileAuthTokens.set(tokenKey, {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
@@ -761,26 +763,35 @@ export class AuthController {
         return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Token is required' } });
       }
 
-      const stored = mobileAuthTokens.get(token) as any;
-      if (!stored || stored.expiresAt < Date.now()) {
-        mobileAuthTokens.delete(token);
-        return res.status(401).json({ success: false, error: { code: 'TOKEN_EXPIRED', message: 'Token expired or invalid' } });
+      const onboardingKey = token.startsWith('onboarding:') ? token : `onboarding:${token}`;
+      const loginKey = token.startsWith('onboarding:') ? token.replace('onboarding:', '') : token;
+
+      const onboardingStored = mobileAuthTokens.get(onboardingKey) as any;
+      if (onboardingStored && onboardingStored.expiresAt >= Date.now() && onboardingStored.onboardingData) {
+        mobileAuthTokens.delete(onboardingKey);
+        logger.info({ token: loginKey.substring(0, 8) }, 'Mobile token exchange: onboarding data returned');
+        return res.json({ success: true, data: { onboardingData: onboardingStored.onboardingData } });
       }
 
-      mobileAuthTokens.delete(token);
-
-      if (stored.onboardingData) {
-        return res.json({ success: true, data: { onboardingData: stored.onboardingData } });
+      const loginStored = mobileAuthTokens.get(loginKey) as any;
+      if (!loginStored || loginStored.expiresAt < Date.now()) {
+        if (loginStored) mobileAuthTokens.delete(loginKey);
+        if (onboardingStored) mobileAuthTokens.delete(onboardingKey);
+        logger.info({ token: loginKey.substring(0, 8) }, 'Mobile token exchange: not found or expired');
+        return res.status(404).json({ success: false, error: { code: 'TOKEN_NOT_FOUND', message: 'Token not ready or expired' } });
       }
 
-      res.cookie('accessToken', stored.accessToken, {
+      mobileAuthTokens.delete(loginKey);
+      logger.info({ token: loginKey.substring(0, 8), role: loginStored.user?.role }, 'Mobile token exchange: login success');
+
+      res.cookie('accessToken', loginStored.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         path: '/',
         maxAge: 15 * 60 * 1000,
       });
-      res.cookie('refreshToken', stored.refreshToken, {
+      res.cookie('refreshToken', loginStored.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
@@ -788,7 +799,7 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      res.json({ success: true, data: { role: stored.user.role } });
+      res.json({ success: true, data: { role: loginStored.user.role } });
     } catch (error) {
       next(error);
     }

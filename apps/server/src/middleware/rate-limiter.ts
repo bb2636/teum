@@ -75,6 +75,21 @@ export const passwordResetLimiter = rateLimit({
   validate: false,
 });
 
+export const mobileTokenExchangeLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 150,
+  message: {
+    success: false,
+    error: {
+      code: 'TOO_MANY_REQUESTS',
+      message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+});
+
 export const globalApiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 100,

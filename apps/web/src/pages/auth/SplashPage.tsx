@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -52,11 +52,39 @@ async function openInBrowser(url: string) {
   }
 }
 
+const OAUTH_NONCE_KEY = 'teum_oauth_nonce';
+const OAUTH_PENDING_KEY = 'teum_oauth_pending_ts';
+
+function setOAuthState(nonce: string) {
+  try {
+    localStorage.setItem(OAUTH_NONCE_KEY, nonce);
+    localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
+  } catch {}
+}
+
+function getOAuthState(): { nonce: string | null; pendingTs: number | null } {
+  try {
+    const nonce = localStorage.getItem(OAUTH_NONCE_KEY);
+    const ts = localStorage.getItem(OAUTH_PENDING_KEY);
+    return { nonce, pendingTs: ts ? parseInt(ts, 10) : null };
+  } catch {
+    return { nonce: null, pendingTs: null };
+  }
+}
+
+function clearOAuthState() {
+  try {
+    localStorage.removeItem(OAUTH_NONCE_KEY);
+    localStorage.removeItem(OAUTH_PENDING_KEY);
+  } catch {}
+}
+
 export function SplashPage() {
   const navigate = useNavigate();
   const googleLogin = useGoogleLogin();
   const t = useT();
   const gsiInitialized = useRef(false);
+  const exchangingRef = useRef(false);
   const { data: user, isLoading: isCheckingAuth } = useMe();
   const [skipAutoRedirect] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -73,6 +101,85 @@ export function SplashPage() {
       }
     }
   }, [user, isCheckingAuth, navigate, skipAutoRedirect]);
+
+  const exchangeToken = useCallback(async () => {
+    if (exchangingRef.current) return;
+
+    const { nonce, pendingTs } = getOAuthState();
+    if (!nonce || !pendingTs) return;
+    if (Date.now() - pendingTs > 5 * 60 * 1000) {
+      console.log('[OAuth] OAuth state expired, clearing');
+      clearOAuthState();
+      return;
+    }
+
+    exchangingRef.current = true;
+    console.log('[OAuth] Attempting token exchange, nonce:', nonce.substring(0, 8) + '...');
+
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const res = await fetch(`${apiBase}/auth/exchange-mobile-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token: nonce }),
+      });
+
+      if (res.status === 404) {
+        console.log('[OAuth] Token not ready yet on server, will retry');
+        exchangingRef.current = false;
+        return;
+      }
+
+      if (!res.ok) {
+        console.log('[OAuth] Token exchange HTTP error:', res.status);
+        exchangingRef.current = false;
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data?.data?.onboardingData) {
+        console.log('[OAuth] Onboarding data received');
+        clearOAuthState();
+        const d = data.data.onboardingData;
+        forceFullCacheClear();
+        navigate('/social-onboarding', {
+          state: {
+            socialProfile: {
+              provider: d.provider || '',
+              email: d.email || '',
+              name: d.name || '',
+              picture: d.picture || '',
+              providerAccountId: d.providerAccountId || '',
+              isEmailHidden: d.isEmailHidden === 'true',
+            },
+            onboardingToken: d.onboardingToken || '',
+          },
+        });
+        return;
+      }
+
+      if (data?.data?.role) {
+        console.log('[OAuth] Login success, role:', data.data.role);
+        clearOAuthState();
+        sessionStorage.removeItem('teum_logged_out');
+        forceFullCacheClear();
+        if (data.data.role === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/home';
+        }
+        return;
+      }
+
+      console.log('[OAuth] Unexpected response:', JSON.stringify(data));
+      exchangingRef.current = false;
+    } catch (err) {
+      console.log('[OAuth] Token exchange network error:', err);
+      exchangingRef.current = false;
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const { isNative } = getCapacitorPlatform();
@@ -103,7 +210,6 @@ export function SplashPage() {
 
       if (isNewUser === 'true') {
         if (!unmounted) {
-          localStorage.clear();
           forceFullCacheClear();
           navigate('/social-onboarding', {
             state: {
@@ -123,9 +229,8 @@ export function SplashPage() {
       }
 
       if (token) {
-        sessionStorage.removeItem('teum_oauth_pending');
+        clearOAuthState();
         try {
-          localStorage.clear();
           forceFullCacheClear();
           const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
             method: 'POST',
@@ -133,7 +238,6 @@ export function SplashPage() {
           });
           if (unmounted) return;
           sessionStorage.removeItem('teum_logged_out');
-          localStorage.clear();
           forceFullCacheClear();
           if (result.data.role === 'admin') {
             window.location.href = '/admin';
@@ -146,56 +250,8 @@ export function SplashPage() {
         return;
       }
 
-      const success = params.get('success');
-      if (success === 'true') {
-        const nonce = sessionStorage.getItem('oauth_nonce');
-        if (!nonce) return;
-        sessionStorage.removeItem('oauth_nonce');
-        sessionStorage.removeItem('teum_oauth_pending');
-
-        try {
-          const onboardingRes = await apiRequest<{ success: boolean; data: any }>('/auth/exchange-mobile-token', {
-            method: 'POST',
-            body: JSON.stringify({ token: `onboarding:${nonce}` }),
-          }).catch(() => null);
-
-          if (onboardingRes?.data?.onboardingData) {
-            if (unmounted) return;
-            const d = onboardingRes.data.onboardingData;
-            localStorage.clear();
-            forceFullCacheClear();
-            navigate('/social-onboarding', {
-              state: {
-                socialProfile: {
-                  provider: d.provider || '',
-                  email: d.email || '',
-                  name: d.name || '',
-                  picture: d.picture || '',
-                  providerAccountId: d.providerAccountId || '',
-                  isEmailHidden: d.isEmailHidden === 'true',
-                },
-                onboardingToken: d.onboardingToken || '',
-              },
-            });
-            return;
-          }
-
-          const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
-            method: 'POST',
-            body: JSON.stringify({ token: nonce }),
-          });
-          if (unmounted) return;
-          sessionStorage.removeItem('teum_logged_out');
-          localStorage.clear();
-          forceFullCacheClear();
-          if (result.data.role === 'admin') {
-            window.location.href = '/admin';
-          } else {
-            window.location.href = '/home';
-          }
-        } catch {
-          if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
-        }
+      if (params.get('success') === 'true') {
+        exchangeToken();
       }
     };
 
@@ -217,99 +273,74 @@ export function SplashPage() {
         const handle = await App.addListener('appUrlOpen', (event) => {
           if (!unmounted) handleDeepLink(event.url);
         });
-        if (unmounted) {
-          handle.remove();
-        } else {
-          handles.push(handle);
-        }
-      } catch {}
+        if (unmounted) { handle.remove(); } else { handles.push(handle); }
+
+        const stateHandle = await App.addListener('appStateChange', (state) => {
+          if (!unmounted && state.isActive) {
+            console.log('[OAuth] App resumed (appStateChange), trying exchange');
+            exchangingRef.current = false;
+            exchangeToken();
+          }
+        });
+        if (unmounted) { stateHandle.remove(); } else { handles.push(stateHandle); }
+      } catch (e) {
+        console.log('[OAuth] Capacitor App plugin not available:', e);
+      }
 
       try {
         const { Browser } = await import('@capacitor/browser');
         if (unmounted) return;
-
-        const exchangeToken = async () => {
-          if (unmounted) return;
-          const pendingOAuth = sessionStorage.getItem('teum_oauth_pending');
-          if (!pendingOAuth) return;
-          const pendingTs = parseInt(pendingOAuth, 10);
-          if (isNaN(pendingTs) || Date.now() - pendingTs > 5 * 60 * 1000) {
-            sessionStorage.removeItem('teum_oauth_pending');
-            return;
-          }
-
-          const nonce = sessionStorage.getItem('oauth_nonce');
-          if (!nonce) return;
-
-          try {
-            const onboardingRes = await apiRequest<{ success: boolean; data: any }>(`/auth/exchange-mobile-token`, {
-              method: 'POST',
-              body: JSON.stringify({ token: `onboarding:${nonce}` }),
-            }).catch(() => null);
-
-            if (onboardingRes?.data?.onboardingData) {
-              sessionStorage.removeItem('teum_oauth_pending');
-              sessionStorage.removeItem('oauth_nonce');
-              if (unmounted) return;
-              const d = onboardingRes.data.onboardingData;
-              localStorage.clear();
-              forceFullCacheClear();
-              navigate('/social-onboarding', {
-                state: {
-                  socialProfile: {
-                    provider: d.provider || '',
-                    email: d.email || '',
-                    name: d.name || '',
-                    picture: d.picture || '',
-                    providerAccountId: d.providerAccountId || '',
-                    isEmailHidden: d.isEmailHidden === 'true',
-                  },
-                  onboardingToken: d.onboardingToken || '',
-                },
-              });
-              return;
-            }
-
-            const result = await apiRequest<{ success: boolean; data: { role: string } }>('/auth/exchange-mobile-token', {
-              method: 'POST',
-              body: JSON.stringify({ token: nonce }),
-            });
-            sessionStorage.removeItem('teum_oauth_pending');
-            sessionStorage.removeItem('oauth_nonce');
-            if (unmounted) return;
-            sessionStorage.removeItem('teum_logged_out');
-            localStorage.clear();
-            forceFullCacheClear();
-            if (result.data.role === 'admin') {
-              window.location.href = '/admin';
-            } else {
-              window.location.href = '/home';
-            }
-          } catch {}
-        };
-
-        const browserHandle = await Browser.addListener('browserFinished', exchangeToken);
-        if (unmounted) {
-          browserHandle.remove();
-        } else {
-          handles.push(browserHandle);
-        }
-
-        const pollInterval = setInterval(() => {
-          if (unmounted) { clearInterval(pollInterval); return; }
-          const pending = sessionStorage.getItem('teum_oauth_pending');
-          if (!pending) { clearInterval(pollInterval); return; }
+        const browserHandle = await Browser.addListener('browserFinished', () => {
+          console.log('[OAuth] browserFinished event received');
+          exchangingRef.current = false;
           exchangeToken();
-        }, 2000);
-        handles.push({ remove: () => clearInterval(pollInterval) });
-      } catch {}
+        });
+        if (unmounted) { browserHandle.remove(); } else { handles.push(browserHandle); }
+      } catch (e) {
+        console.log('[OAuth] Capacitor Browser plugin not available:', e);
+      }
     })();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[OAuth] Page became visible, trying exchange');
+        exchangingRef.current = false;
+        exchangeToken();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    const onFocus = () => {
+      console.log('[OAuth] Window focused, trying exchange');
+      exchangingRef.current = false;
+      exchangeToken();
+    };
+    window.addEventListener('focus', onFocus);
+
+    let pollCount = 0;
+    const pollInterval = setInterval(() => {
+      if (unmounted) { clearInterval(pollInterval); return; }
+      const { nonce } = getOAuthState();
+      if (!nonce) { pollCount = 0; return; }
+      pollCount++;
+      if (pollCount > 90) {
+        console.log('[OAuth] Polling timeout (3 min), clearing state');
+        clearOAuthState();
+        clearInterval(pollInterval);
+        return;
+      }
+      exchangingRef.current = false;
+      exchangeToken();
+    }, 2000);
 
     return () => {
       unmounted = true;
       handles.forEach(h => h.remove());
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onFocus);
+      clearInterval(pollInterval);
     };
-  }, [navigate, t]);
+  }, [navigate, t, exchangeToken]);
 
   useEffect(() => {
     if (gsiInitialized.current) return;
@@ -391,12 +422,12 @@ export function SplashPage() {
     const nonce = crypto.randomUUID();
     const isIOS = platform === 'ios';
     const state = (isNative && !isIOS) ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
-    try { sessionStorage.setItem('oauth_nonce', nonce); } catch {}
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
 
     if (isNative && !isIOS) {
-      try { sessionStorage.setItem('teum_oauth_pending', String(Date.now())); } catch {}
+      setOAuthState(nonce);
+      console.log('[OAuth] Starting Google login, nonce:', nonce.substring(0, 8) + '...');
       await openInBrowser(authUrl);
     } else {
       window.location.href = authUrl;
@@ -417,12 +448,12 @@ export function SplashPage() {
     const nonce = crypto.randomUUID();
     const isIOS = platform === 'ios';
     const state = (isNative && !isIOS) ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
-    try { sessionStorage.setItem('oauth_nonce', nonce); } catch {}
 
     const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
 
     if (isNative && !isIOS) {
-      try { sessionStorage.setItem('teum_oauth_pending', String(Date.now())); } catch {}
+      setOAuthState(nonce);
+      console.log('[OAuth] Starting Apple login, nonce:', nonce.substring(0, 8) + '...');
       await openInBrowser(authUrl);
     } else {
       window.location.href = authUrl;

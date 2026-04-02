@@ -371,47 +371,43 @@ export function DiaryWritePage() {
     }
   };
 
-  // Enter 시 새 줄은 포맷 상속 없이 본문으로 시작
   const handleContentKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Enter') return;
+
+    const isInList =
+      document.queryCommandState('insertOrderedList') ||
+      document.queryCommandState('insertUnorderedList');
+
+    if (isInList) {
+      handleContentChange();
+      return;
+    }
+
     e.preventDefault();
     document.execCommand('insertParagraph', false);
-    // 새 블록을 본문(p)으로 고정
     document.execCommand('formatBlock', false, 'p');
-    // 새 줄 인라인 포맷(굵게/기울임 등) 제거
     document.execCommand('removeFormat', false);
     handleContentChange();
   };
 
-  // Format text functions - only applies to selected text
   const applyFormat = (format: FormatType) => {
+    restoreSelection();
     const selection = window.getSelection();
-    
+
     if (!selection || selection.rangeCount === 0) {
-      // No selection, don't apply format
-      return;
+      contentEditableRef.current?.focus();
     }
 
-    const range = selection.getRangeAt(0);
-    
-    // If collapsed selection (no text selected), don't apply
-    if (range.collapsed && (format === 'bold' || format === 'italic' || format === 'underline' || format === 'strikethrough')) {
-      return;
-    }
+    const commandMap: Record<FormatType, string> = {
+      bold: 'bold',
+      italic: 'italic',
+      underline: 'underline',
+      strikethrough: 'strikethrough',
+      unorderedList: 'insertUnorderedList',
+      orderedList: 'insertOrderedList',
+    };
 
-    if (format === 'bold') {
-      document.execCommand('bold', false);
-    } else if (format === 'italic') {
-      document.execCommand('italic', false);
-    } else if (format === 'underline') {
-      document.execCommand('underline', false);
-    } else if (format === 'strikethrough') {
-      document.execCommand('strikethrough', false);
-    } else if (format === 'unorderedList') {
-      document.execCommand('insertUnorderedList', false);
-    } else if (format === 'orderedList') {
-      document.execCommand('insertOrderedList', false);
-    }
+    document.execCommand(commandMap[format], false);
     updateActiveFormats();
     handleContentChange();
   };
@@ -419,40 +415,21 @@ export function DiaryWritePage() {
   const applyTextStyle = (style: TextStyle) => {
     setSelectedTextStyle(style);
     restoreSelection();
+
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
-      return;
+      contentEditableRef.current?.focus();
     }
 
-    const range = selection.getRangeAt(0);
-    
-    if (range.collapsed) {
-      return;
-    }
-
-    // Apply style to selected text only
-    const styleConfig: Record<TextStyle, { tag: string; fontSize: string; className: string }> = {
-      title: { tag: 'h1', fontSize: '24px', className: 'text-style-title' },
-      header: { tag: 'h2', fontSize: '20px', className: 'text-style-header' },
-      subheader: { tag: 'h3', fontSize: '18px', className: 'text-style-subheader' },
-      body: { tag: 'p', fontSize: '16px', className: 'text-style-body' },
-      mono: { tag: 'pre', fontSize: '14px', className: 'text-style-mono' },
+    const tagMap: Record<TextStyle, string> = {
+      title: 'h1',
+      header: 'h2',
+      subheader: 'h3',
+      body: 'p',
+      mono: 'pre',
     };
 
-    const config = styleConfig[style];
-    
-    // Wrap selected text in a span with the style
-    const span = document.createElement('span');
-    span.className = config.className;
-    span.style.fontSize = config.fontSize;
-    
-    try {
-      range.surroundContents(span);
-    } catch (e) {
-      // If surroundContents fails, use formatBlock
-      document.execCommand('formatBlock', false, config.tag);
-    }
-    
+    document.execCommand('formatBlock', false, tagMap[style]);
     handleContentChange();
   };
 

@@ -383,10 +383,29 @@ export function DiaryWritePage() {
       return;
     }
 
+    const sel = window.getSelection();
+    let currentBlock = '';
+    if (sel && sel.rangeCount > 0) {
+      let node: Node | null = sel.getRangeAt(0).startContainer;
+      while (node && node !== contentEditableRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const tag = (node as Element).tagName.toLowerCase();
+          if (['h1', 'h2', 'h3', 'pre'].includes(tag)) {
+            currentBlock = tag;
+            break;
+          }
+        }
+        node = node.parentNode;
+      }
+    }
+
     e.preventDefault();
     document.execCommand('insertParagraph', false);
-    document.execCommand('formatBlock', false, 'p');
-    document.execCommand('removeFormat', false);
+
+    if (currentBlock) {
+      document.execCommand('formatBlock', false, currentBlock);
+    }
+
     handleContentChange();
   };
 
@@ -497,7 +516,24 @@ export function DiaryWritePage() {
     }
   };
 
-  const updateActiveFormats = () => {
+  const detectCurrentBlockStyle = useCallback((): TextStyle => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return 'body';
+    let node: Node | null = sel.getRangeAt(0).startContainer;
+    while (node && node !== contentEditableRef.current) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as Element).tagName.toLowerCase();
+        if (tag === 'h1') return 'title';
+        if (tag === 'h2') return 'header';
+        if (tag === 'h3') return 'subheader';
+        if (tag === 'pre') return 'mono';
+      }
+      node = node.parentNode;
+    }
+    return 'body';
+  }, []);
+
+  const updateActiveFormats = useCallback(() => {
     const formats = new Set<FormatType>();
     if (document.queryCommandState('bold')) formats.add('bold');
     if (document.queryCommandState('italic')) formats.add('italic');
@@ -506,7 +542,8 @@ export function DiaryWritePage() {
     if (document.queryCommandState('insertUnorderedList')) formats.add('unorderedList');
     if (document.queryCommandState('insertOrderedList')) formats.add('orderedList');
     setActiveFormats(formats);
-  };
+    setSelectedTextStyle(detectCurrentBlockStyle());
+  }, [detectCurrentBlockStyle]);
 
   const handleFormatToggle = (format: FormatType) => {
     restoreSelection();
@@ -973,6 +1010,7 @@ export function DiaryWritePage() {
                 onInput={handleContentChange}
                 onPaste={handlePaste}
                 onKeyDown={handleContentKeyDown}
+                onKeyUp={updateActiveFormats}
                 onBlur={updateActiveFormats}
                 onFocus={updateActiveFormats}
                 onSelect={() => { updateActiveFormats(); saveSelection(); }}

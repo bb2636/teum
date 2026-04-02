@@ -1136,6 +1136,18 @@ export function DiaryWritePage() {
               onConfirm={handleExitConfirm}
             />
           )}
+
+          <AdModal
+            isOpen={showAdModal}
+            onClose={() => setShowAdModal(false)}
+            onAdComplete={handleAdComplete}
+          />
+
+          <Toast
+            message={t('error.imageUploadFailed')}
+            isVisible={uploadErrorToast}
+            onClose={() => setUploadErrorToast(false)}
+          />
         </div>
       </div>
     );

@@ -334,10 +334,6 @@ export function CalendarPage() {
     }
   };
 
-  const handleWriteNew = (date: Date) => {
-    setTypeModalDate(date);
-    setShowTypeModal(true);
-  };
 
   const selectedDateDiaries = selectedDate ? getDiariesForDate(selectedDate) : [];
   const today = new Date();

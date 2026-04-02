@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Plus, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MoreHorizontal } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
@@ -519,15 +519,6 @@ export function CalendarPage() {
           </>
         )}
 
-        {isListOpen && (
-          <button
-            onClick={() => handleWriteNew(selectedDate!)}
-            className="fixed bottom-24 right-4 max-w-md w-14 h-14 rounded-full bg-[#4A2C1A] text-white shadow-lg flex items-center justify-center hover:bg-[#5A3C2A] transition-colors z-40"
-            style={{ right: 'max(16px, calc((100vw - 448px) / 2 + 16px))' }}
-          >
-            <Plus className="w-6 h-6" />
-          </button>
-        )}
       </div>
 
       {showTypeModal && typeModalDate && (

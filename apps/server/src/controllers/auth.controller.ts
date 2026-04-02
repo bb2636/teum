@@ -23,27 +23,8 @@ function sendMobileCloseBrowserPage(res: Response) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
 <style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:20px;margin-bottom:16px}p{font-size:14px;opacity:0.8;line-height:1.6}.btn{display:inline-block;margin-top:24px;padding:14px 40px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:15px;font-weight:500;cursor:pointer}</style></head>
-<body><div class="c"><h2>로그인 완료!</h2><p id="msg">앱으로 자동 이동합니다...</p><a id="btn" class="btn" style="display:none">앱으로 돌아가기</a></div>
-<script>
-(function(){
-  var ua=navigator.userAgent||"";
-  var isAndroid=/Android/i.test(ua);
-  var customScheme="com.teum.app://auth-callback?success=true";
-  var intentUrl="intent://auth-callback?success=true#Intent;scheme=com.teum.app;package=com.teum.app;end";
-  var link=isAndroid?intentUrl:customScheme;
-  var btn=document.getElementById("btn");
-  var msg=document.getElementById("msg");
-  btn.href=link;
-  try{window.location.href=link;}catch(e){}
-  setTimeout(function(){
-    try{window.close();}catch(e){}
-    setTimeout(function(){
-      msg.innerHTML="뒤로가기(←)를 눌러<br>앱으로 돌아가주세요.";
-      btn.style.display="inline-block";
-    },500);
-  },1000);
-})();
-</script></body></html>`);
+<body><div class="c"><h2>로그인 완료!</h2><p>뒤로가기(←)를 눌러<br>앱으로 돌아가주세요.</p></div>
+<script>try{window.close();}catch(e){}</script></body></html>`);
 }
 
 function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {

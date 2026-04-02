@@ -51,27 +51,45 @@ async function showNativeInterstitial(): Promise<boolean> {
 
       AdMob.addListener(
         InterstitialAdPluginEvents.FailedToLoad,
-        () => finish(false)
+        (info) => {
+          console.warn('[AdMob] FailedToLoad:', JSON.stringify(info));
+          finish(false);
+        }
       ).then((h) => { failHandle = h; });
 
       AdMob.addListener(
         InterstitialAdPluginEvents.FailedToShow,
-        () => finish(false)
+        (info) => {
+          console.warn('[AdMob] FailedToShow:', JSON.stringify(info));
+          finish(false);
+        }
       ).then((h) => { failShowHandle = h; });
 
       AdMob.addListener(
         InterstitialAdPluginEvents.Loaded,
         () => {
-          AdMob.showInterstitial().catch(() => finish(false));
+          console.log('[AdMob] Interstitial loaded, showing...');
+          AdMob.showInterstitial().catch((e) => {
+            console.warn('[AdMob] showInterstitial error:', e);
+            finish(false);
+          });
         }
       ).then((h) => { loadedHandle = h; });
 
+      console.log('[AdMob] Preparing interstitial with adId:', getInterstitialAdId());
       AdMob.prepareInterstitial({ adId: getInterstitialAdId() })
-        .catch(() => finish(false));
+        .catch((e) => {
+          console.warn('[AdMob] prepareInterstitial error:', e);
+          finish(false);
+        });
 
-      setTimeout(() => finish(false), 30000);
+      setTimeout(() => {
+        console.warn('[AdMob] Timeout reached');
+        finish(false);
+      }, 30000);
     });
-  } catch {
+  } catch (e) {
+    console.warn('[AdMob] Exception in showNativeInterstitial:', e);
     return false;
   }
 }
@@ -102,24 +120,29 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
           setShowFallback(true);
         }
       });
-      return;
     }
+  }, [isOpen, isNative, onAdComplete]);
 
-    if (!isNative || showFallback) {
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setCanSkip(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isNative && !showFallback) return;
 
-      return () => clearInterval(timer);
-    }
-  }, [isOpen, isNative, showFallback, onAdComplete]);
+    setCountdown(AD_DURATION_SECONDS);
+    setCanSkip(false);
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setCanSkip(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isOpen, isNative, showFallback]);
 
   const handleComplete = useCallback(() => {
     onAdComplete();

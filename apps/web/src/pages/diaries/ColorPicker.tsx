@@ -1,4 +1,3 @@
-import { useEffect, useState, useRef } from 'react';
 import { X } from 'lucide-react';
 
 interface ColorPickerProps {
@@ -18,37 +17,6 @@ const colorPalette = [
 ];
 
 export function ColorPicker({ onClose, onColorSelect, selectedColor, keyboardHeight = 0 }: ColorPickerProps) {
-  const [bottomOffset, setBottomOffset] = useState(0);
-
-  const initialHeightRef = useRef(window.innerHeight);
-
-  useEffect(() => {
-    initialHeightRef.current = window.innerHeight;
-  }, []);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-
-    const update = () => {
-      let vvOffset = 0;
-      if (vv) {
-        vvOffset = Math.max(0, Math.round(initialHeightRef.current - (vv.offsetTop + vv.height)));
-      }
-      setBottomOffset(Math.max(vvOffset, keyboardHeight));
-    };
-
-    update();
-
-    if (vv) {
-      vv.addEventListener('resize', update);
-      vv.addEventListener('scroll', update);
-      return () => {
-        vv.removeEventListener('resize', update);
-        vv.removeEventListener('scroll', update);
-      };
-    }
-  }, [keyboardHeight]);
-
   const preventBlur = (e: React.PointerEvent | React.MouseEvent) => {
     e.preventDefault();
   };
@@ -56,14 +24,11 @@ export function ColorPicker({ onClose, onColorSelect, selectedColor, keyboardHei
   return (
     <div
       className="fixed left-0 right-0 z-50"
-      style={{
-        bottom: `${bottomOffset}px`,
-        transition: 'bottom 0.05s linear',
-      }}
+      style={{ bottom: `${keyboardHeight}px` }}
       onPointerDown={preventBlur}
     >
       <div
-        className="bg-gradient-to-b from-gray-200 to-gray-100 rounded-t-3xl w-full max-w-md mx-auto animate-modal-sheet"
+        className="bg-gradient-to-b from-gray-200 to-gray-100 rounded-t-3xl w-full max-w-md mx-auto"
       >
         <div className="sticky top-0 bg-gradient-to-b from-gray-300 to-gray-200 px-4 py-3 flex items-center justify-center rounded-t-3xl relative">
           <h2 className="text-lg font-semibold text-[#4A2C1A]">색상</h2>
@@ -72,7 +37,7 @@ export function ColorPicker({ onClose, onColorSelect, selectedColor, keyboardHei
           </button>
         </div>
 
-        <div className="p-4" style={{ paddingBottom: bottomOffset > 0 ? '16px' : 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="p-4" style={{ paddingBottom: keyboardHeight > 0 ? '16px' : 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="grid grid-cols-10 gap-0">
             {colorPalette.map((color) => (
               <button

@@ -1,4 +1,3 @@
-import { useEffect, useState, useRef } from 'react';
 import { X, List, ListOrdered } from 'lucide-react';
 
 type TextStyle = 'title' | 'header' | 'subheader' | 'body' | 'mono';
@@ -33,54 +32,18 @@ export function FormatMenu({
     { value: 'mono', label: '모노 스타' },
   ];
 
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [bottomOffset, setBottomOffset] = useState(0);
-
-  const initialHeightRef = useRef(window.innerHeight);
-
-  useEffect(() => {
-    initialHeightRef.current = window.innerHeight;
-  }, []);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-
-    const update = () => {
-      let vvOffset = 0;
-      if (vv) {
-        vvOffset = Math.max(0, Math.round(initialHeightRef.current - (vv.offsetTop + vv.height)));
-      }
-      setBottomOffset(Math.max(vvOffset, keyboardHeight));
-    };
-
-    update();
-
-    if (vv) {
-      vv.addEventListener('resize', update);
-      vv.addEventListener('scroll', update);
-      return () => {
-        vv.removeEventListener('resize', update);
-        vv.removeEventListener('scroll', update);
-      };
-    }
-  }, [keyboardHeight]);
-
   const preventBlur = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
   };
 
   return (
     <div
-      ref={menuRef}
       className="fixed left-0 right-0 z-50"
-      style={{
-        bottom: `${bottomOffset}px`,
-        transition: 'bottom 0.05s linear',
-      }}
+      style={{ bottom: `${keyboardHeight}px` }}
       onPointerDown={preventBlur}
     >
       <div
-        className="w-full max-w-md mx-auto animate-modal-sheet"
+        className="w-full max-w-md mx-auto"
         style={{ backgroundColor: '#D1D1D6' }}
       >
         <div className="px-4 pt-3 pb-1 flex items-center justify-between">
@@ -90,7 +53,7 @@ export function FormatMenu({
           </button>
         </div>
 
-        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: bottomOffset > 0 ? '20px' : 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: keyboardHeight > 0 ? '20px' : 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="overflow-x-auto scrollbar-hide">
             <div className="flex gap-2 min-w-max items-center">
               {textStyles.map((style) => (

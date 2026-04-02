@@ -4,7 +4,7 @@ interface ColorPickerProps {
   onClose: () => void;
   onColorSelect: (color: string) => void;
   selectedColor?: string;
-  keyboardHeight?: number;
+  isKeyboardOpen?: boolean;
 }
 
 const colorPalette = [
@@ -16,28 +16,25 @@ const colorPalette = [
   '#E8F5E9', '#C8E6C9', '#A5D6A7', '#81C784', '#66BB6A', '#4CAF50', '#43A047', '#388E3C', '#2E7D32', '#1B5E20',
 ];
 
-export function ColorPicker({ onClose, onColorSelect, selectedColor, keyboardHeight = 0 }: ColorPickerProps) {
+export function ColorPicker({ onClose, onColorSelect, selectedColor, isKeyboardOpen = false }: ColorPickerProps) {
   const preventBlur = (e: React.PointerEvent | React.MouseEvent) => {
     e.preventDefault();
   };
 
   return (
     <div
-      className="fixed left-0 right-0 z-50"
-      style={{ bottom: `${keyboardHeight}px` }}
+      className="shrink-0 w-full z-50 bg-gradient-to-b from-gray-200 to-gray-100"
       onPointerDown={preventBlur}
     >
-      <div
-        className="bg-gradient-to-b from-gray-200 to-gray-100 rounded-t-3xl w-full max-w-md mx-auto"
-      >
-        <div className="sticky top-0 bg-gradient-to-b from-gray-300 to-gray-200 px-4 py-3 flex items-center justify-center rounded-t-3xl relative">
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-gradient-to-b from-gray-300 to-gray-200 px-4 py-3 flex items-center justify-center relative">
           <h2 className="text-lg font-semibold text-[#4A2C1A]">색상</h2>
           <button onClick={onClose} className="absolute right-4 text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4" style={{ paddingBottom: keyboardHeight > 0 ? '16px' : 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="p-4" style={{ paddingBottom: isKeyboardOpen ? '12px' : 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="grid grid-cols-10 gap-0">
             {colorPalette.map((color) => (
               <button

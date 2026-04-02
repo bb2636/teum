@@ -551,6 +551,25 @@ export function DiaryWritePage() {
     saveSelection();
   };
 
+  const scrollCaretIntoView = useCallback(() => {
+    setTimeout(() => {
+      const container = editorScrollRef.current;
+      const sel = savedSelectionRef.current || (window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0) : null);
+      if (container && sel) {
+        const caretRect = sel.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (caretRect && caretRect.top > 0) {
+          const caretRelative = caretRect.top - containerRect.top;
+          const visibleHeight = containerRect.height;
+          if (caretRelative > visibleHeight - 40 || caretRelative < 0) {
+            const offset = caretRect.top - containerRect.top + container.scrollTop - visibleHeight / 2;
+            container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+          }
+        }
+      }
+    }, 50);
+  }, []);
+
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1021,7 +1040,7 @@ export function DiaryWritePage() {
                   lineHeight: '24px',
                   fontSize: '16px',
                   paddingTop: '12px',
-                  paddingBottom: showFormatMenu || showColorPicker ? '320px' : '120px',
+                  paddingBottom: '60px',
                   wordWrap: 'break-word',
                   overflowWrap: 'break-word',
                 }}
@@ -1029,11 +1048,11 @@ export function DiaryWritePage() {
             </div>
 
           </form>
+
           {!showFormatMenu && !showColorPicker && (
             <div
-              className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
+              className="shrink-0 px-4 py-2 bg-white"
               style={{
-                bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
                 paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
               }}
             >
@@ -1044,18 +1063,7 @@ export function DiaryWritePage() {
                     onPointerDown={(e) => { e.preventDefault(); saveSelection(); }}
                     onClick={() => {
                       setShowFormatMenu(true);
-                      setTimeout(() => {
-                        const container = editorScrollRef.current;
-                        const sel = savedSelectionRef.current || (window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0) : null);
-                        if (container && sel) {
-                          const caretRect = sel.getBoundingClientRect();
-                          const containerRect = container.getBoundingClientRect();
-                          if (caretRect && caretRect.top > 0) {
-                            const offset = caretRect.top - containerRect.top + container.scrollTop - 100;
-                            container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
-                          }
-                        }
-                      }, 50);
+                      scrollCaretIntoView();
                     }}
                     className="cursor-pointer p-1"
                   >
@@ -1099,17 +1107,16 @@ export function DiaryWritePage() {
               selectedStyle={selectedTextStyle}
               activeFormats={activeFormats}
               textColor={textColor}
-              keyboardHeight={keyboardHeight}
+              isKeyboardOpen={keyboardHeight > 0}
             />
           )}
 
-          {/* Color Picker */}
           {showColorPicker && (
             <ColorPicker
               onClose={() => setShowColorPicker(false)}
               onColorSelect={applyTextColor}
               selectedColor={textColor}
-              keyboardHeight={keyboardHeight}
+              isKeyboardOpen={keyboardHeight > 0}
             />
           )}
 
@@ -1284,9 +1291,8 @@ export function DiaryWritePage() {
       </div>
       {!showFormatMenu && !showColorPicker && (
         <div
-          className="fixed left-0 right-0 z-40 px-4 py-2 bg-white"
+          className="shrink-0 px-4 py-2 bg-white"
           style={{
-            bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
             paddingBottom: keyboardHeight > 0 ? '8px' : 'calc(8px + env(safe-area-inset-bottom, 0px))',
           }}
         >
@@ -1297,18 +1303,7 @@ export function DiaryWritePage() {
                 onPointerDown={(e) => { e.preventDefault(); saveSelection(); }}
                 onClick={() => {
                   setShowFormatMenu(true);
-                  setTimeout(() => {
-                    const container = editorScrollRef.current;
-                    const sel = savedSelectionRef.current || (window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0) : null);
-                    if (container && sel) {
-                      const caretRect = sel.getBoundingClientRect();
-                      const containerRect = container.getBoundingClientRect();
-                      if (caretRect && caretRect.top > 0) {
-                        const offset = caretRect.top - containerRect.top + container.scrollTop - 100;
-                        container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
-                      }
-                    }
-                  }, 50);
+                  scrollCaretIntoView();
                 }}
                 className="cursor-pointer p-1"
               >
@@ -1348,7 +1343,7 @@ export function DiaryWritePage() {
           selectedStyle={selectedTextStyle}
           activeFormats={activeFormats}
           textColor={textColor}
-          keyboardHeight={keyboardHeight}
+          isKeyboardOpen={keyboardHeight > 0}
         />
       )}
 
@@ -1357,7 +1352,7 @@ export function DiaryWritePage() {
           onClose={() => setShowColorPicker(false)}
           onColorSelect={applyTextColor}
           selectedColor={textColor}
-          keyboardHeight={keyboardHeight}
+          isKeyboardOpen={keyboardHeight > 0}
         />
       )}
 

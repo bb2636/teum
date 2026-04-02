@@ -11,7 +11,7 @@ interface FormatMenuProps {
   selectedStyle?: TextStyle;
   activeFormats: Set<FormatType>;
   textColor?: string;
-  keyboardHeight?: number;
+  isKeyboardOpen?: boolean;
 }
 
 export function FormatMenu({
@@ -22,7 +22,7 @@ export function FormatMenu({
   selectedStyle,
   activeFormats,
   textColor = '#4A2C1A',
-  keyboardHeight = 0,
+  isKeyboardOpen = false,
 }: FormatMenuProps) {
   const textStyles: { value: TextStyle; label: string }[] = [
     { value: 'title', label: '제목' },
@@ -38,14 +38,11 @@ export function FormatMenu({
 
   return (
     <div
-      className="fixed left-0 right-0 z-50"
-      style={{ bottom: `${keyboardHeight}px` }}
+      className="shrink-0 w-full z-50"
+      style={{ backgroundColor: '#D1D1D6' }}
       onPointerDown={preventBlur}
     >
-      <div
-        className="w-full max-w-md mx-auto"
-        style={{ backgroundColor: '#D1D1D6' }}
-      >
+      <div className="w-full max-w-md mx-auto">
         <div className="px-4 pt-3 pb-1 flex items-center justify-between">
           <span className="text-[15px] font-medium text-black">포맷</span>
           <button onClick={onClose} className="w-[30px] h-[30px] flex items-center justify-center rounded-full bg-black/10">
@@ -53,7 +50,7 @@ export function FormatMenu({
           </button>
         </div>
 
-        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: keyboardHeight > 0 ? '20px' : 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="px-4 pt-2 space-y-3" style={{ paddingBottom: isKeyboardOpen ? '12px' : 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
           <div className="overflow-x-auto scrollbar-hide">
             <div className="flex gap-2 min-w-max items-center">
               {textStyles.map((style) => (

@@ -31,7 +31,24 @@ import { AdminPage } from '../pages/admin/AdminPage';
 import { PrivacyPolicyPage } from '../pages/legal/PrivacyPolicyPage';
 import { useMe } from '../hooks/useProfile';
 
-// Protected Route Component
+function RootRedirect() {
+  const { data: user, isLoading } = useMe();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-muted-foreground"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/home'} replace />;
+  }
+
+  return <Navigate to="/splash" replace />;
+}
+
 function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
   const { data: user, isLoading } = useMe();
 
@@ -260,7 +277,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/" element={<Navigate to="/splash" replace />} />
+              <Route path="/" element={<RootRedirect />} />
               </Routes>
             </Layout>
           </HideTabBarProvider>

@@ -29,7 +29,7 @@ function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 animate-modal-pop"
+        className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 animate-modal-pop text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">

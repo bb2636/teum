@@ -228,7 +228,7 @@ export function SplashPage() {
         const { Browser } = await import('@capacitor/browser');
         if (unmounted) return;
 
-        const browserHandle = await Browser.addListener('browserFinished', async () => {
+        const exchangeToken = async () => {
           if (unmounted) return;
           const pendingOAuth = sessionStorage.getItem('teum_oauth_pending');
           if (!pendingOAuth) return;
@@ -237,11 +237,9 @@ export function SplashPage() {
             sessionStorage.removeItem('teum_oauth_pending');
             return;
           }
-          sessionStorage.removeItem('teum_oauth_pending');
 
           const nonce = sessionStorage.getItem('oauth_nonce');
           if (!nonce) return;
-          sessionStorage.removeItem('oauth_nonce');
 
           try {
             const onboardingRes = await apiRequest<{ success: boolean; data: any }>(`/auth/exchange-mobile-token`, {
@@ -250,6 +248,8 @@ export function SplashPage() {
             }).catch(() => null);
 
             if (onboardingRes?.data?.onboardingData) {
+              sessionStorage.removeItem('teum_oauth_pending');
+              sessionStorage.removeItem('oauth_nonce');
               if (unmounted) return;
               const d = onboardingRes.data.onboardingData;
               localStorage.clear();
@@ -274,6 +274,8 @@ export function SplashPage() {
               method: 'POST',
               body: JSON.stringify({ token: nonce }),
             });
+            sessionStorage.removeItem('teum_oauth_pending');
+            sessionStorage.removeItem('oauth_nonce');
             if (unmounted) return;
             sessionStorage.removeItem('teum_logged_out');
             localStorage.clear();
@@ -284,12 +286,22 @@ export function SplashPage() {
               window.location.href = '/home';
             }
           } catch {}
-        });
+        };
+
+        const browserHandle = await Browser.addListener('browserFinished', exchangeToken);
         if (unmounted) {
           browserHandle.remove();
         } else {
           handles.push(browserHandle);
         }
+
+        const pollInterval = setInterval(() => {
+          if (unmounted) { clearInterval(pollInterval); return; }
+          const pending = sessionStorage.getItem('teum_oauth_pending');
+          if (!pending) { clearInterval(pollInterval); return; }
+          exchangeToken();
+        }, 2000);
+        handles.push({ remove: () => clearInterval(pollInterval) });
       } catch {}
     })();
 

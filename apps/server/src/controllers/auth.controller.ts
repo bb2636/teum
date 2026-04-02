@@ -481,16 +481,14 @@ export class AuthController {
           picture: result.socialProfile?.picture || '',
           providerAccountId: result.socialProfile?.providerAccountId || '',
         });
-        if (isMobile) {
-          if (stateNonce) {
-            mobileAuthTokens.set(`onboarding:${stateNonce}`, {
-              accessToken: '',
-              refreshToken: '',
-              user: { id: '', role: 'user' },
-              expiresAt: Date.now() + 5 * 60 * 1000,
-              onboardingData: Object.fromEntries(params),
-            } as any);
-          }
+        if (isMobile && stateNonce) {
+          mobileAuthTokens.set(`onboarding:${stateNonce}`, {
+            accessToken: '',
+            refreshToken: '',
+            user: { id: '', role: 'user' },
+            expiresAt: Date.now() + 5 * 60 * 1000,
+            onboardingData: Object.fromEntries(params),
+          } as any);
           return sendMobileCloseBrowserPage(res);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
@@ -611,16 +609,14 @@ export class AuthController {
           providerAccountId: result.socialProfile?.providerAccountId || '',
           isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
         });
-        if (isMobile) {
-          if (appleNonce) {
-            mobileAuthTokens.set(`onboarding:${appleNonce}`, {
-              accessToken: '',
-              refreshToken: '',
-              user: { id: '', role: 'user' },
-              expiresAt: Date.now() + 5 * 60 * 1000,
-              onboardingData: Object.fromEntries(params),
-            } as any);
-          }
+        if (isMobile && appleNonce) {
+          mobileAuthTokens.set(`onboarding:${appleNonce}`, {
+            accessToken: '',
+            refreshToken: '',
+            user: { id: '', role: 'user' },
+            expiresAt: Date.now() + 5 * 60 * 1000,
+            onboardingData: Object.fromEntries(params),
+          } as any);
           return sendMobileCloseBrowserPage(res);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
@@ -659,7 +655,7 @@ export class AuthController {
       }
       return res.redirect('/login-redirect');
     } catch (error) {
-      console.error('Apple OAuth callback error:', error);
+      logger.error({ err: error }, 'Apple OAuth callback error');
       return res.redirect('/splash?error=apple_login_failed');
     }
   }

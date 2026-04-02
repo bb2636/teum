@@ -23,46 +23,53 @@ async function showNativeInterstitial(): Promise<boolean> {
     const { AdMob, InterstitialAdPluginEvents } = await import('@capacitor-community/admob');
 
     await AdMob.initialize({
-      initializeForTesting: false,
+      initializeForTesting: true,
     });
 
     return new Promise<boolean>((resolve) => {
       let resolved = false;
       let dismissHandle: { remove: () => void } | null = null;
       let failHandle: { remove: () => void } | null = null;
+      let loadedHandle: { remove: () => void } | null = null;
+      let failShowHandle: { remove: () => void } | null = null;
 
-      const cleanup = () => {
-        dismissHandle?.remove();
-        failHandle?.remove();
+      const finish = (success: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(success);
+          dismissHandle?.remove();
+          failHandle?.remove();
+          loadedHandle?.remove();
+          failShowHandle?.remove();
+        }
       };
 
       AdMob.addListener(
         InterstitialAdPluginEvents.Dismissed,
-        () => {
-          if (!resolved) { resolved = true; resolve(true); }
-          cleanup();
-        }
+        () => finish(true)
       ).then((h) => { dismissHandle = h; });
 
       AdMob.addListener(
         InterstitialAdPluginEvents.FailedToLoad,
-        () => {
-          if (!resolved) { resolved = true; resolve(false); }
-          cleanup();
-        }
+        () => finish(false)
       ).then((h) => { failHandle = h; });
 
-      AdMob.prepareInterstitial({ adId: getInterstitialAdId() })
-        .then(() => AdMob.showInterstitial())
-        .catch(() => {
-          if (!resolved) { resolved = true; resolve(false); }
-          cleanup();
-        });
+      AdMob.addListener(
+        InterstitialAdPluginEvents.FailedToShow,
+        () => finish(false)
+      ).then((h) => { failShowHandle = h; });
 
-      setTimeout(() => {
-        if (!resolved) { resolved = true; resolve(false); }
-        cleanup();
-      }, 30000);
+      AdMob.addListener(
+        InterstitialAdPluginEvents.Loaded,
+        () => {
+          AdMob.showInterstitial().catch(() => finish(false));
+        }
+      ).then((h) => { loadedHandle = h; });
+
+      AdMob.prepareInterstitial({ adId: getInterstitialAdId() })
+        .catch(() => finish(false));
+
+      setTimeout(() => finish(false), 30000);
     });
   } catch {
     return false;

@@ -441,8 +441,8 @@ export function CalendarPage() {
 
         <div
           ref={calendarRef}
-          className="flex flex-col flex-1 px-2"
-          style={{ paddingBottom: '80px' }}
+          className={`flex flex-col px-2 ${isListOpen ? '' : 'flex-1'}`}
+          style={isListOpen ? { height: '180px', minHeight: '180px' } : { paddingBottom: '80px' }}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
@@ -549,15 +549,12 @@ export function CalendarPage() {
 
         {isListOpen && (
           <div
-            className={`absolute left-0 right-0 bg-white flex flex-col transition-all duration-300 ease-in-out z-10 ${
-              isListFullScreen ? 'rounded-none' : 'rounded-t-2xl shadow-[0_-2px_10px_rgba(0,0,0,0.08)]'
+            className={`bg-white flex flex-col transition-all duration-300 ease-in-out z-10 ${
+              isListFullScreen
+                ? 'absolute inset-0'
+                : 'flex-1'
             }`}
-            style={{
-              top: isListFullScreen ? '0' : 'auto',
-              bottom: isListFullScreen ? '0' : '0',
-              height: isListFullScreen ? '100%' : '55%',
-              paddingTop: isListFullScreen ? 'max(8px, env(safe-area-inset-top, 8px))' : undefined,
-            }}
+            style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : undefined}
           >
             <div
               className="flex justify-center py-2 cursor-grab shrink-0"

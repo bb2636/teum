@@ -210,14 +210,16 @@ export function CalendarPage() {
   const [typeModalDate, setTypeModalDate] = useState<Date | null>(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calSwipeStartX, setCalSwipeStartX] = useState<number | null>(null);
+  const [isListFullScreen, setIsListFullScreen] = useState(false);
+  const handleSwipeStartY = useRef<number | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const isListOpen = selectedDate !== null;
 
   useEffect(() => {
-    setHideTabBar(false);
+    setHideTabBar(isListFullScreen);
     return () => setHideTabBar(false);
-  }, [setHideTabBar]);
+  }, [setHideTabBar, isListFullScreen]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
@@ -301,17 +303,43 @@ export function CalendarPage() {
     setCalSwipeStartX(null);
   };
 
+  const closeList = () => {
+    setSelectedDate(null);
+    setIsListFullScreen(false);
+  };
+
+  const handleGripTouchStart = (e: React.TouchEvent) => {
+    handleSwipeStartY.current = e.touches[0].clientY;
+  };
+  const handleGripTouchEnd = (e: React.TouchEvent) => {
+    if (handleSwipeStartY.current === null) return;
+    const diffY = handleSwipeStartY.current - e.changedTouches[0].clientY;
+    if (Math.abs(diffY) > 40) {
+      if (diffY > 0) {
+        setIsListFullScreen(true);
+      } else {
+        if (isListFullScreen) {
+          setIsListFullScreen(false);
+        } else {
+          closeList();
+        }
+      }
+    }
+    handleSwipeStartY.current = null;
+  };
+
   const handleDateClick = (date: Date) => {
     if (selectedDate && isSameDay(date, selectedDate)) {
-      setSelectedDate(null);
+      closeList();
       return;
     }
     if (isListOpen) {
       const dayDiaries = getDiariesForDate(date);
       if (dayDiaries.length > 0) {
         setSelectedDate(date);
+        setIsListFullScreen(false);
       } else {
-        setSelectedDate(null);
+        closeList();
       }
       return;
     }
@@ -361,6 +389,7 @@ export function CalendarPage() {
     <div className="min-h-screen bg-white overflow-hidden">
       <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden">
 
+        {!isListFullScreen && (
         <div
           className="flex items-center justify-between px-4 py-2"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' }}
@@ -389,7 +418,10 @@ export function CalendarPage() {
             <ProfileButton />
           </div>
         </div>
+        )}
 
+        {!isListFullScreen && (
+        <>
         <div className="grid grid-cols-7 px-2 pt-1">
           {weekdayLabels.map((day, index) => (
             <div
@@ -520,10 +552,18 @@ export function CalendarPage() {
             </div>
           ))}
         </div>
+        </>
+        )}
 
         {isListOpen && (
-          <>
-            <div className="flex justify-center py-1.5">
+          <div className={`flex flex-col ${isListFullScreen ? 'flex-1' : ''}`}
+            style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : undefined}
+          >
+            <div
+              className="flex justify-center py-1.5 cursor-grab"
+              onTouchStart={handleGripTouchStart}
+              onTouchEnd={handleGripTouchEnd}
+            >
               <div className="w-8 h-1 bg-gray-200 rounded-full" />
             </div>
             <div className="border-t border-gray-100" />
@@ -531,9 +571,9 @@ export function CalendarPage() {
               date={selectedDate!}
               diaries={selectedDateDiaries}
               onDateChange={handleDateChangeFromList}
-              onClose={() => setSelectedDate(null)}
+              onClose={closeList}
             />
-          </>
+          </div>
         )}
 
       </div>

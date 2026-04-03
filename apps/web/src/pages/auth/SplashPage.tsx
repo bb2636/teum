@@ -481,9 +481,9 @@ export function SplashPage() {
           />
         </div>
 
-        <div className="flex-[2]" />
+        <div className="flex-[3]" />
 
-        <div className="flex flex-col items-center text-center mb-8">
+        <div className="flex flex-col items-center text-center mb-6">
           <p
             className="text-sm leading-relaxed"
             style={{ color: 'rgba(34, 24, 19, 0.5)' }}
@@ -492,9 +492,16 @@ export function SplashPage() {
           </p>
         </div>
 
-        <div className="flex-[1]" />
-
         <div className="w-full pb-8 space-y-3">
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="w-full h-[50px] rounded-full flex items-center justify-center text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: '#4A2C1A' }}
+          >
+            {t('auth.login')}
+          </button>
+
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -519,14 +526,6 @@ export function SplashPage() {
               <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
             </svg>
             {t('auth.continueApple')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="w-full h-[50px] rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-800 transition-colors"
-          >
-            {t('auth.login')}
           </button>
         </div>
 

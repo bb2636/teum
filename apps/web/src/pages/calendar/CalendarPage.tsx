@@ -211,6 +211,8 @@ export function CalendarPage() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calSwipeStartX, setCalSwipeStartX] = useState<number | null>(null);
   const [isListFullScreen, setIsListFullScreen] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'none' | 'left' | 'right'>('none');
+  const [isAnimating, setIsAnimating] = useState(false);
   const handleSwipeStartY = useRef<number | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -274,17 +276,35 @@ export function CalendarPage() {
     weeks.push(currentWeek);
   }
 
-  const goToPreviousMonth = () => setCurrentDate(subMonths(currentDate, 1));
-  const goToNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+  const animateMonthChange = (direction: 'left' | 'right', newDate: Date) => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setSlideDirection(direction);
+    setTimeout(() => {
+      setCurrentDate(newDate);
+      setSlideDirection(direction === 'left' ? 'right' : 'left');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setSlideDirection('none');
+          setTimeout(() => setIsAnimating(false), 250);
+        });
+      });
+    }, 200);
+  };
+
+  const goToPreviousMonth = () => animateMonthChange('right', subMonths(currentDate, 1));
+  const goToNextMonth = () => animateMonthChange('left', addMonths(currentDate, 1));
   const goToToday = () => {
     const now = new Date();
     setCurrentDate(now);
     setSelectedDate(null);
+    setSlideDirection('none');
   };
 
   const handleMonthSelect = (year: number, month: number) => {
     const newDate = new Date(year, month - 1, 1);
     setCurrentDate(newDate);
+    setSlideDirection('none');
   };
 
   const handleCalTouchStart = (e: React.TouchEvent) => {
@@ -441,12 +461,21 @@ export function CalendarPage() {
 
         <div
           ref={calendarRef}
-          className={`flex flex-col px-2 ${isListOpen ? '' : 'flex-1'}`}
+          className={`flex flex-col px-2 overflow-hidden ${isListOpen ? '' : 'flex-1'}`}
           style={isListOpen ? { height: '180px', minHeight: '180px' } : { paddingBottom: '80px' }}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
         >
+          <div
+            className={`flex flex-col flex-1 ${
+              slideDirection === 'none'
+                ? 'transition-transform duration-250 ease-out translate-x-0 opacity-100'
+                : slideDirection === 'left'
+                ? '-translate-x-full opacity-0 transition-transform duration-200 ease-in'
+                : 'translate-x-full opacity-0 transition-transform duration-200 ease-in'
+            }`}
+          >
           {weeks.map((week, weekIndex) => (
             <div
               key={weekIndex}
@@ -545,6 +574,7 @@ export function CalendarPage() {
               })}
             </div>
           ))}
+          </div>
         </div>
 
         {isListOpen && (

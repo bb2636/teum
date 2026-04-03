@@ -28,6 +28,7 @@ import { PaymentFailPage } from '../pages/payment/PaymentFailPage';
 import { SupportPage } from '../pages/my/SupportPage';
 import { SupportInquiryPage } from '../pages/my/SupportInquiryPage';
 import { AdminPage } from '../pages/admin/AdminPage';
+import { AdMobTestPage } from '../pages/admin/AdMobTestPage';
 import { PrivacyPolicyPage } from '../pages/legal/PrivacyPolicyPage';
 import { useMe } from '../hooks/useProfile';
 
@@ -103,6 +104,10 @@ export default function App() {
         }
       />
       
+      <Route
+        path="/admob-test"
+        element={<AdMobTestPage />}
+      />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
       {/* Other routes - with Layout wrapper */}

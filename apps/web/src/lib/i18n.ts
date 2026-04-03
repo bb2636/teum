@@ -12,7 +12,7 @@ const DEFAULT_LANGUAGE: Language = 'ko';
 
 const ko: Record<string, string> = {
   'app.name': 'teum',
-  'app.tagline': '기록이 곧, 당신만의 트랙이 됩니다.',
+  'app.tagline': '오늘 하루 스쳐 지나간 \'나\'를 기록합니다.',
   'common.save': '저장',
   'common.cancel': '취소',
   'common.confirm': '확인',
@@ -391,7 +391,7 @@ const ko: Record<string, string> = {
 
 const en: Record<string, string> = {
   'app.name': 'teum',
-  'app.tagline': 'Your records become your own track.',
+  'app.tagline': 'Record the moments of \'me\' that slipped by today.',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',

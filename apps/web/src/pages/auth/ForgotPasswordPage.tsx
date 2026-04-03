@@ -105,7 +105,6 @@ export function ForgotPasswordPage() {
 
     try {
       await requestPhoneVerification.mutateAsync(phone);
-      setPhoneVerificationCode(null);
       setShowPhoneVerificationModal(true);
       setPhoneVerified(false);
       setPhoneVerificationInput('');

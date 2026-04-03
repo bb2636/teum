@@ -36,7 +36,7 @@ export function BottomTabBar() {
                   e.preventDefault();
                   window.dispatchEvent(new CustomEvent('openDiaryTypeModal'));
                 }}
-                className="w-14 h-14 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white shadow-lg flex items-center justify-center transition-colors"
+                className="w-14 h-14 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white shadow-lg flex items-center justify-center transition-colors"
               >
                 <Plus className="w-6 h-6" />
               </button>

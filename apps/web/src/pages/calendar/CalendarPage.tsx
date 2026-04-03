@@ -361,7 +361,7 @@ export function CalendarPage() {
             </button>
             <button
               onClick={() => setShowMonthPicker(true)}
-              className="text-lg font-semibold text-[#4A2C1A] hover:text-[#5A3C2A] transition-colors"
+              className="text-lg font-semibold text-[#4A2C1A] hover:text-[#3A2010] transition-colors"
             >
               {format(currentDate, 'yyyy.M', { locale })}
             </button>

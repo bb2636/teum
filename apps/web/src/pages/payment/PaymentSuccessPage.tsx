@@ -84,7 +84,7 @@ export function PaymentSuccessPage() {
         {page.icon && (
           <div className="mb-8 animate-fade-in">
             <div className="w-16 h-16 rounded-2xl bg-[#F5F0EB] flex items-center justify-center">
-              <page.icon className="w-8 h-8 text-[#665146]" />
+              <page.icon className="w-8 h-8 text-[#4A2C1A]" />
             </div>
           </div>
         )}
@@ -101,7 +101,7 @@ export function PaymentSuccessPage() {
 
         {page.extraInfo && (
           <div className="mt-8 bg-[#F9F6F3] rounded-2xl p-5 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <p className="text-sm font-medium text-[#665146] leading-relaxed">{page.extraInfo}</p>
+            <p className="text-sm font-medium text-[#4A2C1A] leading-relaxed">{page.extraInfo}</p>
           </div>
         )}
 
@@ -113,7 +113,7 @@ export function PaymentSuccessPage() {
                 className="flex items-start gap-3 bg-[#F9F6F3] rounded-xl p-4 animate-fade-in"
                 style={{ animationDelay: `${150 + i * 80}ms` }}
               >
-                <span className="text-[#665146] font-bold text-sm mt-0.5">{i + 1}</span>
+                <span className="text-[#4A2C1A] font-bold text-sm mt-0.5">{i + 1}</span>
                 <p className="text-sm text-[#4A2C1A] leading-relaxed">{tip}</p>
               </div>
             ))}
@@ -126,7 +126,7 @@ export function PaymentSuccessPage() {
           <div
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === currentPage ? 'w-6 bg-[#665146]' : 'w-1.5 bg-gray-200'
+              i === currentPage ? 'w-6 bg-[#4A2C1A]' : 'w-1.5 bg-gray-200'
             }`}
           />
         ))}
@@ -144,7 +144,7 @@ export function PaymentSuccessPage() {
             </button>
             <button
               onClick={() => navigate('/music')}
-              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors flex items-center justify-center gap-2"
             >
               {t('payment.success.goCreateMusic')}
               <Sparkles className="w-4 h-4" />
@@ -160,7 +160,7 @@ export function PaymentSuccessPage() {
             </button>
             <button
               onClick={handleNext}
-              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors flex items-center justify-center gap-2"
             >
               {t('common.next')}
               <ChevronRight className="w-4 h-4" />

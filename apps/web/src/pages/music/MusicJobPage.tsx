@@ -143,7 +143,7 @@ export function MusicJobPage() {
         </div>
 
         {isProcessing && (
-          <div className="fixed inset-0 z-50 bg-[#665146] flex flex-col items-center justify-center animate-overlay-fade">
+          <div className="fixed inset-0 z-50 bg-[#4A2C1A] flex flex-col items-center justify-center animate-overlay-fade">
             <div className="text-center space-y-6 px-8">
               <div className="flex justify-center space-x-2">
                 <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -196,7 +196,7 @@ export function MusicJobPage() {
               <div className="flex gap-3">
                 {job.status === 'completed' && job.audioUrl && (
                   <Button
-                    className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
+                    className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010] rounded-full"
                     disabled={isDownloading}
                     onTouchEnd={(e) => { e.preventDefault(); handleDownload(); }}
                     onClick={handleDownload}

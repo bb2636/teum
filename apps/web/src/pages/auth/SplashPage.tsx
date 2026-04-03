@@ -461,7 +461,7 @@ export function SplashPage() {
 
   return (
     <div
-      className="w-full bg-[#f7f5f2] flex flex-col"
+      className="w-full bg-white flex flex-col"
       style={{
         height: '100dvh',
         paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -513,7 +513,7 @@ export function SplashPage() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t" style={{ borderColor: 'rgba(74, 44, 26, 0.15)' }} />
             </div>
-            <div className="relative bg-[#f7f5f2] px-4">
+            <div className="relative bg-white px-4">
               <span className="text-xs" style={{ color: 'rgba(74, 44, 26, 0.4)' }}>{t('common.or')}</span>
             </div>
           </div>

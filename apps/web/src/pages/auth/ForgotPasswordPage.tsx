@@ -266,7 +266,7 @@ export function ForgotPasswordPage() {
             <Button 
               className={`w-full rounded-lg ${
                 isPasswordFormValid 
-                  ? 'bg-[#665146] text-white hover:bg-[#5A453A]' 
+                  ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]' 
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
               size="lg" 
@@ -332,7 +332,7 @@ export function ForgotPasswordPage() {
           </div>
 
           <Button 
-            className={`w-full ${isInfoFormValid ? 'bg-[#665146] text-white hover:bg-[#5A453A]' : 'bg-gray-500 text-white cursor-not-allowed'}`}
+            className={`w-full ${isInfoFormValid ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]' : 'bg-gray-500 text-white cursor-not-allowed'}`}
             size="lg" 
             type="submit"
             disabled={requestPhoneVerification.isPending || !isInfoFormValid}
@@ -395,7 +395,7 @@ export function ForgotPasswordPage() {
             </div>
             <Button
               onClick={handleConfirmPhoneVerification}
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={phoneVerificationInput.length !== 6 || phoneVerified || confirmPhoneVerification.isPending}
             >
               {confirmPhoneVerification.isPending ? '확인 중...' : '확인'}

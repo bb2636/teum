@@ -43,7 +43,7 @@ export function PaymentCompleteModal({
         <div className="flex justify-center mt-6">
           <button
             onClick={onClose}
-            className="px-6 py-3 rounded-lg bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white font-medium transition-colors"
+            className="px-6 py-3 rounded-lg bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
           >
             확인
           </button>

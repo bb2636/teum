@@ -307,14 +307,14 @@ export function DiaryDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowComingSoon(false)}>
           <div className="bg-white rounded-2xl p-6 mx-6 max-w-sm w-full text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-12 rounded-full bg-[#F5F0EB] flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-6 h-6 text-[#665146]" />
+              <MessageCircle className="w-6 h-6 text-[#4A2C1A]" />
             </div>
             <p className="text-base text-[#4A2C1A] whitespace-pre-line leading-relaxed">
               {t('diary.chatWithAiComingSoon')}
             </p>
             <button
               onClick={() => setShowComingSoon(false)}
-              className="mt-5 w-full py-3 rounded-full bg-[#665146] text-white font-medium hover:bg-[#5A453A] transition-colors"
+              className="mt-5 w-full py-3 rounded-full bg-[#4A2C1A] text-white font-medium hover:bg-[#3A2010] transition-colors"
             >
               {t('common.confirm')}
             </button>

@@ -34,7 +34,7 @@ export function DiaryListPage() {
           <Link to="/diaries/new">
             <Button
               size="icon"
-              className="w-10 h-10 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-10 h-10 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
             >
               <Plus className="w-5 h-5" />
             </Button>

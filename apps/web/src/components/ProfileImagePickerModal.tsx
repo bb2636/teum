@@ -52,7 +52,7 @@ export function ProfileImagePickerModal({
             onClick={handleGalleryClick}
             className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#F5F0EB] hover:bg-[#EDE5DD] transition-colors"
           >
-            <Image className="w-5 h-5 text-[#665146]" />
+            <Image className="w-5 h-5 text-[#4A2C1A]" />
             <span className="text-[#4A2C1A] font-medium">갤러리에서 선택하기</span>
           </button>
 
@@ -66,7 +66,7 @@ export function ProfileImagePickerModal({
                 : 'bg-gray-100 opacity-50 cursor-not-allowed'
             }`}
           >
-            <Trash2 className="w-5 h-5 text-[#665146]" />
+            <Trash2 className="w-5 h-5 text-[#4A2C1A]" />
             <span className="text-[#4A2C1A] font-medium">삭제하기</span>
           </button>
         </div>
@@ -75,7 +75,7 @@ export function ProfileImagePickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3.5 rounded-xl bg-[#665146] hover:bg-[#5A453A] text-white font-semibold transition-colors"
+            className="w-full py-3.5 rounded-xl bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-semibold transition-colors"
           >
             닫기
           </button>

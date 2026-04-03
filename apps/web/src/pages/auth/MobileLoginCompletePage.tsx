@@ -7,7 +7,7 @@ export function MobileLoginCompletePage() {
         justifyContent: 'center',
         height: '100vh',
         fontFamily: 'sans-serif',
-        background: '#665146',
+        background: '#4A2C1A',
         color: 'white',
       }}
     >

@@ -509,7 +509,7 @@ export function SignupPage() {
                   <button
                     type="button"
                     onClick={() => { setVerificationMode('email'); setError(null); }}
-                    className="text-sm text-[#665146] underline"
+                    className="text-sm text-[#4A2C1A] underline"
                   >
                     {t('auth.switchToEmailVerification')}
                   </button>
@@ -542,7 +542,7 @@ export function SignupPage() {
                   <button
                     type="button"
                     onClick={() => { setVerificationMode('phone'); setError(null); }}
-                    className="text-sm text-[#665146] underline"
+                    className="text-sm text-[#4A2C1A] underline"
                   >
                     {t('auth.switchToPhoneVerification')}
                   </button>
@@ -552,7 +552,7 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={!isStep1Valid}
             >
               {t('common.next')}
@@ -579,7 +579,7 @@ export function SignupPage() {
                  !step2Errors.nickname && 
                  nicknameCheck.data?.available && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <CheckCircle2 className="w-5 h-5 text-[#665146]" />
+                    <CheckCircle2 className="w-5 h-5 text-[#4A2C1A]" />
                   </div>
                 )}
               </div>
@@ -663,7 +663,7 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={!isStep2Valid}
             >
               {t('common.next')}
@@ -681,7 +681,7 @@ export function SignupPage() {
               >
                 <div
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    agreeAll ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'
+                    agreeAll ? 'bg-[#4A2C1A] border-[#4A2C1A]' : 'border-gray-300'
                   }`}
                 >
                   {agreeAll && <CheckCircle2 className="w-4 h-4 text-white" />}
@@ -708,7 +708,7 @@ export function SignupPage() {
                       />
                       <div
                         className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          checked ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'
+                          checked ? 'bg-[#4A2C1A] border-[#4A2C1A]' : 'border-gray-300'
                         }`}
                       >
                         {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
@@ -736,7 +736,7 @@ export function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={!isStep3Valid || signupMutation.isPending}
             >
               {signupMutation.isPending ? t('auth.signingUp') : t('auth.signupAction')}
@@ -779,7 +779,7 @@ export function SignupPage() {
             </div>
             <Button
               onClick={handleConfirmPhoneVerification}
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={
                 phoneVerificationInput.length !== 6 || confirmPhoneVerification.isPending
               }
@@ -824,7 +824,7 @@ export function SignupPage() {
             </div>
             <Button
               onClick={handleConfirmEmailVerification}
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={
                 emailVerificationInput.length !== 6 || confirmEmailVerification.isPending
               }

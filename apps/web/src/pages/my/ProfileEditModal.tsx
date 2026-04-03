@@ -155,7 +155,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                     <User className="w-8 h-8 text-brown-600" />
                   )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center">
+                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#4A2C1A] flex items-center justify-center">
                   <Pencil className="w-3 h-3 text-white" />
                 </div>
               </div>
@@ -486,7 +486,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
             {/* 저장 버튼 */}
             <Button
               type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white py-3"
               disabled={updateProfile.isPending}
             >
               {updateProfile.isPending ? t('common.saving') : t('common.save')}
@@ -502,7 +502,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
             <p className="text-brown-900 mb-6">{t('my.saved')}</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010]"
               onClick={handleSaveSuccessClose}
             >
               {t('common.confirm')}
@@ -527,7 +527,7 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
+                className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010]"
                 onClick={handleLogoutConfirm}
               >
                 {t('common.confirm')}

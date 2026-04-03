@@ -91,7 +91,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreeService}
                     onChange={(e) => handleServiceChange(e.target.checked)}
-                    className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
+                    className="w-5 h-5 flex-shrink-0 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
                   />
                   <span className="text-sm text-gray-700">{t('payment.agreeServiceRequired')}</span>
                 </label>
@@ -110,7 +110,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreePayment}
                     onChange={(e) => handlePaymentChange(e.target.checked)}
-                    className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
+                    className="w-5 h-5 flex-shrink-0 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
                   />
                   <span className="text-sm text-gray-700">{t('payment.agreePaymentRequired')}</span>
                 </label>
@@ -129,7 +129,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                     type="checkbox"
                     checked={agreeRefund}
                     onChange={(e) => handleRefundChange(e.target.checked)}
-                    className="w-5 h-5 flex-shrink-0 text-[#665146] focus:ring-[#665146] rounded"
+                    className="w-5 h-5 flex-shrink-0 text-[#4A2C1A] focus:ring-[#4A2C1A] rounded"
                   />
                   <span className="text-sm text-gray-700">{t('payment.agreeRefundRequired')}</span>
                 </label>
@@ -150,7 +150,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
                 }
               }}
               disabled={!allRequiredAgreed}
-              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('payment.startWithMonthly', { amount: '4,900' })}
             </button>

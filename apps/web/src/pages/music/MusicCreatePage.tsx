@@ -331,7 +331,7 @@ export function MusicCreatePage() {
                     size="sm"
                     onClick={() => toggleDiarySelection(diary.id)}
                     disabled={!isSelected && selectedCount >= 7}
-                    className={isSelected ? 'bg-[#665146] hover:bg-[#5A453A]' : ''}
+                    className={isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010]' : ''}
                   >
                     {isSelected ? t('common.deselect') : t('common.select')}
                   </Button>
@@ -346,7 +346,7 @@ export function MusicCreatePage() {
         <Button
           onClick={handleGenerate}
           disabled={!canGenerate || generateMusic.isPending}
-          className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {generateMusic.isPending ? (
             <>
@@ -368,7 +368,7 @@ export function MusicCreatePage() {
       )}
 
       {showProcessingModal && (
-        <div className="fixed inset-0 z-50 bg-[#665146] flex flex-col items-center justify-center animate-overlay-fade">
+        <div className="fixed inset-0 z-50 bg-[#4A2C1A] flex flex-col items-center justify-center animate-overlay-fade">
           <div className="text-center space-y-6 px-8">
             <div className="flex justify-center space-x-2">
               <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -420,7 +420,7 @@ export function MusicCreatePage() {
               {!isLyricsOnly && (
                 <Button
                   onClick={handleDownload}
-                  className="flex-1 bg-[#665146] hover:bg-[#5A453A] text-white"
+                  className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   {t('music.download')}

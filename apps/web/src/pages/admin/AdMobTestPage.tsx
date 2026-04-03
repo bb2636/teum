@@ -176,7 +176,7 @@ export function AdMobTestPage() {
             className={`w-full py-3 rounded-full font-medium text-sm transition-colors ${
               running
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-[#4A2C1A] text-white hover:bg-[#5A3C2A]'
+                : 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]'
             }`}
           >
             {running ? 'Testing...' : 'Run AdMob Test'}

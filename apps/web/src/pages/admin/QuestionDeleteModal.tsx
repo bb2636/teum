@@ -61,7 +61,7 @@ export function QuestionDeleteModal({
             <Button
               onClick={handleConfirm}
               disabled={isLoading}
-              className="bg-[#665146] text-white hover:bg-[#5A453A] rounded-full disabled:opacity-50"
+              className="bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-full disabled:opacity-50"
             >
               {isLoading ? '삭제 중...' : '삭제'}
             </Button>

@@ -90,7 +90,7 @@ export function SupportInquiryPage() {
                 type="text"
                 {...register('subject')}
                 placeholder="제목을 입력해주세요."
-                className="w-full px-4 py-3 bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#665146] text-[#4A2C1A] placeholder:text-gray-400"
+                className="w-full px-4 py-3 bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A] placeholder:text-gray-400"
               />
               {errors.subject && (
                 <p className="text-sm text-red-600">{errors.subject.message}</p>
@@ -104,7 +104,7 @@ export function SupportInquiryPage() {
                 placeholder="문의하실 내용을 입력해주세요."
                 rows={8}
                 maxLength={500}
-                className="w-full px-4 py-3 bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#665146] resize-none text-[#4A2C1A] placeholder:text-gray-400"
+                className="w-full px-4 py-3 bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] resize-none text-[#4A2C1A] placeholder:text-gray-400"
               />
               <div className="absolute bottom-3 right-3">
                 <span className="text-xs text-gray-400">
@@ -122,7 +122,7 @@ export function SupportInquiryPage() {
             <button
               type="submit"
               disabled={createInquiry.isPending}
-              className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createInquiry.isPending ? '등록 중...' : '등록하기'}
             </button>
@@ -140,7 +140,7 @@ export function SupportInquiryPage() {
                 <p className="text-[#4A2C1A] mb-6">정상적으로 등록되었습니다.</p>
                 <button
                   onClick={handleSuccessClose}
-                  className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+                  className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
                 >
                   확인
                 </button>
@@ -160,7 +160,7 @@ export function SupportInquiryPage() {
                 <p className="text-[#4A2C1A] mb-6">{errorMessage}</p>
                 <button
                   onClick={handleErrorClose}
-                  className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+                  className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
                 >
                   확인
                 </button>

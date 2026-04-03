@@ -133,7 +133,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
+                className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010]"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >
@@ -150,7 +150,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
             <p className="text-brown-900 mb-6">{t('auth.withdrawComplete')}</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010]"
               onClick={handleCompleteClose}
             >
               {t('common.confirm')}
@@ -172,7 +172,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
             <div className="flex gap-3">
               <Button
                 type="button"
-                className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
+                className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010] rounded-full"
                 onClick={() => setShowSubWarning(false)}
               >
                 {t('common.cancel')}
@@ -199,7 +199,7 @@ export function WithdrawModal({ onClose, onWithdrawComplete, hasActiveSubscripti
             <p className="text-brown-900 mb-6">{t('auth.withdrawFailed')}</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A]"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010]"
               onClick={() => setShowDeleteError(false)}
             >
               {t('common.confirm')}

@@ -25,7 +25,7 @@ export function LoginRedirectPage() {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100vh',
-        background: '#665146',
+        background: '#4A2C1A',
       }}
     >
       <div

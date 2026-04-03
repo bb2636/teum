@@ -255,7 +255,7 @@ export function PaymentPage() {
             <button
               onClick={handlePaymentClick}
               disabled={isProcessing || initPayment.isPending || !isButtonEnabled}
-              className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing || initPayment.isPending
                 ? t('payment.processing')

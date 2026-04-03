@@ -236,7 +236,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
             <p className="text-lg font-semibold text-[#4A2C1A] text-center mb-1">
               teum
             </p>
-            <p className="text-sm text-[#665146] text-center mb-3">
+            <p className="text-sm text-[#4A2C1A] text-center mb-3">
               {t('diary.adRequiredMessage')}
             </p>
 
@@ -284,7 +284,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
             disabled={!canSkip}
             className={`w-full py-3 rounded-full font-medium text-sm transition-colors ${
               canSkip
-                ? 'bg-[#4A2C1A] text-white hover:bg-[#5A3C2A]'
+                ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >

@@ -461,7 +461,7 @@ export function HomePage() {
                       e.stopPropagation();
                       handleFolderNameSave(folder.id);
                     }}
-                    className="text-[#4A2C1A] hover:text-[#5A3C2A]"
+                    className="text-[#4A2C1A] hover:text-[#3A2010]"
                   >
                     ✓
                   </button>
@@ -753,7 +753,7 @@ export function HomePage() {
               <button
                 onClick={handleFolderDeleteConfirm}
                 disabled={deleteFolder.isPending}
-                className="flex-1 py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleteFolder.isPending ? t('common.deleting') : t('common.delete')}
               </button>
@@ -781,7 +781,7 @@ export function HomePage() {
                     setShowFolderLimitModal(false);
                     navigate('/settings/subscription');
                   }}
-                  className="w-full py-3 bg-[#4A2C1A] text-white rounded-full font-medium hover:bg-[#665146] transition-colors"
+                  className="w-full py-3 bg-[#4A2C1A] text-white rounded-full font-medium hover:bg-[#4A2C1A] transition-colors"
                 >
                   {t('diary.goToSubscribe')}
                 </button>
@@ -905,7 +905,7 @@ export function HomePage() {
                   disabled={!folderName.trim() || isCreating}
                   className={`flex-1 py-3 px-4 rounded-lg text-white font-medium transition-colors ${
                     folderName.trim() && !isCreating
-                      ? 'bg-[#4A2C1A] hover:bg-[#5A3C2A]'
+                      ? 'bg-[#4A2C1A] hover:bg-[#3A2010]'
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                 >

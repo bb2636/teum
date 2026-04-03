@@ -117,7 +117,7 @@ export function QuestionEditModal({
               disabled={!question.trim() || isLoading}
               className={`${
                 question.trim() && !isLoading
-                  ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2215]'
+                  ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >

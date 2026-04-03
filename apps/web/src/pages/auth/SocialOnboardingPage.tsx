@@ -328,7 +328,7 @@ export function SocialOnboardingPage() {
                 />
                 {watchNickname && nicknameError.length === 0 && !profileErrors.nickname && nicknameCheck.data?.available && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <CheckCircle2 className="w-5 h-5 text-[#665146]" />
+                    <CheckCircle2 className="w-5 h-5 text-[#4A2C1A]" />
                   </div>
                 )}
               </div>
@@ -406,7 +406,7 @@ export function SocialOnboardingPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={!isProfileValid}>
+            <Button type="submit" className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={!isProfileValid}>
               {t('common.next')}
             </Button>
           </form>
@@ -420,7 +420,7 @@ export function SocialOnboardingPage() {
                 onClick={handleAgreeAll}
                 className="w-full flex items-center gap-3 px-4 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${agreeAll ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${agreeAll ? 'bg-[#4A2C1A] border-[#4A2C1A]' : 'border-gray-300'}`}>
                   {agreeAll && <CheckCircle2 className="w-4 h-4 text-white" />}
                 </div>
                 <span className="text-base font-semibold text-gray-900">{t('auth.agreeAll')}</span>
@@ -435,7 +435,7 @@ export function SocialOnboardingPage() {
                   return (
                     <label key={type} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
                       <input type="checkbox" checked={!!checked} onChange={(e) => termsForm.setValue(key, e.target.checked)} className="sr-only" />
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'bg-[#665146] border-[#665146]' : 'border-gray-300'}`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'bg-[#4A2C1A] border-[#4A2C1A]' : 'border-gray-300'}`}>
                         {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                       </div>
                       <div className="flex-1 flex items-center justify-between">
@@ -450,7 +450,7 @@ export function SocialOnboardingPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={!isTermsValid || socialOnboarding.isPending}>
+            <Button type="submit" className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={!isTermsValid || socialOnboarding.isPending}>
               {socialOnboarding.isPending ? t('auth.signingUp') : t('auth.signupAction')}
             </Button>
           </form>
@@ -478,7 +478,7 @@ export function SocialOnboardingPage() {
                 className="text-center text-lg tracking-widest"
               />
             </div>
-            <Button onClick={handleConfirmEmailVerification} className="w-full bg-[#665146] hover:bg-[#5A453A] text-white" disabled={emailVerificationInput.length !== 6 || confirmEmailVerification.isPending}>
+            <Button onClick={handleConfirmEmailVerification} className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={emailVerificationInput.length !== 6 || confirmEmailVerification.isPending}>
               {confirmEmailVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
           </div>

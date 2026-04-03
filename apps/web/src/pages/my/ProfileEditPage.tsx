@@ -278,7 +278,7 @@ export function ProfileEditPage() {
             {/* 저장 버튼 */}
             <Button
               type="submit"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] text-white py-3 rounded-full"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white py-3 rounded-full"
               disabled={updateProfile.isPending}
             >
               {updateProfile.isPending ? t('common.saving') : t('common.save')}
@@ -294,7 +294,7 @@ export function ProfileEditPage() {
             <p className="text-brown-900 mb-6">{t('my.saved')}</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] rounded-full"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] rounded-full"
               onClick={handleSaveSuccessClose}
             >
               {t('common.confirm')}
@@ -310,7 +310,7 @@ export function ProfileEditPage() {
             <p className="text-brown-900 mb-6">{t('my.saveFailed')}</p>
             <Button
               type="button"
-              className="w-full bg-[#665146] hover:bg-[#5A453A] rounded-full"
+              className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] rounded-full"
               onClick={() => setShowSaveError(false)}
             >
               {t('common.confirm')}
@@ -335,7 +335,7 @@ export function ProfileEditPage() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-[#665146] hover:bg-[#5A453A] rounded-full"
+                className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010] rounded-full"
                 onClick={handleLogoutConfirm}
               >
                 {t('common.confirm')}

@@ -224,7 +224,7 @@ export function FolderSelectModal({
                 disabled={!folderName.trim() || isCreating}
                 className={`flex-1 py-3 px-4 rounded-lg text-white font-medium transition-colors ${
                   folderName.trim() && !isCreating
-                    ? 'bg-[#4A2C1A] hover:bg-[#5A3C2A]'
+                    ? 'bg-[#4A2C1A] hover:bg-[#3A2010]'
                     : 'bg-gray-300 cursor-not-allowed'
                 }`}
               >
@@ -305,7 +305,7 @@ export function FolderSelectModal({
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={() => setShowCreateForm(true)}
-            className="w-full py-4 px-4 bg-[#4A2C1A] hover:bg-[#5A3C2A] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+            className="w-full py-4 px-4 bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
             {t('diary.newFolderTitle')}

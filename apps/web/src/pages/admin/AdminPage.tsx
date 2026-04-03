@@ -272,7 +272,7 @@ export function AdminPage() {
               <Button
                 onClick={handleLogout}
                 disabled={logout.isPending}
-                className="px-4 bg-[#665146] hover:bg-[#5A453A] text-white"
+                className="px-4 bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               >
                 {logout.isPending ? '로그아웃 중...' : '로그아웃'}
               </Button>

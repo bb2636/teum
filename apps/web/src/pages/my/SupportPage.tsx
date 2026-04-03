@@ -100,7 +100,7 @@ export function SupportPage() {
                         <div className="bg-gray-100 rounded-lg p-4 space-y-4">
                           {/* Q: 문의 내용 */}
                           <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <div className="w-6 h-6 rounded-full bg-[#4A2C1A] flex items-center justify-center flex-shrink-0 mt-0.5">
                               <span className="text-white text-xs font-bold">Q</span>
                             </div>
                             <p className="text-sm text-gray-700 flex-1 leading-relaxed">{inquiry.message}</p>
@@ -109,7 +109,7 @@ export function SupportPage() {
                           {/* A: 답변 내용 */}
                           {hasAnswer && (
                             <div className="flex items-start gap-3">
-                              <div className="w-6 h-6 rounded-full bg-[#665146] flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <div className="w-6 h-6 rounded-full bg-[#4A2C1A] flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <span className="text-white text-xs font-bold">A</span>
                               </div>
                               <p className="text-sm text-gray-700 flex-1 leading-relaxed">{inquiry.answer}</p>
@@ -141,7 +141,7 @@ export function SupportPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
           <button
             onClick={() => navigate('/my/support/inquiry')}
-            className="w-full py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+            className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
           >
             {t('support.newInquiry')}
           </button>

@@ -64,7 +64,7 @@ export function SupportModal({ inquiries: initialInquiries, onClose }: SupportMo
             <>
               <Button
                 onClick={() => setShowForm(true)}
-                className="w-full bg-[#665146] hover:bg-[#5A453A]"
+                className="w-full bg-[#4A2C1A] hover:bg-[#3A2010]"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 새 문의 작성
@@ -161,7 +161,7 @@ export function SupportModal({ inquiries: initialInquiries, onClose }: SupportMo
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-[#665146] hover:bg-[#5A453A]"
+                  className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010]"
                   disabled={createInquiry.isPending}
                 >
                   {createInquiry.isPending ? '접수 중...' : '접수하기'}

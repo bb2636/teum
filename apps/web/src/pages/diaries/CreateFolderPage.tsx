@@ -162,7 +162,7 @@ export function CreateFolderPage() {
               disabled={!isFormValid || isCreating}
               className={`flex-1 py-3 px-4 rounded-lg text-white font-medium transition-colors ${
                 isFormValid && !isCreating
-                  ? 'bg-[#4A2C1A] hover:bg-[#5A3C2A]'
+                  ? 'bg-[#4A2C1A] hover:bg-[#3A2010]'
                   : 'bg-gray-300 cursor-not-allowed'
               }`}
             >

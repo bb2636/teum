@@ -20,7 +20,7 @@ export function ProfileButton() {
   return (
     <Link
       to="/my"
-      className="w-9 h-9 rounded-full bg-[#665146] flex items-center justify-center flex-shrink-0"
+      className="w-9 h-9 rounded-full bg-[#4A2C1A] flex items-center justify-center flex-shrink-0"
     >
       <span className="text-white text-sm font-medium">
         {getUserInitial()}

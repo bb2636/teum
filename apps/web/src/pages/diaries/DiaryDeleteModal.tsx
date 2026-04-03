@@ -56,7 +56,7 @@ export function DiaryDeleteModal({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 py-3 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors disabled:opacity-50"
+            className="flex-1 py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50"
           >
             {isLoading ? t('common.deleting') : t('common.confirm')}
           </button>

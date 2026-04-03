@@ -40,7 +40,7 @@ export function PaymentFailPage() {
       <div className="p-6 space-y-3">
         <button
           onClick={() => navigate('/payment/intro', { replace: true })}
-          className="w-full py-4 px-4 rounded-full bg-[#665146] hover:bg-[#5A453A] text-white font-medium transition-colors"
+          className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
         >
           {t('payment.fail.retry')}
         </button>

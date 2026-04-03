@@ -130,7 +130,7 @@ export function MyPage() {
         {/* Profile Section - 가운데 정렬 (아바타 + 닉네임) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-[#665146] flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-[#4A2C1A] flex items-center justify-center">
               <span className="text-white text-2xl font-medium">
                 {user?.profile?.nickname
                   ? user.profile.nickname.charAt(0).toUpperCase()
@@ -269,7 +269,7 @@ export function MyPage() {
               </button>
               <button
                 type="button"
-                className="flex-1 py-2.5 bg-[#665146] hover:bg-[#5A453A] text-white rounded-full transition-colors"
+                className="flex-1 py-2.5 bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-full transition-colors"
                 onClick={handleLogoutConfirm}
               >
                 {t('common.confirm')}

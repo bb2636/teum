@@ -9,11 +9,16 @@ import android.webkit.WebViewClient;
 import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.community.admob.AdMob;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AdMob.class);
         super.onCreate(savedInstanceState);
 
         getBridge().getWebView().setWebViewClient(new WebViewClient() {

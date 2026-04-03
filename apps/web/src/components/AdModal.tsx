@@ -22,50 +22,55 @@ async function showNativeInterstitial(): Promise<boolean> {
   try {
     const { AdMob, InterstitialAdPluginEvents } = await import('@capacitor-community/admob');
 
+    console.log('[AdMob] Initializing...');
     await AdMob.initialize({
       initializeForTesting: true,
     });
+    console.log('[AdMob] Initialized successfully');
 
-    return new Promise<boolean>((resolve) => {
+    await AdMob.removeAllListeners();
+
+    return new Promise<boolean>(async (resolve) => {
       let resolved = false;
-      let dismissHandle: { remove: () => void } | null = null;
-      let failHandle: { remove: () => void } | null = null;
-      let loadedHandle: { remove: () => void } | null = null;
-      let failShowHandle: { remove: () => void } | null = null;
+
+      const handles: Array<{ remove: () => void }> = [];
 
       const finish = (success: boolean) => {
         if (!resolved) {
           resolved = true;
           resolve(success);
-          dismissHandle?.remove();
-          failHandle?.remove();
-          loadedHandle?.remove();
-          failShowHandle?.remove();
+          handles.forEach((h) => h.remove());
         }
       };
 
-      AdMob.addListener(
+      const h1 = await AdMob.addListener(
         InterstitialAdPluginEvents.Dismissed,
-        () => finish(true)
-      ).then((h) => { dismissHandle = h; });
+        () => {
+          console.log('[AdMob] Ad dismissed by user');
+          finish(true);
+        }
+      );
+      handles.push(h1);
 
-      AdMob.addListener(
+      const h2 = await AdMob.addListener(
         InterstitialAdPluginEvents.FailedToLoad,
-        (info) => {
+        (info: any) => {
           console.warn('[AdMob] FailedToLoad:', JSON.stringify(info));
           finish(false);
         }
-      ).then((h) => { failHandle = h; });
+      );
+      handles.push(h2);
 
-      AdMob.addListener(
+      const h3 = await AdMob.addListener(
         InterstitialAdPluginEvents.FailedToShow,
-        (info) => {
+        (info: any) => {
           console.warn('[AdMob] FailedToShow:', JSON.stringify(info));
           finish(false);
         }
-      ).then((h) => { failShowHandle = h; });
+      );
+      handles.push(h3);
 
-      AdMob.addListener(
+      const h4 = await AdMob.addListener(
         InterstitialAdPluginEvents.Loaded,
         () => {
           console.log('[AdMob] Interstitial loaded, showing...');
@@ -74,17 +79,21 @@ async function showNativeInterstitial(): Promise<boolean> {
             finish(false);
           });
         }
-      ).then((h) => { loadedHandle = h; });
+      );
+      handles.push(h4);
 
-      console.log('[AdMob] Preparing interstitial with adId:', getInterstitialAdId());
-      AdMob.prepareInterstitial({ adId: getInterstitialAdId() })
-        .catch((e) => {
-          console.warn('[AdMob] prepareInterstitial error:', e);
-          finish(false);
-        });
+      console.log('[AdMob] All listeners registered, preparing interstitial with adId:', getInterstitialAdId());
+
+      try {
+        await AdMob.prepareInterstitial({ adId: getInterstitialAdId() });
+        console.log('[AdMob] prepareInterstitial resolved');
+      } catch (e) {
+        console.warn('[AdMob] prepareInterstitial error:', e);
+        finish(false);
+      }
 
       setTimeout(() => {
-        console.warn('[AdMob] Timeout reached');
+        console.warn('[AdMob] Timeout reached (30s)');
         finish(false);
       }, 30000);
     });

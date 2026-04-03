@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { t } from '@/lib/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminSupportInquiry, useUpdateInquiryAnswer } from '@/hooks/useSupport';
 import { X } from 'lucide-react';
@@ -93,7 +94,7 @@ export function SupportInquiryDetailModal({
         <div className="fixed inset-0 bg-black/50 z-40 animate-overlay-fade" onClick={handleClose} />
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 p-6 pointer-events-auto animate-modal-pop">
-            <div className="text-center text-gray-500">로딩 중...</div>
+            <div className="text-center text-gray-500">{t('common.loading')}</div>
           </div>
         </div>
       </>

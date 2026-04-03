@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { t } from '@/lib/i18n';
 import { useMe } from '@/hooks/useProfile';
 import { useAllUsers, useUserPayments, useDeleteUser, useUpdateUserStatus, useAllDiaries, useAdminCancelSubscription, AdminDiary, AdminUser } from '@/hooks/useAdmin';
 import { useLogout } from '@/hooks/useAuth';
@@ -87,7 +88,7 @@ export function AdminPage() {
 
   // Check if user is admin
   if (userLoading) {
-    return <div className="p-6">로딩 중...</div>;
+    return <div className="p-6">{t('common.loading')}</div>;
   }
 
   if (!user || user.role !== 'admin') {
@@ -387,7 +388,7 @@ export function AdminPage() {
             {/* Table Body */}
             <div className="divide-y divide-gray-200">
               {usersLoading ? (
-                <div className="px-4 py-8 text-center text-gray-500">로딩 중...</div>
+                <div className="px-4 py-8 text-center text-gray-500">{t('common.loading')}</div>
               ) : filteredUsers.length === 0 ? (
                 <div className="px-4 py-8 text-center text-gray-500">사용자가 없습니다.</div>
               ) : (
@@ -589,7 +590,7 @@ export function AdminPage() {
 
             {/* Diary Grid */}
             {diariesLoading ? (
-              <div className="text-center py-12 text-gray-500">로딩 중...</div>
+              <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
             ) : filteredDiaries.length === 0 ? (
               <div className="text-center py-12 text-gray-500">일기가 없습니다.</div>
             ) : (

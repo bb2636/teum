@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { t } from '../lib/i18n';
 import { Layout } from './providers';
 import { HideTabBarProvider } from '../contexts/HideTabBarContext';
 import { SplashPage } from '../pages/auth/SplashPage';
@@ -56,7 +57,7 @@ function ProtectedRoute({ children, requireAdmin = false }: { children: React.Re
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">로딩 중...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -79,7 +80,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">로딩 중...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
+import { t } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,10 +95,10 @@ export function SupportModal({ inquiries: initialInquiries, onClose }: SupportMo
                           }`}
                         >
                           {inquiry.status === 'answered'
-                            ? '답변 완료'
+                            ? t('support.answered')
                             : inquiry.status === 'in_progress'
-                            ? '처리 중'
-                            : '접수'}
+                            ? t('support.inProgress')
+                            : t('support.waiting')}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-2">

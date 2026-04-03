@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { t } from '@/lib/i18n';
 import { 
   useServiceTerms, 
   usePaymentTerms,
@@ -229,7 +230,7 @@ export function TermsManagementTab() {
         {/* Right Content Area */}
         <div className="flex-1 bg-white rounded-lg border border-gray-200 p-8">
           {currentTerms.isLoading ? (
-            <div className="text-center py-12 text-gray-500">로딩 중...</div>
+            <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
           ) : (
             <>
               {/* Header */}

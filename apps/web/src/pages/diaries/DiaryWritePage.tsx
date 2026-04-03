@@ -1011,7 +1011,7 @@ export function DiaryWritePage() {
   if (isEditMode && isLoadingDiary) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-muted-foreground">일기를 불러오는 중...</div>
+        <div className="text-muted-foreground">{t('diary.loadingDiary')}</div>
       </div>
     );
   }
@@ -1033,8 +1033,8 @@ export function DiaryWritePage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
             <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
               <div className="w-8 h-8 border-[3px] border-amber-300 border-t-amber-600 rounded-full animate-spin" />
-              <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>응원 메시지 준비 중...</p>
-              <p className="text-xs text-gray-400">일기를 저장하고 있어요</p>
+              <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>{t('diary.preparingCheer')}</p>
+              <p className="text-xs text-gray-400">{t('diary.savingDiary')}</p>
             </div>
           </div>
         )}
@@ -1213,8 +1213,8 @@ export function DiaryWritePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
           <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-lg animate-modal-pop">
             <div className="w-8 h-8 border-[3px] border-amber-300 border-t-amber-600 rounded-full animate-spin" />
-            <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>응원 메시지 준비 중...</p>
-            <p className="text-xs text-gray-400">일기를 저장하고 있어요</p>
+            <p className="text-sm font-medium" style={{ color: '#4A2C1A' }}>{t('diary.preparingCheer')}</p>
+            <p className="text-xs text-gray-400">{t('diary.savingDiary')}</p>
           </div>
         </div>
       )}
@@ -1239,7 +1239,7 @@ export function DiaryWritePage() {
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-hidden px-4 py-5">
             {(isEditMode ? isLoadingDiary : questionsLoading) ? (
-              <div className="text-center py-8 text-gray-500">질문을 불러오는 중...</div>
+              <div className="text-center py-8 text-gray-500">{t('diary.loadingQuestions')}</div>
             ) : activeQuestions.length > 0 ? (
               // 3개 질문 카드: 클릭한 카드만 인라인으로 확장
               <div className="space-y-4 overflow-y-auto">

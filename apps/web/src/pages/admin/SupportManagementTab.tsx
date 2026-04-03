@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { t } from '@/lib/i18n';
 import { useAllSupportInquiries, useMarkInquiriesChecked } from '@/hooks/useSupport';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -48,7 +49,7 @@ export function SupportManagementTab() {
   };
 
   if (isLoading) {
-    return <div className="p-6 text-center text-gray-500">로딩 중...</div>;
+    return <div className="p-6 text-center text-gray-500">{t('common.loading')}</div>;
   }
 
   return (

@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api';
+import { t } from '@/lib/i18n';
 
 const TERMS_TITLE_MAP: Record<string, string> = {
   service: '서비스 이용약관',
@@ -50,7 +51,7 @@ export function TermsModal({ type, onClose }: TermsModalProps) {
 
         <div className="p-4">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : terms ? (
             <div className="space-y-4">
               <h3 className="font-semibold text-brown-900">{terms.title}</h3>

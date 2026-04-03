@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { t } from '@/lib/i18n';
 import { useQuestions, useCreateQuestion, useUpdateQuestion, useDeleteQuestion, useUpdateQuestionOrder } from '@/hooks/useQuestions';
 import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -175,7 +176,7 @@ export function QuestionsManagementTab() {
   }, []);
 
   if (isLoading) {
-    return <div className="p-6 text-center text-gray-500">로딩 중...</div>;
+    return <div className="p-6 text-center text-gray-500">{t('common.loading')}</div>;
   }
 
   return (

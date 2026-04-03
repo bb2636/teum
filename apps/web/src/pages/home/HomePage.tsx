@@ -276,13 +276,13 @@ export function HomePage() {
     >
       <div className="max-w-md mx-auto">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' }}>
-          <div className="flex items-center justify-between px-4 py-2">
+        <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
+          <div className="flex items-center justify-between px-4 py-1">
             <div className="flex items-center gap-2">
               <img
                 src="/logo.home.png"
                 alt="teum logo"
-                className="h-16 w-auto object-contain"
+                className="h-9 w-auto object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

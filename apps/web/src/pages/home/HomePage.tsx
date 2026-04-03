@@ -279,7 +279,7 @@ export function HomePage() {
         <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <div className="flex items-center gap-2">
             <img
-              src="/logo.png"
+              src="/logo.home.png"
               alt="teum logo"
               className="h-8 w-auto object-contain"
               onError={(e) => {

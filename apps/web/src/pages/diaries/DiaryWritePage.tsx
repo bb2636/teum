@@ -805,15 +805,13 @@ export function DiaryWritePage() {
     }
   };
 
-  const DEV_FORCE_AD = true;
-
   const isSavingRef = useRef(false);
 
   const handleSaveClick = () => {
     setShowFolderModal(true);
   };
 
-  const needsAd = DEV_FORCE_AD || (!isEditMode && !activeSubscription && diaryCount >= 3);
+  const needsAd = !isEditMode && !activeSubscription && diaryCount >= 3;
 
   const handleFolderSelect = (folderId: string) => {
     setShowFolderModal(false);
@@ -827,7 +825,7 @@ export function DiaryWritePage() {
     } as React.ChangeEvent<HTMLInputElement>;
     register('folderId').onChange(event);
 
-    console.log('[AdFlow] handleFolderSelect — needsAd:', needsAd, '| diaryCount:', diaryCount, '| isEditMode:', isEditMode, '| hasSubscription:', !!activeSubscription, '| DEV_FORCE_AD:', DEV_FORCE_AD);
+    console.log('[AdFlow] handleFolderSelect — needsAd:', needsAd, '| diaryCount:', diaryCount, '| isEditMode:', isEditMode, '| hasSubscription:', !!activeSubscription);
 
     if (needsAd) {
       setPendingFolderId(folderId);

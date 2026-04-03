@@ -148,7 +148,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<AdDebugInfo | null>(null);
   const adFlowRunningRef = useRef(false);
   const completedRef = useRef(false);
   const isNative = Capacitor.isNativePlatform();
@@ -158,7 +157,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
       setCountdown(AD_DURATION_SECONDS);
       setCanSkip(false);
       setShowFallback(false);
-      setDebugInfo(null);
       adFlowRunningRef.current = false;
       completedRef.current = false;
       return;
@@ -171,7 +169,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
 
       runNativeAdFlow().then((result) => {
         adFlowRunningRef.current = false;
-        setDebugInfo(result.debug);
         if (result.status === 'dismissed') {
           if (!completedRef.current) {
             completedRef.current = true;
@@ -182,9 +179,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
         }
       });
     } else {
-      const webDebug = createDebugInfo();
-      webDebug.failReason = 'web platform (not native)';
-      setDebugInfo(webDebug);
       setShowFallback(true);
     }
   }, [isOpen, isNative, onAdComplete]);
@@ -239,27 +233,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
             <p className="text-sm text-[#4A2C1A] text-center mb-3">
               {t('diary.adRequiredMessage')}
             </p>
-
-            {debugInfo && (
-              <div className="w-full p-2.5 bg-white/90 border border-gray-300 rounded-lg text-[9px] font-mono leading-relaxed space-y-0.5 max-h-[180px] overflow-y-auto">
-                <div className="font-bold text-[10px] text-gray-800 mb-1">Ad Debug Panel</div>
-                <div>platform: <b>{debugInfo.platform}</b></div>
-                <div>isNative: <b className={debugInfo.isNative ? 'text-green-700' : 'text-red-600'}>{String(debugInfo.isNative)}</b></div>
-                <div>adUnitId: <b>{debugInfo.adUnitId}</b></div>
-                <hr className="border-gray-200 my-1" />
-                <div>initialize: {debugInfo.initialized ? <b className="text-green-700">OK</b> : <b className="text-red-600">FAIL</b>}</div>
-                <div>listeners: {debugInfo.listenersRegistered ? <b className="text-green-700">OK</b> : <b className="text-red-600">FAIL</b>}</div>
-                <div>prepare: {debugInfo.prepareCalled ? <b className="text-green-700">OK</b> : <b className="text-gray-400">-</b>}</div>
-                <div>Loaded event: {debugInfo.loadedReceived ? <b className="text-green-700">OK</b> : <b className="text-red-600">NO</b>}</div>
-                <div>showInterstitial: {debugInfo.showCalled ? <b className="text-green-700">OK</b> : <b className="text-gray-400">-</b>}</div>
-                {debugInfo.failReason && (
-                  <>
-                    <hr className="border-gray-200 my-1" />
-                    <div className="text-red-600 break-all">reason: <b>{debugInfo.failReason}</b></div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
           {!canSkip && (

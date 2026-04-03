@@ -414,7 +414,7 @@ export function CalendarPage() {
         <div
           ref={calendarRef}
           className={`grid grid-cols-7 transition-all duration-300 ease-in-out px-2 ${
-            isListOpen ? '' : 'flex-1'
+            isListOpen ? 'grid-rows-6' : 'grid-rows-6'
           }`}
           style={isListOpen ? { height: '180px', minHeight: '180px' } : undefined}
           onTouchStart={handleCalTouchStart}

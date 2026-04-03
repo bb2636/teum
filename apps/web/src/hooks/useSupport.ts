@@ -106,6 +106,34 @@ export function useAdminSupportInquiry(id: string) {
   });
 }
 
+// Admin: Get unchecked inquiry count
+export function useUncheckedInquiryCount() {
+  return useQuery<number>({
+    queryKey: ['support', 'admin', 'unchecked-count'],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: { count: number } }>(
+        '/support/admin/unchecked-count'
+      );
+      return response.data.count;
+    },
+    staleTime: 1000 * 30,
+  });
+}
+
+// Admin: Mark inquiries as checked
+export function useMarkInquiriesChecked() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      await apiRequest('/support/admin/mark-checked', { method: 'POST' });
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(['support', 'admin', 'unchecked-count'], 0);
+    },
+  });
+}
+
 // Admin: Update inquiry answer
 export function useUpdateInquiryAnswer() {
   const queryClient = useQueryClient();

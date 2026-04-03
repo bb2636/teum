@@ -62,6 +62,14 @@ export class SupportService {
 
     return updated;
   }
+  async getUncheckedCount(): Promise<number> {
+    return supportRepository.countUnchecked();
+  }
+
+  async markInquiriesChecked() {
+    await supportRepository.markAllChecked();
+    logger.info('Marked all unchecked inquiries as checked');
+  }
 }
 
 export const supportService = new SupportService();

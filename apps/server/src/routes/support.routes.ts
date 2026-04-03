@@ -12,6 +12,8 @@ router.get('/:id', authenticate, supportController.getInquiry.bind(supportContro
 
 // Admin routes (must be before /:id route)
 router.get('/admin/all', authenticate, requireRole(['admin']), supportController.getAllInquiries.bind(supportController));
+router.get('/admin/unchecked-count', authenticate, requireRole(['admin']), supportController.getUncheckedCount.bind(supportController));
+router.post('/admin/mark-checked', authenticate, requireRole(['admin']), supportController.markChecked.bind(supportController));
 router.get('/admin/:id', authenticate, requireRole(['admin']), supportController.getInquiryById.bind(supportController));
 router.put('/admin/:id/answer', authenticate, requireRole(['admin']), supportController.updateInquiryAnswer.bind(supportController));
 

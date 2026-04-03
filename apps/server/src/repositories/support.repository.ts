@@ -1,4 +1,4 @@
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { supportInquiries } from '../db/schema';
 
@@ -108,6 +108,30 @@ export class SupportRepository {
       },
     });
     return updated;
+  }
+  async countUnchecked(): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(supportInquiries)
+      .where(
+        and(
+          isNull(supportInquiries.adminCheckedAt),
+          isNull(supportInquiries.deletedAt)
+        )
+      );
+    return result[0]?.count ?? 0;
+  }
+
+  async markAllChecked() {
+    await db
+      .update(supportInquiries)
+      .set({ adminCheckedAt: new Date() })
+      .where(
+        and(
+          isNull(supportInquiries.adminCheckedAt),
+          isNull(supportInquiries.deletedAt)
+        )
+      );
   }
 }
 

@@ -19,6 +19,7 @@ export const supportInquiries = pgTable('support_inquiries', {
   answer: text('answer'),
   answeredAt: timestamp('answered_at'),
   answeredBy: uuid('answered_by'), // Admin user ID
+  adminCheckedAt: timestamp('admin_checked_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useAllSupportInquiries } from '@/hooks/useSupport';
+import { useState, useEffect, useRef } from 'react';
+import { useAllSupportInquiries, useMarkInquiriesChecked } from '@/hooks/useSupport';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { SupportInquiryDetailModal } from './SupportInquiryDetailModal';
@@ -8,8 +8,17 @@ type SupportFilter = 'all' | 'waiting' | 'answered';
 
 export function SupportManagementTab() {
   const { data: inquiries = [], isLoading } = useAllSupportInquiries();
+  const markChecked = useMarkInquiriesChecked();
+  const markedRef = useRef(false);
   const [filter, setFilter] = useState<SupportFilter>('all');
   const [selectedInquiryId, setSelectedInquiryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !markedRef.current) {
+      markedRef.current = true;
+      markChecked.mutate();
+    }
+  }, [isLoading]);
 
   // Filter inquiries by status
   const filteredInquiries = inquiries.filter((inquiry) => {

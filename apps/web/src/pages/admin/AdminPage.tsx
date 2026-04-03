@@ -12,6 +12,7 @@ import { QuestionsManagementTab } from './QuestionsManagementTab';
 import { SupportManagementTab } from './SupportManagementTab';
 import { TermsManagementTab } from './TermsManagementTab';
 import { StorageImage } from '@/components/StorageImage';
+import { useUncheckedInquiryCount } from '@/hooks/useSupport';
 
 type AdminTab = 'users' | 'diaries' | 'questions' | 'support' | 'terms';
 type DiaryFilter = 'all' | 'free' | 'question';
@@ -24,6 +25,7 @@ export function AdminPage() {
   const deleteUserMutation = useDeleteUser();
   const updateUserStatusMutation = useUpdateUserStatus();
   const adminCancelSubscription = useAdminCancelSubscription();
+  const { data: uncheckedCount = 0 } = useUncheckedInquiryCount();
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -328,13 +330,16 @@ export function AdminPage() {
               </button>
               <button
                 onClick={() => setActiveTab('support')}
-                className={`pb-2 px-1 text-sm font-medium transition-colors ${
+                className={`pb-2 px-1 text-sm font-medium transition-colors relative ${
                   activeTab === 'support'
                     ? 'text-purple-600 border-b-2 border-purple-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 고객센터
+                {uncheckedCount > 0 && (
+                  <span className="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-[#4A2C1A]" />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('terms')}

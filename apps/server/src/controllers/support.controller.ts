@@ -132,6 +132,28 @@ export class SupportController {
       next(error);
     }
   }
+  async getUncheckedCount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const count = await supportService.getUncheckedCount();
+      res.json({
+        success: true,
+        data: { count },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async markChecked(req: Request, res: Response, next: NextFunction) {
+    try {
+      await supportService.markInquiriesChecked();
+      res.json({
+        success: true,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const supportController = new SupportController();

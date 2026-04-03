@@ -413,105 +413,112 @@ export function CalendarPage() {
 
         <div
           ref={calendarRef}
-          className={`grid grid-cols-7 transition-all duration-300 ease-in-out px-2 ${
-            isListOpen ? 'grid-rows-6' : 'grid-rows-6'
+          className={`flex flex-col transition-all duration-300 ease-in-out px-2 ${
+            isListOpen ? '' : 'flex-1'
           }`}
-          style={isListOpen ? { height: '180px', minHeight: '180px' } : undefined}
+          style={isListOpen ? { height: '180px', minHeight: '180px' } : { paddingBottom: '80px' }}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
         >
-          {weeks.map((week, weekIndex) =>
-            week.map((day, dayIndex) => {
-              const dayDiaries = getDiariesForDate(day);
-              const isCurrentMonth = isSameMonth(day, currentDate);
-              const isToday = isSameDay(day, today);
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-              const dayNumber = getDate(day);
-              const isSunday = getDay(day) === 0;
-              const isSaturday = getDay(day) === 6;
+          {weeks.map((week, weekIndex) => (
+            <div
+              key={weekIndex}
+              className={`grid grid-cols-7 flex-1 ${
+                weekIndex < weeks.length - 1 ? 'border-b border-gray-100' : ''
+              }`}
+            >
+              {week.map((day, dayIndex) => {
+                const dayDiaries = getDiariesForDate(day);
+                const isCurrentMonth = isSameMonth(day, currentDate);
+                const isToday = isSameDay(day, today);
+                const isSelected = selectedDate && isSameDay(day, selectedDate);
+                const dayNumber = getDate(day);
+                const isSunday = getDay(day) === 0;
+                const isSaturday = getDay(day) === 6;
 
-              return (
-                <button
-                  key={`${weekIndex}-${dayIndex}`}
-                  onClick={() => handleDateClick(day)}
-                  className={`relative flex flex-col items-center justify-start pt-1.5 pb-1 transition-colors ${
-                    !isCurrentMonth
-                      ? 'opacity-30'
-                      : isSelected
-                      ? 'bg-[#f6efed] rounded-lg'
-                      : isToday
-                      ? 'bg-[#f6efed] rounded-lg'
-                      : ''
-                  }`}
-                >
-                  <span
-                    className={`text-sm font-medium leading-none ${
-                      isToday
-                        ? 'bg-[#4A2C1A] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs'
-                        : isSunday
-                        ? 'text-red-400'
-                        : isSaturday
-                        ? 'text-blue-400'
-                        : 'text-gray-800'
+                return (
+                  <button
+                    key={`${weekIndex}-${dayIndex}`}
+                    onClick={() => handleDateClick(day)}
+                    className={`relative flex flex-col items-center justify-start pt-2 pb-1 transition-colors ${
+                      !isCurrentMonth
+                        ? 'opacity-30'
+                        : isSelected
+                        ? 'bg-[#f6efed] rounded-lg'
+                        : isToday
+                        ? 'bg-[#f6efed] rounded-lg'
+                        : ''
                     }`}
                   >
-                    {dayNumber}
-                  </span>
-                  {!isListOpen && dayDiaries.length > 0 && (
-                    <div className="mt-1 flex flex-col gap-0.5 w-full px-0.5">
-                      {(() => {
-                        const folderCounts = new Map<string, number>();
-                        dayDiaries.forEach((d) => {
-                          const name = getDiaryPreviewText(d, t('common.all'));
-                          folderCounts.set(name, (folderCounts.get(name) || 0) + 1);
-                        });
-                        const groups = Array.from(folderCounts.entries());
+                    <span
+                      className={`text-sm font-medium leading-none ${
+                        isToday
+                          ? 'bg-[#4A2C1A] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs'
+                          : isSunday
+                          ? 'text-red-400'
+                          : isSaturday
+                          ? 'text-blue-400'
+                          : 'text-gray-800'
+                      }`}
+                    >
+                      {dayNumber}
+                    </span>
+                    {!isListOpen && dayDiaries.length > 0 && (
+                      <div className="mt-1 flex flex-col gap-0.5 w-full px-0.5">
+                        {(() => {
+                          const folderCounts = new Map<string, number>();
+                          dayDiaries.forEach((d) => {
+                            const name = getDiaryPreviewText(d, t('common.all'));
+                            folderCounts.set(name, (folderCounts.get(name) || 0) + 1);
+                          });
+                          const groups = Array.from(folderCounts.entries());
 
-                        if (!groups.some(([name]) => name)) {
+                          if (!groups.some(([name]) => name)) {
+                            return (
+                              <div className="flex justify-center">
+                                <div className="w-1.5 h-1.5 bg-[#4A2C1A] rounded-full" />
+                              </div>
+                            );
+                          }
+
+                          const visibleGroups = groups.slice(0, 2);
+                          const remainingCount = groups.slice(2).reduce((sum, [, c]) => sum + c, 0);
+
                           return (
-                            <div className="flex justify-center">
-                              <div className="w-1.5 h-1.5 bg-[#4A2C1A] rounded-full" />
-                            </div>
-                          );
-                        }
-
-                        const visibleGroups = groups.slice(0, 2);
-                        const remainingCount = groups.slice(2).reduce((sum, [, c]) => sum + c, 0);
-
-                        return (
-                          <>
-                            {visibleGroups.map(([name, count]) => (
-                              <div
-                                key={name}
-                                className={`w-full text-[9px] leading-tight px-0.5 py-px rounded truncate text-center ${
+                            <>
+                              {visibleGroups.map(([name, count]) => (
+                                <div
+                                  key={name}
+                                  className={`w-full text-[9px] leading-tight px-0.5 py-px rounded truncate text-center ${
+                                    isToday ? 'bg-[#4A2C1A] text-white' : 'bg-[#f6efed] text-[#4A2C1A]'
+                                  }`}
+                                >
+                                  {name}{count > 1 ? ` +${count - 1}` : ''}
+                                </div>
+                              ))}
+                              {remainingCount > 0 && (
+                                <div className={`w-full text-[9px] leading-tight px-0.5 py-px rounded text-center ${
                                   isToday ? 'bg-[#4A2C1A] text-white' : 'bg-[#f6efed] text-[#4A2C1A]'
-                                }`}
-                              >
-                                {name}{count > 1 ? ` +${count - 1}` : ''}
-                              </div>
-                            ))}
-                            {remainingCount > 0 && (
-                              <div className={`w-full text-[9px] leading-tight px-0.5 py-px rounded text-center ${
-                                isToday ? 'bg-[#4A2C1A] text-white' : 'bg-[#f6efed] text-[#4A2C1A]'
-                              }`}>
-                                +{remainingCount}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                  {isListOpen && dayDiaries.length > 0 && (
-                    <div className="mt-0.5 flex justify-center">
-                      <div className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white' : 'bg-[#4A2C1A]'}`} />
-                    </div>
-                  )}
-                </button>
-              );
-            })
-          )}
+                                }`}>
+                                  +{remainingCount}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    {isListOpen && dayDiaries.length > 0 && (
+                      <div className="mt-0.5 flex justify-center">
+                        <div className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white' : 'bg-[#4A2C1A]'}`} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {isListOpen && (

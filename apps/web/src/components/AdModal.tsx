@@ -102,6 +102,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
+  const [debugReason, setDebugReason] = useState('');
   const adFlowRunningRef = useRef(false);
   const completedRef = useRef(false);
   const isNative = Capacitor.isNativePlatform();
@@ -111,6 +112,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
       setCountdown(AD_DURATION_SECONDS);
       setCanSkip(false);
       setShowFallback(false);
+      setDebugReason('');
       adFlowRunningRef.current = false;
       completedRef.current = false;
       return;
@@ -132,11 +134,13 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
           }
         } else {
           console.warn('[AdFlow] Ad failed:', result.reason, '→ showing fallback UI');
+          setDebugReason(result.reason);
           setShowFallback(true);
         }
       });
     } else {
       console.log('[AdFlow] Web platform — showing fallback UI directly');
+      setDebugReason('web platform (not native)');
       setShowFallback(true);
     }
   }, [isOpen, isNative, onAdComplete]);
@@ -198,6 +202,13 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
             <p className="text-sm text-[#665146] text-center">
               {t('diary.adRequiredMessage')}
             </p>
+            {debugReason && (
+              <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded-lg max-h-[100px] overflow-y-auto">
+                <p className="text-[10px] text-red-600 font-mono break-all">
+                  [DEBUG] {debugReason}
+                </p>
+              </div>
+            )}
           </div>
 
           {!canSkip && (

@@ -9,21 +9,12 @@ import android.webkit.WebViewClient;
 import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.RequestConfiguration;
-import java.util.Arrays;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        RequestConfiguration configuration = new RequestConfiguration.Builder()
-            .setTestDeviceIds(Arrays.asList("cf83971a-13f6-4dc2-82fd-bc11e897882d"))
-            .build();
-        MobileAds.setRequestConfiguration(configuration);
-        MobileAds.initialize(this, initializationStatus -> {});
 
         getBridge().getWebView().setWebViewClient(new WebViewClient() {
             @Override

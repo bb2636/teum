@@ -10,6 +10,7 @@ interface AdModalProps {
 }
 
 const AD_DURATION_SECONDS = 5;
+const AD_LOAD_TIMEOUT_MS = 15000;
 const ADMOB_ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
 const ADMOB_IOS_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
 
@@ -18,88 +19,81 @@ function getInterstitialAdId(): string {
   return platform === 'ios' ? ADMOB_IOS_INTERSTITIAL_ID : ADMOB_ANDROID_INTERSTITIAL_ID;
 }
 
-async function showNativeInterstitial(): Promise<boolean> {
+type AdFlowResult = { status: 'dismissed' } | { status: 'failed'; reason: string };
+
+async function runNativeAdFlow(): Promise<AdFlowResult> {
+  const L = (msg: string, ...args: any[]) => console.log(`[AdFlow] ${msg}`, ...args);
+  const W = (msg: string, ...args: any[]) => console.warn(`[AdFlow] ${msg}`, ...args);
+
   try {
     const { AdMob, InterstitialAdPluginEvents } = await import('@capacitor-community/admob');
 
-    console.log('[AdMob] Initializing...');
-    await AdMob.initialize({
-      initializeForTesting: true,
-    });
-    console.log('[AdMob] Initialized successfully');
+    L('Step 1/5: AdMob.initialize START');
+    await AdMob.initialize({ initializeForTesting: true });
+    L('Step 1/5: AdMob.initialize DONE');
 
-    await AdMob.removeAllListeners();
-
-    return new Promise<boolean>(async (resolve) => {
-      let resolved = false;
-
+    return await new Promise<AdFlowResult>(async (resolve) => {
+      let settled = false;
       const handles: Array<{ remove: () => void }> = [];
 
-      const finish = (success: boolean) => {
-        if (!resolved) {
-          resolved = true;
-          resolve(success);
-          handles.forEach((h) => h.remove());
-        }
+      const settle = (result: AdFlowResult) => {
+        if (settled) return;
+        settled = true;
+        L(`SETTLED: ${result.status}${result.status === 'failed' ? ` (${result.reason})` : ''}`);
+        handles.forEach((h) => { try { h.remove(); } catch (_) {} });
+        resolve(result);
       };
 
-      const h1 = await AdMob.addListener(
-        InterstitialAdPluginEvents.Dismissed,
-        () => {
-          console.log('[AdMob] Ad dismissed by user');
-          finish(true);
-        }
-      );
+      L('Step 3/5: Registering listeners...');
+
+      const h1 = await AdMob.addListener(InterstitialAdPluginEvents.Loaded, () => {
+        L('EVENT: Loaded — calling showInterstitial');
+        AdMob.showInterstitial().catch((e) => {
+          W('showInterstitial threw:', e);
+          settle({ status: 'failed', reason: `showInterstitial error: ${e}` });
+        });
+      });
       handles.push(h1);
 
-      const h2 = await AdMob.addListener(
-        InterstitialAdPluginEvents.FailedToLoad,
-        (info: any) => {
-          console.warn('[AdMob] FailedToLoad:', JSON.stringify(info));
-          finish(false);
-        }
-      );
+      const h2 = await AdMob.addListener(InterstitialAdPluginEvents.Dismissed, () => {
+        L('EVENT: Dismissed — ad closed by user');
+        settle({ status: 'dismissed' });
+      });
       handles.push(h2);
 
-      const h3 = await AdMob.addListener(
-        InterstitialAdPluginEvents.FailedToShow,
-        (info: any) => {
-          console.warn('[AdMob] FailedToShow:', JSON.stringify(info));
-          finish(false);
-        }
-      );
+      const h3 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info: any) => {
+        W('EVENT: FailedToLoad', JSON.stringify(info));
+        settle({ status: 'failed', reason: `FailedToLoad: ${JSON.stringify(info)}` });
+      });
       handles.push(h3);
 
-      const h4 = await AdMob.addListener(
-        InterstitialAdPluginEvents.Loaded,
-        () => {
-          console.log('[AdMob] Interstitial loaded, showing...');
-          AdMob.showInterstitial().catch((e) => {
-            console.warn('[AdMob] showInterstitial error:', e);
-            finish(false);
-          });
-        }
-      );
+      const h4 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, (info: any) => {
+        W('EVENT: FailedToShow', JSON.stringify(info));
+        settle({ status: 'failed', reason: `FailedToShow: ${JSON.stringify(info)}` });
+      });
       handles.push(h4);
 
-      console.log('[AdMob] All listeners registered, preparing interstitial with adId:', getInterstitialAdId());
+      L('Step 3/5: All 4 listeners registered');
 
+      L('Step 4/5: prepareInterstitial START, adId =', getInterstitialAdId());
       try {
         await AdMob.prepareInterstitial({ adId: getInterstitialAdId() });
-        console.log('[AdMob] prepareInterstitial resolved');
+        L('Step 4/5: prepareInterstitial promise resolved (waiting for Loaded event)');
       } catch (e) {
-        console.warn('[AdMob] prepareInterstitial error:', e);
-        finish(false);
+        W('Step 4/5: prepareInterstitial threw:', e);
+        settle({ status: 'failed', reason: `prepareInterstitial error: ${e}` });
+        return;
       }
 
+      L(`Step 5/5: Timeout guard set (${AD_LOAD_TIMEOUT_MS}ms)`);
       setTimeout(() => {
-        console.warn('[AdMob] Timeout reached (30s)');
-        finish(false);
-      }, 30000);
+        W('TIMEOUT: No Loaded/FailedToLoad within timeout');
+        settle({ status: 'failed', reason: 'timeout' });
+      }, AD_LOAD_TIMEOUT_MS);
     });
   } catch (e) {
-    console.warn('[AdMob] Exception in showNativeInterstitial:', e);
-    return false;
+    console.warn(`[AdFlow] EXCEPTION in runNativeAdFlow:`, e);
+    return { status: 'failed', reason: `exception: ${e}` };
   }
 }
 
@@ -108,7 +102,8 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
-  const attemptedRef = useRef(false);
+  const adFlowRunningRef = useRef(false);
+  const completedRef = useRef(false);
   const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
@@ -116,26 +111,40 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
       setCountdown(AD_DURATION_SECONDS);
       setCanSkip(false);
       setShowFallback(false);
-      attemptedRef.current = false;
+      adFlowRunningRef.current = false;
+      completedRef.current = false;
       return;
     }
 
-    if (isNative && !attemptedRef.current) {
-      attemptedRef.current = true;
-      showNativeInterstitial().then((success) => {
-        if (success) {
-          onAdComplete();
+    if (adFlowRunningRef.current) return;
+
+    if (isNative) {
+      adFlowRunningRef.current = true;
+      console.log('[AdFlow] Native platform — starting ad flow');
+
+      runNativeAdFlow().then((result) => {
+        adFlowRunningRef.current = false;
+        if (result.status === 'dismissed') {
+          console.log('[AdFlow] Ad dismissed → calling onAdComplete (saveDiary)');
+          if (!completedRef.current) {
+            completedRef.current = true;
+            onAdComplete();
+          }
         } else {
+          console.warn('[AdFlow] Ad failed:', result.reason, '→ showing fallback UI');
           setShowFallback(true);
         }
       });
+    } else {
+      console.log('[AdFlow] Web platform — showing fallback UI directly');
+      setShowFallback(true);
     }
   }, [isOpen, isNative, onAdComplete]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    if (isNative && !showFallback) return;
+    if (!showFallback) return;
 
+    console.log('[AdFlow] Fallback UI visible — countdown START');
     setCountdown(AD_DURATION_SECONDS);
     setCanSkip(false);
 
@@ -144,6 +153,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
         if (prev <= 1) {
           clearInterval(timer);
           setCanSkip(true);
+          console.log('[AdFlow] Countdown done — user can skip');
           return 0;
         }
         return prev - 1;
@@ -151,17 +161,21 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, isNative, showFallback]);
+  }, [showFallback]);
 
   const handleComplete = useCallback(() => {
+    if (completedRef.current) {
+      console.log('[AdFlow] handleComplete called but already completed — ignoring');
+      return;
+    }
+    completedRef.current = true;
+    console.log('[AdFlow] Fallback complete → calling onAdComplete (saveDiary)');
     onAdComplete();
   }, [onAdComplete]);
 
   if (!isOpen) return null;
 
-  if (isNative && !showFallback) {
-    return null;
-  }
+  if (!showFallback) return null;
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center" onClick={canSkip ? onClose : undefined}>

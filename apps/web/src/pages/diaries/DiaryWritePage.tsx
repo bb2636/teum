@@ -779,17 +779,20 @@ export function DiaryWritePage() {
     }
   };
 
+  const DEV_FORCE_AD = true;
+
+  const isSavingRef = useRef(false);
+
   const handleSaveClick = () => {
-    // Show folder selection modal before saving
     setShowFolderModal(true);
   };
 
-  const needsAd = !isEditMode && !activeSubscription && diaryCount >= 3;
+  const needsAd = DEV_FORCE_AD || (!isEditMode && !activeSubscription && diaryCount >= 3);
 
   const handleFolderSelect = (folderId: string) => {
     setShowFolderModal(false);
     if (!folderId || folderId.trim() === '') {
-      console.error('Invalid folderId:', folderId);
+      console.error('[AdFlow] Invalid folderId:', folderId);
       alert(t('diary.selectFolder'));
       return;
     }
@@ -798,10 +801,14 @@ export function DiaryWritePage() {
     } as React.ChangeEvent<HTMLInputElement>;
     register('folderId').onChange(event);
 
+    console.log('[AdFlow] handleFolderSelect — needsAd:', needsAd, '| diaryCount:', diaryCount, '| isEditMode:', isEditMode, '| hasSubscription:', !!activeSubscription, '| DEV_FORCE_AD:', DEV_FORCE_AD);
+
     if (needsAd) {
       setPendingFolderId(folderId);
       setShowAdModal(true);
+      console.log('[AdFlow] Ad required → showAdModal=true, pendingFolderId=', folderId);
     } else {
+      console.log('[AdFlow] No ad needed → saving directly');
       setTimeout(() => {
         submitDiary(folderId);
       }, 100);
@@ -809,8 +816,11 @@ export function DiaryWritePage() {
   };
 
   const handleAdComplete = useCallback(() => {
+    console.log('[AdFlow] handleAdComplete called, pendingFolderId=', pendingFolderId, '| isSaving=', isSavingRef.current);
     setShowAdModal(false);
-    if (pendingFolderId) {
+    if (pendingFolderId && !isSavingRef.current) {
+      isSavingRef.current = true;
+      console.log('[AdFlow] → submitDiary with folderId=', pendingFolderId);
       setTimeout(() => {
         submitDiary(pendingFolderId);
       }, 100);

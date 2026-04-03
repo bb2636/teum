@@ -479,12 +479,6 @@ export function SplashPage() {
             className="w-12 h-12 object-contain"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
-          <h1
-            className="text-2xl font-bold tracking-tight mt-3"
-            style={{ color: '#4A2C1A' }}
-          >
-            TEUM
-          </h1>
           <p
             className="text-sm mt-5 leading-relaxed"
             style={{ color: 'rgba(34, 24, 19, 0.5)' }}

@@ -223,6 +223,26 @@ export function DiaryWritePage() {
   };
 
   useEffect(() => {
+    if (keyboardHeight > 0) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, [keyboardHeight]);
+
+  useEffect(() => {
     let cleanups: (() => void)[] = [];
 
     if (Capacitor.isNativePlatform()) {
@@ -254,7 +274,11 @@ export function DiaryWritePage() {
           }
         };
         vv.addEventListener('resize', handleViewport);
-        cleanups.push(() => vv.removeEventListener('resize', handleViewport));
+        vv.addEventListener('scroll', handleViewport);
+        cleanups.push(() => {
+          vv.removeEventListener('resize', handleViewport);
+          vv.removeEventListener('scroll', handleViewport);
+        });
       }
 
       return () => cleanups.forEach(fn => fn());
@@ -273,9 +297,11 @@ export function DiaryWritePage() {
       };
 
       vv.addEventListener('resize', handleViewport);
+      vv.addEventListener('scroll', handleViewport);
 
       return () => {
         vv.removeEventListener('resize', handleViewport);
+        vv.removeEventListener('scroll', handleViewport);
       };
     }
 
@@ -994,7 +1020,14 @@ export function DiaryWritePage() {
     return (
       <div
         className="bg-white flex flex-col overflow-hidden"
-        style={{ height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '100dvh' }}
+        style={keyboardHeight > 0 ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: `${window.innerHeight - keyboardHeight}px`,
+          zIndex: 10,
+        } : { height: '100dvh' }}
       >
         {(uploading || createDiary.isPending || updateDiary.isPending) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">
@@ -1167,7 +1200,14 @@ export function DiaryWritePage() {
   return (
     <div
       className="bg-white flex flex-col overflow-hidden"
-      style={{ height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '100dvh' }}
+      style={keyboardHeight > 0 ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: `${window.innerHeight - keyboardHeight}px`,
+        zIndex: 10,
+      } : { height: '100dvh' }}
     >
       {(uploading || createDiary.isPending || updateDiary.isPending) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-overlay-fade">

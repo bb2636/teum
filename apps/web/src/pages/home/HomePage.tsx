@@ -287,6 +287,7 @@ export function HomePage() {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
+              <span className="text-sm font-medium" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
             </div>
             <div className="flex items-center gap-2">
               {activeSubscription ? (

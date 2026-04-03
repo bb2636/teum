@@ -35,25 +35,30 @@ function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
         <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">
           {t('calendar.howToRecord')}
         </h2>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-500 mb-6">
           {t('calendar.recordDesc').split('\n').map((line, i) => (
-            <span key={i}>{line}<br /></span>
+            <span key={i}>{line}{i < t('calendar.recordDesc').split('\n').length - 1 && <br />}</span>
           ))}
         </p>
         <div className="space-y-3">
           <button
             onClick={() => onSelectType('free_form')}
-            className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-[#4A2C1A] font-medium transition-colors"
+            className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-full text-[#4A2C1A] font-medium transition-colors"
           >
             {t('calendar.freeWrite')}
           </button>
           <button
             onClick={() => onSelectType('question_based')}
-            className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-[#4A2C1A] font-medium transition-colors"
+            className="w-full py-4 px-4 bg-gray-100 hover:bg-gray-200 rounded-full text-[#4A2C1A] font-medium transition-colors"
           >
             {t('calendar.questionRecord')}
           </button>
         </div>
+        <p className="text-xs text-gray-400 mt-5">
+          {t('calendar.recordHint').split('\n').map((line, i) => (
+            <span key={i}>{line}{i < t('calendar.recordHint').split('\n').length - 1 && <br />}</span>
+          ))}
+        </p>
       </div>
     </div>
   );

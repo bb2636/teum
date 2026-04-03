@@ -24,6 +24,7 @@ export function DiaryTypeModal() {
 
   const titleLines = t('diary.typeModalTitle').split('\n');
   const descLines = t('diary.typeModalDesc').split('\n');
+  const hintLines = t('diary.typeModalHint').split('\n');
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShow(false)}>
@@ -55,6 +56,11 @@ export function DiaryTypeModal() {
             {t('diary.questionBasedWrite')}
           </button>
         </div>
+        <p className="text-xs text-gray-400 mt-5">
+          {hintLines.map((line, i) => (
+            <span key={i}>{line}{i < hintLines.length - 1 && <br />}</span>
+          ))}
+        </p>
       </div>
     </div>
   );

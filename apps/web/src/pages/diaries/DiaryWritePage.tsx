@@ -28,7 +28,7 @@ type FormatType = 'bold' | 'italic' | 'underline' | 'strikethrough' | 'unordered
 const diarySchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
-  date: z.string().min(1, '날짜를 선택해주세요'),
+  date: z.string().min(1),
   folderId: z.string().optional(),
   type: z.enum(['free_form', 'question_based']),
 });
@@ -70,7 +70,7 @@ export function DiaryWritePage() {
     if (isEditMode && existingDiary?.type === 'question_based' && existingDiary.answers) {
       return existingDiary.answers.map((a) => ({
         id: a.questionId,
-        question: a.question?.question || '삭제된 질문',
+        question: a.question?.question || t('diary.deletedQuestion'),
       }));
     }
     return [];
@@ -993,7 +993,7 @@ export function DiaryWritePage() {
 
   const dateObj = new Date(selectedDate);
   const locale = getDateLocale();
-  const formattedDate = format(dateObj, 'M월 d일 (E)', { locale });
+  const formattedDate = format(dateObj, t('diary.dateFormat'), { locale });
 
   const handleBackClick = () => {
     setShowExitConfirm(true);
@@ -1059,7 +1059,7 @@ export function DiaryWritePage() {
               <input
                 {...register('title')}
                 type="text"
-                placeholder="제목을 입력하세요"
+                placeholder={t('diary.titlePlaceholder')}
                 className="w-full px-4 pt-4 pb-2 text-lg font-semibold outline-none bg-white border-b border-gray-100"
                 style={{ color: '#4A2C1A' }}
                 maxLength={100}
@@ -1074,7 +1074,7 @@ export function DiaryWritePage() {
                 onBlur={updateActiveFormats}
                 onFocus={updateActiveFormats}
                 onSelect={() => { updateActiveFormats(); saveSelection(); }}
-                data-placeholder="글쓰기 시작..."
+                data-placeholder={t('diary.writingPlaceholder')}
                 className="w-full resize-none outline-none bg-white min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
                   color: '#4A2C1A',
@@ -1274,7 +1274,7 @@ export function DiaryWritePage() {
                             </p>
                           )}
                           {!answers[question.id]?.trim() && (
-                            <p className="text-gray-400 text-sm">글쓰기 시작...</p>
+                            <p className="text-gray-400 text-sm">{t('diary.writingPlaceholder')}</p>
                           )}
                         </div>
                       )}
@@ -1296,7 +1296,7 @@ export function DiaryWritePage() {
                               e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             }, 300);
                           }}
-                          placeholder="글쓰기 시작..."
+                          placeholder={t('diary.writingPlaceholder')}
                           className="flex-1 w-full min-h-[200px] mt-3 bg-gray-100 rounded-lg resize-none focus:outline-none text-[#4A2C1A] placeholder:text-gray-400 text-base overflow-y-auto p-3"
                           style={{
                             wordWrap: 'break-word',
@@ -1314,14 +1314,14 @@ export function DiaryWritePage() {
               </div>
             ) : (
               <div className="bg-gray-100 rounded-2xl p-6">
-                <p className="text-sm text-gray-500">사용 가능한 질문이 없습니다</p>
+                <p className="text-sm text-gray-500">{t('diary.noQuestions')}</p>
               </div>
             )}
           </div>
 
           {selectedImages.length > 0 && (
             <div className="px-4 py-2">
-              <p className="text-xs text-gray-400 mb-1.5">첨부된 이미지는 홈 화면에서 카드 이미지로 표시됩니다</p>
+              <p className="text-xs text-gray-400 mb-1.5">{t('diary.imageCardHint')}</p>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {selectedImages.map((url, index) => (
                   <div key={index} className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">

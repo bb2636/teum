@@ -1,4 +1,5 @@
 import { X, List, ListOrdered } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
 type TextStyle = 'title' | 'header' | 'subheader' | 'body' | 'mono';
 type FormatType = 'bold' | 'italic' | 'underline' | 'strikethrough' | 'unorderedList' | 'orderedList';
@@ -24,12 +25,12 @@ export function FormatMenu({
   textColor = '#4A2C1A',
   isKeyboardOpen = false,
 }: FormatMenuProps) {
-  const textStyles: { value: TextStyle; label: string }[] = [
-    { value: 'title', label: '제목' },
-    { value: 'header', label: '머리말' },
-    { value: 'subheader', label: '부머리말' },
-    { value: 'body', label: '본문' },
-    { value: 'mono', label: '모노 스타' },
+  const textStyles: { value: TextStyle; labelKey: string }[] = [
+    { value: 'title', labelKey: 'diary.styleTitle' },
+    { value: 'header', labelKey: 'diary.styleHeader' },
+    { value: 'subheader', labelKey: 'diary.styleSubheader' },
+    { value: 'body', labelKey: 'diary.styleBody' },
+    { value: 'mono', labelKey: 'diary.styleMono' },
   ];
 
   const preventBlur = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
@@ -44,7 +45,7 @@ export function FormatMenu({
     >
       <div className="w-full max-w-md mx-auto">
         <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-          <span className="text-[15px] font-medium text-black">포맷</span>
+          <span className="text-[15px] font-medium text-black">{t('diary.formatTitle')}</span>
           <button onClick={onClose} className="w-[30px] h-[30px] flex items-center justify-center rounded-full bg-black/10">
             <X className="w-4 h-4 text-gray-600" />
           </button>
@@ -64,7 +65,7 @@ export function FormatMenu({
                       : 'text-black/70'
                   }`}
                 >
-                  {style.label}
+                  {t(style.labelKey)}
                 </button>
               ))}
             </div>

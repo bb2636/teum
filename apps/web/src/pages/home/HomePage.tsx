@@ -282,7 +282,7 @@ export function HomePage() {
               <img
                 src="/logo.home.png"
                 alt="teum logo"
-                className="h-16 w-auto object-contain"
+                className="h-9 w-auto object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

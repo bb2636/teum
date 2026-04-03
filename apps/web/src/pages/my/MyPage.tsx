@@ -18,6 +18,16 @@ import { apiRequest } from '@/lib/api';
 import { TermsModal } from './TermsModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
+
+const TERMS_TITLE_EN: Record<string, string> = {
+  '서비스 이용약관': 'Terms of Service',
+  '개인정보 처리방침': 'Privacy Policy',
+  '정기결제/자동갱신': 'Recurring Payment / Auto-Renewal',
+  '환불/취소 정책': 'Refund / Cancellation Policy',
+  '정기 결제 및 자동 갱신': 'Recurring Payment & Auto-Renewal',
+  '환불/해지 정책': 'Refund / Cancellation Policy',
+};
 
 type TermsItem = {
   type: string;
@@ -309,7 +319,7 @@ export function MyPage() {
                     }}
                     className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
                   >
-                    <span className="font-medium text-brown-900">{item.title}</span>
+                    <span className="font-medium text-brown-900">{getCurrentLanguage() === 'en' ? (TERMS_TITLE_EN[item.title] || item.title) : item.title}</span>
                     <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                   </button>
                 ))

@@ -125,11 +125,11 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
 
   return (
     <div
-      className="flex-1 overflow-y-auto"
+      className="flex-1 overflow-y-auto scrollbar-hide"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ touchAction: 'pan-y' }}
+      style={{ touchAction: 'pan-y', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       <div
         className="px-4 pb-24"
@@ -387,9 +387,8 @@ export function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
-      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden">
+      <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
 
-        {!isListFullScreen && (
         <div
           className="flex items-center justify-between px-4 py-2"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' }}
@@ -418,10 +417,7 @@ export function CalendarPage() {
             <ProfileButton />
           </div>
         </div>
-        )}
 
-        {!isListFullScreen && (
-        <>
         <div className="grid grid-cols-7 px-2 pt-1">
           {weekdayLabels.map((day, index) => (
             <div
@@ -445,10 +441,8 @@ export function CalendarPage() {
 
         <div
           ref={calendarRef}
-          className={`flex flex-col transition-all duration-300 ease-in-out px-2 ${
-            isListOpen ? '' : 'flex-1'
-          }`}
-          style={isListOpen ? { height: '180px', minHeight: '180px' } : { paddingBottom: '80px' }}
+          className="flex flex-col flex-1 px-2"
+          style={{ paddingBottom: '80px' }}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
@@ -552,21 +546,26 @@ export function CalendarPage() {
             </div>
           ))}
         </div>
-        </>
-        )}
 
         {isListOpen && (
-          <div className={`flex flex-col ${isListFullScreen ? 'flex-1' : ''}`}
-            style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : undefined}
+          <div
+            className={`absolute left-0 right-0 bg-white flex flex-col transition-all duration-300 ease-in-out z-10 ${
+              isListFullScreen ? 'rounded-none' : 'rounded-t-2xl shadow-[0_-2px_10px_rgba(0,0,0,0.08)]'
+            }`}
+            style={{
+              top: isListFullScreen ? '0' : 'auto',
+              bottom: isListFullScreen ? '0' : '0',
+              height: isListFullScreen ? '100%' : '55%',
+              paddingTop: isListFullScreen ? 'max(8px, env(safe-area-inset-top, 8px))' : undefined,
+            }}
           >
             <div
-              className="flex justify-center py-1.5 cursor-grab"
+              className="flex justify-center py-2 cursor-grab shrink-0"
               onTouchStart={handleGripTouchStart}
               onTouchEnd={handleGripTouchEnd}
             >
-              <div className="w-8 h-1 bg-gray-200 rounded-full" />
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
             </div>
-            <div className="border-t border-gray-100" />
             <DiaryListPanel
               date={selectedDate!}
               diaries={selectedDateDiaries}

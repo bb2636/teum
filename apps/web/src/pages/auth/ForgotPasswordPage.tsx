@@ -10,38 +10,46 @@ import { useRequestPasswordResetByPhone, useResetPassword } from '@/hooks/usePas
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { X, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Toast } from '@/components/Toast';
+import { useT } from '@/hooks/useTranslation';
 
-const passwordSchema = z
-  .string()
-  .min(8, '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.')
-  .refine((val) => /[a-zA-Z]/.test(val), '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.')
-  .refine((val) => /[0-9]/.test(val), '비밀번호는 8자 이상, 영문/숫자를 포함해 주세요.');
+function getForgotPasswordSchema(t: (key: string) => string) {
+  const passwordSchema = z
+    .string()
+    .min(8, t('auth.passwordRule'))
+    .refine((val) => /[a-zA-Z]/.test(val), t('auth.passwordRule'))
+    .refine((val) => /[0-9]/.test(val), t('auth.passwordRule'));
 
-const forgotPasswordSchema = z.object({
-  email: z.string().min(1, '이메일을 입력해주세요').email('올바른 이메일을 입력해주세요'),
-  phone: z.string().min(10, '전화번호를 입력해주세요').max(15),
-});
+  const forgotPasswordSchema = z.object({
+    email: z.string().min(1, t('auth.enterEmail')).email(t('auth.enterValidEmail')),
+    phone: z.string().min(10, t('auth.enterPhone')).max(15),
+  });
 
-const resetPasswordSchema = z.object({
-  token: z.string().optional(),
-  password: passwordSchema,
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: '비밀번호가 일치하지 않습니다.',
-  path: ['confirmPassword'],
-});
+  const resetPasswordSchema = z.object({
+    token: z.string().optional(),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('auth.passwordMismatch'),
+    path: ['confirmPassword'],
+  });
 
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+  return { forgotPasswordSchema, resetPasswordSchema };
+}
+
+type ForgotPasswordFormData = { email: string; phone: string };
+type ResetPasswordFormData = { token?: string; password: string; confirmPassword: string };
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const t = useT();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const requestPasswordResetByPhone = useRequestPasswordResetByPhone();
   const resetPassword = useResetPassword();
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
+
+  const { forgotPasswordSchema, resetPasswordSchema } = getForgotPasswordSchema(t);
 
   const [step, setStep] = useState<'info' | 'reset'>(token ? 'reset' : 'info');
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +98,7 @@ export function ForgotPasswordPage() {
   const handleRequestPhoneVerification = async () => {
     const phone = infoForm.getValues('phone');
     if (!phone || phone.length < 10) {
-      setError('전화번호를 정확히 입력해주세요');
+      setError(t('auth.enterPhoneCorrectly'));
       return;
     }
 
@@ -103,7 +111,7 @@ export function ForgotPasswordPage() {
       setPhoneVerified(false);
       setPhoneVerificationInput('');
     } catch (err: any) {
-      setError(err?.message || '인증번호 발송에 실패했습니다');
+      setError(err?.message || t('auth.verificationSendFailed'));
     }
   };
 
@@ -128,15 +136,15 @@ export function ForgotPasswordPage() {
             setStep('reset');
             setError(null);
           } else {
-            setError('비밀번호 재설정 토큰을 생성할 수 없습니다.');
+            setError(t('auth.resetTokenFailed'));
           }
         } catch (resetErr: any) {
-          const errorMessage = resetErr?.message || '이메일과 전화번호가 일치하는 계정을 찾을 수 없습니다.';
+          const errorMessage = resetErr?.message || t('auth.accountNotFound');
           setError(errorMessage);
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '인증번호 확인에 실패했습니다');
+      setError(err instanceof Error ? err.message : t('auth.verificationConfirmFailed'));
     }
   };
 
@@ -150,7 +158,7 @@ export function ForgotPasswordPage() {
     try {
       const tokenToUse = resetToken || token || data.token || '';
       if (!tokenToUse) {
-        setError('재설정 토큰이 필요합니다');
+        setError(t('auth.resetTokenNeeded'));
         return;
       }
 
@@ -165,7 +173,7 @@ export function ForgotPasswordPage() {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '비밀번호 재설정에 실패했습니다');
+      setError(err instanceof Error ? err.message : t('auth.resetFailed'));
     }
   };
 
@@ -183,12 +191,12 @@ export function ForgotPasswordPage() {
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">비밀번호 찾기</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('auth.forgotPasswordTitle')}</h1>
         </div>
 
         <div className="w-full max-w-sm mx-auto space-y-6 flex-1 overflow-y-auto">
           <div className="space-y-2">
-            <h2 className="text-base font-bold text-gray-900">새 비밀번호를 입력해주세요.</h2>
+            <h2 className="text-base font-bold text-gray-900">{t('auth.newPasswordPrompt')}</h2>
           </div>
 
           {error && (
@@ -199,13 +207,13 @@ export function ForgotPasswordPage() {
 
           <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-900">비밀번호</Label>
+              <Label htmlFor="password" className="text-gray-900">{t('auth.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   {...passwordForm.register('password')}
-                  placeholder="비밀번호를 입력해주세요"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className={`bg-gray-100 rounded-lg pr-10 ${
                     passwordForm.formState.errors.password ? 'border-red-500 placeholder:text-red-500' : 'border-gray-200'
                   }`}
@@ -226,13 +234,13 @@ export function ForgotPasswordPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-900">비밀번호 확인</Label>
+              <Label htmlFor="confirmPassword" className="text-gray-900">{t('auth.confirmPassword')}</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...passwordForm.register('confirmPassword')}
-                  placeholder="비밀번호를 입력해주세요"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className={`bg-gray-100 rounded-lg pr-10 ${
                     passwordForm.formState.errors.confirmPassword ? 'border-red-500 placeholder:text-red-500' : 'border-gray-200'
                   }`}
@@ -254,7 +262,7 @@ export function ForgotPasswordPage() {
           </form>
 
           <Toast
-            message="비밀번호가 변경되었습니다."
+            message={t('auth.passwordChanged')}
             isVisible={showToast}
             onClose={() => setShowToast(false)}
             duration={3000}
@@ -274,7 +282,7 @@ export function ForgotPasswordPage() {
               onClick={passwordForm.handleSubmit(onPasswordSubmit)}
               disabled={resetPassword.isPending || !isPasswordFormValid}
             >
-              {resetPassword.isPending ? '변경 중...' : '비밀번호 변경'}
+              {resetPassword.isPending ? t('auth.changingPassword') : t('auth.changePassword')}
             </Button>
           </div>
         </div>
@@ -286,9 +294,9 @@ export function ForgotPasswordPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">비밀번호 찾기</h1>
+          <h1 className="text-2xl font-bold">{t('auth.forgotPasswordTitle')}</h1>
           <p className="text-sm text-muted-foreground">
-            가입하신 이메일과 전화번호를 입력해주세요.
+            {t('auth.forgotPasswordDesc')}
           </p>
         </div>
 
@@ -300,12 +308,12 @@ export function ForgotPasswordPage() {
 
         <form onSubmit={infoForm.handleSubmit(onInfoSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">이메일</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
               type="email"
               {...infoForm.register('email')}
-              placeholder="이메일을 입력해주세요"
+              placeholder={t('auth.emailPlaceholder')}
               className={infoForm.formState.errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
             />
             {infoForm.formState.errors.email && (
@@ -316,12 +324,12 @@ export function ForgotPasswordPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">전화번호</Label>
+            <Label htmlFor="phone">{t('auth.phone')}</Label>
             <Input
               id="phone"
               type="tel"
               {...infoForm.register('phone')}
-              placeholder="전화번호를 입력해주세요"
+              placeholder={t('auth.phonePlaceholder')}
               className={infoForm.formState.errors.phone ? 'border-red-500 placeholder:text-red-500' : ''}
             />
             {infoForm.formState.errors.phone && (
@@ -337,13 +345,13 @@ export function ForgotPasswordPage() {
             type="submit"
             disabled={requestPhoneVerification.isPending || !isInfoFormValid}
           >
-            {requestPhoneVerification.isPending ? '전송 중...' : '인증번호 보내기'}
+            {requestPhoneVerification.isPending ? t('auth.sendingVerification') : t('auth.sendVerification')}
           </Button>
         </form>
 
         <div className="text-center text-sm">
           <Link to="/login" className="text-primary hover:underline">
-            로그인으로 돌아가기
+            {t('auth.backToLogin')}
           </Link>
         </div>
       </div>
@@ -362,7 +370,7 @@ export function ForgotPasswordPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">인증번호 입력</h2>
+              <h2 className="text-lg font-semibold">{t('auth.verificationModalTitle')}</h2>
               <button
                 onClick={() => {
                   setShowPhoneVerificationModal(false);
@@ -373,7 +381,7 @@ export function ForgotPasswordPage() {
               </button>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="verificationCode">인증번호</Label>
+              <Label htmlFor="verificationCode">{t('auth.verificationCodeLabel')}</Label>
               <Input
                 id="verificationCode"
                 type="text"
@@ -382,23 +390,18 @@ export function ForgotPasswordPage() {
                   const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                   setPhoneVerificationInput(value);
                 }}
-                placeholder="인증번호 입력"
+                placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
                 disabled={phoneVerified}
               />
-              {phoneVerificationCode && (
-                <p className="text-xs text-gray-500 text-center">
-                  개발 모드: 인증번호는 콘솔에 표시되었습니다 ({phoneVerificationCode})
-                </p>
-              )}
             </div>
             <Button
               onClick={handleConfirmPhoneVerification}
               className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
               disabled={phoneVerificationInput.length !== 6 || phoneVerified || confirmPhoneVerification.isPending}
             >
-              {confirmPhoneVerification.isPending ? '확인 중...' : '확인'}
+              {confirmPhoneVerification.isPending ? t('auth.confirmingVerification') : t('auth.confirm')}
             </Button>
           </div>
         </div>

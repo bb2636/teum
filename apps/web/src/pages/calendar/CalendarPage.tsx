@@ -64,13 +64,14 @@ function DiaryTypeModal({ onClose, onSelectType }: DiaryTypeModalProps) {
   );
 }
 
-interface DiaryDetailSectionProps {
+interface DiaryListPanelProps {
   date: Date;
   diaries: Diary[];
   onDateChange: (date: Date) => void;
+  onClose: () => void;
 }
 
-function DiaryDetailSection({ date, diaries, onDateChange }: DiaryDetailSectionProps) {
+function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanelProps) {
   const t = useT();
   const locale = getDateLocale();
   const navigate = useNavigate();
@@ -137,14 +138,10 @@ function DiaryDetailSection({ date, diaries, onDateChange }: DiaryDetailSectionP
           transition: isTransitioning ? 'transform 0.2s ease-out' : 'none',
         }}
       >
-        <h2 className="text-base font-semibold text-[#4A2C1A] pt-3 pb-2">{dateLabel}</h2>
-
-        {diaries.length === 0 && (
-          <div className="flex items-start py-2">
-            <div className="w-0.5 h-4 bg-gray-200 rounded-full mr-3 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-400">{t('calendar.noDiariesDay')}</p>
-          </div>
-        )}
+        <div className="flex items-center justify-between pt-3 pb-2">
+          <h2 className="text-base font-semibold text-[#4A2C1A]">{dateLabel}</h2>
+          <button onClick={onClose} className="text-gray-400 text-xs px-2 py-1">✕</button>
+        </div>
 
         <div className="space-y-2.5">
           {diaries.map((diary) => {
@@ -208,12 +205,14 @@ export function CalendarPage() {
   const t = useT();
   const locale = getDateLocale();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [typeModalDate, setTypeModalDate] = useState<Date | null>(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [calSwipeStartX, setCalSwipeStartX] = useState<number | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  const isListOpen = selectedDate !== null;
 
   useEffect(() => {
     setHideTabBar(false);
@@ -278,7 +277,7 @@ export function CalendarPage() {
   const goToToday = () => {
     const now = new Date();
     setCurrentDate(now);
-    setSelectedDate(now);
+    setSelectedDate(null);
   };
 
   const handleMonthSelect = (year: number, month: number) => {
@@ -287,13 +286,13 @@ export function CalendarPage() {
   };
 
   const handleCalTouchStart = (e: React.TouchEvent) => {
-    setCalSwipeStartX(e.touches[0].clientX);
+    if (!isListOpen) setCalSwipeStartX(e.touches[0].clientX);
   };
   const handleCalTouchMove = (e: React.TouchEvent) => {
-    if (calSwipeStartX !== null) e.preventDefault();
+    if (calSwipeStartX !== null && !isListOpen) e.preventDefault();
   };
   const handleCalTouchEnd = (e: React.TouchEvent) => {
-    if (calSwipeStartX === null) return;
+    if (calSwipeStartX === null || isListOpen) return;
     const diffX = calSwipeStartX - e.changedTouches[0].clientX;
     if (Math.abs(diffX) > 50) {
       if (diffX > 0) goToNextMonth();
@@ -303,15 +302,23 @@ export function CalendarPage() {
   };
 
   const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    if (!isSameMonth(date, currentDate)) {
-      setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
+    if (selectedDate && isSameDay(date, selectedDate)) {
+      setSelectedDate(null);
+      return;
     }
-  };
-
-  const handleDateDoubleClick = (date: Date) => {
+    if (isListOpen) {
+      const dayDiaries = getDiariesForDate(date);
+      if (dayDiaries.length > 0) {
+        setSelectedDate(date);
+      } else {
+        setSelectedDate(null);
+      }
+      return;
+    }
     const dayDiaries = getDiariesForDate(date);
-    if (dayDiaries.length === 0) {
+    if (dayDiaries.length > 0) {
+      setSelectedDate(date);
+    } else {
       setTypeModalDate(date);
       setShowTypeModal(true);
     }
@@ -326,25 +333,29 @@ export function CalendarPage() {
     setTypeModalDate(null);
   };
 
-  const handleDateChangeFromDetail = (newDate: Date) => {
+  const handleDateChangeFromList = (newDate: Date) => {
     setSelectedDate(newDate);
     if (!isSameMonth(newDate, currentDate)) {
       setCurrentDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
     }
   };
 
-  const selectedDateDiaries = getDiariesForDate(selectedDate);
+  const selectedDateDiaries = selectedDate ? getDiariesForDate(selectedDate) : [];
   const today = new Date();
   const weekdayLabels = t('calendar.weekdays').split(',');
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, []);
+    if (!isListOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      const originalHtmlStyle = window.getComputedStyle(document.documentElement).overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalStyle;
+        document.documentElement.style.overflow = originalHtmlStyle;
+      };
+    }
+  }, [isListOpen]);
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
@@ -402,8 +413,10 @@ export function CalendarPage() {
 
         <div
           ref={calendarRef}
-          className="grid grid-cols-7 flex-1 px-2"
-          style={{ maxHeight: 'calc(100vh - 310px)' }}
+          className={`grid grid-cols-7 transition-all duration-300 ease-in-out px-2 ${
+            isListOpen ? '' : 'flex-1'
+          }`}
+          style={isListOpen ? { height: '180px', minHeight: '180px' } : undefined}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
@@ -413,7 +426,7 @@ export function CalendarPage() {
               const dayDiaries = getDiariesForDate(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isToday = isSameDay(day, today);
-              const isSelected = isSameDay(day, selectedDate);
+              const isSelected = selectedDate && isSameDay(day, selectedDate);
               const dayNumber = getDate(day);
               const isSunday = getDay(day) === 0;
               const isSaturday = getDay(day) === 6;
@@ -422,11 +435,12 @@ export function CalendarPage() {
                 <button
                   key={`${weekIndex}-${dayIndex}`}
                   onClick={() => handleDateClick(day)}
-                  onDoubleClick={() => handleDateDoubleClick(day)}
                   className={`relative flex flex-col items-center justify-start pt-1.5 pb-1 transition-colors ${
                     !isCurrentMonth
                       ? 'opacity-30'
                       : isSelected
+                      ? 'bg-[#f6efed] rounded-lg'
+                      : isToday
                       ? 'bg-[#f6efed] rounded-lg'
                       : ''
                   }`}
@@ -444,7 +458,7 @@ export function CalendarPage() {
                   >
                     {dayNumber}
                   </span>
-                  {dayDiaries.length > 0 && (
+                  {!isListOpen && dayDiaries.length > 0 && (
                     <div className="mt-1 flex flex-col gap-0.5 w-full px-0.5">
                       {(() => {
                         const folderCounts = new Map<string, number>();
@@ -489,22 +503,31 @@ export function CalendarPage() {
                       })()}
                     </div>
                   )}
+                  {isListOpen && dayDiaries.length > 0 && (
+                    <div className="mt-0.5 flex justify-center">
+                      <div className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white' : 'bg-[#4A2C1A]'}`} />
+                    </div>
+                  )}
                 </button>
               );
             })
           )}
         </div>
 
-        <div className="flex justify-center py-1.5">
-          <div className="w-8 h-1 bg-gray-200 rounded-full" />
-        </div>
-        <div className="border-t border-gray-100" />
-
-        <DiaryDetailSection
-          date={selectedDate}
-          diaries={selectedDateDiaries}
-          onDateChange={handleDateChangeFromDetail}
-        />
+        {isListOpen && (
+          <>
+            <div className="flex justify-center py-1.5">
+              <div className="w-8 h-1 bg-gray-200 rounded-full" />
+            </div>
+            <div className="border-t border-gray-100" />
+            <DiaryListPanel
+              date={selectedDate!}
+              diaries={selectedDateDiaries}
+              onDateChange={handleDateChangeFromList}
+              onClose={() => setSelectedDate(null)}
+            />
+          </>
+        )}
 
       </div>
 

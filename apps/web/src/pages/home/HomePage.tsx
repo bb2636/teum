@@ -275,45 +275,43 @@ export function HomePage() {
       }}
     >
       <div className="max-w-md mx-auto">
-        {/* Header - First Row */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
-          <div className="flex items-center gap-2">
-            <img
-              src="/logo.home.png"
-              alt="teum logo"
-              className="h-16 w-auto object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-            <span className="text-sm font-medium" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {activeSubscription ? (
-              <Button
-                variant="outline"
-                className="bg-gray-100 text-gray-700 border-0 rounded-lg px-4 py-2 h-auto cursor-default"
-                disabled
-              >
-                {t('my.subscribing')}
-              </Button>
-            ) : (
-              <Link to="/payment">
+        {/* Header */}
+        <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' }}>
+          <div className="flex items-center justify-between px-4 py-2">
+            <div className="flex items-center gap-2">
+              <img
+                src="/logo.home.png"
+                alt="teum logo"
+                className="h-16 w-auto object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {activeSubscription ? (
                 <Button
                   variant="outline"
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-lg px-4 py-2 h-auto"
+                  className="bg-gray-100 text-gray-700 border-0 rounded-full px-4 py-2 h-auto cursor-default text-xs"
+                  disabled
                 >
-                  {t('payment.subscribe')}
+                  {t('my.subscribing')}
                 </Button>
-              </Link>
-            )}
-            <ProfileButton />
+              ) : (
+                <Link to="/payment">
+                  <Button
+                    variant="outline"
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-full px-4 py-2 h-auto text-xs"
+                  >
+                    {t('payment.subscribe')}
+                  </Button>
+                </Link>
+              )}
+              <ProfileButton />
+            </div>
           </div>
-        </div>
-
-        {/* Header - Second Row */}
-        <div className="sticky top-[52px] z-30 px-4 pb-3 flex items-center justify-between bg-white">
-          <h1 className="text-xl font-semibold text-gray-800">{t('diary.title')}</h1>
+          <div className="px-4 pb-2 flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-800">{t('diary.title')}</h1>
           
           {/* 필터 버튼 */}
           <div className="relative">
@@ -411,6 +409,7 @@ export function HomePage() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
 

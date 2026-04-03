@@ -134,7 +134,6 @@ const ko: Record<string, string> = {
   'auth.sendingVerification': '전송 중...',
   'auth.sendVerification': '인증번호 보내기',
   'auth.backToLogin': '로그인으로 돌아가기',
-  'auth.enterVerificationCode': '인증번호 입력',
   'auth.verificationCodeLabel': '인증번호',
   'auth.verificationModalTitle': '인증번호 입력',
   'auth.confirmingVerification': '확인 중...',

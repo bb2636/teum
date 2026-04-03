@@ -58,7 +58,6 @@ export function ForgotPasswordPage() {
   const [resetToken, setResetToken] = useState<string | null>(token);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
-  const [phoneVerificationCode, setPhoneVerificationCode] = useState<string | null>(null);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [showToast, setShowToast] = useState(false);
 

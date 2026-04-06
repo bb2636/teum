@@ -62,13 +62,7 @@ export class PaymentController {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
       const body = req.body;
-      logger.info('NicePay return received', {
-        resultCode: body.resultCode,
-        resultMsg: body.resultMsg,
-        tid: body.tid,
-        orderId: body.orderId,
-        amount: body.amount,
-      });
+      logger.info(`NicePay return received - resultCode=${body.resultCode} resultMsg=${body.resultMsg} tid=${body.tid} orderId=${body.orderId} amount=${body.amount} authToken=${body.authToken ? 'present' : 'missing'} fullBody=${JSON.stringify(body)}`);
 
       const { resultCode, tid, orderId, amount } = body;
 
@@ -79,7 +73,7 @@ export class PaymentController {
 
       if (resultCode !== '0000') {
         await paymentService.deletePendingSession(orderId);
-        logger.error('NicePay auth failed', { resultCode, resultMsg: body.resultMsg, orderId });
+        logger.error(`NicePay auth failed - code=${resultCode} msg=${body.resultMsg} orderId=${orderId}`);
         return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(body.resultMsg || '결제 인증에 실패했습니다.')}`);
       }
 

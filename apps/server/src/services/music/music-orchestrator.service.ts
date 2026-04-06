@@ -105,7 +105,7 @@ export class MusicOrchestratorService {
       );
 
       // Analyze with AI
-      const analysis = await lyricAnalysisService.analyzeDiaries(diaryData);
+      const analysis = await lyricAnalysisService.analyzeDiaries(diaryData, genreTag);
 
       // Save analysis results immediately BEFORE calling Mureka
       await db

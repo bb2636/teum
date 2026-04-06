@@ -16,6 +16,7 @@ export interface AIProvider {
       type: 'free_form' | 'question_based';
       answers?: Array<{ question: string; answer: string }>;
     }>;
+    genreTag?: string;
   }): Promise<{
     overallEmotion: string;
     mood: string;

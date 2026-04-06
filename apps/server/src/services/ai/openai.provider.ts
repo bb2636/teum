@@ -444,6 +444,7 @@ ${diaryText.substring(0, 2000)}`;
       type: 'free_form' | 'question_based';
       answers?: Array<{ question: string; answer: string }>;
     }>;
+    genreTag?: string;
   }): Promise<{
     titleKo: string;
     titleEn: string;
@@ -477,7 +478,11 @@ ${diaryText.substring(0, 2000)}`;
         combinedText += '\n';
       });
 
-      const prompt = `다음은 사용자가 선택한 7개의 일기 내용입니다. 이 일기들을 종합적으로 분석하여 음악 생성에 필요한 정보를 제공해주세요.
+      const genreInstruction = input.genreTag?.trim()
+        ? `\n\n중요: 사용자가 선택한 장르는 "${input.genreTag}"입니다. musicPrompt와 가사 스타일을 반드시 이 장르에 맞게 작성하세요. 여러 장르가 선택된 경우 자연스럽게 융합(blend)하여 하나의 통일된 스타일로 만들어주세요. 예를 들어 "rock, ballad"이면 록 발라드 스타일로, "indie, electronic"이면 인디 일렉트로닉 스타일로 작성하세요. 서로 상반되는 장르라도 창의적으로 조합하세요.`
+        : '';
+
+      const prompt = `다음은 사용자가 선택한 7개의 일기 내용입니다. 이 일기들을 종합적으로 분석하여 음악 생성에 필요한 정보를 제공해주세요.${genreInstruction}
 
 일기 내용:
 ${combinedText.substring(0, 4000)}
@@ -491,14 +496,14 @@ ${combinedText.substring(0, 4000)}
   "keywords": ["키워드1", "키워드2", "키워드3", "키워드4"],
   "lyricalTheme": "가사 테마 (한국어로, 일기 내용을 바탕으로 한 주제)",
   "lyrics": "완성된 가사 (한국어, 2분 분량에 맞게 최소 5문단 ~ 최대 10문단, 각 문단 3-4줄, 문단 사이 빈 줄로 구분). 반드시 일기 원문을 그대로 인용하지 말고, 일기에서 느껴지는 감정·상황·분위기를 바탕으로 완전히 새롭게 시적이고 음악적으로 재구성할 것. 원문의 문장 구조나 표현을 직접적으로 옮기지 말고, 감정의 핵심만 추출하여 노래 가사에 맞게 창작할 것. 은유, 비유, 감성적 표현을 풍부하게 사용할 것. 중요: 일기에 부정적이거나 우울한 내용이 있더라도 가사는 반드시 희망적이고 위로가 되는 방향으로 승화시킬 것. 슬픔을 인정하되 극복과 치유의 메시지를 담을 것. 쉼표(,) 사용 규칙: 매 문장 끝이나 줄 끝에 습관적으로 쉼표를 넣지 말 것. 쉼표는 한국어 맞춤법에 맞는 경우(나열, 접속, 대등절 연결 등)에만 사용하고, 문장이 자연스럽게 끝나는 곳에는 쉼표 없이 마무리할 것",
-  "musicPrompt": "음악 생성 프롬프트 (영어, genre, mood, tempo, instrumentation, atmosphere를 포함)"
+  "musicPrompt": "음악 생성 프롬프트 (영어, genre, mood, tempo, instrumentation, atmosphere를 포함)${input.genreTag?.trim() ? ` — 반드시 ${input.genreTag} 장르를 기반으로 작성` : ''}"
 }
 
 musicPrompt는 영어로 작성하고, 다음 요소들을 포함해야 합니다:
-- genre (장르)
+- genre (장르)${input.genreTag?.trim() ? ` — 사용자가 선택한 "${input.genreTag}"를 반드시 반영` : ''}
 - mood (분위기)
 - tempo (템포)
-- instrumentation (악기 구성)
+- instrumentation (악기 구성) — 선택된 장르에 맞는 악기 구성
 - atmosphere (분위기)
 - diary/reflection feeling (일기/성찰 느낌)
 - 곡 길이는 약 2분 안으로 자연스럽게 마무리되도록 (natural ending, no abrupt cut) 구상

@@ -38,15 +38,15 @@ export class LyricAnalysisService {
     date: string;
     type: 'free_form' | 'question_based';
     answers?: Array<{ question: string; answer: string }>;
-  }>): Promise<MusicAnalysisResult> {
+  }>, genreTag?: string): Promise<MusicAnalysisResult> {
     if (diaries.length !== 7) {
       throw new Error('Exactly 7 diaries are required for music generation');
     }
 
     try {
-      logger.info('Starting lyric analysis', { diaryCount: diaries.length });
+      logger.info('Starting lyric analysis', { diaryCount: diaries.length, genreTag });
 
-      const result = await openAIProvider.analyzeForMusic({ diaries });
+      const result = await openAIProvider.analyzeForMusic({ diaries, genreTag });
 
       // Validate with Zod
       const validated = musicAnalysisSchema.parse(result);

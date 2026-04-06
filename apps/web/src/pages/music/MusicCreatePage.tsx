@@ -91,7 +91,7 @@ export function MusicCreatePage() {
     try {
       const result = await generateMusic.mutateAsync({
         diaryIds: selectedDiaryIds,
-        genreTag: selectedGenres[0],
+        genreTag: selectedGenres.join(', '),
       });
 
       setShowProcessingModal(false);

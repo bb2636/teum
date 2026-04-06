@@ -7,7 +7,6 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.os.Bundle;
 
-import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import com.getcapacitor.community.admob.AdMob;
@@ -18,62 +17,51 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(AdMob.class);
         super.onCreate(savedInstanceState);
-    }
 
-    @Override
-    public void onBridgeReady() {
-        super.onBridgeReady();
-        getBridge().setWebViewClient(new PaymentWebViewClient(getBridge()));
-    }
+        this.bridge.setWebViewClient(new BridgeWebViewClient(this.bridge) {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
 
-    private class PaymentWebViewClient extends BridgeWebViewClient {
-
-        public PaymentWebViewClient(Bridge bridge) {
-            super(bridge);
-        }
-
-        @Override
-        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            String url = request.getUrl().toString();
-
-            if (url.startsWith("intent://")) {
-                try {
-                    Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
-                    if (intent.resolveActivity(getPackageManager()) != null) {
-                        startActivity(intent);
-                        return true;
-                    }
-                    String fallbackUrl = intent.getStringExtra("browser_fallback_url");
-                    if (fallbackUrl != null) {
-                        view.loadUrl(fallbackUrl);
-                        return true;
-                    }
+                if (url.startsWith("intent://")) {
                     try {
-                        Intent marketIntent = new Intent(Intent.ACTION_VIEW);
-                        marketIntent.setData(Uri.parse("market://details?id=" + intent.getPackage()));
-                        startActivity(marketIntent);
-                        return true;
-                    } catch (ActivityNotFoundException e2) {
+                        Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+                        if (intent.resolveActivity(getPackageManager()) != null) {
+                            startActivity(intent);
+                            return true;
+                        }
+                        String fallbackUrl = intent.getStringExtra("browser_fallback_url");
+                        if (fallbackUrl != null) {
+                            view.loadUrl(fallbackUrl);
+                            return true;
+                        }
+                        try {
+                            Intent marketIntent = new Intent(Intent.ACTION_VIEW);
+                            marketIntent.setData(Uri.parse("market://details?id=" + intent.getPackage()));
+                            startActivity(marketIntent);
+                            return true;
+                        } catch (ActivityNotFoundException e2) {
+                            return false;
+                        }
+                    } catch (Exception e) {
                         return false;
                     }
-                } catch (Exception e) {
-                    return false;
                 }
-            }
 
-            if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("javascript:")) {
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                    startActivity(intent);
-                    return true;
-                } catch (ActivityNotFoundException e) {
-                    handleAppNotInstalled(url);
-                    return true;
+                if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("javascript:")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (ActivityNotFoundException e) {
+                        handleAppNotInstalled(url);
+                        return true;
+                    }
                 }
-            }
 
-            return super.shouldOverrideUrlLoading(view, request);
-        }
+                return super.shouldOverrideUrlLoading(view, request);
+            }
+        });
     }
 
     private void handleAppNotInstalled(String url) {

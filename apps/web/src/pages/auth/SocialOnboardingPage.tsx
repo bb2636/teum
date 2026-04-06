@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSocialOnboarding, type SocialProfile } from '@/hooks/useSocialAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
-import { useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
+import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
@@ -25,6 +25,7 @@ const profileSchema = z.object({
   email: z.string().email('auth.emailPlaceholder'),
   nickname: nicknameSchema,
   name: z.string().min(1, 'auth.enterName').max(100),
+  phone: z.string().min(10, 'auth.phoneRequired'),
   dateOfBirth: z
     .string()
     .refine((val) => {
@@ -81,15 +82,14 @@ export function SocialOnboardingPage() {
   const [showTermsModal, setShowTermsModal] = useState<false | 'service' | 'payment' | 'refund'>(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [dateDisplayValue, setDateDisplayValue] = useState('');
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
-  const [emailVerificationInput, setEmailVerificationInput] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
+  const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
 
-  const requestEmailVerification = useRequestEmailVerification();
-  const confirmEmailVerification = useConfirmEmailVerification();
+  const requestPhoneVerification = useRequestPhoneVerification();
+  const confirmPhoneVerification = useConfirmPhoneVerification();
 
   const isAppleEmailHidden = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
-  const [isEmailEditing, setIsEmailEditing] = useState(isAppleEmailHidden || false);
 
   useEffect(() => {
     if (!socialProfile || !onboardingToken) {
@@ -104,6 +104,7 @@ export function SocialOnboardingPage() {
       email: socialProfile?.email || '',
       nickname: socialProfile?.name?.replace(/\s/g, '') || '',
       name: socialProfile?.name || '',
+      phone: '',
     },
   });
 
@@ -115,6 +116,7 @@ export function SocialOnboardingPage() {
   const watchNickname = profileForm.watch('nickname');
   const watchName = profileForm.watch('name');
   const watchEmail = profileForm.watch('email');
+  const watchPhone = profileForm.watch('phone');
   const watchDateOfBirth = profileForm.watch('dateOfBirth');
 
   const shouldCheckNickname = watchNickname && watchNickname.length >= 2 && watchNickname.length <= 12 && !watchNickname.includes(' ') && /^[a-zA-Z0-9가-힣_]+$/.test(watchNickname);
@@ -162,13 +164,15 @@ export function SocialOnboardingPage() {
     watchEmail &&
     watchNickname &&
     watchName &&
+    watchPhone &&
     watchDateOfBirth &&
     !profileErrors.email &&
     !profileErrors.nickname &&
     !profileErrors.name &&
+    !profileErrors.phone &&
     nicknameError.length === 0 &&
     isValidDateOfBirth(watchDateOfBirth) &&
-    (!isEmailEditing || emailVerified);
+    phoneVerified;
 
   const watchTermsService = termsForm.watch('termsService');
   const watchTermsPayment = termsForm.watch('termsPayment');
@@ -182,27 +186,27 @@ export function SocialOnboardingPage() {
     termsForm.setValue('termsRefund', !agreeAll);
   };
 
-  const handleRequestEmailVerification = async () => {
-    const email = profileForm.getValues('email');
-    if (!email) return;
+  const handleRequestPhoneVerification = async () => {
+    const phone = profileForm.getValues('phone');
+    if (!phone || phone.length < 10) return;
     setError(null);
     try {
-      await requestEmailVerification.mutateAsync(email);
-      setShowEmailVerificationModal(true);
+      await requestPhoneVerification.mutateAsync(phone);
+      setShowPhoneVerificationModal(true);
     } catch (err: any) {
       setError(err?.message || t('auth.verificationFailed'));
     }
   };
 
-  const handleConfirmEmailVerification = async () => {
-    const email = profileForm.getValues('email');
-    if (!email || !emailVerificationInput) return;
+  const handleConfirmPhoneVerification = async () => {
+    const phone = profileForm.getValues('phone');
+    if (!phone || !phoneVerificationInput) return;
     setError(null);
     try {
-      await confirmEmailVerification.mutateAsync({ email, code: emailVerificationInput });
-      setEmailVerified(true);
-      setShowEmailVerificationModal(false);
-      setEmailVerificationInput('');
+      await confirmPhoneVerification.mutateAsync({ phone, code: phoneVerificationInput });
+      setPhoneVerified(true);
+      setShowPhoneVerificationModal(false);
+      setPhoneVerificationInput('');
     } catch (err: any) {
       setError(err?.message || t('auth.verificationInvalid'));
     }
@@ -213,8 +217,8 @@ export function SocialOnboardingPage() {
       setError(t('auth.fixNickname'));
       return;
     }
-    if (isEmailEditing && !emailVerified) {
-      setError(t('auth.completeEmailVerification'));
+    if (!phoneVerified) {
+      setError(t('auth.completePhoneVerification'));
       return;
     }
     setStep(2);
@@ -230,9 +234,10 @@ export function SocialOnboardingPage() {
     socialOnboarding.mutate(
       {
         onboardingToken,
-        email: isEmailEditing ? profileData.email : undefined,
+        email: isAppleEmailHidden ? profileData.email : undefined,
         nickname: profileData.nickname,
         name: profileData.name,
+        phone: profileData.phone,
         dateOfBirth: profileData.dateOfBirth,
         termsConsents: [
           { termsType: 'service', consented: data.termsService },
@@ -282,53 +287,46 @@ export function SocialOnboardingPage() {
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t('auth.email')}</Label>
-              {isEmailEditing ? (
-                <div className="relative">
-                  <Input
-                    id="email"
-                    type="email"
-                    {...profileForm.register('email')}
-                    placeholder={t('auth.emailPlaceholder')}
-                    className={`pr-28 ${profileErrors.email ? 'border-red-500' : ''}`}
-                    disabled={emailVerified}
-                    onChange={(e) => {
-                      profileForm.setValue('email', e.target.value, { shouldValidate: true });
-                      if (emailVerified) {
-                        setEmailVerified(false);
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleRequestEmailVerification}
-                    disabled={requestEmailVerification.isPending || emailVerified || !watchEmail || !!profileErrors.email}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  >
-                    {emailVerified ? t('auth.verificationComplete') : requestEmailVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
-                  </Button>
-                </div>
-              ) : (
-                <div className="relative">
-                  <Input
-                    id="email"
-                    type="email"
-                    value={socialProfile.email}
-                    disabled
-                    className="bg-gray-100 text-gray-600 pr-16"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setIsEmailEditing(true)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  >
-                    {t('common.change')}
-                  </Button>
-                </div>
-              )}
-              {emailVerified && isEmailEditing && (
-                <p className="text-sm text-green-600">✓ {t('auth.emailVerified')}</p>
+              <Input
+                id="email"
+                type="email"
+                {...profileForm.register('email')}
+                placeholder={t('auth.emailPlaceholder')}
+                className={`bg-gray-100 ${profileErrors.email ? 'border-red-500' : ''}`}
+                disabled={!isAppleEmailHidden}
+              />
+              {profileErrors.email && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">{t('auth.phone')}</Label>
+              <div className="relative">
+                <Input
+                  id="phone"
+                  type="tel"
+                  {...profileForm.register('phone')}
+                  placeholder={t('auth.phonePlaceholder')}
+                  className={`pr-28 bg-gray-100 ${profileErrors.phone ? 'border-red-500' : ''}`}
+                  disabled={phoneVerified}
+                  onChange={(e) => {
+                    profileForm.setValue('phone', e.target.value, { shouldValidate: true });
+                    if (phoneVerified) {
+                      setPhoneVerified(false);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleRequestPhoneVerification}
+                  disabled={requestPhoneVerification.isPending || phoneVerified || !watchPhone || watchPhone.length < 10}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                >
+                  {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
+                </Button>
+              </div>
+              {phoneVerified && (
+                <p className="text-sm text-green-600">✓ {t('auth.phoneVerified')}</p>
               )}
             </div>
 
@@ -473,29 +471,30 @@ export function SocialOnboardingPage() {
         )}
       </div>
 
-      {showEmailVerificationModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4" onClick={() => setShowEmailVerificationModal(false)}>
+      {showPhoneVerificationModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4" onClick={() => setShowPhoneVerificationModal(false)}>
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{t('auth.emailVerifyTitle')}</h2>
-              <button onClick={() => setShowEmailVerificationModal(false)} className="p-2 rounded-full hover:bg-gray-100">
+              <h2 className="text-lg font-semibold">{t('auth.phoneVerifyTitle')}</h2>
+              <button onClick={() => setShowPhoneVerificationModal(false)} className="p-2 rounded-full hover:bg-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-sm text-gray-500">{t('auth.phoneVerifyDesc')}</p>
             <div className="space-y-2">
-              <Label htmlFor="emailCode">{t('auth.verificationCode')}</Label>
+              <Label htmlFor="phoneCode">{t('auth.verificationCode')}</Label>
               <Input
-                id="emailCode"
+                id="phoneCode"
                 type="text"
-                value={emailVerificationInput}
-                onChange={(e) => setEmailVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                value={phoneVerificationInput}
+                onChange={(e) => setPhoneVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
                 className="text-center text-lg tracking-widest"
               />
             </div>
-            <Button onClick={handleConfirmEmailVerification} className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={emailVerificationInput.length !== 6 || confirmEmailVerification.isPending}>
-              {confirmEmailVerification.isPending ? t('auth.verifying') : t('common.confirm')}
+            <Button onClick={handleConfirmPhoneVerification} className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={phoneVerificationInput.length !== 6 || confirmPhoneVerification.isPending}>
+              {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
           </div>
         </div>

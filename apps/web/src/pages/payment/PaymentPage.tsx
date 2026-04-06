@@ -1,11 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones } from 'lucide-react';
+import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X } from 'lucide-react';
 import { useInitPayment } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
+import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 declare global {
   interface Window {
@@ -51,6 +55,16 @@ export function PaymentPage() {
   const [showTermsSheet, setShowTermsSheet] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  const [identityVerified, setIdentityVerified] = useState(false);
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
+  const [identityPhone, setIdentityPhone] = useState('');
+  const [identityCode, setIdentityCode] = useState('');
+  const [identityCodeSent, setIdentityCodeSent] = useState(false);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+
+  const requestPhoneVerification = useRequestPhoneVerification();
+  const confirmPhoneVerification = useConfirmPhoneVerification();
+
   const initPayment = useInitPayment();
 
   const nextPaymentDate = useMemo(() => {
@@ -67,6 +81,10 @@ export function PaymentPage() {
   const handlePaymentClick = () => {
     if (!cardCode) {
       alert(t('payment.selectCardCompany'));
+      return;
+    }
+    if (!identityVerified) {
+      setShowIdentityModal(true);
       return;
     }
     setShowTermsSheet(true);
@@ -125,6 +143,31 @@ export function PaymentPage() {
       console.error('Payment init error:', error);
       alert(error?.message || t('payment.initError'));
       setIsProcessing(false);
+    }
+  };
+
+  const handleSendIdentityCode = async () => {
+    if (!identityPhone || identityPhone.length < 10) return;
+    setIdentityError(null);
+    try {
+      await requestPhoneVerification.mutateAsync(identityPhone);
+      setIdentityCodeSent(true);
+    } catch (err: any) {
+      setIdentityError(err?.message || t('auth.verificationFailed'));
+    }
+  };
+
+  const handleConfirmIdentityCode = async () => {
+    if (!identityPhone || !identityCode) return;
+    setIdentityError(null);
+    try {
+      await confirmPhoneVerification.mutateAsync({ phone: identityPhone, code: identityCode });
+      setIdentityVerified(true);
+      setShowIdentityModal(false);
+      setIdentityCode('');
+      setShowTermsSheet(true);
+    } catch (err: any) {
+      setIdentityError(err?.message || t('auth.verificationInvalid'));
     }
   };
 
@@ -264,6 +307,79 @@ export function PaymentPage() {
           </div>
         </div>
       </div>
+
+      {showIdentityModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4" onClick={() => setShowIdentityModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{t('payment.identityVerification')}</h2>
+              <button onClick={() => setShowIdentityModal(false)} className="p-2 rounded-full hover:bg-gray-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">{t('payment.identityVerificationDesc')}</p>
+
+            {identityError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{identityError}</div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="identityPhone">{t('auth.phone')}</Label>
+              <div className="relative">
+                <Input
+                  id="identityPhone"
+                  type="tel"
+                  value={identityPhone}
+                  onChange={(e) => {
+                    setIdentityPhone(e.target.value);
+                    if (identityCodeSent) {
+                      setIdentityCodeSent(false);
+                      setIdentityCode('');
+                    }
+                  }}
+                  placeholder={t('payment.enterPhone')}
+                  className="pr-28"
+                  disabled={identityCodeSent}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleSendIdentityCode}
+                  disabled={requestPhoneVerification.isPending || identityCodeSent || identityPhone.length < 10}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                >
+                  {identityCodeSent ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
+                </Button>
+              </div>
+            </div>
+
+            {identityCodeSent && (
+              <div className="space-y-2">
+                <Label htmlFor="identityCode">{t('auth.verificationCode')}</Label>
+                <Input
+                  id="identityCode"
+                  type="text"
+                  value={identityCode}
+                  onChange={(e) => setIdentityCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder={t('auth.enterVerificationCode')}
+                  maxLength={6}
+                  className="text-center text-lg tracking-widest"
+                />
+              </div>
+            )}
+
+            {identityCodeSent && (
+              <Button
+                onClick={handleConfirmIdentityCode}
+                className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
+                disabled={identityCode.length !== 6 || confirmPhoneVerification.isPending}
+              >
+                {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       <PaymentTermsSheet
         isOpen={showTermsSheet}

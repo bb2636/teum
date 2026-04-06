@@ -132,7 +132,7 @@ export function PaymentSuccessPage() {
         ))}
       </div>
 
-      <div className="p-6 space-y-3">
+      <div className="p-6 pb-safe-fixed space-y-3">
         {isLastPage ? (
           <>
             <button

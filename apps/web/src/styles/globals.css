@@ -52,6 +52,9 @@
   .pb-safe {
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
+  .pb-safe-fixed {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 /* 모바일 우선 반응형 */

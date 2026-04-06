@@ -118,7 +118,7 @@ export function SupportInquiryPage() {
           </div>
 
           {/* 하단 고정 버튼 */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe-fixed">
             <button
               type="submit"
               disabled={createInquiry.isPending}

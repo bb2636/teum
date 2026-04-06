@@ -138,7 +138,7 @@ export function SupportPage() {
         </div>
 
         {/* 하단 고정 버튼 */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe-fixed">
           <button
             onClick={() => navigate('/my/support/inquiry')}
             className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"

@@ -267,7 +267,7 @@ export function ForgotPasswordPage() {
           />
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white px-4 py-4 border-t border-gray-200 z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-white px-4 py-4 border-t border-gray-200 z-40 pb-safe-fixed">
           <div className="max-w-sm mx-auto">
             <Button 
               className={`w-full rounded-lg ${

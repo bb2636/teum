@@ -128,7 +128,7 @@ export function PaymentIntroPage() {
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-3xl shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-3xl shadow-lg pb-safe-fixed">
           <div className="max-w-md mx-auto px-4 py-6">
             <div className="mb-4">
               <div className="text-3xl font-bold text-black mb-1">4,900{t('payment.won')}</div>

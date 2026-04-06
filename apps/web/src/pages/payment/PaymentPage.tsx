@@ -247,7 +247,7 @@ export function PaymentPage() {
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 pb-safe-fixed">
           <div className="max-w-md mx-auto">
             <p className="text-xs text-gray-600 text-center mb-3">
               {t('payment.paymentNote')}

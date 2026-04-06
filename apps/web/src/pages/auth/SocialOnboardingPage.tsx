@@ -234,7 +234,7 @@ export function SocialOnboardingPage() {
     socialOnboarding.mutate(
       {
         onboardingToken,
-        email: isAppleEmailHidden ? profileData.email : undefined,
+        email: profileData.email || undefined,
         nickname: profileData.nickname,
         name: profileData.name,
         phone: profileData.phone,
@@ -293,7 +293,7 @@ export function SocialOnboardingPage() {
                 {...profileForm.register('email')}
                 placeholder={t('auth.emailPlaceholder')}
                 className={`bg-gray-100 ${profileErrors.email ? 'border-red-500' : ''}`}
-                disabled={!isAppleEmailHidden}
+                disabled={false}
               />
               {profileErrors.email && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
             </div>

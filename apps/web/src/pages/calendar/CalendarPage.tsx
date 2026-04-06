@@ -566,7 +566,7 @@ export function CalendarPage() {
                     )}
                     {isListOpen && dayDiaries.length > 0 && (
                       <div className="mt-0.5 flex justify-center">
-                        <div className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white' : 'bg-[#4A2C1A]'}`} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#4A2C1A]" />
                       </div>
                     )}
                   </button>

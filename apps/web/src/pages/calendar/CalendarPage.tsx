@@ -462,7 +462,7 @@ export function CalendarPage() {
         <div
           ref={calendarRef}
           className={`flex flex-col px-2 overflow-hidden ${isListFullScreen ? 'hidden' : 'flex-1'}`}
-          style={isListOpen && !isListFullScreen ? { flex: '0 0 55%', maxHeight: '55%' } : !isListOpen ? { paddingBottom: '80px' } : undefined}
+          style={isListOpen && !isListFullScreen ? { flex: '0 0 40%', maxHeight: '40%' } : !isListOpen ? { paddingBottom: '80px' } : undefined}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
@@ -584,7 +584,7 @@ export function CalendarPage() {
                 ? 'absolute inset-0'
                 : 'flex-1'
             }`}
-            style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : { flex: '0 0 45%', maxHeight: '45%' }}
+            style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : { flex: '1 1 auto' }}
           >
             <div
               className="flex justify-center py-2 cursor-grab shrink-0"

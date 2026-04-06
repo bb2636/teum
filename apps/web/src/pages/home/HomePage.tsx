@@ -637,76 +637,34 @@ export function HomePage() {
                         return '';
                       };
 
-                      const hasAnyImage = dateDiaries.some((d) => d.images && d.images.length > 0);
-                      const useGrid = hasAnyImage;
-
-                      if (useGrid) {
-                        return (
-                          <div className="grid grid-cols-2 gap-3">
-                            {dateDiaries.map((diary, diaryIndex) => {
-                              const diaryTitle = getDiaryTitle(diary);
-                              const diaryPreview = getDiaryPreview(diary);
-                              const hasImage = diary.images && diary.images.length > 0;
-
-                              return (
-                                <Link
-                                  key={diary.id}
-                                  to={`/diaries/${diary.id}`}
-                                  className="block bg-white rounded-lg overflow-hidden border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200 aspect-square animate-slide-up"
-                                  style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
-                                >
-                                  {hasImage ? (
-                                    <div className="flex flex-col h-full">
-                                      <div className="relative flex-1 overflow-hidden">
-                                        <StorageImage
-                                          url={diary.images![0].imageUrl}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                      <div className="p-2 bg-white min-h-0">
-                                        <p className="text-xs font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
-                                        {diaryPreview && (
-                                          <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col h-full">
-                                      <div className="relative flex-1 overflow-hidden bg-[#f5f0eb] flex items-center justify-center">
-                                        <img src="/logo.png" alt="teum" className="w-16 h-16 object-contain opacity-30" />
-                                      </div>
-                                      <div className="p-2 bg-white min-h-0">
-                                        <p className="text-xs font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
-                                        {diaryPreview && (
-                                          <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{diaryPreview}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        );
-                      }
-
                       return (
                         <div className="space-y-3">
                           {dateDiaries.map((diary, diaryIndex) => {
                             const diaryTitle = getDiaryTitle(diary);
                             const diaryPreview = getDiaryPreview(diary);
+                            const hasImage = diary.images && diary.images.length > 0;
 
                             return (
                               <Link
                                 key={diary.id}
                                 to={`/diaries/${diary.id}`}
-                                className="block bg-white rounded-xl px-4 py-3 border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200 animate-slide-up"
+                                className="block bg-white rounded-xl overflow-hidden border border-[#4A2C1A]/20 shadow-sm hover:shadow-md hover:border-[#4A2C1A]/40 transition-all duration-200 animate-slide-up"
                                 style={{ animationDelay: `${groupIndex * 100 + diaryIndex * 80}ms` }}
                               >
-                                <p className="text-sm font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
-                                {diaryPreview && (
-                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{diaryPreview}</p>
+                                {hasImage && (
+                                  <div className="w-full h-40 overflow-hidden">
+                                    <StorageImage
+                                      url={diary.images![0].imageUrl}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
                                 )}
+                                <div className="px-4 py-3">
+                                  <p className="text-sm font-semibold text-[#4A2C1A] truncate">{diaryTitle}</p>
+                                  {diaryPreview && (
+                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{diaryPreview}</p>
+                                  )}
+                                </div>
                               </Link>
                             );
                           })}

@@ -148,7 +148,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
   const [countdown, setCountdown] = useState(AD_DURATION_SECONDS);
   const [canSkip, setCanSkip] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
   const adFlowRunningRef = useRef(false);
   const completedRef = useRef(false);
   const isNative = Capacitor.isNativePlatform();
@@ -158,7 +157,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
       setCountdown(AD_DURATION_SECONDS);
       setCanSkip(false);
       setShowFallback(false);
-      setDebugInfo('');
       adFlowRunningRef.current = false;
       completedRef.current = false;
       return;
@@ -168,7 +166,6 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
 
     if (isNative) {
       adFlowRunningRef.current = true;
-      setDebugInfo(`platform=${Capacitor.getPlatform()}, native=true, starting ad flow...`);
 
       runNativeAdFlow().then((result) => {
         adFlowRunningRef.current = false;
@@ -178,13 +175,10 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
             onAdComplete();
           }
         } else {
-          const d = result.debug;
-          setDebugInfo(`FAIL: ${result.reason}\ninit=${d.initialized}, listeners=${d.listenersRegistered}, prepare=${d.prepareCalled}, loaded=${d.loadedReceived}, show=${d.showCalled}`);
           setShowFallback(true);
         }
       });
     } else {
-      setDebugInfo(`platform=${Capacitor.getPlatform()}, native=false → fallback`);
       setShowFallback(true);
     }
   }, [isOpen, isNative, onAdComplete]);
@@ -257,12 +251,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
           )}
         </div>
 
-        <div className="p-4 space-y-2">
-          {debugInfo && (
-            <div className="bg-gray-100 border border-gray-300 rounded-lg p-2 text-[10px] font-mono text-gray-600 whitespace-pre-wrap break-all">
-              {debugInfo}
-            </div>
-          )}
+        <div className="p-4">
           <button
             onClick={canSkip ? handleComplete : undefined}
             disabled={!canSkip}

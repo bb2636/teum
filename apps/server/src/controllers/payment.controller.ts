@@ -58,6 +58,98 @@ export class PaymentController {
     }
   }
 
+  async initBillingKey(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const { planName, paymentMethod, amount, identityVerified } = req.body;
+      if (!planName || !paymentMethod || !amount) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'planName, paymentMethod, amount are required' },
+        });
+      }
+
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'amount must be a positive number' },
+        });
+      }
+
+      const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      const returnUrl = `${backendUrl}/api/payments/nicepay/billing-return`;
+
+      const result = await paymentService.initBillingKeyRegistration(req.user.userId, {
+        planName,
+        paymentMethod,
+        amount: numericAmount,
+        identityVerified: !!identityVerified,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          returnUrl,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async nicepayBillingReturn(req: Request, res: Response) {
+    const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+    try {
+      const body = req.body;
+      logger.info('NicePay billing return FULL body', { body: JSON.stringify(body) });
+
+      const resultCode = body.authResultCode || body.resultCode;
+      const resultMsg = body.authResultMsg || body.resultMsg;
+      const { bid, orderId, amount } = body;
+
+      logger.info(`NicePay billing return - code=${resultCode} msg=${resultMsg} bid=${bid} orderId=${orderId}`);
+
+      if (!orderId) {
+        logger.error('NicePay billing return missing orderId');
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('주문 정보가 누락되었습니다.')}`);
+      }
+
+      if (resultCode !== '0000') {
+        await paymentService.deletePendingSession(orderId);
+        logger.error(`NicePay billing auth failed - code=${resultCode} msg=${resultMsg}`);
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(resultMsg || '빌링키 등록에 실패했습니다.')}`);
+      }
+
+      if (!bid) {
+        await paymentService.deletePendingSession(orderId);
+        logger.error('NicePay billing return missing bid', { orderId });
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 정보가 누락되었습니다.')}`);
+      }
+
+      const result = await paymentService.processBillingKeyReturn(
+        bid,
+        orderId
+      );
+
+      if (result.success) {
+        return res.redirect(`${frontendUrl}/payment/success`);
+      } else {
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}`);
+      }
+    } catch (error) {
+      logger.error('NicePay billing return handler error', { error });
+      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 등록 처리 중 오류가 발생했습니다.')}`);
+    }
+  }
+
   async nicepayReturn(req: Request, res: Response) {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
@@ -163,6 +255,25 @@ export class PaymentController {
       res.json({
         success: true,
         data: { subscriptions },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async needsVerification(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const needsVerification = await paymentService.needsIdentityVerification(req.user.userId);
+      res.json({
+        success: true,
+        data: { needsVerification },
       });
     } catch (error) {
       next(error);

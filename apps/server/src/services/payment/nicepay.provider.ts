@@ -118,6 +118,160 @@ export class NicePayProvider {
     }
   }
 
+  async approveBillingKey(bid: string): Promise<NicePayPaymentResponse> {
+    try {
+      logger.info('Approving NicePay billing key', { bid, isTestMode: this.isTestMode });
+
+      const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
+
+      const response = await fetch(`${this.approvalBaseUrl}/v1/subscribe/${bid}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = (await response.json()) as Record<string, unknown>;
+      const respStr = JSON.stringify(data);
+      logger.info(`NicePay billing key approval resp status=${response.status} body=${respStr}`);
+
+      const resultCode = data.resultCode as string | undefined;
+
+      if (resultCode === '0000') {
+        return {
+          success: true,
+          resultCode: resultCode || '',
+          resultMsg: (data.resultMsg || '빌링키 등록 성공') as string,
+          tid: (data.tid) as string | undefined,
+          cardCode: (data.cardCode) as string | undefined,
+          cardName: (data.cardName) as string | undefined,
+          cardNo: (data.cardNo) as string | undefined,
+        };
+      } else {
+        return {
+          success: false,
+          resultCode: resultCode || '',
+          resultMsg: (data.resultMsg || '빌링키 등록 실패') as string,
+          errorCode: (data.resultCode) as string | undefined,
+          errorMsg: (data.resultMsg) as string | undefined,
+        };
+      }
+    } catch (error) {
+      logger.error('NicePay billing key approval failed', { error, bid });
+      return {
+        success: false,
+        errorCode: 'NETWORK_ERROR',
+        errorMsg: '빌링키 등록 중 오류가 발생했습니다.',
+      };
+    }
+  }
+
+  async payWithBillingKey(
+    bid: string,
+    orderId: string,
+    amount: number,
+    goodsName: string
+  ): Promise<NicePayPaymentResponse> {
+    try {
+      logger.info('Charging with billing key', { bid, orderId, amount, isTestMode: this.isTestMode });
+
+      const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
+
+      const response = await fetch(`${this.approvalBaseUrl}/v1/subscribe/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          encData: bid,
+          orderId,
+          amount: Math.round(amount),
+          goodsName,
+          useShopInterest: false,
+        }),
+      });
+
+      const data = (await response.json()) as Record<string, unknown>;
+      const respStr = JSON.stringify(data);
+      logger.info(`NicePay billing payment resp status=${response.status} body=${respStr}`);
+
+      const resultCode = data.resultCode as string | undefined;
+
+      if (resultCode === '0000') {
+        return {
+          success: true,
+          resultCode: resultCode || '',
+          resultMsg: (data.resultMsg || '결제 성공') as string,
+          tid: (data.tid) as string | undefined,
+          orderId: (data.orderId) as string | undefined,
+          amount: (data.amount || amount) as number,
+          cardCode: (data.cardCode) as string | undefined,
+          cardName: (data.cardName) as string | undefined,
+          cardNo: (data.cardNo) as string | undefined,
+        };
+      } else {
+        return {
+          success: false,
+          resultCode: resultCode || '',
+          resultMsg: (data.resultMsg || '결제 실패') as string,
+          errorCode: (data.resultCode) as string | undefined,
+          errorMsg: (data.resultMsg) as string | undefined,
+        };
+      }
+    } catch (error) {
+      logger.error('NicePay billing payment failed', { error, bid, orderId });
+      return {
+        success: false,
+        errorCode: 'NETWORK_ERROR',
+        errorMsg: '빌링키 결제 중 오류가 발생했습니다.',
+      };
+    }
+  }
+
+  async cancelBillingKey(bid: string): Promise<NicePayPaymentResponse> {
+    try {
+      logger.info('Cancelling NicePay billing key', { bid, isTestMode: this.isTestMode });
+
+      const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
+
+      const response = await fetch(`${this.approvalBaseUrl}/v1/subscribe/${bid}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        },
+      });
+
+      const data = (await response.json()) as Record<string, unknown>;
+      const resultCode = data.resultCode as string | undefined;
+
+      if (resultCode === '0000') {
+        return {
+          success: true,
+          resultCode: resultCode || '',
+          resultMsg: (data.resultMsg || '빌링키 해지 성공') as string,
+        };
+      } else {
+        return {
+          success: false,
+          resultCode: resultCode || '',
+          errorCode: (data.resultCode) as string | undefined,
+          errorMsg: (data.resultMsg) as string | undefined,
+        };
+      }
+    } catch (error) {
+      logger.error('NicePay billing key cancellation failed', { error, bid });
+      return {
+        success: false,
+        errorCode: 'NETWORK_ERROR',
+        errorMsg: '빌링키 해지 중 오류가 발생했습니다.',
+      };
+    }
+  }
+
   async cancelPayment(
     tid: string,
     amount: number,

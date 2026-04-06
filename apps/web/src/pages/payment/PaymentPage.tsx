@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X } from 'lucide-react';
-import { useInitPayment } from '@/hooks/usePayment';
+import { useInitBillingKey, useNeedsVerification } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
-import { PaymentConfirmModal } from '@/components/PaymentConfirmModal';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
@@ -18,8 +17,6 @@ declare global {
     };
   }
 }
-
-type PaymentMethod = 'CARD';
 
 const NICEPAY_CARD_COMPANIES = [
   { code: '06', name: '신한카드' },
@@ -49,11 +46,9 @@ export function PaymentPage() {
     };
   }, [setHideTabBar]);
 
-  const paymentMethod: PaymentMethod = 'CARD';
   const [cardCode, setCardCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [identityVerified, setIdentityVerified] = useState(false);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
@@ -65,7 +60,8 @@ export function PaymentPage() {
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
 
-  const initPayment = useInitPayment();
+  const initBillingKey = useInitBillingKey();
+  const { data: needsVerification, isLoading: verificationLoading } = useNeedsVerification();
 
   const nextPaymentDate = useMemo(() => {
     const date = new Date();
@@ -78,12 +74,14 @@ export function PaymentPage() {
 
   const isButtonEnabled = !!cardCode;
 
+  const requiresVerification = needsVerification === true;
+
   const handlePaymentClick = () => {
     if (!cardCode) {
       alert(t('payment.selectCardCompany'));
       return;
     }
-    if (!identityVerified) {
+    if (requiresVerification && !identityVerified) {
       setShowIdentityModal(true);
       return;
     }
@@ -93,19 +91,19 @@ export function PaymentPage() {
   const handleTermsAgreed = (agreed: boolean) => {
     if (agreed) {
       setShowTermsSheet(false);
-      setShowConfirmModal(true);
+      handleStartBillingRegistration();
     }
   };
 
-  const handleConfirmPayment = async () => {
+  const handleStartBillingRegistration = async () => {
     setIsProcessing(true);
-    setShowConfirmModal(false);
 
     try {
-      const initResult = await initPayment.mutateAsync({
-        amount: parseFloat(amount),
+      const initResult = await initBillingKey.mutateAsync({
         planName,
-        paymentMethod,
+        paymentMethod: 'CARD',
+        amount: parseInt(amount),
+        identityVerified: identityVerified || !requiresVerification,
       });
 
       if (!window.AUTHNICE) {
@@ -119,10 +117,10 @@ export function PaymentPage() {
 
       const payParams: Record<string, unknown> = {
         clientId: initResult.clientId,
-        method: initResult.method,
+        method: 'subscribe',
         orderId: initResult.orderId,
-        amount: initResult.amount,
-        goodsName: initResult.goodsName,
+        amount: parseInt(amount),
+        goodsName: planName,
         returnUrl: initResult.returnUrl,
         fnError: (result: { errorMsg?: string }) => {
           setIsProcessing(false);
@@ -140,7 +138,7 @@ export function PaymentPage() {
 
       window.AUTHNICE.requestPay(payParams);
     } catch (error: any) {
-      console.error('Payment init error:', error);
+      console.error('Billing key init error:', error);
       alert(error?.message || t('payment.initError'));
       setIsProcessing(false);
     }
@@ -297,10 +295,10 @@ export function PaymentPage() {
             </p>
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || initPayment.isPending || !isButtonEnabled}
+              disabled={isProcessing || initBillingKey.isPending || !isButtonEnabled || verificationLoading}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing || initPayment.isPending
+              {isProcessing || initBillingKey.isPending
                 ? t('payment.processing')
                 : t('payment.startMonthly', { amount: parseInt(amount).toLocaleString() })}
             </button>
@@ -385,13 +383,6 @@ export function PaymentPage() {
         isOpen={showTermsSheet}
         onClose={() => setShowTermsSheet(false)}
         onAgree={handleTermsAgreed}
-      />
-
-      <PaymentConfirmModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmPayment}
-        amount={parseInt(amount)}
       />
     </div>
   );

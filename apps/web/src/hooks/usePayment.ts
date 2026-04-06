@@ -60,6 +60,21 @@ export interface InitPaymentResponse {
   isTestMode: boolean;
 }
 
+export interface InitBillingKeyInput {
+  planName: string;
+  paymentMethod: string;
+  amount: number;
+  identityVerified?: boolean;
+}
+
+export interface InitBillingKeyResponse {
+  clientId: string;
+  orderId: string;
+  method: string;
+  returnUrl: string;
+  isTestMode: boolean;
+}
+
 export function useInitPayment() {
   return useMutation({
     mutationFn: async (data: InitPaymentInput) => {
@@ -72,6 +87,34 @@ export function useInitPayment() {
       );
       return response.data;
     },
+  });
+}
+
+export function useInitBillingKey() {
+  return useMutation({
+    mutationFn: async (data: InitBillingKeyInput) => {
+      const response = await apiRequest<{ data: InitBillingKeyResponse }>(
+        '/payments/billing/init',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useNeedsVerification() {
+  return useQuery<boolean>({
+    queryKey: ['needs-verification'],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: { needsVerification: boolean } }>(
+        '/payments/needs-verification'
+      );
+      return response.data.needsVerification;
+    },
+    staleTime: 1000 * 60 * 5,
   });
 }
 

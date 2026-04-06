@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { payments, subscriptions, paymentSessions } from '../db/schema';
-import { eq, desc, lt } from 'drizzle-orm';
+import { payments, subscriptions, paymentSessions, billingKeys } from '../db/schema';
+import { eq, desc, lt, and, lte } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
@@ -28,6 +28,370 @@ export class PaymentService {
     return subs.find(
       (s) => s.status === 'cancelled' && s.endDate && new Date(s.endDate) >= now
     ) ?? null;
+  }
+
+  async needsIdentityVerification(userId: string): Promise<boolean> {
+    const subs = await this.getSubscriptions(userId);
+    if (subs.length === 0) return false;
+    const hasActiveSub = subs.some(
+      (s) => s.status === 'active' && (!s.endDate || new Date(s.endDate) >= new Date())
+    );
+    if (hasActiveSub) return false;
+    return true;
+  }
+
+  async initBillingKeyRegistration(
+    userId: string,
+    input: { planName: string; paymentMethod: string; amount: number; identityVerified?: boolean }
+  ) {
+    const activeSubscription = await this.getActiveSubscription(userId);
+    if (activeSubscription) {
+      throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+    }
+
+    const needsVerification = await this.needsIdentityVerification(userId);
+    if (needsVerification && !input.identityVerified) {
+      throw new Error('재구독 시 본인인증이 필요합니다.');
+    }
+
+    const orderId = `BILLING_${Date.now()}_${userId.substring(0, 8)}`;
+
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await db.insert(paymentSessions).values({
+      orderId,
+      userId,
+      amount: input.amount.toString(),
+      planName: input.planName,
+      paymentMethod: input.paymentMethod,
+      expiresAt,
+    });
+
+    const clientId = nicePayProvider.getClientId();
+
+    return {
+      clientId,
+      orderId,
+      method: 'subscribe',
+      isTestMode: nicePayProvider.getIsTestMode(),
+    };
+  }
+
+  async processBillingKeyReturn(
+    bid: string,
+    orderId: string
+  ): Promise<{ success: boolean; message: string }> {
+    const session = await this.getPendingSession(orderId);
+    if (!session) {
+      logger.error('Billing key session not found', { orderId });
+      return { success: false, message: '세션을 찾을 수 없습니다.' };
+    }
+
+    const serverAmount = Number(session.amount);
+    const serverPlanName = session.planName;
+
+    await this.deletePendingSession(orderId);
+
+    const approvalResult = await nicePayProvider.approveBillingKey(bid);
+
+    if (!approvalResult.success) {
+      logger.error('Billing key approval failed', {
+        orderId,
+        bid,
+        errorCode: approvalResult.errorCode,
+        errorMsg: approvalResult.errorMsg,
+      });
+      return {
+        success: false,
+        message: approvalResult.errorMsg || '빌링키 등록에 실패했습니다.',
+      };
+    }
+
+    const existingKeys = await db
+      .select()
+      .from(billingKeys)
+      .where(and(eq(billingKeys.userId, session.userId), eq(billingKeys.status, 'active')));
+
+    if (existingKeys.length > 0) {
+      for (const key of existingKeys) {
+        await db
+          .update(billingKeys)
+          .set({ status: 'inactive', updatedAt: new Date() })
+          .where(eq(billingKeys.id, key.id));
+      }
+    }
+
+    await db.insert(billingKeys).values({
+      userId: session.userId,
+      bid,
+      cardCode: approvalResult.cardCode || null,
+      cardName: approvalResult.cardName || null,
+      cardNo: approvalResult.cardNo || null,
+      status: 'active',
+    });
+
+    logger.info('Billing key registered', { userId: session.userId, bid });
+
+    const chargeResult = await this.chargeWithBillingKey(
+      session.userId,
+      bid,
+      serverAmount,
+      serverPlanName
+    );
+
+    return chargeResult;
+  }
+
+  async chargeWithBillingKey(
+    userId: string,
+    bid: string,
+    amount: number,
+    planName: string
+  ): Promise<{ success: boolean; message: string }> {
+    const chargeOrderId = `ORDER_${Date.now()}_${userId.substring(0, 8)}`;
+
+    if (this.isPaymentMockSuccess()) {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      await db.transaction(async (tx) => {
+        const [payment] = await tx
+          .insert(payments)
+          .values({
+            userId,
+            status: 'completed',
+            amount: amount.toString(),
+            currency: 'KRW',
+            paymentMethod: 'BILLING',
+            transactionId: chargeOrderId,
+            paidAt: startDate,
+          })
+          .returning();
+
+        const [newSubscription] = await tx
+          .insert(subscriptions)
+          .values({
+            userId,
+            status: 'active',
+            planName,
+            amount: amount.toString(),
+            currency: 'KRW',
+            startDate,
+            endDate,
+          })
+          .returning();
+
+        await tx
+          .update(payments)
+          .set({ subscriptionId: newSubscription.id })
+          .where(eq(payments.id, payment.id));
+      });
+
+      logger.info('Billing payment processed (mock)', { userId, chargeOrderId });
+      return { success: true, message: '구독이 시작되었습니다.' };
+    }
+
+    const chargeResult = await nicePayProvider.payWithBillingKey(
+      bid,
+      chargeOrderId,
+      amount,
+      planName
+    );
+
+    if (!chargeResult.success) {
+      logger.error('Billing key charge failed', {
+        userId,
+        bid,
+        chargeOrderId,
+        errorMsg: chargeResult.errorMsg,
+      });
+
+      await db.insert(payments).values({
+        userId,
+        status: 'failed',
+        amount: amount.toString(),
+        currency: 'KRW',
+        paymentMethod: 'BILLING',
+        transactionId: chargeResult.tid || chargeOrderId,
+        paidAt: null,
+      });
+
+      return {
+        success: false,
+        message: chargeResult.errorMsg || '결제에 실패했습니다.',
+      };
+    }
+
+    try {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      await db.transaction(async (tx) => {
+        const [payment] = await tx
+          .insert(payments)
+          .values({
+            userId,
+            status: 'completed',
+            amount: amount.toString(),
+            currency: 'KRW',
+            paymentMethod: 'BILLING',
+            transactionId: chargeResult.tid || chargeOrderId,
+            paidAt: startDate,
+          })
+          .returning();
+
+        const [newSubscription] = await tx
+          .insert(subscriptions)
+          .values({
+            userId,
+            status: 'active',
+            planName,
+            amount: amount.toString(),
+            currency: 'KRW',
+            startDate,
+            endDate,
+          })
+          .returning();
+
+        await tx
+          .update(payments)
+          .set({ subscriptionId: newSubscription.id })
+          .where(eq(payments.id, payment.id));
+      });
+
+      logger.info('Billing key charge successful', { userId, tid: chargeResult.tid });
+      return { success: true, message: '결제가 완료되었습니다.' };
+    } catch (txError) {
+      logger.error('Billing payment DB transaction failed', { error: txError, userId });
+
+      if (chargeResult.tid) {
+        try {
+          await nicePayProvider.cancelPayment(chargeResult.tid, amount, '시스템 오류로 인한 자동 취소');
+        } catch (cancelError) {
+          logger.error('Failed to auto-cancel billing payment', { cancelError });
+        }
+      }
+
+      return {
+        success: false,
+        message: '결제 처리 중 오류가 발생했습니다.',
+      };
+    }
+  }
+
+  async processAutoRenewals() {
+    const now = new Date();
+
+    const expiredSubs = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.status, 'active'),
+          lte(subscriptions.endDate, now)
+        )
+      );
+
+    logger.info(`Found ${expiredSubs.length} subscriptions to auto-renew`);
+
+    for (const sub of expiredSubs) {
+      try {
+        const [activeBillingKey] = await db
+          .select()
+          .from(billingKeys)
+          .where(
+            and(
+              eq(billingKeys.userId, sub.userId),
+              eq(billingKeys.status, 'active')
+            )
+          )
+          .limit(1);
+
+        if (!activeBillingKey) {
+          logger.warn('No active billing key for auto-renewal, expiring subscription', {
+            userId: sub.userId,
+            subscriptionId: sub.id,
+          });
+          await db
+            .update(subscriptions)
+            .set({ status: 'expired', updatedAt: new Date() })
+            .where(eq(subscriptions.id, sub.id));
+          continue;
+        }
+
+        const result = await this.chargeWithBillingKey(
+          sub.userId,
+          activeBillingKey.bid,
+          Number(sub.amount),
+          sub.planName
+        );
+
+        if (result.success) {
+          await db
+            .update(subscriptions)
+            .set({ status: 'expired', updatedAt: new Date() })
+            .where(eq(subscriptions.id, sub.id));
+
+          logger.info('Auto-renewal successful', {
+            userId: sub.userId,
+            oldSubscriptionId: sub.id,
+          });
+        } else {
+          logger.error('Auto-renewal charge failed, expiring subscription', {
+            userId: sub.userId,
+            subscriptionId: sub.id,
+            message: result.message,
+          });
+          await db
+            .update(subscriptions)
+            .set({ status: 'expired', updatedAt: new Date() })
+            .where(eq(subscriptions.id, sub.id));
+        }
+      } catch (error) {
+        logger.error('Auto-renewal error', {
+          userId: sub.userId,
+          subscriptionId: sub.id,
+          error,
+        });
+      }
+    }
+  }
+
+  async getActiveBillingKey(userId: string) {
+    const [key] = await db
+      .select()
+      .from(billingKeys)
+      .where(
+        and(
+          eq(billingKeys.userId, userId),
+          eq(billingKeys.status, 'active')
+        )
+      )
+      .limit(1);
+    return key || null;
+  }
+
+  async deactivateBillingKey(userId: string): Promise<{ success: boolean; message: string }> {
+    const activeBillingKey = await this.getActiveBillingKey(userId);
+    if (!activeBillingKey) {
+      return { success: true, message: '활성 빌링키가 없습니다.' };
+    }
+
+    const cancelResult = await nicePayProvider.cancelBillingKey(activeBillingKey.bid);
+
+    await db
+      .update(billingKeys)
+      .set({ status: 'inactive', updatedAt: new Date() })
+      .where(eq(billingKeys.id, activeBillingKey.id));
+
+    logger.info('Billing key deactivated', {
+      userId,
+      bid: activeBillingKey.bid,
+      nicepayCancel: cancelResult.success,
+    });
+
+    return { success: true, message: '빌링키가 해지되었습니다.' };
   }
 
   async initPayment(
@@ -432,13 +796,23 @@ export class PaymentService {
       })
       .where(eq(subscriptions.id, subscriptionId));
 
+    await this.deactivateBillingKey(userId);
+
     logger.info('Subscription cancelled successfully', { subscriptionId });
 
     return {
       success: true,
-      message: '구독이 취소되었습니다.',
+      message: '구독이 취소되었습니다. 이용 기간이 끝나면 자동결제가 중단됩니다.',
     };
   }
 }
 
 export const paymentService = new PaymentService();
+
+setInterval(async () => {
+  try {
+    await paymentService.processAutoRenewals();
+  } catch (e) {
+    logger.error('Auto-renewal scheduler error', { error: e });
+  }
+}, 60 * 60 * 1000);

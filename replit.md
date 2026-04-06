@@ -71,8 +71,18 @@ teum/
 - **Trigger**: Free users see interstitial ad from 4th diary onwards before save
 
 ### 6. Payments (NicePay)
-- NicePay JS SDK 연동 (신용/체크카드, 계좌이체, 휴대폰 결제)
+- NicePay JS SDK 연동 (신용/체크카드)
+- **빌링키(Billing Key) 기반 자동결제**:
+  - `POST /api/payments/billing/init` → NicePay `subscribe` method로 빌링키 등록
+  - `POST /api/payments/nicepay/billing-return` → 빌링키 승인 + 첫 결제 자동 처리
+  - `billing_keys` 테이블에 빌링키 저장 (bid, cardCode, cardName, cardNo, status)
+  - 자동 갱신 스케줄러: 매시간 만료된 구독 확인 → 빌링키로 자동 결제 → 새 구독 생성
+  - 구독 취소 시 빌링키도 자동 해지 (NicePay API + DB)
+- **재구독 본인인증**: 이전 구독 이력이 있으면(취소/만료) 빌링키 등록 전 서버에서 검증
+  - `GET /api/payments/needs-verification` → 프론트에서 조건부 SMS 인증 모달
+  - `identityVerified` 플래그를 서버에 전달 → 서버에서도 검증
 - 결제 세션 DB 영구 저장 (`payment_sessions` 테이블, 30분 TTL 자동 정리)
+- 금액은 서버 세션에서 관리 (콜백 금액 미사용, 조작 방지)
 - `PAYMENT_MOCK_SUCCESS=true`로 테스트 모드 지원
 - 결제 실패/성공 페이지 제공
 - 관리자 구독 취소: `/api/payments/admin/subscriptions/cancel`

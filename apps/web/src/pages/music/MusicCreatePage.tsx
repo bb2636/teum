@@ -36,6 +36,7 @@ export function MusicCreatePage() {
   const [isLyricsOnly, setIsLyricsOnly] = useState(false);
   const [isMusicReady, setIsMusicReady] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastJobId, setToastJobId] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopPolling = useCallback(() => {
@@ -59,8 +60,9 @@ export function MusicCreatePage() {
           stopPolling();
           setIsMusicReady(true);
           setIsLyricsOnly(false);
+          setToastJobId(jobId);
           setToastMessage(t('music.musicReady'));
-          setTimeout(() => setToastMessage(null), 5000);
+          setTimeout(() => { setToastMessage(null); setToastJobId(null); }, 5000);
         } else if (job.status === 'failed') {
           stopPolling();
         }
@@ -396,9 +398,19 @@ export function MusicCreatePage() {
       </div>
 
       {toastMessage && (
-        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-gray-800 text-white text-sm px-6 py-3 rounded-lg shadow-xl max-w-sm mx-4 animate-slide-up whitespace-nowrap">
-            <p className="text-center">{toastMessage}</p>
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[60]">
+          <div
+            className={`bg-gray-800 text-white text-sm px-6 py-3 rounded-lg shadow-xl max-w-sm mx-4 animate-slide-up whitespace-nowrap ${toastJobId ? 'cursor-pointer active:bg-gray-700' : ''}`}
+            onClick={() => {
+              if (toastJobId) {
+                setToastMessage(null);
+                setShowCompletionModal(false);
+                navigate(`/music/jobs/${toastJobId}`);
+                setToastJobId(null);
+              }
+            }}
+          >
+            <p className="text-center">{toastMessage}{toastJobId ? ' >' : ''}</p>
           </div>
         </div>
       )}

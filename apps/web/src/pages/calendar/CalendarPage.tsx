@@ -462,7 +462,7 @@ export function CalendarPage() {
         <div
           ref={calendarRef}
           className={`flex flex-col px-2 overflow-hidden ${isListFullScreen ? 'hidden' : 'flex-1'}`}
-          style={isListOpen && !isListFullScreen ? { flex: '0 0 40%', maxHeight: '40%' } : !isListOpen ? { paddingBottom: '80px' } : undefined}
+          style={isListOpen && !isListFullScreen ? { flex: '0 0 35%', maxHeight: '35%' } : !isListOpen ? { paddingBottom: '80px' } : undefined}
           onTouchStart={handleCalTouchStart}
           onTouchMove={handleCalTouchMove}
           onTouchEnd={handleCalTouchEnd}
@@ -501,7 +501,7 @@ export function CalendarPage() {
                         ? 'opacity-30'
                         : isSelected
                         ? 'bg-[#f6efed] rounded-lg'
-                        : isToday
+                        : isToday && !isListOpen
                         ? 'bg-[#f6efed] rounded-lg'
                         : ''
                     }`}

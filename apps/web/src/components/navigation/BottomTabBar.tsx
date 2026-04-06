@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Calendar, Music, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useT } from '@/hooks/useTranslation';
+import { queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/api';
 
 const mainTabs = [
   { path: '/home', labelKey: 'tab.home', icon: Home },
@@ -10,11 +12,43 @@ const mainTabs = [
   { path: '/music', labelKey: 'tab.music', icon: Music },
 ];
 
+const prefetchMap: Record<string, () => void> = {
+  '/home': () => {
+    queryClient.prefetchQuery({
+      queryKey: ['diaries', 'recent'],
+      queryFn: () => apiRequest('/diaries?limit=10').then((r: any) => r.data),
+      staleTime: 1000 * 60 * 5,
+    });
+  },
+  '/calendar': () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    queryClient.prefetchQuery({
+      queryKey: ['diaries', 'monthly', year, month],
+      queryFn: () => apiRequest(`/diaries?year=${year}&month=${month}`).then((r: any) => r.data),
+      staleTime: 1000 * 60 * 5,
+    });
+  },
+  '/music': () => {
+    queryClient.prefetchQuery({
+      queryKey: ['music', 'jobs'],
+      queryFn: () => apiRequest('/music/jobs').then((r: any) => r.data),
+      staleTime: 1000 * 60 * 5,
+    });
+  },
+};
+
 export function BottomTabBar() {
   const t = useT();
   const location = useLocation();
   const prevPathRef = useRef(location.pathname);
   const activeTabRef = useRef<HTMLDivElement | null>(null);
+
+  const handleTabHover = useCallback((path: string) => {
+    const prefetch = prefetchMap[path];
+    if (prefetch) prefetch();
+  }, []);
 
   useEffect(() => {
     if (prevPathRef.current !== location.pathname && activeTabRef.current) {
@@ -63,6 +97,8 @@ export function BottomTabBar() {
                   <Link
                     key={tab.path}
                     to={tab.path}
+                    onTouchStart={() => handleTabHover(tab.path)}
+                    onMouseEnter={() => handleTabHover(tab.path)}
                     className={cn(
                       'flex flex-col items-center justify-center flex-1 transition-colors relative py-2 px-3 rounded-full'
                     )}

@@ -6,9 +6,10 @@ export const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 30,
       refetchOnWindowFocus: false,
-      refetchOnMount: true,
+      refetchOnMount: 'always',
       refetchOnReconnect: false,
       retry: 1,
+      placeholderData: (previousData: unknown) => previousData,
     },
     mutations: {
       retry: 0,

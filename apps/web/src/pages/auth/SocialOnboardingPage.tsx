@@ -89,7 +89,7 @@ export function SocialOnboardingPage() {
   const confirmEmailVerification = useConfirmEmailVerification();
 
   const isAppleEmailHidden = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
-  const needsEmailInput = isAppleEmailHidden;
+  const [isEmailEditing, setIsEmailEditing] = useState(isAppleEmailHidden || false);
 
   useEffect(() => {
     if (!socialProfile || !onboardingToken) {
@@ -168,7 +168,7 @@ export function SocialOnboardingPage() {
     !profileErrors.name &&
     nicknameError.length === 0 &&
     isValidDateOfBirth(watchDateOfBirth) &&
-    (!needsEmailInput || emailVerified);
+    (!isEmailEditing || emailVerified);
 
   const watchTermsService = termsForm.watch('termsService');
   const watchTermsPayment = termsForm.watch('termsPayment');
@@ -213,7 +213,7 @@ export function SocialOnboardingPage() {
       setError(t('auth.fixNickname'));
       return;
     }
-    if (needsEmailInput && !emailVerified) {
+    if (isEmailEditing && !emailVerified) {
       setError(t('auth.completeEmailVerification'));
       return;
     }
@@ -230,7 +230,7 @@ export function SocialOnboardingPage() {
     socialOnboarding.mutate(
       {
         onboardingToken,
-        email: isAppleEmailHidden ? profileData.email : undefined,
+        email: isEmailEditing ? profileData.email : undefined,
         nickname: profileData.nickname,
         name: profileData.name,
         dateOfBirth: profileData.dateOfBirth,
@@ -282,7 +282,7 @@ export function SocialOnboardingPage() {
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t('auth.email')}</Label>
-              {needsEmailInput ? (
+              {isEmailEditing ? (
                 <div className="relative">
                   <Input
                     id="email"
@@ -291,6 +291,12 @@ export function SocialOnboardingPage() {
                     placeholder={t('auth.emailPlaceholder')}
                     className={`pr-28 ${profileErrors.email ? 'border-red-500' : ''}`}
                     disabled={emailVerified}
+                    onChange={(e) => {
+                      profileForm.setValue('email', e.target.value, { shouldValidate: true });
+                      if (emailVerified) {
+                        setEmailVerified(false);
+                      }
+                    }}
                   />
                   <Button
                     type="button"
@@ -303,15 +309,25 @@ export function SocialOnboardingPage() {
                   </Button>
                 </div>
               ) : (
-                <Input
-                  id="email"
-                  type="email"
-                  value={socialProfile.email}
-                  disabled
-                  className="bg-gray-100 text-gray-600"
-                />
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={socialProfile.email}
+                    disabled
+                    className="bg-gray-100 text-gray-600 pr-16"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsEmailEditing(true)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  >
+                    {t('common.change')}
+                  </Button>
+                </div>
               )}
-              {emailVerified && needsEmailInput && (
+              {emailVerified && isEmailEditing && (
                 <p className="text-sm text-green-600">✓ {t('auth.emailVerified')}</p>
               )}
             </div>

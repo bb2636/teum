@@ -537,7 +537,7 @@ export class AuthService {
     const tokenEmail = tokenPayload.email as string;
     const isEmailHidden = tokenPayload.isEmailHidden === true;
 
-    const email = (isEmailHidden && input.email) ? input.email : tokenEmail;
+    const email = input.email ? input.email : tokenEmail;
 
     logger.info('Social onboarding', { provider, email });
 

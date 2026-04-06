@@ -37,7 +37,9 @@ export class NicePayProvider {
     this.clientId = process.env.NICEPAY_MERCHANT_ID || '';
     this.secretKey = process.env.NICEPAY_API_SECRET || '';
     this.isTestMode =
-      (process.env.NICEPAY_TEST_MODE || '').toUpperCase() === 'TRUE' || !this.clientId;
+      (process.env.NICEPAY_TEST_MODE || '').toUpperCase() === 'TRUE'
+      || !this.clientId
+      || this.clientId.startsWith('S2_');
 
     this.approvalBaseUrl = this.isTestMode
       ? 'https://sandbox-api.nicepay.co.kr'

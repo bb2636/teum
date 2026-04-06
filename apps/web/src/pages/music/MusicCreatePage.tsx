@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Loader2, Download, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { StorageImage } from '@/components/StorageImage';
 import { useT } from '@/hooks/useTranslation';
 import { getFirstLine } from '@/lib/utils';
+import { apiRequest } from '@/lib/api';
 
 export function MusicCreatePage() {
   const navigate = useNavigate();
@@ -33,7 +34,41 @@ export function MusicCreatePage() {
   const [completedTitle, setCompletedTitle] = useState<string>('');
   const [completedTitleEn, setCompletedTitleEn] = useState<string>('');
   const [isLyricsOnly, setIsLyricsOnly] = useState(false);
+  const [isMusicReady, setIsMusicReady] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
+  const startPolling = useCallback((jobId: string) => {
+    stopPolling();
+    pollingRef.current = setInterval(async () => {
+      try {
+        const response = await apiRequest<{ data: { status: string; audioUrl?: string } }>(`/music/jobs/${jobId}`);
+        const job = response.data;
+        if (job.status === 'completed' && job.audioUrl) {
+          stopPolling();
+          setIsMusicReady(true);
+          setIsLyricsOnly(false);
+          setToastMessage(t('music.musicReady'));
+          setTimeout(() => setToastMessage(null), 5000);
+        } else if (job.status === 'failed') {
+          stopPolling();
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 3000);
+  }, [stopPolling, t]);
 
   useEffect(() => {
     setHideTabBar(true);
@@ -95,23 +130,24 @@ export function MusicCreatePage() {
       });
 
       setShowProcessingModal(false);
-      
+      setCompletedJobId(result.jobId);
+      setCompletedLyrics(result.lyrics || t('music.lyricsPlaceholder'));
+      setCompletedTitle(result.title || '');
+      setCompletedTitleEn(result.titleEn || '');
+
       if (result.status === 'completed' && result.audioUrl) {
-        setCompletedJobId(result.jobId);
-        setCompletedLyrics(result.lyrics || t('music.lyricsPlaceholder'));
-        setCompletedTitle(result.title || '');
-        setCompletedTitleEn(result.titleEn || '');
         setIsLyricsOnly(false);
+        setIsMusicReady(true);
         setShowCompletionModal(true);
       } else if (result.status === 'lyrics_only') {
-        setCompletedJobId(result.jobId);
-        setCompletedLyrics(result.lyrics || t('music.lyricsPlaceholder'));
-        setCompletedTitle(result.title || '');
-        setCompletedTitleEn(result.titleEn || '');
         setIsLyricsOnly(true);
+        setIsMusicReady(false);
         setShowCompletionModal(true);
       } else {
-        navigate(`/music/jobs/${result.jobId}`);
+        setIsLyricsOnly(true);
+        setIsMusicReady(false);
+        setShowCompletionModal(true);
+        startPolling(result.jobId);
       }
     } catch (error) {
       setShowProcessingModal(false);
@@ -393,7 +429,7 @@ export function MusicCreatePage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full max-h-[85vh] flex flex-col animate-modal-pop">
             <div className="text-center space-y-2 mb-4">
               <h2 className="text-lg font-semibold text-brown-900">
-                {isLyricsOnly ? t('music.lyricsComplete') : t('music.songArrived')}
+                {isMusicReady ? t('music.songArrived') : t('music.lyricsComplete')}
               </h2>
               {completedTitle && (
                 <div className="space-y-1">
@@ -404,10 +440,18 @@ export function MusicCreatePage() {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                {isLyricsOnly
+                {isMusicReady
+                  ? t('music.downloadDesc')
+                  : isLyricsOnly && !pollingRef.current
                   ? t('music.lyricsOnlyDesc')
-                  : t('music.downloadDesc')}
+                  : t('music.musicGenerating')}
               </p>
+              {!isMusicReady && pollingRef.current && (
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#4A2C1A]" />
+                  <span className="text-xs text-[#4A2C1A]">{t('music.musicGeneratingShort')}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto rounded-xl border border-brown-100 bg-gray-50 p-4 mb-4 min-h-[120px]">
@@ -417,7 +461,7 @@ export function MusicCreatePage() {
             </div>
 
             <div className="flex gap-2">
-              {!isLyricsOnly && (
+              {isMusicReady && (
                 <Button
                   onClick={handleDownload}
                   className="flex-1 bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
@@ -427,9 +471,12 @@ export function MusicCreatePage() {
                 </Button>
               )}
               <Button
-                onClick={handleAddToMyMusic}
+                onClick={() => {
+                  stopPolling();
+                  handleAddToMyMusic();
+                }}
                 variant="outline"
-                className={`${isLyricsOnly ? 'w-full' : 'flex-1'} border-0 text-brown-700 hover:bg-brown-50 rounded-full`}
+                className={`${!isMusicReady ? 'w-full' : 'flex-1'} border-0 text-brown-700 hover:bg-brown-50 rounded-full`}
               >
                 {t('music.addToMyMusic')}
               </Button>

@@ -3,7 +3,6 @@ import { BottomTabBar } from '../components/navigation/BottomTabBar';
 import { DiaryTypeModal } from '../components/DiaryTypeModal';
 import { useLocation } from 'react-router-dom';
 import { useHideTabBar } from '../contexts/HideTabBarContext';
-import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const AUTH_ROUTES = ['/splash', '/login', '/signup', '/forgot-password', '/social-onboarding', '/mobile-login-complete', '/login-redirect'];
 const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin', '/my/profile-edit', '/my/payment-history', '/my/support/inquiry', '/payment', '/payment/success', '/music/create', '/music/jobs', '/music/list'];
@@ -15,7 +14,6 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { hideTabBar } = useHideTabBar();
-  usePushNotifications();
 
   useEffect(() => {
     window.scrollTo(0, 0);

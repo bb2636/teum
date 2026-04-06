@@ -92,7 +92,6 @@ import supportRoutes from './routes/support.routes';
 import termsRoutes from './routes/terms.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
 import questionRoutes from './routes/question.routes';
-import pushNotificationRoutes from './routes/push-notification.routes';
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/folders', folderRoutes);
@@ -105,7 +104,6 @@ app.use('/api/support', supportRoutes);
 app.use('/api/terms', termsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/questions', questionRoutes);
-app.use('/api/push', pushNotificationRoutes);
 
 // Serve uploaded images (memory adapter: /storage/uploads/... → GET /api/storage/uploads/...)
 // This endpoint is public (no authentication required) to allow image access

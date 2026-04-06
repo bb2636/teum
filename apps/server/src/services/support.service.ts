@@ -1,6 +1,5 @@
 import { supportRepository } from '../repositories/support.repository';
 import { logger } from '../config/logger';
-import { pushNotificationService } from './push-notification.service';
 
 export class SupportService {
   async createInquiry(userId: string, data: {
@@ -51,14 +50,6 @@ export class SupportService {
       throw new Error('Inquiry not found');
     }
     const updated = await supportRepository.updateAnswer(id, answer, answeredBy);
-
-    pushNotificationService.sendToUser(inquiry.userId, {
-      title: '문의 답변이 도착했습니다',
-      body: inquiry.subject,
-      data: { type: 'inquiry_reply', inquiryId: id },
-    }).catch((err) => {
-      logger.error('Failed to send inquiry reply push notification', { inquiryId: id, error: err });
-    });
 
     return updated;
   }

@@ -120,7 +120,15 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="wooricard" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
             <data android:scheme="com.wooricard.wcard" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="com.wooricard.wpay" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />

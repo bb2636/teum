@@ -78,11 +78,10 @@ export class NicePayProvider {
       });
 
       const data = (await response.json()) as Record<string, unknown>;
-      logger.info('NicePay approval response', {
+      logger.info('NicePay approval response FULL', {
         tid,
-        resultCode: data.resultCode,
-        resultMsg: data.resultMsg,
-        status: response.status,
+        httpStatus: response.status,
+        responseBody: JSON.stringify(data),
       });
 
       const resultCode = data.resultCode as string | undefined;

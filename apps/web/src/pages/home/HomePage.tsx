@@ -277,7 +277,7 @@ export function HomePage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
-          <div className="flex items-center justify-between px-4 py-1">
+          <div className="flex items-center justify-center px-4 py-2 relative">
             <div className="flex items-center gap-2">
               <img
                 src="/logo.home.png"
@@ -289,7 +289,7 @@ export function HomePage() {
               />
               <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="absolute right-4 flex items-center gap-2">
               {activeSubscription ? (
                 <Button
                   variant="outline"
@@ -311,8 +311,7 @@ export function HomePage() {
               <ProfileButton />
             </div>
           </div>
-          <div className="px-4 pb-2 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">{t('diary.title')}</h1>
+          <div className="px-4 pb-2 flex items-center justify-end">
           
           {/* 필터 버튼 */}
           <div className="relative">

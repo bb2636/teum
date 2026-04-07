@@ -416,20 +416,12 @@ export function SplashPage() {
     const redirectUri = `${window.location.origin}/api/auth/google/callback`;
     const scope = 'openid email profile';
 
-    const { isNative, platform } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
-    const isIOS = platform === 'ios';
-    const state = (isNative && !isIOS) ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
+    const state = `nonce=${nonce}`;
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
 
-    if (isNative && !isIOS) {
-      setOAuthState(nonce);
-      console.log('[OAuth] Starting Google login, nonce:', nonce.substring(0, 8) + '...');
-      await openInBrowser(authUrl);
-    } else {
-      window.location.href = authUrl;
-    }
+    window.location.href = authUrl;
   };
 
   const handleAppleLogin = async () => {
@@ -442,20 +434,12 @@ export function SplashPage() {
     const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
     const scope = 'name email';
 
-    const { isNative, platform } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
-    const isIOS = platform === 'ios';
-    const state = (isNative && !isIOS) ? `platform=mobile&nonce=${nonce}` : `nonce=${nonce}`;
+    const state = `nonce=${nonce}`;
 
     const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
 
-    if (isNative && !isIOS) {
-      setOAuthState(nonce);
-      console.log('[OAuth] Starting Apple login, nonce:', nonce.substring(0, 8) + '...');
-      await openInBrowser(authUrl);
-    } else {
-      window.location.href = authUrl;
-    }
+    window.location.href = authUrl;
   };
 
   return (

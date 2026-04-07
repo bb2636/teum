@@ -41,24 +41,8 @@ function getCapacitorPlatform(): { isNative: boolean; platform: string } {
   return { isNative, platform };
 }
 
-async function openInBrowser(url: string) {
-  try {
-    const { Browser } = await import('@capacitor/browser');
-    await Browser.open({ url, windowName: '_blank' });
-  } catch {
-    window.open(url, '_system');
-  }
-}
-
 const OAUTH_NONCE_KEY = 'teum_oauth_nonce';
 const OAUTH_PENDING_KEY = 'teum_oauth_pending_ts';
-
-function setOAuthState(nonce: string) {
-  try {
-    localStorage.setItem(OAUTH_NONCE_KEY, nonce);
-    localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
-  } catch {}
-}
 
 function getOAuthState(): { nonce: string | null; pendingTs: number | null } {
   try {

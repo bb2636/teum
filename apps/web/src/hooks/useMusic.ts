@@ -100,8 +100,6 @@ export function useMusicJobs() {
     getNextPageParam: (lastPage) => lastPage?.nextOffset ?? undefined,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
-    structuralSharing: false,
-    placeholderData: undefined,
     retry: (failureCount, error) => {
       if ((error as any)?.status === 401) return false;
       return failureCount < 1;

@@ -174,7 +174,8 @@ teum/
 ## Data Caching Strategy
 
 - `staleTime: 1000*60*5` (5분) — 탭 이동 시 5분 이내면 캐시 표시, 이후 재요청
-- `gcTime: 1000*60*30` (30분, queryClient 기본) / 개별 훅은 `1000*60*60` (1시간)
+- `gcTime: 1000*60*60*6` (6시간, queryClient 기본) / 개별 훅은 `1000*60*60` (1시간)
+- **글로벌 `placeholderData` 사용 금지**: React Query v5에서 글로벌 `placeholderData: keepPreviousData`는 InfiniteQuery(`useDiaries`, `useMusicJobs`)와 충돌하여 `pages.length` TypeError 발생. 개별 훅에서 필요시만 설정할 것.
 - 서버: 모든 `/api/` 응답에 `Cache-Control: no-store` 설정 (WebView HTTP 캐시 방지)
 - 데이터 갱신은 mutation의 `onSuccess`에서 `invalidateQueries()`로 처리 (CQRS 패턴)
 - 사용자 프로필 쿼리 키: `['user', 'me']` — 결제/구독 훅에서도 동일 키 사용 필수

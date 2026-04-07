@@ -22,23 +22,20 @@ declare global {
   }
 }
 
-function isWebView(): boolean {
-  const ua = navigator.userAgent || '';
-  if (/; wv\)/.test(ua)) return true;
-  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) return true;
-  return false;
-}
-
 function getCapacitorPlatform(): { isNative: boolean; platform: string } {
   const cap = (window as any).Capacitor;
-  const capNative = !!cap?.isNativePlatform?.();
-  const isNative = capNative || isWebView();
-  let platform = cap?.getPlatform?.() || 'web';
-  if (platform === 'web' && isWebView()) {
-    const ua = navigator.userAgent || '';
-    platform = /iPhone|iPad|iPod/.test(ua) ? 'ios' : 'android';
+  if (cap?.isNativePlatform?.()) {
+    return { isNative: true, platform: cap.getPlatform?.() || 'android' };
   }
-  return { isNative, platform };
+  const ua = navigator.userAgent || '';
+  if (/; wv\)/.test(ua)) {
+    const platform = /iPhone|iPad|iPod/.test(ua) ? 'ios' : 'android';
+    return { isNative: true, platform };
+  }
+  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) {
+    return { isNative: true, platform: 'ios' };
+  }
+  return { isNative: false, platform: 'web' };
 }
 
 const OAUTH_NONCE_KEY = 'teum_oauth_nonce';
@@ -388,7 +385,12 @@ export function SplashPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
-    if (window.google && gsiInitialized.current) {
+    const { isNative } = getCapacitorPlatform();
+    if (isNative) {
+      const nonce = crypto.randomUUID();
+      const state = `nonce=${nonce}`;
+      window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
+    } else if (window.google && gsiInitialized.current) {
       window.google.accounts.id.prompt();
     } else {
       const nonce = crypto.randomUUID();

@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+
+const MUSIC_PAGE_SIZE = 20;
 
 export interface MusicJobListItem {
   jobId: string;
@@ -79,17 +81,55 @@ export function useMusicGenres() {
   });
 }
 
-// 목록 및 월간 한도
+interface MusicJobsPageResponse extends MusicJobsResponse {
+  hasMore: boolean;
+  nextOffset: number | null;
+}
+
 export function useMusicJobs() {
-  return useQuery<MusicJobsResponse>({
+  const query = useInfiniteQuery<MusicJobsPageResponse, Error>({
     queryKey: ['music', 'jobs'],
-    queryFn: async () => {
-      const response = await apiRequest<{ data: MusicJobsResponse }>('/music/jobs');
+    queryFn: async ({ pageParam }) => {
+      const offset = pageParam as number;
+      const response = await apiRequest<{ data: MusicJobsPageResponse }>(
+        `/music/jobs?limit=${MUSIC_PAGE_SIZE}&offset=${offset}`
+      );
       return response.data;
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
   });
+
+  const allJobs = query.data?.pages.flatMap((p) => p.jobs) ?? [];
+  const seen = new Set<string>();
+  const jobs = allJobs.filter((j) => {
+    if (seen.has(j.jobId)) return false;
+    seen.add(j.jobId);
+    return true;
+  });
+
+  const firstPage = query.data?.pages[0];
+
+  return {
+    data: firstPage
+      ? {
+          jobs,
+          monthlyUsed: firstPage.monthlyUsed,
+          monthlyLimit: firstPage.monthlyLimit,
+          hasSubscription: firstPage.hasSubscription,
+          nextPaymentDate: firstPage.nextPaymentDate,
+        }
+      : undefined,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    hasNextPage: query.hasNextPage ?? false,
+    isFetchingNextPage: query.isFetchingNextPage,
+    fetchNextPage: query.fetchNextPage,
+    refetch: query.refetch,
+  };
 }
 
 export interface GenerateMusicParams {

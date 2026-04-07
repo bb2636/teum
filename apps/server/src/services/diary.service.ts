@@ -11,8 +11,8 @@ import { getLanguageFromCountry } from '../utils/country-to-language';
 import { logger } from '../config/logger';
 
 export class DiaryService {
-  async getDiaries(userId: string, folderId?: string) {
-    return diaryRepository.findByUserId(userId, folderId);
+  async getDiaries(userId: string, folderId?: string, options?: { limit?: number; offset?: number }) {
+    return diaryRepository.findByUserId(userId, folderId, options);
   }
 
   async getAllDiaries() {

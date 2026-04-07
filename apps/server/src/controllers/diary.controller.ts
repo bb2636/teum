@@ -18,10 +18,20 @@ export class DiaryController {
       }
 
       const folderId = req.query.folderId as string | undefined;
-      const diaries = await diaryService.getDiaries(req.user.userId, folderId);
+      const limitParam = req.query.limit as string | undefined;
+      const offsetParam = req.query.offset as string | undefined;
+
+      const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100) : undefined;
+      const offset = offsetParam ? Math.max(parseInt(offsetParam, 10) || 0, 0) : undefined;
+
+      const result = await diaryService.getDiaries(req.user.userId, folderId, limit != null ? { limit, offset } : undefined);
       res.json({
         success: true,
-        data: { diaries },
+        data: {
+          diaries: result.items,
+          hasMore: result.hasMore,
+          nextOffset: result.nextOffset,
+        },
       });
     } catch (error) {
       next(error);

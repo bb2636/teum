@@ -75,8 +75,10 @@ export class DiaryRepository {
     return results;
   }
 
-  async findByUserId(userId: string, folderId?: string) {
-    // Optimized: Use single query with relations instead of N+1 queries
+  async findByUserId(userId: string, folderId?: string, options?: { limit?: number; offset?: number }) {
+    const limit = options?.limit;
+    const offset = options?.offset ?? 0;
+
     const results = await db.query.diaries.findMany({
       where: (diaries, { eq, isNull, and: andFn }) => {
         const conditions = [
@@ -89,6 +91,7 @@ export class DiaryRepository {
         return andFn(...conditions);
       },
       orderBy: (diaries, { desc }) => [desc(diaries.date)],
+      ...(limit != null ? { limit: limit + 1, offset } : {}),
       with: {
         images: {
           orderBy: (images, { asc }) => [asc(images.sortOrder)],
@@ -96,7 +99,7 @@ export class DiaryRepository {
         answers: {
           orderBy: (answers, { asc }) => [asc(answers.createdAt)],
           with: {
-            question: true, // May be null if question is from questions table
+            question: true,
           },
         },
         aiFeedback: {
@@ -106,18 +109,35 @@ export class DiaryRepository {
       },
     });
 
-    // Enrich answers with question data from questions table if question is null
+    const questionIdsToFetch: string[] = [];
     for (const diary of results) {
       if (diary.answers && diary.answers.length > 0) {
         for (const answer of diary.answers) {
-          // If question from diaryQuestions is null, try to get from questions table
           if (!answer.question && answer.questionId) {
-            const question = await db.query.questions.findFirst({
-              where: (questions, { eq, isNull: isNullFn }) =>
-                and(eq(questions.id, answer.questionId), isNullFn(questions.deletedAt)),
-            });
+            questionIdsToFetch.push(answer.questionId);
+          }
+        }
+      }
+    }
+
+    let questionsMap = new Map<string, typeof questions.$inferSelect>();
+    if (questionIdsToFetch.length > 0) {
+      const uniqueIds = [...new Set(questionIdsToFetch)];
+      const fetchedQuestions = await db
+        .select()
+        .from(questions)
+        .where(and(inArray(questions.id, uniqueIds), isNull(questions.deletedAt)));
+      for (const q of fetchedQuestions) {
+        questionsMap.set(q.id, q);
+      }
+    }
+
+    for (const diary of results) {
+      if (diary.answers && diary.answers.length > 0) {
+        for (const answer of diary.answers) {
+          if (!answer.question && answer.questionId) {
+            const question = questionsMap.get(answer.questionId);
             if (question) {
-              // Add question data to answer
               (answer as any).question = question;
             }
           }
@@ -125,7 +145,13 @@ export class DiaryRepository {
       }
     }
 
-    return results;
+    if (limit != null) {
+      const hasMore = results.length > limit;
+      const items = hasMore ? results.slice(0, limit) : results;
+      return { items, hasMore, nextOffset: hasMore ? offset + limit : null };
+    }
+
+    return { items: results, hasMore: false, nextOffset: null };
   }
 
   async findByDateRange(userId: string, startDate: Date, endDate: Date) {

@@ -51,25 +51,64 @@ export class MusicService {
     return rows.length;
   }
 
-  async getJobs(userId: string) {
-    const jobs = await db
-      .select({
-        id: musicJobs.id,
-        status: musicJobs.status,
-        lyricalTheme: musicJobs.lyricalTheme,
-        lyrics: musicJobs.lyrics,
-        audioUrl: musicJobs.audioUrl,
-        thumbnailUrl: musicJobs.thumbnailUrl,
-        sourceDiaryIds: musicJobs.sourceDiaryIds,
-        createdAt: musicJobs.createdAt,
-        completedAt: musicJobs.completedAt,
-        durationSeconds: musicJobs.durationSeconds,
-        songTitle: musicJobs.songTitle,
-        songTitleEn: musicJobs.songTitleEn,
-      })
-      .from(musicJobs)
-      .where(eq(musicJobs.userId, userId))
-      .orderBy(desc(musicJobs.createdAt));
+  async getJobs(userId: string, options?: { limit?: number; offset?: number }) {
+    const limit = options?.limit;
+    const offset = options?.offset ?? 0;
+
+    const selectFields = {
+      id: musicJobs.id,
+      status: musicJobs.status,
+      lyricalTheme: musicJobs.lyricalTheme,
+      lyrics: musicJobs.lyrics,
+      audioUrl: musicJobs.audioUrl,
+      thumbnailUrl: musicJobs.thumbnailUrl,
+      sourceDiaryIds: musicJobs.sourceDiaryIds,
+      createdAt: musicJobs.createdAt,
+      completedAt: musicJobs.completedAt,
+      durationSeconds: musicJobs.durationSeconds,
+      songTitle: musicJobs.songTitle,
+      songTitleEn: musicJobs.songTitleEn,
+    };
+
+    const mapJob = (j: typeof selectFields extends infer T ? { [K in keyof T]: any } : never) => ({
+      jobId: j.id,
+      status: j.status,
+      title: (j.songTitle ?? j.lyricalTheme) ?? undefined,
+      titleEn: j.songTitleEn ?? undefined,
+      lyrics: j.lyrics ?? undefined,
+      audioUrl: j.audioUrl ?? undefined,
+      thumbnailUrl: j.thumbnailUrl ?? undefined,
+      sourceDiaryIds: (j.sourceDiaryIds as string[]) ?? [],
+      durationSeconds: j.durationSeconds != null ? Math.min(j.durationSeconds, 120) : undefined,
+      createdAt: j.createdAt.toISOString(),
+      completedAt: j.completedAt?.toISOString() ?? undefined,
+    });
+
+    let allJobs;
+    let hasMore = false;
+    let nextOffset: number | null = null;
+
+    if (limit != null) {
+      const rows = await db
+        .select(selectFields)
+        .from(musicJobs)
+        .where(eq(musicJobs.userId, userId))
+        .orderBy(desc(musicJobs.createdAt))
+        .limit(limit + 1)
+        .offset(offset);
+
+      hasMore = rows.length > limit;
+      const items = hasMore ? rows.slice(0, limit) : rows;
+      nextOffset = hasMore ? offset + limit : null;
+      allJobs = items.map(mapJob);
+    } else {
+      const rows = await db
+        .select(selectFields)
+        .from(musicJobs)
+        .where(eq(musicJobs.userId, userId))
+        .orderBy(desc(musicJobs.createdAt));
+      allJobs = rows.map(mapJob);
+    }
 
     const monthlyUsed = await this.getMonthlyUsage(userId);
     const hasSubscription = await this.hasActiveSubscription(userId);
@@ -79,19 +118,9 @@ export class MusicService {
       : undefined;
 
     return {
-      jobs: jobs.map((j) => ({
-        jobId: j.id,
-        status: j.status,
-        title: (j.songTitle ?? j.lyricalTheme) ?? undefined,
-        titleEn: j.songTitleEn ?? undefined,
-        lyrics: j.lyrics ?? undefined,
-        audioUrl: j.audioUrl ?? undefined,
-        thumbnailUrl: j.thumbnailUrl ?? undefined,
-        sourceDiaryIds: (j.sourceDiaryIds as string[]) ?? [],
-        durationSeconds: j.durationSeconds != null ? Math.min(j.durationSeconds, 120) : undefined,
-        createdAt: j.createdAt.toISOString(),
-        completedAt: j.completedAt?.toISOString() ?? undefined,
-      })),
+      jobs: allJobs,
+      hasMore,
+      nextOffset,
       monthlyUsed,
       monthlyLimit: MUSIC_MONTHLY_LIMIT,
       hasSubscription,

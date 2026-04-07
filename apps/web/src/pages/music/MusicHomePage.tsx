@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Sprout, Sparkles, ChevronRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDiaries } from '@/hooks/useDiaries';
+import { useAllDiaries } from '@/hooks/useDiaries';
 import { useMusicJobs, MusicJobListItem } from '@/hooks/useMusic';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
@@ -198,8 +199,9 @@ export function MusicHomePage() {
   const navigate = useNavigate();
   const t = useT();
   const locale = getDateLocale();
-  const { data: jobsData, refetch: refetchJobs } = useMusicJobs();
-  const { data: diariesAll = [] } = useDiaries();
+  const { data: jobsData, refetch: refetchJobs, hasNextPage, isFetchingNextPage, fetchNextPage } = useMusicJobs();
+  const musicSentinelRef = useInfiniteScroll({ hasMore: hasNextPage, isFetchingNextPage, fetchNextPage });
+  const { data: diariesAll = [] } = useAllDiaries();
   const { data: subscriptions = [], refetch: refetchSubscriptions } = useSubscriptions();
 
   useEffect(() => {
@@ -388,6 +390,18 @@ export function MusicHomePage() {
                 </button>
               );
             })}
+            {hasNextPage && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-2 text-sm text-[#4A2C1A] bg-gray-100 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? t('common.loading') : t('common.loadMore')}
+                </button>
+              </div>
+            )}
+            <div ref={musicSentinelRef} className="h-1" />
           </div>
         </section>
       )}

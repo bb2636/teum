@@ -181,6 +181,19 @@ teum/
 - 계정 전환 시: `forceFullCacheClear()` → `cancelQueries()` + `clear()` + `removeQueries()` + `localStorage.clear()`
 - `onUserChanged(userId)`: `/users/me` 응답 시 이전 userId와 다르면 자동 캐시 전체 초기화
 
+## Pagination (Lazy Loading)
+
+- **방식**: offset 기반 pagination, `limit+1` trick으로 `hasMore` 판별
+- **페이지 크기**: diary=20개, music=20개
+- **백엔드 응답 형식**: `{ diaries/jobs, hasMore, nextOffset }` + 음악은 `monthlyUsed/monthlyLimit/hasSubscription/nextPaymentDate` 포함
+- **프론트엔드 훅**:
+  - `useDiaries(folderId?)` — `useInfiniteQuery` 기반, 스크롤 목록 페이지용 (HomePage, DiaryListPage)
+  - `useAllDiaries()` — `useQuery` 기반, 전체 목록이 필요한 페이지용 (MusicCreatePage, MusicHomePage, MusicJobPage, MusicListPage, FolderSelectModal)
+  - `useMusicJobs()` — `useInfiniteQuery` 기반, 음악 목록 페이지용 (MusicHomePage, MusicListPage)
+  - `useInfiniteScroll(props)` — IntersectionObserver 기반 공통 센티넬 훅
+- **캘린더**: 월별 전체 fetch 유지 (`useCalendarDiaries`), 마커 표시용이므로 pagination 불필요
+- **UI**: 자동 스크롤 센티넬 + "더보기" 폴백 버튼 (`common.loadMore`)
+
 ## Internationalization (i18n)
 
 - **Languages**: Korean (ko), English (en) — 국가 선택에 따라 전환

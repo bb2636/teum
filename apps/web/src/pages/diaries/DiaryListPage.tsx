@@ -2,6 +2,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiaries } from '@/hooks/useDiaries';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
@@ -14,7 +15,8 @@ export function DiaryListPage() {
   const date = searchParams.get('date');
   const folderId = searchParams.get('folderId') || undefined;
 
-  const { data: diaries = [], isLoading } = useDiaries(folderId);
+  const { data: diaries = [], isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useDiaries(folderId);
+  const diarySentinelRef = useInfiniteScroll({ hasMore: hasNextPage, isFetchingNextPage, fetchNextPage });
 
   // Filter by date if provided
   const filteredDiaries = date
@@ -123,6 +125,18 @@ export function DiaryListPage() {
                 </div>
               </Link>
             ))}
+            {hasNextPage && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-2 text-sm text-[#4A2C1A] bg-gray-100 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? t('common.loading') : t('common.loadMore')}
+                </button>
+              </div>
+            )}
+            <div ref={diarySentinelRef} className="h-1" />
           </div>
         )}
       </div>

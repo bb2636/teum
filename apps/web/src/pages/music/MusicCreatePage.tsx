@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Loader2, Download, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDiaries, useFolders } from '@/hooks/useDiaries';
+import { useAllDiaries, useFolders } from '@/hooks/useDiaries';
 import { useGenerateMusic, useMusicGenres } from '@/hooks/useMusic';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { downloadMusicFile } from '@/lib/downloadMusic';
@@ -19,7 +19,7 @@ export function MusicCreatePage() {
   const locale = getDateLocale();
   const { setHideTabBar } = useHideTabBar();
   const { data: genresData } = useMusicGenres();
-  const { data: diariesAll = [] } = useDiaries();
+  const { data: diariesAll = [] } = useAllDiaries();
   const { data: folders = [] } = useFolders();
   const generateMusic = useGenerateMusic();
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Plus, ArrowLeft } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders } from '@/hooks/useDiaries';
-import { useDiaries } from '@/hooks/useDiaries';
+import { useAllDiaries } from '@/hooks/useDiaries';
 import { useCreateFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { getStorageImageSrc } from '@/lib/api';
@@ -24,7 +24,7 @@ export function FolderSelectModal({
   const queryClient = useQueryClient();
   const t = useT();
   const { data: folders = [] } = useFolders();
-  const { data: allDiaries = [] } = useDiaries();
+  const { data: allDiaries = [] } = useAllDiaries();
   const createFolder = useCreateFolder();
   const uploadImage = useUploadImage();
   

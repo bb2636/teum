@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, XCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMusicJob } from '@/hooks/useMusic';
-import { useDiaries } from '@/hooks/useDiaries';
+import { useAllDiaries } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
@@ -17,7 +17,7 @@ export function MusicJobPage() {
   const t = useT();
   const locale = getDateLocale();
   const { data: job, isLoading, error } = useMusicJob(jobId || '');
-  const { data: diariesAll = [] } = useDiaries();
+  const { data: diariesAll = [] } = useAllDiaries();
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);

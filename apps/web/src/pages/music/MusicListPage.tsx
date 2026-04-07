@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play, Download } from 'lucide-react';
 import { useMusicJobs, MusicJobListItem } from '@/hooks/useMusic';
-import { useDiaries } from '@/hooks/useDiaries';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useAllDiaries } from '@/hooks/useDiaries';
 import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
@@ -15,8 +16,9 @@ export function MusicListPage() {
   const navigate = useNavigate();
   const t = useT();
   const locale = getDateLocale();
-  const { data: jobsData } = useMusicJobs();
-  const { data: diariesAll = [] } = useDiaries();
+  const { data: jobsData, hasNextPage, isFetchingNextPage, fetchNextPage } = useMusicJobs();
+  const musicSentinelRef = useInfiniteScroll({ hasMore: hasNextPage, isFetchingNextPage, fetchNextPage });
+  const { data: diariesAll = [] } = useAllDiaries();
 
   const jobs = jobsData?.jobs ?? [];
   const completedJobs = jobs.filter((j) => j.status === 'completed' || j.status === 'lyrics_only');
@@ -122,6 +124,18 @@ export function MusicListPage() {
                 </button>
               );
             })}
+            {hasNextPage && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-2 text-sm text-[#4A2C1A] bg-gray-100 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? t('common.loading') : t('common.loadMore')}
+                </button>
+              </div>
+            )}
+            <div ref={musicSentinelRef} className="h-1" />
           </div>
         )}
       </div>

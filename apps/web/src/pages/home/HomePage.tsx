@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
 import { useDiaries, useFolders, useDiaryCount } from '@/hooks/useDiaries';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useCreateFolder, useUpdateFolder, useDeleteFolder } from '@/hooks/useFolders';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
@@ -23,7 +24,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
-  const { data: diaries = [], isLoading: diariesLoading } = useDiaries(selectedFolderId);
+  const { data: diaries = [], isLoading: diariesLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useDiaries(selectedFolderId);
   const { data: subscriptions = [] } = useSubscriptions();
   const { data: diaryCount = 0 } = useDiaryCount();
   const createFolder = useCreateFolder();
@@ -55,6 +56,12 @@ export function HomePage() {
   const [isCreating, setIsCreating] = useState(false);
   const [uploadErrorToast, setUploadErrorToast] = useState(false);
   const [showFolderLimitModal, setShowFolderLimitModal] = useState(false);
+
+  const scrollSentinelRef = useInfiniteScroll({
+    hasMore: hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
   
   // 폴더 생성 모달이 열릴 때 하단바 숨기기
   useEffect(() => {
@@ -673,6 +680,18 @@ export function HomePage() {
                   </div>
                 );
               })}
+            {hasNextPage && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-2 text-sm text-[#4A2C1A] bg-gray-100 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? t('common.loading') : t('common.loadMore')}
+                </button>
+              </div>
+            )}
+            <div ref={scrollSentinelRef} className="h-1" />
           </div>
         )}
       </div>

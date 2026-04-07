@@ -95,7 +95,13 @@ export class MusicController {
         });
       }
 
-      const data = await musicService.getJobs(req.user.userId);
+      const limitParam = req.query.limit as string | undefined;
+      const offsetParam = req.query.offset as string | undefined;
+
+      const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100) : undefined;
+      const offset = offsetParam ? Math.max(parseInt(offsetParam, 10) || 0, 0) : undefined;
+
+      const data = await musicService.getJobs(req.user.userId, limit != null ? { limit, offset } : undefined);
       res.json({
         success: true,
         data,

@@ -97,9 +97,10 @@ export function useMusicJobs() {
       return response.data;
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
+    getNextPageParam: (lastPage) => lastPage?.nextOffset ?? undefined,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
+    structuralSharing: false,
   });
 
   const allJobs = query.data?.pages.flatMap((p) => p.jobs) ?? [];

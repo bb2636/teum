@@ -199,15 +199,10 @@ export function MusicHomePage() {
   const navigate = useNavigate();
   const t = useT();
   const locale = getDateLocale();
-  const { data: jobsData, refetch: refetchJobs, hasNextPage, isFetchingNextPage, fetchNextPage } = useMusicJobs();
+  const { data: jobsData, hasNextPage, isFetchingNextPage, fetchNextPage } = useMusicJobs();
   const musicSentinelRef = useInfiniteScroll({ hasMore: hasNextPage, isFetchingNextPage, fetchNextPage });
   const { data: diariesAll = [] } = useAllDiaries();
-  const { data: subscriptions = [], refetch: refetchSubscriptions } = useSubscriptions();
-
-  useEffect(() => {
-    refetchSubscriptions();
-    refetchJobs();
-  }, [refetchSubscriptions, refetchJobs]);
+  const { data: subscriptions = [] } = useSubscriptions();
 
   const jobs = jobsData?.jobs ?? [];
   const monthlyUsed = jobsData?.monthlyUsed ?? 0;

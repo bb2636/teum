@@ -100,8 +100,16 @@ teum/
 
 ### 9. Email (Resend)
 - 회원가입/비밀번호 재설정 시 이메일 인증번호 발송
-- teum 브랜드 HTML 템플릿
+- teum 브랜드 HTML 템플릿, HTML 이스케이프 적용
 - `RESEND_API_KEY` 미설정 시 nodemailer 폴백
+- **이메일 알림 트리거 (7종)**: 모든 알림은 fire-and-forget (비동기, 실패해도 메인 로직 차단 안 함)
+  - 회원가입 완료 (`sendSignupNotification`) → `auth.service.ts` signup/socialOnboarding
+  - 회원 탈퇴 완료 (`sendWithdrawalNotification`) → `user.controller.ts` deleteAccount
+  - 구독 시작 (`sendSubscriptionStartNotification`) → `payment.service.ts` chargeWithBillingKey/approveNicePayPayment/processPayment(mock)
+  - 구독 해지 (`sendSubscriptionCancelNotification`) → `payment.service.ts` cancelSubscription
+  - 프로필 변경 (`sendProfileUpdateNotification`) → `user.service.ts` updateProfile
+  - 문의 접수 (`sendInquirySubmittedNotification`) → `support.service.ts` createInquiry
+  - 문의 답변 (`sendInquiryAnsweredNotification`) → `support.service.ts` updateInquiryAnswer
 
 ### 10. Social Login (OAuth - 서버 리다이렉트 방식)
 - **Google**: 서버측 OAuth 2.0 리다이렉트 플로우 (`/api/auth/google/url` → Google 로그인 → `/api/auth/google/callback`)

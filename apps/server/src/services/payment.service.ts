@@ -1,9 +1,10 @@
 import { db } from '../db';
-import { payments, subscriptions, paymentSessions, billingKeys } from '../db/schema';
+import { payments, subscriptions, paymentSessions, billingKeys, users, userProfiles } from '../db/schema';
 import { eq, desc, lt, and, lte } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
+import { emailService } from './email/email.service';
 
 setInterval(async () => {
   try {
@@ -16,6 +17,17 @@ setInterval(async () => {
 export class PaymentService {
   private isPaymentMockSuccess(): boolean {
     return process.env.PAYMENT_MOCK_SUCCESS === 'true';
+  }
+
+  private async getUserEmailAndNickname(userId: string): Promise<{ email: string; nickname: string } | null> {
+    const [result] = await db
+      .select({ email: users.email, nickname: userProfiles.nickname })
+      .from(users)
+      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!result?.email) return null;
+    return { email: result.email, nickname: result.nickname || '회원' };
   }
 
   async getActiveSubscription(userId: string) {
@@ -188,6 +200,11 @@ export class PaymentService {
       });
 
       logger.info('Billing payment processed (mock)', { userId, chargeOrderId });
+
+      this.getUserEmailAndNickname(userId).then(info => {
+        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch(() => {});
+      }).catch(() => {});
+
       return { success: true, message: '구독이 시작되었습니다.' };
     }
 
@@ -261,6 +278,11 @@ export class PaymentService {
       });
 
       logger.info('Billing key charge successful', { userId, tid: chargeResult.tid });
+
+      this.getUserEmailAndNickname(userId).then(info => {
+        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch(() => {});
+      }).catch(() => {});
+
       return { success: true, message: '결제가 완료되었습니다.' };
     } catch (txError) {
       logger.error('Billing payment DB transaction failed', { error: txError, userId });
@@ -568,6 +590,12 @@ export class PaymentService {
         orderId,
       });
 
+      if (result.subscriptionId && session.planName) {
+        this.getUserEmailAndNickname(session.userId).then(info => {
+          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, session.planName!).catch(() => {});
+        }).catch(() => {});
+      }
+
       return {
         success: true,
         message: approvalResult.resultMsg || '결제가 완료되었습니다.',
@@ -667,6 +695,12 @@ export class PaymentService {
       }
 
       logger.info('Payment processed (mock success)', { paymentId: payment.id });
+
+      if (subscription && input.planName) {
+        this.getUserEmailAndNickname(userId).then(info => {
+          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, input.planName!).catch(() => {});
+        }).catch(() => {});
+      }
 
       return {
         success: true,
@@ -799,6 +833,13 @@ export class PaymentService {
     await this.deactivateBillingKey(userId);
 
     logger.info('Subscription cancelled successfully', { subscriptionId });
+
+    const endDateStr = subscription.endDate
+      ? new Date(subscription.endDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '이용 기간 종료 시';
+    this.getUserEmailAndNickname(userId).then(info => {
+      if (info) emailService.sendSubscriptionCancelNotification(info.email, info.nickname, endDateStr).catch(() => {});
+    }).catch(() => {});
 
     return {
       success: true,

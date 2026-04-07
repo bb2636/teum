@@ -89,6 +89,8 @@ export class AuthService {
 
     const tokens = await this.generateTokensForUser(user);
 
+    emailService.sendSignupNotification(user.email, input.nickname).catch(() => {});
+
     return {
       user: {
         id: user.id,
@@ -592,6 +594,8 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokensForUser(user);
+
+    emailService.sendSignupNotification(user.email, input.nickname).catch(() => {});
 
     return {
       user: { id: user.id, email: user.email, role: user.role },

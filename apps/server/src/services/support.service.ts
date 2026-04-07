@@ -1,5 +1,7 @@
 import { supportRepository } from '../repositories/support.repository';
 import { logger } from '../config/logger';
+import { emailService } from './email/email.service';
+import { userRepository } from '../repositories/user.repository';
 
 export class SupportService {
   async createInquiry(userId: string, data: {
@@ -13,6 +15,13 @@ export class SupportService {
       subject: data.subject,
       message: data.message,
     });
+
+    userRepository.findByIdWithProfile(userId).then(user => {
+      if (user?.email) {
+        const nickname = (user as any)?.profile?.nickname || '회원';
+        emailService.sendInquirySubmittedNotification(user.email, nickname, data.subject).catch(() => {});
+      }
+    }).catch(() => {});
 
     return inquiry;
   }
@@ -50,6 +59,16 @@ export class SupportService {
       throw new Error('Inquiry not found');
     }
     const updated = await supportRepository.updateAnswer(id, answer, answeredBy);
+
+    const inquiryUserId = (inquiry as any).userId;
+    if (inquiryUserId) {
+      userRepository.findByIdWithProfile(inquiryUserId).then(user => {
+        if (user?.email) {
+          const nickname = (user as any)?.profile?.nickname || '회원';
+          emailService.sendInquiryAnsweredNotification(user.email, nickname, (inquiry as any).subject || '문의').catch(() => {});
+        }
+      }).catch(() => {});
+    }
 
     return updated;
   }

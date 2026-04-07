@@ -1,5 +1,6 @@
 import { userRepository } from '../repositories/user.repository';
 import { logger } from '../config/logger';
+import { emailService } from './email/email.service';
 
 export class UserService {
   async updateProfile(userId: string, data: {
@@ -12,7 +13,6 @@ export class UserService {
   }) {
     logger.info('Updating user profile', { userId });
 
-    // If nickname is being updated, check if it's available
     if (data.nickname) {
       const existingProfile = await userRepository.findByNickname(data.nickname);
       if (existingProfile && existingProfile.userId !== userId) {
@@ -20,7 +20,6 @@ export class UserService {
       }
     }
 
-    // Parse date of birth if provided
     const dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : undefined;
 
     const updateData: Record<string, any> = {};
@@ -32,6 +31,15 @@ export class UserService {
     if (data.country !== undefined) updateData.country = data.country;
 
     const profile = await userRepository.updateProfile(userId, updateData);
+
+    const changedFields = Object.keys(data).filter(k => (data as any)[k] !== undefined);
+    if (changedFields.length > 0) {
+      const user = await userRepository.findByIdWithProfile(userId);
+      if (user?.email) {
+        const nickname = (user as any)?.profile?.nickname || '회원';
+        emailService.sendProfileUpdateNotification(user.email, nickname, changedFields).catch(() => {});
+      }
+    }
 
     return profile;
   }

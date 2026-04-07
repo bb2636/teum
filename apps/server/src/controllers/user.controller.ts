@@ -6,6 +6,7 @@ import { eq, isNull, and } from 'drizzle-orm';
 import { users, subscriptions } from '../db/schema';
 import { updateProfileSchema } from '../validations/user';
 import { db } from '../db';
+import { emailService } from '../services/email/email.service';
 
 export class UserController {
   async getMe(req: Request, res: Response, next: NextFunction) {
@@ -113,10 +114,16 @@ export class UserController {
         });
       }
 
-      // Soft delete user
+      const userWithProfile = await userRepository.findByIdWithProfile(req.user.userId);
+      const userEmail = userWithProfile?.email;
+      const userNickname = (userWithProfile as any)?.profile?.nickname || '회원';
+
       await userRepository.softDeleteUser(req.user.userId);
 
-      // Clear cookies (path must match the one used when setting)
+      if (userEmail) {
+        emailService.sendWithdrawalNotification(userEmail, userNickname).catch(() => {});
+      }
+
       res.clearCookie('accessToken', { path: '/' });
       res.clearCookie('refreshToken', { path: '/' });
 

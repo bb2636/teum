@@ -54,8 +54,7 @@ export function PaymentSuccessPage() {
     queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     queryClient.invalidateQueries({ queryKey: ['payments'] });
     queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
-    queryClient.invalidateQueries({ queryKey: ['me'] });
-    queryClient.invalidateQueries({ queryKey: ['users'] });
+    queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
     return () => {
       setHideTabBar(false);
     };

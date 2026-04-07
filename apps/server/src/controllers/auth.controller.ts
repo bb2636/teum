@@ -214,6 +214,7 @@ export class AuthController {
         userId: payload.userId,
         email: payload.email,
         role: payload.role,
+        tokenVersion: currentVersion,
       });
 
       // Set new access token

@@ -389,6 +389,10 @@ export function SplashPage() {
     if (isNative) {
       const nonce = crypto.randomUUID();
       const state = `nonce=${nonce}`;
+      try {
+        localStorage.setItem(OAUTH_NONCE_KEY, nonce);
+        localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
+      } catch {}
       window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
     } else if (window.google && gsiInitialized.current) {
       window.google.accounts.id.prompt();
@@ -402,6 +406,10 @@ export function SplashPage() {
   const handleAppleLogin = async () => {
     const nonce = crypto.randomUUID();
     const state = `nonce=${nonce}`;
+    try {
+      localStorage.setItem(OAUTH_NONCE_KEY, nonce);
+      localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
+    } catch {}
     window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;
   };
 

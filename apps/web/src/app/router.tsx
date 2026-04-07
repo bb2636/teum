@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { t } from '../lib/i18n';
 import { Layout } from './providers';
 import { HideTabBarProvider } from '../contexts/HideTabBarContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SplashPage } from '../pages/auth/SplashPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { useMe } from '../hooks/useProfile';
@@ -104,6 +105,7 @@ function LazyFallback() {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <Suspense fallback={<LazyFallback />}>
     <Routes>
       {/* Admin page - no Layout wrapper */}
@@ -302,5 +304,6 @@ export default function App() {
       />
     </Routes>
     </Suspense>
+    </ErrorBoundary>
   );
 }

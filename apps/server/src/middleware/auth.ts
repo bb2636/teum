@@ -46,12 +46,10 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     try {
       const payload = verifyAccessToken(token);
 
-      if (payload.tokenVersion !== undefined) {
-        const currentVersion = await userRepository.getTokenVersion(payload.userId);
-        if (currentVersion === null || payload.tokenVersion !== currentVersion) {
-          clearAuthCookies(res);
-          return res.status(401).json(SESSION_EXPIRED_RESPONSE);
-        }
+      const currentVersion = await userRepository.getTokenVersion(payload.userId);
+      if (currentVersion === null || payload.tokenVersion === undefined || payload.tokenVersion !== currentVersion) {
+        clearAuthCookies(res);
+        return res.status(401).json(SESSION_EXPIRED_RESPONSE);
       }
 
       req.user = payload;

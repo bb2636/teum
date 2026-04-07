@@ -136,7 +136,7 @@ export function ProfileEditPage() {
   return (
     <>
       <div className="min-h-screen bg-beige-50">
-        <div className="max-w-md mx-auto px-4 py-6">
+        <div className="max-w-md mx-auto px-4 py-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-xl font-bold text-brown-900">{t('my.profileEdit')}</h1>
             <button

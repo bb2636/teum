@@ -71,8 +71,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative">
-      {/* 뒤로가기 버튼 */}
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))' }}>
       <button
         onClick={() => navigate('/splash')}
         className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm"

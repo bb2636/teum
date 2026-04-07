@@ -134,6 +134,13 @@ teum/
 - Manage users (active/suspended/withdrawn), diaries, questions, legal terms
 - 관리자 구독 취소 기능
 
+## Safe Area (Capacitor Mobile)
+- `viewport-fit=cover` is set in `index.html`
+- All page headers use inline style `paddingTop: 'max(Npx, env(safe-area-inset-top, Npx))'` to avoid status bar overlap on notched devices
+- Tab pages (Home, Calendar, Music, My): 24px default
+- Auth pages (Login, Signup, SocialOnboarding): 32px default
+- Pattern: apply once at the top-level content wrapper per page; never double-stack with absolute-positioned elements
+
 ## Security Features
 
 ### Concurrent Login Prevention (중복 로그인 방지)

@@ -132,7 +132,7 @@ export function MyPage() {
 
   return (
     <div className="h-screen bg-beige-50 flex flex-col overflow-hidden">
-      <div className="shrink-0 max-w-md mx-auto w-full px-4 pt-6 pb-2">
+      <div className="shrink-0 max-w-md mx-auto w-full px-4 pb-2" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
         <h1 className="text-2xl font-bold text-brown-900">{t('my.profile')}</h1>
       </div>
       <div className="flex-1 min-h-0 overflow-hidden max-w-md mx-auto w-full px-4 pb-20 space-y-4">

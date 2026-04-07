@@ -258,7 +258,7 @@ export function SocialOnboardingPage() {
   const providerLabel = socialProfile.provider === 'google' ? 'Google' : 'Apple';
 
   return (
-    <div className="min-h-screen flex flex-col px-4 py-8 bg-white">
+    <div className="min-h-screen flex flex-col px-4 py-8 bg-white" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))' }}>
       <div className="w-full max-w-sm mx-auto space-y-6">
         <div className="relative">
           <button

@@ -115,7 +115,7 @@ export function MusicJobPage() {
   if (error || !job) {
     return (
       <div className="min-h-screen bg-beige-50 pb-20">
-        <div className="max-w-md mx-auto px-4 py-6">
+        <div className="max-w-md mx-auto px-4 py-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
           <Button variant="ghost" size="icon" onClick={() => navigate('/music')} className="mb-4">
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -134,7 +134,7 @@ export function MusicJobPage() {
 
   return (
     <div className="min-h-screen bg-beige-50 pb-20">
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/music')}>
             <ArrowLeft className="w-5 h-5" />

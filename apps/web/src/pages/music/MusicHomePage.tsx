@@ -253,7 +253,7 @@ export function MusicHomePage() {
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">{t('music.generateTitle')}</h1>
           <ProfileButton />

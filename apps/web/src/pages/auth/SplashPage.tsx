@@ -388,12 +388,22 @@ export function SplashPage() {
     const { isNative } = getCapacitorPlatform();
     if (isNative) {
       const nonce = crypto.randomUUID();
-      const state = `nonce=${nonce}`;
+      const state = `nonce=${nonce}&platform=mobile`;
       try {
         localStorage.setItem(OAUTH_NONCE_KEY, nonce);
         localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
       } catch {}
-      window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        const apiBase = import.meta.env.VITE_API_URL || '/api';
+        const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
+        await Browser.open({
+          url: `${baseUrl}/auth/google/init?state=${encodeURIComponent(state)}`,
+          presentationStyle: 'popover',
+        });
+      } catch {
+        window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
+      }
     } else if (window.google && gsiInitialized.current) {
       window.google.accounts.id.prompt();
     } else {
@@ -404,13 +414,28 @@ export function SplashPage() {
   };
 
   const handleAppleLogin = async () => {
+    const { isNative } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
-    const state = `nonce=${nonce}`;
+    const state = isNative ? `nonce=${nonce}&platform=mobile` : `nonce=${nonce}`;
     try {
       localStorage.setItem(OAUTH_NONCE_KEY, nonce);
       localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
     } catch {}
-    window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;
+    if (isNative) {
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        const apiBase = import.meta.env.VITE_API_URL || '/api';
+        const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
+        await Browser.open({
+          url: `${baseUrl}/auth/apple/init?state=${encodeURIComponent(state)}`,
+          presentationStyle: 'popover',
+        });
+      } catch {
+        window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;
+      }
+    } else {
+      window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;
+    }
   };
 
   return (

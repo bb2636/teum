@@ -391,39 +391,15 @@ export function SplashPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      console.error('Google Client ID is not configured');
-      return;
-    }
-
-    const redirectUri = `${window.location.origin}/api/auth/google/callback`;
-    const scope = 'openid email profile';
-
     const nonce = crypto.randomUUID();
     const state = `nonce=${nonce}`;
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
-
-    window.location.href = authUrl;
+    window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
   };
 
   const handleAppleLogin = async () => {
-    const clientId = import.meta.env.VITE_APPLE_CLIENT_ID;
-    if (!clientId) {
-      console.error('Apple Client ID is not configured');
-      return;
-    }
-
-    const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
-    const scope = 'name email';
-
     const nonce = crypto.randomUUID();
     const state = `nonce=${nonce}`;
-
-    const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
-
-    window.location.href = authUrl;
+    window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;
   };
 
   return (

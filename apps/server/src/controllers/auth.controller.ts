@@ -424,6 +424,45 @@ export class AuthController {
   }
 
 
+  async appleOAuthInit(req: Request, res: Response, next: NextFunction) {
+    try {
+      const clientId = process.env.APPLE_CLIENT_ID || 'app.teum.teum1';
+      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.get('host') || '';
+      const redirectUri = `${proto}://${host}/api/auth/apple/callback`;
+      const scope = 'name email';
+      const state = (req.query.state as string) || `nonce=${randomUUID()}`;
+
+      const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&response_mode=form_post&state=${encodeURIComponent(state)}`;
+
+      return res.redirect(authUrl);
+    } catch (error) {
+      logger.error({ err: error }, 'Apple OAuth init error');
+      return res.redirect('/splash?error=apple_init_failed');
+    }
+  }
+
+  async googleOAuthInit(req: Request, res: Response, next: NextFunction) {
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        return res.redirect('/splash?error=not_configured');
+      }
+      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.get('host') || '';
+      const redirectUri = `${proto}://${host}/api/auth/google/callback`;
+      const scope = 'openid email profile';
+      const state = (req.query.state as string) || `nonce=${randomUUID()}`;
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&prompt=select_account&state=${encodeURIComponent(state)}`;
+
+      return res.redirect(authUrl);
+    } catch (error) {
+      logger.error({ err: error }, 'Google OAuth init error');
+      return res.redirect('/splash?error=google_init_failed');
+    }
+  }
+
   async googleOAuthCallback(req: Request, res: Response, next: NextFunction) {
     try {
       const { code, state } = req.query;

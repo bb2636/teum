@@ -8,6 +8,14 @@ const config: CapacitorConfig = {
     url: 'https://teum.replit.app',
     androidScheme: 'https',
     cleartext: false,
+    allowNavigation: [
+      'appleid.apple.com',
+      'accounts.google.com',
+      '*.apple.com',
+      '*.google.com',
+      '*.gstatic.com',
+      'teum.replit.app',
+    ],
   },
   plugins: {
     Camera: {

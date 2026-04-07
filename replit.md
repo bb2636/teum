@@ -37,6 +37,7 @@ teum/
 - **Frontend**: runs on port 5000 (workflow: "Start application")
 - **Backend**: runs on port 3001 (workflow: "Backend")
 - API requests from frontend are proxied from `/api` to `http://localhost:3001`
+- **코드 스플리팅**: `router.tsx`에서 `React.lazy`로 모든 페이지 컴포넌트 동적 임포트. SplashPage/LoginPage만 즉시 로드, 나머지는 네비게이션 시 로드.
 
 ## Key Features
 

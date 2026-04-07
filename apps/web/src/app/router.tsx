@@ -1,37 +1,39 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { t } from '../lib/i18n';
 import { Layout } from './providers';
 import { HideTabBarProvider } from '../contexts/HideTabBarContext';
 import { SplashPage } from '../pages/auth/SplashPage';
 import { LoginPage } from '../pages/auth/LoginPage';
-import { SignupPage } from '../pages/auth/SignupPage';
-import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
-import { SocialOnboardingPage } from '../pages/auth/SocialOnboardingPage';
-import { MobileLoginCompletePage } from '../pages/auth/MobileLoginCompletePage';
-import { LoginRedirectPage } from '../pages/auth/LoginRedirectPage';
-import { HomePage } from '../pages/home/HomePage';
-import { CalendarPage } from '../pages/calendar/CalendarPage';
-import { DiaryListPage } from '../pages/diaries/DiaryListPage';
-import { DiaryDetailPage } from '../pages/diaries/DiaryDetailPage';
-import { DiaryWritePage } from '../pages/diaries/DiaryWritePage';
-import { CreateFolderPage } from '../pages/diaries/CreateFolderPage';
-import { MusicHomePage } from '../pages/music/MusicHomePage';
-import { MusicCreatePage } from '../pages/music/MusicCreatePage';
-import { MusicJobPage } from '../pages/music/MusicJobPage';
-import { MusicListPage } from '../pages/music/MusicListPage';
-import { MyPage } from '../pages/my/MyPage';
-import { ProfileEditPage } from '../pages/my/ProfileEditPage';
-import { PaymentIntroPage } from '../pages/payment/PaymentIntroPage';
-import { PaymentPage } from '../pages/payment/PaymentPage';
-import { PaymentSuccessPage } from '../pages/payment/PaymentSuccessPage';
-import { PaymentHistoryPage } from '../pages/my/PaymentHistoryPage';
-import { PaymentFailPage } from '../pages/payment/PaymentFailPage';
-import { SupportPage } from '../pages/my/SupportPage';
-import { SupportInquiryPage } from '../pages/my/SupportInquiryPage';
-import { AdminPage } from '../pages/admin/AdminPage';
-import { AdMobTestPage } from '../pages/admin/AdMobTestPage';
-import { PrivacyPolicyPage } from '../pages/legal/PrivacyPolicyPage';
 import { useMe } from '../hooks/useProfile';
+
+const SignupPage = lazy(() => import('../pages/auth/SignupPage').then(m => ({ default: m.SignupPage })));
+const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
+const SocialOnboardingPage = lazy(() => import('../pages/auth/SocialOnboardingPage').then(m => ({ default: m.SocialOnboardingPage })));
+const MobileLoginCompletePage = lazy(() => import('../pages/auth/MobileLoginCompletePage').then(m => ({ default: m.MobileLoginCompletePage })));
+const LoginRedirectPage = lazy(() => import('../pages/auth/LoginRedirectPage').then(m => ({ default: m.LoginRedirectPage })));
+const HomePage = lazy(() => import('../pages/home/HomePage').then(m => ({ default: m.HomePage })));
+const CalendarPage = lazy(() => import('../pages/calendar/CalendarPage').then(m => ({ default: m.CalendarPage })));
+const DiaryListPage = lazy(() => import('../pages/diaries/DiaryListPage').then(m => ({ default: m.DiaryListPage })));
+const DiaryDetailPage = lazy(() => import('../pages/diaries/DiaryDetailPage').then(m => ({ default: m.DiaryDetailPage })));
+const DiaryWritePage = lazy(() => import('../pages/diaries/DiaryWritePage').then(m => ({ default: m.DiaryWritePage })));
+const CreateFolderPage = lazy(() => import('../pages/diaries/CreateFolderPage').then(m => ({ default: m.CreateFolderPage })));
+const MusicHomePage = lazy(() => import('../pages/music/MusicHomePage').then(m => ({ default: m.MusicHomePage })));
+const MusicCreatePage = lazy(() => import('../pages/music/MusicCreatePage').then(m => ({ default: m.MusicCreatePage })));
+const MusicJobPage = lazy(() => import('../pages/music/MusicJobPage').then(m => ({ default: m.MusicJobPage })));
+const MusicListPage = lazy(() => import('../pages/music/MusicListPage').then(m => ({ default: m.MusicListPage })));
+const MyPage = lazy(() => import('../pages/my/MyPage').then(m => ({ default: m.MyPage })));
+const ProfileEditPage = lazy(() => import('../pages/my/ProfileEditPage').then(m => ({ default: m.ProfileEditPage })));
+const PaymentIntroPage = lazy(() => import('../pages/payment/PaymentIntroPage').then(m => ({ default: m.PaymentIntroPage })));
+const PaymentPage = lazy(() => import('../pages/payment/PaymentPage').then(m => ({ default: m.PaymentPage })));
+const PaymentSuccessPage = lazy(() => import('../pages/payment/PaymentSuccessPage').then(m => ({ default: m.PaymentSuccessPage })));
+const PaymentHistoryPage = lazy(() => import('../pages/my/PaymentHistoryPage').then(m => ({ default: m.PaymentHistoryPage })));
+const PaymentFailPage = lazy(() => import('../pages/payment/PaymentFailPage').then(m => ({ default: m.PaymentFailPage })));
+const SupportPage = lazy(() => import('../pages/my/SupportPage').then(m => ({ default: m.SupportPage })));
+const SupportInquiryPage = lazy(() => import('../pages/my/SupportInquiryPage').then(m => ({ default: m.SupportInquiryPage })));
+const AdminPage = lazy(() => import('../pages/admin/AdminPage').then(m => ({ default: m.AdminPage })));
+const AdMobTestPage = lazy(() => import('../pages/admin/AdMobTestPage').then(m => ({ default: m.AdMobTestPage })));
+const PrivacyPolicyPage = lazy(() => import('../pages/legal/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 
 function RootRedirect() {
   const { data: user, isLoading } = useMe();
@@ -92,8 +94,17 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function LazyFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="text-muted-foreground"></div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
+    <Suspense fallback={<LazyFallback />}>
     <Routes>
       {/* Admin page - no Layout wrapper */}
       <Route
@@ -290,5 +301,6 @@ export default function App() {
         }
       />
     </Routes>
+    </Suspense>
   );
 }

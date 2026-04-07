@@ -89,8 +89,6 @@ export function SocialOnboardingPage() {
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
 
-  const isAppleEmailHidden = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
-
   useEffect(() => {
     if (!socialProfile || !onboardingToken) {
       navigate('/splash');

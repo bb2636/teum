@@ -37,7 +37,7 @@ export function MusicCreatePage() {
   const [isMusicReady, setIsMusicReady] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastJobId, setToastJobId] = useState<string | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {

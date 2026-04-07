@@ -572,6 +572,7 @@ export class AuthController {
 
       const appleProto = req.get('x-forwarded-proto') || req.protocol;
       const redirectUri = `${appleProto}://${req.get('host')}/api/auth/apple/callback`;
+      logger.info({ redirectUri, host: req.get('host'), proto: appleProto }, 'Apple OAuth callback - exchanging code for token');
       const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -584,8 +585,9 @@ export class AuthController {
         }),
       });
 
-      const tokenData = await tokenResponse.json() as { id_token?: string };
+      const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string };
       if (!tokenData.id_token) {
+        logger.error({ error: tokenData.error, errorDescription: tokenData.error_description, redirectUri, clientId }, 'Apple token exchange failed');
         if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_token_failed');
         return res.redirect('/splash?error=apple_token_failed');
       }

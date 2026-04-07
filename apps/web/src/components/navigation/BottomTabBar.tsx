@@ -31,10 +31,14 @@ const prefetchMap: Record<string, () => void> = {
     });
   },
   '/music': () => {
-    queryClient.prefetchQuery({
+    queryClient.prefetchInfiniteQuery({
       queryKey: ['music', 'jobs'],
-      queryFn: () => apiRequest('/music/jobs').then((r: any) => r.data),
+      queryFn: ({ pageParam }) =>
+        apiRequest(`/music/jobs?limit=20&offset=${pageParam}`).then((r: any) => r.data),
+      initialPageParam: 0,
+      getNextPageParam: (lastPage: any) => lastPage?.nextOffset ?? undefined,
       staleTime: 1000 * 60 * 5,
+      pages: 1,
     });
   },
 };

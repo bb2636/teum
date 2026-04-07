@@ -418,10 +418,12 @@ export function MusicCreatePage() {
       {showProcessingModal && (
         <div className="fixed inset-0 z-50 bg-[#4A2C1A] flex flex-col items-center justify-center animate-overlay-fade">
           <div className="text-center space-y-6 px-8">
-            <div className="flex justify-center space-x-2">
-              <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-3 h-3 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex justify-center">
+              <img
+                src="/home_logo.png"
+                alt="loading"
+                className="w-16 h-16 object-contain animate-float-logo"
+              />
             </div>
             <h2 className="text-xl font-semibold text-white">{t('music.processingTitle')}</h2>
             <p className="text-sm text-white/70">

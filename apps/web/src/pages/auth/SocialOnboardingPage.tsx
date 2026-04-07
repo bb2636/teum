@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +22,10 @@ const nicknameSchema = z
   .refine((val) => !val.includes(' '), 'auth.nicknameNoSpace')
   .refine((val) => /^[a-zA-Z0-9가-힣_]+$/.test(val), 'auth.nicknameInvalidChar');
 
-const profileSchema = z.object({
-  email: z.string().email('auth.emailPlaceholder'),
+const createProfileSchema = (isEmailOptional: boolean) => z.object({
+  email: isEmailOptional
+    ? z.string().email('auth.emailPlaceholder').or(z.literal('')).optional()
+    : z.string().email('auth.emailPlaceholder'),
   nickname: nicknameSchema,
   name: z.string().min(1, 'auth.enterName').max(100),
   phone: z.string().min(10, 'auth.phoneRequired'),
@@ -51,7 +54,7 @@ const termsSchema = z.object({
   termsRefund: z.boolean().refine((val) => val === true),
 });
 
-type ProfileFormData = z.infer<typeof profileSchema>;
+type ProfileFormData = z.infer<ReturnType<typeof createProfileSchema>>;
 type TermsFormData = z.infer<typeof termsSchema>;
 
 export function SocialOnboardingPage() {
@@ -85,6 +88,9 @@ export function SocialOnboardingPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
+  const [showEmailTooltip, setShowEmailTooltip] = useState(false);
+
+  const isAppleHiddenEmail = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
 
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
@@ -96,10 +102,10 @@ export function SocialOnboardingPage() {
   }, [socialProfile, onboardingToken, navigate]);
 
   const profileForm = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(createProfileSchema(!!isAppleHiddenEmail)),
     mode: 'onChange',
     defaultValues: {
-      email: socialProfile?.email || '',
+      email: isAppleHiddenEmail ? '' : (socialProfile?.email || ''),
       nickname: socialProfile?.name?.replace(/\s/g, '') || '',
       name: socialProfile?.name || '',
       phone: '',
@@ -158,13 +164,15 @@ export function SocialOnboardingPage() {
   };
 
   const profileErrors = profileForm.formState.errors;
+  const isEmailOk = isAppleHiddenEmail
+    ? (!watchEmail || !profileErrors.email)
+    : (!!watchEmail && !profileErrors.email);
   const isProfileValid =
-    watchEmail &&
+    isEmailOk &&
     watchNickname &&
     watchName &&
     watchPhone &&
     watchDateOfBirth &&
-    !profileErrors.email &&
     !profileErrors.nickname &&
     !profileErrors.name &&
     !profileErrors.phone &&
@@ -284,16 +292,33 @@ export function SocialOnboardingPage() {
         {step === 1 && (
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">{t('auth.email')}</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="email">{t('auth.email')}</Label>
+                {isAppleHiddenEmail && (
+                  <span className="text-xs text-gray-400">({t('common.optional') || '선택'})</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowEmailTooltip(!showEmailTooltip)}
+                  className="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {showEmailTooltip && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed">
+                  필수 항목이 아니며, 추가 이메일을 등록하지 않아도 회원가입 및 서비스 이용이 가능합니다. 등록 시 회원가입, 탈퇴, 구독 관련 안내, 문의 등록 및 답변 안내 메일을 받을 수 있습니다.
+                </div>
+              )}
               <Input
                 id="email"
                 type="email"
                 {...profileForm.register('email')}
-                placeholder={t('auth.emailPlaceholder')}
+                placeholder={isAppleHiddenEmail ? '이메일 주소 (선택)' : t('auth.emailPlaceholder')}
                 className={`bg-gray-100 ${profileErrors.email ? 'border-red-500' : ''}`}
                 disabled={false}
               />
-              {profileErrors.email && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
+              {profileErrors.email && watchEmail && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
             </div>
 
             <div className="space-y-2">

@@ -330,9 +330,6 @@ export function SplashPage() {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
-    const { isNative } = getCapacitorPlatform();
-    if (isNative) return;
-
     const initGsi = () => {
       if (gsiInitialized.current) return;
       if (!window.google) return;
@@ -391,9 +388,13 @@ export function SplashPage() {
   }, []);
 
   const handleGoogleLogin = async () => {
-    const nonce = crypto.randomUUID();
-    const state = `nonce=${nonce}`;
-    window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
+    if (window.google && gsiInitialized.current) {
+      window.google.accounts.id.prompt();
+    } else {
+      const nonce = crypto.randomUUID();
+      const state = `nonce=${nonce}`;
+      window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
+    }
   };
 
   const handleAppleLogin = async () => {

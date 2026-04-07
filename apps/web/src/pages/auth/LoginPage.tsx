@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLogin } from '@/hooks/useAuth';
-import { Logo } from '@/components/Logo';
+
 import { useMe } from '@/hooks/useProfile';
 import { useT } from '@/hooks/useTranslation';
 
@@ -82,7 +82,7 @@ export function LoginPage() {
       
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-1">
-          <Logo size="md" />
+          <img src="/logo.png" alt="TEUM logo" className="h-24 w-auto object-contain mx-auto" />
           <p className="text-muted-foreground text-sm">
             {t('app.tagline')}
           </p>

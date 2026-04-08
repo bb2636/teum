@@ -10,6 +10,7 @@ export class UserService {
     dateOfBirth?: string;
     profileImageUrl?: string;
     country?: string;
+    language?: string;
   }) {
     logger.info('Updating user profile', { userId });
 
@@ -29,6 +30,7 @@ export class UserService {
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
     if (data.profileImageUrl !== undefined) updateData.profileImageUrl = data.profileImageUrl;
     if (data.country !== undefined) updateData.country = data.country;
+    if (data.language !== undefined) updateData.language = data.language;
 
     const currentUser = await userRepository.findByIdWithProfile(userId);
     const currentProfile = (currentUser as any)?.profile;
@@ -56,9 +58,11 @@ export class UserService {
       }
     }
 
-    if (actuallyChangedFields.length > 0 && currentUser?.email) {
+    const notifiableFields = actuallyChangedFields.filter(f => f !== 'language');
+    if (notifiableFields.length > 0 && currentUser?.email) {
       const nickname = currentProfile?.nickname || '회원';
-      emailService.sendProfileUpdateNotification(currentUser.email, nickname, actuallyChangedFields).catch((err: unknown) => logger.warn('Profile update notification email failed', { error: err instanceof Error ? err.message : String(err) }));
+      const lang = (profile as any)?.language || currentProfile?.language || 'ko';
+      emailService.sendProfileUpdateNotification(currentUser.email, nickname, notifiableFields, lang).catch((err: unknown) => logger.warn('Profile update notification email failed', { error: err instanceof Error ? err.message : String(err) }));
     }
 
     return profile;

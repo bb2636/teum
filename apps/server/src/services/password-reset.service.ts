@@ -29,8 +29,11 @@ export class PasswordResetService {
       expiresAt,
     });
 
+    const userWithProfile = await userRepository.findByIdWithProfile(user.id);
+    const userLang = (userWithProfile as any)?.profile?.language || 'ko';
+
     try {
-      await emailService.sendPasswordResetEmail(user.email, token);
+      await emailService.sendPasswordResetEmail(user.email, token, userLang);
       logger.info('Password reset email sent', { email });
     } catch (error) {
       logger.error('Failed to send password reset email', {

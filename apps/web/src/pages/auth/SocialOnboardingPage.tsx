@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X } from 'lucide-rea
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 const nicknameSchema = z
   .string()
@@ -266,6 +267,7 @@ export function SocialOnboardingPage() {
         name: profileData.name,
         phone: profileData.phone,
         dateOfBirth: profileData.dateOfBirth,
+        language: getCurrentLanguage(),
         termsConsents: [
           { termsType: 'service', consented: data.termsService },
           { termsType: 'payment', consented: data.termsPayment },

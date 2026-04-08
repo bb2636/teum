@@ -101,7 +101,7 @@ export function ProfileEditPage() {
   const onSubmit = async (data: ProfileFormData) => {
     try {
       const { name: _name, country: _country, ...rest } = data;
-      await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO });
+      await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO, language: selectedLanguage });
       
       setLanguage(selectedLanguage);
       

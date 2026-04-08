@@ -36,15 +36,15 @@ export class PaymentService {
     return process.env.PAYMENT_MOCK_SUCCESS === 'true';
   }
 
-  private async getUserEmailAndNickname(userId: string): Promise<{ email: string; nickname: string } | null> {
+  private async getUserEmailAndNickname(userId: string): Promise<{ email: string; nickname: string; language: string } | null> {
     const [result] = await db
-      .select({ email: users.email, nickname: userProfiles.nickname })
+      .select({ email: users.email, nickname: userProfiles.nickname, language: userProfiles.language })
       .from(users)
       .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
       .where(eq(users.id, userId))
       .limit(1);
     if (!result?.email) return null;
-    return { email: result.email, nickname: result.nickname || '회원' };
+    return { email: result.email, nickname: result.nickname || '회원', language: result.language || 'ko' };
   }
 
   async getActiveSubscription(userId: string) {
@@ -264,7 +264,7 @@ export class PaymentService {
       logger.info('Billing payment processed (mock)', { userId, chargeOrderId });
 
       this.getUserEmailAndNickname(userId).then(info => {
-        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
       return { success: true, message: '구독이 시작되었습니다.' };
@@ -342,7 +342,7 @@ export class PaymentService {
       logger.info('Billing key charge successful', { userId, tid: chargeResult.tid });
 
       this.getUserEmailAndNickname(userId).then(info => {
-        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
       return { success: true, message: '결제가 완료되었습니다.' };
@@ -676,7 +676,7 @@ export class PaymentService {
 
       if (result.subscriptionId && session.planName) {
         this.getUserEmailAndNickname(session.userId).then(info => {
-          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, session.planName!).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, session.planName!, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
         }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }
 
@@ -782,7 +782,7 @@ export class PaymentService {
 
       if (subscription && input.planName) {
         this.getUserEmailAndNickname(userId).then(info => {
-          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, input.planName!).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, input.planName!, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
         }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }
 
@@ -922,7 +922,7 @@ export class PaymentService {
       ? new Date(subscription.endDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
       : '이용 기간 종료 시';
     this.getUserEmailAndNickname(userId).then(info => {
-      if (info) emailService.sendSubscriptionCancelNotification(info.email, info.nickname, endDateStr).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+      if (info) emailService.sendSubscriptionCancelNotification(info.email, info.nickname, endDateStr, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
     }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return {

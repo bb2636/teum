@@ -19,7 +19,8 @@ export class SupportService {
     userRepository.findByIdWithProfile(userId).then(user => {
       if (user?.email) {
         const nickname = (user as any)?.profile?.nickname || '회원';
-        emailService.sendInquirySubmittedNotification(user.email, nickname, data.subject).catch((err: unknown) => logger.warn('Inquiry submitted email failed', { error: err instanceof Error ? err.message : String(err) }));
+        const lang = (user as any)?.profile?.language || 'ko';
+        emailService.sendInquirySubmittedNotification(user.email, nickname, data.subject, lang).catch((err: unknown) => logger.warn('Inquiry submitted email failed', { error: err instanceof Error ? err.message : String(err) }));
       }
     }).catch((err: unknown) => logger.warn('Failed to find user for inquiry notification', { error: err instanceof Error ? err.message : String(err) }));
 
@@ -65,7 +66,8 @@ export class SupportService {
       userRepository.findByIdWithProfile(inquiryUserId).then(user => {
         if (user?.email) {
           const nickname = (user as any)?.profile?.nickname || '회원';
-          emailService.sendInquiryAnsweredNotification(user.email, nickname, (inquiry as any).subject || '문의').catch((err: unknown) => logger.warn('Inquiry answered email failed', { error: err instanceof Error ? err.message : String(err) }));
+          const lang = (user as any)?.profile?.language || 'ko';
+          emailService.sendInquiryAnsweredNotification(user.email, nickname, (inquiry as any).subject || '문의', lang).catch((err: unknown) => logger.warn('Inquiry answered email failed', { error: err instanceof Error ? err.message : String(err) }));
         }
       }).catch((err: unknown) => logger.warn('Failed to find user for answer notification', { error: err instanceof Error ? err.message : String(err) }));
     }

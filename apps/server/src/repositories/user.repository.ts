@@ -56,6 +56,7 @@ export class UserRepository {
     dateOfBirth?: Date;
     profileImageUrl?: string;
     country?: string;
+    language?: string;
   }) {
     const [profile] = await db
       .insert(userProfiles)
@@ -67,6 +68,7 @@ export class UserRepository {
         dateOfBirth: data.dateOfBirth,
         profileImageUrl: data.profileImageUrl,
         country: data.country,
+        language: data.language || 'ko',
       })
       .returning();
     return profile;
@@ -172,6 +174,7 @@ export class UserRepository {
     dateOfBirth?: Date;
     profileImageUrl?: string;
     country?: string;
+    language?: string;
   }) {
     const [profile] = await db
       .update(userProfiles)

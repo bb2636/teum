@@ -166,11 +166,12 @@ export class UserController {
       const userWithProfile = await userRepository.findByIdWithProfile(req.user.userId);
       const userEmail = userWithProfile?.email;
       const userNickname = (userWithProfile as any)?.profile?.nickname || '회원';
+      const userLang = (userWithProfile as any)?.profile?.language || 'ko';
 
       await userRepository.softDeleteUser(req.user.userId);
 
       if (userEmail) {
-        emailService.sendWithdrawalNotification(userEmail, userNickname).catch((err: unknown) => logger.error('Withdrawal email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+        emailService.sendWithdrawalNotification(userEmail, userNickname, userLang).catch((err: unknown) => logger.error('Withdrawal email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }
 
       res.clearCookie('accessToken', { path: '/' });

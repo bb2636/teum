@@ -56,7 +56,6 @@ export class AuthService {
       role: 'user',
     });
 
-    // Create profile
     await userRepository.createProfile({
       userId: user.id,
       nickname: input.nickname,
@@ -65,6 +64,7 @@ export class AuthService {
       dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
       profileImageUrl: input.profileImageUrl || undefined,
       country: input.country,
+      language: input.language || 'ko',
     });
 
     await userRepository.createDefaultFolder(user.id);
@@ -89,7 +89,7 @@ export class AuthService {
 
     const tokens = await this.generateTokensForUser(user);
 
-    emailService.sendSignupNotification(user.email, input.nickname).catch((err: unknown) => logger.warn('Signup notification email failed', { error: err instanceof Error ? err.message : String(err) }));
+    emailService.sendSignupNotification(user.email, input.nickname, input.language || 'ko').catch((err: unknown) => logger.warn('Signup notification email failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return {
       user: {
@@ -573,6 +573,7 @@ export class AuthService {
       phone: input.phone,
       dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
       country: input.country,
+      language: input.language || 'ko',
     });
 
     await userRepository.createDefaultFolder(user.id);
@@ -595,7 +596,7 @@ export class AuthService {
 
     const tokens = await this.generateTokensForUser(user);
 
-    emailService.sendSignupNotification(user.email, input.nickname).catch((err: unknown) => logger.warn('Signup notification email failed', { error: err instanceof Error ? err.message : String(err) }));
+    emailService.sendSignupNotification(user.email, input.nickname, input.language || 'ko').catch((err: unknown) => logger.warn('Signup notification email failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return {
       user: { id: user.id, email: user.email, role: user.role },

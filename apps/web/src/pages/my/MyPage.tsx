@@ -18,7 +18,7 @@ import { apiRequest } from '@/lib/api';
 import { TermsModal } from './TermsModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useT } from '@/hooks/useTranslation';
-import { getCurrentLanguage } from '@/lib/i18n';
+import { getCurrentLanguage, type Language } from '@/lib/i18n';
 
 const TERMS_TITLE_EN: Record<string, string> = {
   '서비스 이용약관': 'Terms of Service',
@@ -40,7 +40,7 @@ export function MyPage() {
   const navigate = useNavigate();
   const { data: user, isLoading } = useMe();
   const t = useT();
-  const { setLanguageFromCountry } = useLanguage();
+  const { setLanguage } = useLanguage();
   const { data: subscriptions = [] } = useSubscriptions();
   useSupportInquiries();
   const logout = useLogout();
@@ -72,13 +72,10 @@ export function MyPage() {
   }, [setHideTabBar]);
 
   useEffect(() => {
-    if (user?.profile?.country) {
-      const hasExplicitLanguage = localStorage.getItem('teum_language');
-      if (!hasExplicitLanguage) {
-        setLanguageFromCountry(user.profile.country);
-      }
+    if (user?.profile?.language) {
+      setLanguage(user.profile.language as Language);
     }
-  }, [user?.profile?.country, setLanguageFromCountry]);
+  }, [user?.profile?.language]);
   
   // 다음 결제일 (endDate = 한 달 뒤)
   const nextPaymentDateStr = activeSubscription?.endDate

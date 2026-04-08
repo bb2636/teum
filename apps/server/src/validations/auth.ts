@@ -24,8 +24,8 @@ export const signupSchema = z.object({
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
   profileImageUrl: z.string().optional(),
-  // country는 백엔드에서 IP 기반으로 자동 감지되므로 optional로 유지
   country: z.string().optional(),
+  language: z.enum(['ko', 'en']).optional(),
   termsConsents: z.array(
     z.object({
       termsType: z.string(),
@@ -109,6 +109,7 @@ export const socialOnboardingSchema = z.object({
   dateOfBirth: z.string().optional(),
   country: z.string().optional(),
   phone: z.string().optional(),
+  language: z.enum(['ko', 'en']).optional(),
   termsConsents: z.array(
     z.object({
       termsType: z.string(),

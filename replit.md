@@ -99,10 +99,15 @@ teum/
 - 회원가입/비밀번호 재설정 시 전화번호 인증 문자 발송
 - HMAC-SHA256 인증, 인증번호 5분 유효, 5회 오류 시 1시간 잠금
 
-### 9. Email (Resend)
+### 9. Email (Resend) — 다국어 지원
 - 회원가입/비밀번호 재설정 시 이메일 인증번호 발송
 - teum 브랜드 HTML 템플릿, HTML 이스케이프 적용
 - `RESEND_API_KEY` 미설정 시 nodemailer 폴백
+- **다국어 이메일**: 유저 프로필의 `language` 필드(ko/en)에 따라 이메일 제목/본문이 자동 전환
+  - DB `user_profiles.language` 컬럼 (기본값 'ko')
+  - 회원가입 시 프론트엔드에서 현재 언어 설정 서버에 전달
+  - 프로필 편집에서 언어 변경 시 서버에 저장 → 이후 이메일 해당 언어로 발송
+  - 첫 접속 시 브라우저 언어 자동 감지 (영어 브라우저 → 영어 UI)
 - **이메일 알림 트리거 (7종)**: 모든 알림은 fire-and-forget (비동기, 실패해도 메인 로직 차단 안 함)
   - 회원가입 완료 (`sendSignupNotification`) → `auth.service.ts` signup/socialOnboarding
   - 회원 탈퇴 완료 (`sendWithdrawalNotification`) → `user.controller.ts` deleteAccount

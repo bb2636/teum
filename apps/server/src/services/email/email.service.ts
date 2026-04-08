@@ -19,7 +19,142 @@ function getDefaultProvider(): EmailProvider {
   return nodemailerProvider;
 }
 
-function buildNotificationHtml(title: string, body: string): string {
+type Lang = 'ko' | 'en';
+
+const i18n: Record<Lang, Record<string, string>> = {
+  ko: {
+    slogan: '기록이 곧, 당신만의 트랙이 됩니다',
+    resetTitle: '비밀번호 재설정 요청',
+    resetGreeting: '안녕하세요,',
+    resetBody: '비밀번호 재설정을 요청하셨습니다. 아래 링크를 클릭하여 새 비밀번호를 설정해주세요.',
+    resetButton: '비밀번호 재설정하기',
+    resetAlt: '또는 아래 링크를 브라우저에 직접 붙여넣으세요:',
+    resetSecurity: '⚠️ 보안 안내',
+    resetExpiry: '이 링크는 1시간 동안만 유효합니다.',
+    resetIgnore: '본인이 요청하지 않았다면 이 이메일을 무시하세요.',
+    resetKeepSafe: '비밀번호는 안전하게 보관하세요.',
+    resetContact: '문의사항이 있으시면 고객지원으로 연락해주세요.',
+    resetContactLink: '고객지원 문의하기',
+    verifyTitle: '이메일 인증번호',
+    verifyGreeting: '안녕하세요,',
+    verifyBody: '아래 인증번호를 입력하여 이메일 인증을 완료해주세요.',
+    verifyExpiry: '이 인증번호는 5분 동안 유효합니다.',
+    verifyIgnore: '본인이 요청하지 않았다면 이 이메일을 무시하세요.',
+    signupTitle: '회원가입 완료',
+    signupBody: 'teum 회원가입이 완료되었습니다.',
+    signupCta: '이제 일기를 작성하고, 감정을 기록하며, 나만의 음악을 만들어보세요.',
+    signupButton: 'teum 시작하기',
+    signupFooter: 'teum과 함께 매일의 기록을 음악으로 만들어보세요.',
+    withdrawTitle: '회원 탈퇴 완료',
+    withdrawBody: '회원 탈퇴가 정상적으로 처리되었습니다.',
+    withdrawThanks: '그동안 teum을 이용해주셔서 감사합니다.',
+    withdrawNotice: '탈퇴 후 1년간 동일 이메일로 재가입이 제한됩니다.',
+    withdrawPrivacy: '개인정보는 관련 법령에 따라 일정 기간 보관 후 파기됩니다.',
+    withdrawSeeYou: '다시 만날 날을 기다리겠습니다.',
+    subStartTitle: '구독 시작',
+    subStartBody: '구독이 시작되었습니다.',
+    subStartFeatures: '이제 무제한으로 일기 작성, AI 가사 생성, 음악 생성을 이용하실 수 있습니다.',
+    subStartButton: 'teum으로 이동',
+    subStartContact: '구독 관련 문의사항은 고객지원을 통해 연락해주세요.',
+    subCancelTitle: '구독 해지 완료',
+    subCancelBody: '구독 해지가 정상적으로 처리되었습니다.',
+    subCancelUntil: '까지 프리미엄 기능을 계속 이용하실 수 있습니다.',
+    subCancelNotice: '이용 기간이 끝나면 자동결제가 중단되며, 무료 플랜으로 전환됩니다.',
+    subCancelResub: '언제든지 다시 구독하실 수 있습니다.',
+    subCancelThanks: '그동안 이용해주셔서 감사합니다.',
+    profileTitle: '회원 정보 변경',
+    profileBody: '회원 정보가 변경되었습니다.',
+    profileChanged: '변경된 항목:',
+    profileWarning: '본인이 변경하지 않았다면, 계정 보안을 위해 즉시 비밀번호를 변경해주세요.',
+    inquirySubmitTitle: '문의 접수 완료',
+    inquirySubmitBody: '문의가 정상적으로 접수되었습니다.',
+    inquirySubmitSubject: '문의 제목:',
+    inquirySubmitReply: '담당자가 확인 후 빠르게 답변드리겠습니다.',
+    inquirySubmitNotice: '답변이 등록되면 이메일로 알려드립니다.',
+    inquiryAnswerTitle: '문의 답변 등록',
+    inquiryAnswerBody: '문의하신 내용에 답변이 등록되었습니다.',
+    inquiryAnswerButton: '답변 확인하기',
+    inquiryAnswerMore: '추가 문의사항이 있으시면 언제든지 문의해주세요.',
+    greeting: '안녕하세요,',
+    greetingSuffix: '님!',
+    greetingPeriod: '님.',
+    fieldNickname: '닉네임',
+    fieldName: '이름',
+    fieldPhone: '전화번호',
+    fieldDateOfBirth: '생년월일',
+    fieldProfileImage: '프로필 사진',
+    fieldCountry: '국가',
+  },
+  en: {
+    slogan: 'Your records become your own track',
+    resetTitle: 'Password Reset Request',
+    resetGreeting: 'Hello,',
+    resetBody: 'You have requested a password reset. Please click the link below to set a new password.',
+    resetButton: 'Reset Password',
+    resetAlt: 'Or paste this link into your browser:',
+    resetSecurity: '⚠️ Security Notice',
+    resetExpiry: 'This link is valid for 1 hour.',
+    resetIgnore: 'If you did not request this, please ignore this email.',
+    resetKeepSafe: 'Keep your password safe.',
+    resetContact: 'If you have any questions, please contact our support.',
+    resetContactLink: 'Contact Support',
+    verifyTitle: 'Email Verification Code',
+    verifyGreeting: 'Hello,',
+    verifyBody: 'Please enter the verification code below to complete your email verification.',
+    verifyExpiry: 'This code is valid for 5 minutes.',
+    verifyIgnore: 'If you did not request this, please ignore this email.',
+    signupTitle: 'Sign Up Complete',
+    signupBody: 'Your teum registration is complete.',
+    signupCta: 'Start writing your diary, tracking your emotions, and creating your own music.',
+    signupButton: 'Get Started',
+    signupFooter: 'Turn your daily records into music with teum.',
+    withdrawTitle: 'Account Deleted',
+    withdrawBody: 'Your account has been successfully deleted.',
+    withdrawThanks: 'Thank you for using teum.',
+    withdrawNotice: 'You cannot re-register with the same email for 1 year after deletion.',
+    withdrawPrivacy: 'Personal data will be retained and then destroyed in accordance with applicable laws.',
+    withdrawSeeYou: 'We hope to see you again.',
+    subStartTitle: 'Subscription Started',
+    subStartBody: 'Your subscription has started.',
+    subStartFeatures: 'You now have unlimited access to diary writing, AI lyrics generation, and music creation.',
+    subStartButton: 'Go to teum',
+    subStartContact: 'For subscription inquiries, please contact our support.',
+    subCancelTitle: 'Subscription Cancelled',
+    subCancelBody: 'Your subscription has been successfully cancelled.',
+    subCancelUntil: ' you can continue to use premium features.',
+    subCancelNotice: 'Auto-renewal will stop at the end of the subscription period, and you will be switched to the free plan.',
+    subCancelResub: 'You can resubscribe at any time.',
+    subCancelThanks: 'Thank you for using our service.',
+    profileTitle: 'Profile Updated',
+    profileBody: 'Your profile information has been updated.',
+    profileChanged: 'Changed fields:',
+    profileWarning: 'If you did not make these changes, please change your password immediately for security.',
+    inquirySubmitTitle: 'Inquiry Received',
+    inquirySubmitBody: 'Your inquiry has been successfully submitted.',
+    inquirySubmitSubject: 'Subject:',
+    inquirySubmitReply: 'Our team will review and respond as soon as possible.',
+    inquirySubmitNotice: 'You will be notified by email when a response is posted.',
+    inquiryAnswerTitle: 'Inquiry Response',
+    inquiryAnswerBody: 'A response has been posted to your inquiry.',
+    inquiryAnswerButton: 'View Response',
+    inquiryAnswerMore: 'If you have additional questions, feel free to reach out anytime.',
+    greeting: 'Hello,',
+    greetingSuffix: '!',
+    greetingPeriod: '.',
+    fieldNickname: 'Nickname',
+    fieldName: 'Name',
+    fieldPhone: 'Phone',
+    fieldDateOfBirth: 'Date of Birth',
+    fieldProfileImage: 'Profile Image',
+    fieldCountry: 'Country',
+  },
+};
+
+function tt(lang: Lang, key: string): string {
+  return i18n[lang]?.[key] || i18n['ko'][key] || key;
+}
+
+function buildNotificationHtml(lang: Lang, title: string, body: string): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -31,7 +166,7 @@ function buildNotificationHtml(title: string, body: string): string {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
           <h1 style="margin: 0; font-size: 28px;">teum</h1>
-          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">기록이 곧, 당신만의 트랙이 됩니다</p>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(lang, 'slogan')}</p>
         </div>
         
         <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
@@ -47,6 +182,10 @@ function buildNotificationHtml(title: string, body: string): string {
   `;
 }
 
+function resolveLang(lang?: string): Lang {
+  return lang === 'en' ? 'en' : 'ko';
+}
+
 export class EmailService {
   private provider: EmailProvider;
 
@@ -54,7 +193,8 @@ export class EmailService {
     this.provider = provider;
   }
 
-  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+  async sendPasswordResetEmail(email: string, token: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/forgot-password?token=${token}`;
     
     const html = `
@@ -63,45 +203,45 @@ export class EmailService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>비밀번호 재설정</title>
+          <title>${tt(l, 'resetTitle')}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">teum</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">기록이 곧, 당신만의 트랙이 됩니다</p>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
           
           <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #8B4513; margin-top: 0;">비밀번호 재설정 요청</h2>
+            <h2 style="color: #8B4513; margin-top: 0;">${tt(l, 'resetTitle')}</h2>
             
-            <p>안녕하세요,</p>
+            <p>${tt(l, 'resetGreeting')}</p>
             
-            <p>비밀번호 재설정을 요청하셨습니다. 아래 링크를 클릭하여 새 비밀번호를 설정해주세요.</p>
+            <p>${tt(l, 'resetBody')}</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetLink}" 
                  style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                비밀번호 재설정하기
+                ${tt(l, 'resetButton')}
               </a>
             </div>
             
             <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              또는 아래 링크를 브라우저에 직접 붙여넣으세요:<br>
+              ${tt(l, 'resetAlt')}<br>
               <a href="${resetLink}" style="color: #8B4513; word-break: break-all;">${resetLink}</a>
             </p>
             
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
               <p style="margin: 0; color: #856404; font-size: 14px;">
-                <strong>⚠️ 보안 안내</strong><br>
-                • 이 링크는 1시간 동안만 유효합니다.<br>
-                • 본인이 요청하지 않았다면 이 이메일을 무시하세요.<br>
-                • 비밀번호는 안전하게 보관하세요.
+                <strong>${tt(l, 'resetSecurity')}</strong><br>
+                • ${tt(l, 'resetExpiry')}<br>
+                • ${tt(l, 'resetIgnore')}<br>
+                • ${tt(l, 'resetKeepSafe')}
               </p>
             </div>
             
             <p style="color: #666; font-size: 14px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
-              문의사항이 있으시면 고객지원으로 연락해주세요.<br>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my" style="color: #8B4513;">고객지원 문의하기</a>
+              ${tt(l, 'resetContact')}<br>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my" style="color: #8B4513;">${tt(l, 'resetContactLink')}</a>
             </p>
           </div>
           
@@ -112,32 +252,10 @@ export class EmailService {
       </html>
     `;
 
-    const text = `
-teum - 비밀번호 재설정 요청
-
-안녕하세요,
-
-비밀번호 재설정을 요청하셨습니다. 아래 링크를 클릭하여 새 비밀번호를 설정해주세요.
-
-${resetLink}
-
-⚠️ 보안 안내
-• 이 링크는 1시간 동안만 유효합니다.
-• 본인이 요청하지 않았다면 이 이메일을 무시하세요.
-• 비밀번호는 안전하게 보관하세요.
-
-문의사항이 있으시면 고객지원으로 연락해주세요.
-
-© ${new Date().getFullYear()} teum. All rights reserved.
-    `;
+    const subject = l === 'en' ? '[teum] Password Reset Request' : '[teum] 비밀번호 재설정 요청';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 비밀번호 재설정 요청',
-        html,
-        text,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send password reset email', {
         email,
@@ -147,77 +265,27 @@ ${resetLink}
     }
   }
 
-  async sendWelcomeEmail(email: string, name: string): Promise<void> {
+  async sendVerificationCodeEmail(email: string, code: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>teum에 오신 것을 환영합니다</title>
+          <title>${tt(l, 'verifyTitle')}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">teum</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">기록이 곧, 당신만의 트랙이 됩니다</p>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
           
           <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #8B4513; margin-top: 0;">환영합니다, ${name}님!</h2>
+            <h2 style="color: #8B4513; margin-top: 0;">${tt(l, 'verifyTitle')}</h2>
             
-            <p>teum에 가입해주셔서 감사합니다.</p>
-            
-            <p>이제 일기를 작성하고, 감정을 기록하며, 나만의 음악을 만들어보세요.</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-                 style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                시작하기
-              </a>
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-            <p>© ${new Date().getFullYear()} teum. All rights reserved.</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 가입을 환영합니다',
-        html,
-      });
-    } catch (error) {
-      logger.error('Failed to send welcome email', {
-        email,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  async sendVerificationCodeEmail(email: string, code: string): Promise<void> {
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>이메일 인증</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="margin: 0; font-size: 28px;">teum</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">기록이 곧, 당신만의 트랙이 됩니다</p>
-          </div>
-          
-          <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #8B4513; margin-top: 0;">이메일 인증번호</h2>
-            
-            <p>안녕하세요,</p>
-            <p>아래 인증번호를 입력하여 이메일 인증을 완료해주세요.</p>
+            <p>${tt(l, 'verifyGreeting')}</p>
+            <p>${tt(l, 'verifyBody')}</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <div style="display: inline-block; background-color: #f5ede4; border: 2px solid #8B4513; padding: 16px 40px; border-radius: 8px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4A2C1A;">
@@ -227,8 +295,8 @@ ${resetLink}
             
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
               <p style="margin: 0; color: #856404; font-size: 14px;">
-                이 인증번호는 5분 동안 유효합니다.<br>
-                본인이 요청하지 않았다면 이 이메일을 무시하세요.
+                ${tt(l, 'verifyExpiry')}<br>
+                ${tt(l, 'verifyIgnore')}
               </p>
             </div>
           </div>
@@ -240,15 +308,10 @@ ${resetLink}
       </html>
     `;
 
-    const text = `[teum] 이메일 인증번호: ${code}\n이 인증번호는 5분 동안 유효합니다.`;
+    const subject = l === 'en' ? '[teum] Email Verification Code' : '[teum] 이메일 인증번호';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 이메일 인증번호',
-        html,
-        text,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send verification code email', {
         email,
@@ -258,215 +321,197 @@ ${resetLink}
     }
   }
 
-  async sendSignupNotification(email: string, nickname: string): Promise<void> {
+  async sendSignupNotification(email: string, nickname: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님!</p>
-      <p>teum 회원가입이 완료되었습니다.</p>
-      <p>이제 일기를 작성하고, 감정을 기록하며, 나만의 음악을 만들어보세요.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingSuffix')}</p>
+      <p>${tt(l, 'signupBody')}</p>
+      <p>${tt(l, 'signupCta')}</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
            style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-          teum 시작하기
+          ${tt(l, 'signupButton')}
         </a>
       </div>
-      <p style="color: #666; font-size: 14px;">teum과 함께 매일의 기록을 음악으로 만들어보세요.</p>
+      <p style="color: #666; font-size: 14px;">${tt(l, 'signupFooter')}</p>
     `;
-    const html = buildNotificationHtml('회원가입 완료', body);
+    const html = buildNotificationHtml(l, tt(l, 'signupTitle'), body);
+    const subject = l === 'en' ? '[teum] Welcome! Your registration is complete' : '[teum] 회원가입이 완료되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 회원가입이 완료되었습니다',
-        html,
-        text: `[teum] 회원가입 완료\n\n안녕하세요, ${nickname}님!\nteum 회원가입이 완료되었습니다.`,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send signup notification email', { email, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  async sendWithdrawalNotification(email: string, nickname: string): Promise<void> {
+  async sendWithdrawalNotification(email: string, nickname: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님.</p>
-      <p>회원 탈퇴가 정상적으로 처리되었습니다.</p>
-      <p>그동안 teum을 이용해주셔서 감사합니다.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingPeriod')}</p>
+      <p>${tt(l, 'withdrawBody')}</p>
+      <p>${tt(l, 'withdrawThanks')}</p>
       <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
         <p style="margin: 0; color: #856404; font-size: 14px;">
-          탈퇴 후 1년간 동일 이메일로 재가입이 제한됩니다.<br>
-          개인정보는 관련 법령에 따라 일정 기간 보관 후 파기됩니다.
+          ${tt(l, 'withdrawNotice')}<br>
+          ${tt(l, 'withdrawPrivacy')}
         </p>
       </div>
-      <p style="color: #666; font-size: 14px;">다시 만날 날을 기다리겠습니다.</p>
+      <p style="color: #666; font-size: 14px;">${tt(l, 'withdrawSeeYou')}</p>
     `;
-    const html = buildNotificationHtml('회원 탈퇴 완료', body);
+    const html = buildNotificationHtml(l, tt(l, 'withdrawTitle'), body);
+    const subject = l === 'en' ? '[teum] Your account has been deleted' : '[teum] 회원 탈퇴가 완료되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 회원 탈퇴가 완료되었습니다',
-        html,
-        text: `[teum] 회원 탈퇴 완료\n\n안녕하세요, ${nickname}님.\n회원 탈퇴가 정상적으로 처리되었습니다.\n그동안 teum을 이용해주셔서 감사합니다.`,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send withdrawal notification email', { email, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  async sendSubscriptionStartNotification(email: string, nickname: string, planName: string): Promise<void> {
+  async sendSubscriptionStartNotification(email: string, nickname: string, planName: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const safePlanName = escapeHtml(planName);
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님!</p>
-      <p><strong>${safePlanName}</strong> 구독이 시작되었습니다.</p>
-      <p>이제 무제한으로 일기 작성, AI 가사 생성, 음악 생성을 이용하실 수 있습니다.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingSuffix')}</p>
+      <p><strong>${safePlanName}</strong> ${tt(l, 'subStartBody')}</p>
+      <p>${tt(l, 'subStartFeatures')}</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
            style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-          teum으로 이동
+          ${tt(l, 'subStartButton')}
         </a>
       </div>
-      <p style="color: #666; font-size: 14px;">구독 관련 문의사항은 고객지원을 통해 연락해주세요.</p>
+      <p style="color: #666; font-size: 14px;">${tt(l, 'subStartContact')}</p>
     `;
-    const html = buildNotificationHtml('구독 시작', body);
+    const html = buildNotificationHtml(l, tt(l, 'subStartTitle'), body);
+    const subject = l === 'en' ? '[teum] Your subscription has started' : '[teum] 구독이 시작되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 구독이 시작되었습니다',
-        html,
-        text: `[teum] 구독 시작\n\n안녕하세요, ${nickname}님!\n${planName} 구독이 시작되었습니다.\n무제한으로 일기, 가사, 음악 생성을 이용하실 수 있습니다.`,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send subscription start notification', { email, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  async sendSubscriptionCancelNotification(email: string, nickname: string, endDate: string): Promise<void> {
+  async sendSubscriptionCancelNotification(email: string, nickname: string, endDate: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const safeEndDate = escapeHtml(endDate);
+    const untilText = l === 'en'
+      ? `Until <strong>${safeEndDate}</strong>,${tt(l, 'subCancelUntil')}`
+      : `<strong>${safeEndDate}</strong>${tt(l, 'subCancelUntil')}`;
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님.</p>
-      <p>구독 해지가 정상적으로 처리되었습니다.</p>
-      <p><strong>${safeEndDate}</strong>까지 프리미엄 기능을 계속 이용하실 수 있습니다.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingPeriod')}</p>
+      <p>${tt(l, 'subCancelBody')}</p>
+      <p>${untilText}</p>
       <div style="background-color: #e8f4fd; border-left: 4px solid #2196F3; padding: 15px; margin: 30px 0; border-radius: 4px;">
         <p style="margin: 0; color: #1565C0; font-size: 14px;">
-          이용 기간이 끝나면 자동결제가 중단되며, 무료 플랜으로 전환됩니다.<br>
-          언제든지 다시 구독하실 수 있습니다.
+          ${tt(l, 'subCancelNotice')}<br>
+          ${tt(l, 'subCancelResub')}
         </p>
       </div>
-      <p style="color: #666; font-size: 14px;">그동안 이용해주셔서 감사합니다.</p>
+      <p style="color: #666; font-size: 14px;">${tt(l, 'subCancelThanks')}</p>
     `;
-    const html = buildNotificationHtml('구독 해지 완료', body);
+    const html = buildNotificationHtml(l, tt(l, 'subCancelTitle'), body);
+    const subject = l === 'en' ? '[teum] Your subscription has been cancelled' : '[teum] 구독이 해지되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 구독이 해지되었습니다',
-        html,
-        text: `[teum] 구독 해지 완료\n\n안녕하세요, ${nickname}님.\n구독 해지가 정상적으로 처리되었습니다.\n${endDate}까지 프리미엄 기능을 계속 이용하실 수 있습니다.`,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send subscription cancel notification', { email, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  async sendProfileUpdateNotification(email: string, nickname: string, changedFields: string[]): Promise<void> {
+  async sendProfileUpdateNotification(email: string, nickname: string, changedFields: string[], lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const fieldNames: Record<string, string> = {
-      nickname: '닉네임',
-      name: '이름',
-      phone: '전화번호',
-      dateOfBirth: '생년월일',
-      profileImageUrl: '프로필 사진',
-      country: '국가',
+      nickname: tt(l, 'fieldNickname'),
+      name: tt(l, 'fieldName'),
+      phone: tt(l, 'fieldPhone'),
+      dateOfBirth: tt(l, 'fieldDateOfBirth'),
+      profileImageUrl: tt(l, 'fieldProfileImage'),
+      country: tt(l, 'fieldCountry'),
     };
     const changedList = changedFields.map(f => fieldNames[f] || f).join(', ');
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님.</p>
-      <p>회원 정보가 변경되었습니다.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingPeriod')}</p>
+      <p>${tt(l, 'profileBody')}</p>
       <div style="background-color: #f5ede4; border: 1px solid #d4c5b0; padding: 15px; margin: 20px 0; border-radius: 8px;">
         <p style="margin: 0; color: #4A2C1A; font-size: 14px;">
-          <strong>변경된 항목:</strong> ${changedList}
+          <strong>${tt(l, 'profileChanged')}</strong> ${changedList}
         </p>
       </div>
       <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
         <p style="margin: 0; color: #856404; font-size: 14px;">
-          본인이 변경하지 않았다면, 계정 보안을 위해 즉시 비밀번호를 변경해주세요.
+          ${tt(l, 'profileWarning')}
         </p>
       </div>
     `;
-    const html = buildNotificationHtml('회원 정보 변경', body);
+    const html = buildNotificationHtml(l, tt(l, 'profileTitle'), body);
+    const subject = l === 'en' ? '[teum] Your profile has been updated' : '[teum] 회원 정보가 변경되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 회원 정보가 변경되었습니다',
-        html,
-        text: `[teum] 회원 정보 변경\n\n안녕하세요, ${nickname}님.\n회원 정보가 변경되었습니다.\n변경된 항목: ${changedList}\n\n본인이 변경하지 않았다면 즉시 비밀번호를 변경해주세요.`,
-      });
+      await this.provider.sendEmail({ to: email, subject, html });
     } catch (error) {
       logger.error('Failed to send profile update notification', { email, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  async sendInquirySubmittedNotification(email: string, nickname: string, subject: string): Promise<void> {
+  async sendInquirySubmittedNotification(email: string, nickname: string, subject: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const safeSubject = escapeHtml(subject);
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님.</p>
-      <p>문의가 정상적으로 접수되었습니다.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingPeriod')}</p>
+      <p>${tt(l, 'inquirySubmitBody')}</p>
       <div style="background-color: #f5ede4; border: 1px solid #d4c5b0; padding: 15px; margin: 20px 0; border-radius: 8px;">
         <p style="margin: 0; color: #4A2C1A; font-size: 14px;">
-          <strong>문의 제목:</strong> ${safeSubject}
+          <strong>${tt(l, 'inquirySubmitSubject')}</strong> ${safeSubject}
         </p>
       </div>
-      <p>담당자가 확인 후 빠르게 답변드리겠습니다.</p>
-      <p style="color: #666; font-size: 14px;">답변이 등록되면 이메일로 알려드립니다.</p>
+      <p>${tt(l, 'inquirySubmitReply')}</p>
+      <p style="color: #666; font-size: 14px;">${tt(l, 'inquirySubmitNotice')}</p>
     `;
-    const html = buildNotificationHtml('문의 접수 완료', body);
+    const html = buildNotificationHtml(l, tt(l, 'inquirySubmitTitle'), body);
+    const emailSubject = l === 'en' ? '[teum] Your inquiry has been received' : '[teum] 문의가 접수되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 문의가 접수되었습니다',
-        html,
-        text: `[teum] 문의 접수 완료\n\n안녕하세요, ${nickname}님.\n문의가 정상적으로 접수되었습니다.\n문의 제목: ${subject}\n\n담당자가 확인 후 빠르게 답변드리겠습니다.`,
-      });
+      await this.provider.sendEmail({ to: email, subject: emailSubject, html });
     } catch (error) {
       logger.error('Failed to send inquiry submitted notification', { email, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  async sendInquiryAnsweredNotification(email: string, nickname: string, subject: string): Promise<void> {
+  async sendInquiryAnsweredNotification(email: string, nickname: string, subject: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
     const safeNickname = escapeHtml(nickname);
     const safeSubject = escapeHtml(subject);
     const body = `
-      <p>안녕하세요, <strong>${safeNickname}</strong>님.</p>
-      <p>문의하신 내용에 답변이 등록되었습니다.</p>
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingPeriod')}</p>
+      <p>${tt(l, 'inquiryAnswerBody')}</p>
       <div style="background-color: #f5ede4; border: 1px solid #d4c5b0; padding: 15px; margin: 20px 0; border-radius: 8px;">
         <p style="margin: 0; color: #4A2C1A; font-size: 14px;">
-          <strong>문의 제목:</strong> ${safeSubject}
+          <strong>${tt(l, 'inquirySubmitSubject')}</strong> ${safeSubject}
         </p>
       </div>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my/support" 
            style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-          답변 확인하기
+          ${tt(l, 'inquiryAnswerButton')}
         </a>
       </div>
-      <p style="color: #666; font-size: 14px;">추가 문의사항이 있으시면 언제든지 문의해주세요.</p>
+      <p style="color: #666; font-size: 14px;">${tt(l, 'inquiryAnswerMore')}</p>
     `;
-    const html = buildNotificationHtml('문의 답변 등록', body);
+    const html = buildNotificationHtml(l, tt(l, 'inquiryAnswerTitle'), body);
+    const emailSubject = l === 'en' ? '[teum] A response has been posted to your inquiry' : '[teum] 문의하신 내용에 답변이 등록되었습니다';
 
     try {
-      await this.provider.sendEmail({
-        to: email,
-        subject: '[teum] 문의하신 내용에 답변이 등록되었습니다',
-        html,
-        text: `[teum] 문의 답변 등록\n\n안녕하세요, ${nickname}님.\n문의하신 내용에 답변이 등록되었습니다.\n문의 제목: ${subject}\n\nteum 앱에서 답변을 확인해주세요.`,
-      });
+      await this.provider.sendEmail({ to: email, subject: emailSubject, html });
     } catch (error) {
       logger.error('Failed to send inquiry answered notification', { email, error: error instanceof Error ? error.message : String(error) });
     }

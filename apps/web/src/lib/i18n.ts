@@ -1058,6 +1058,12 @@ export function getCurrentLanguage(): Language {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
   const saved = localStorage.getItem("teum_language") as Language | null;
   if (saved && translations[saved]) return saved;
+  const browserLang = navigator.language?.split('-')[0];
+  if (browserLang === 'en') {
+    localStorage.setItem("teum_language", "en");
+    return 'en';
+  }
+  localStorage.setItem("teum_language", DEFAULT_LANGUAGE);
   return DEFAULT_LANGUAGE;
 }
 

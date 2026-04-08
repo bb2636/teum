@@ -10,6 +10,7 @@ import { useSignup } from '@/hooks/useAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useEmailDuplicateCheck, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
+import { getCurrentLanguage } from '@/lib/i18n';
 import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
@@ -364,6 +365,7 @@ export function SignupPage() {
         name: formData.step2.name,
         dateOfBirth: formData.step2.dateOfBirth,
         phone: formData.step1.phone,
+        language: getCurrentLanguage(),
         termsConsents: [
           { termsType: 'service', consented: data.termsService },
           { termsType: 'payment', consented: data.termsPayment },

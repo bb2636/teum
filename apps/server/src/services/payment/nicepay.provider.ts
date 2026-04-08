@@ -80,8 +80,15 @@ export class NicePayProvider {
       });
 
       const data = (await response.json()) as Record<string, unknown>;
-      const respStr = JSON.stringify(data);
-      logger.info(`NicePay approval resp status=${response.status} url=${this.approvalBaseUrl}/v1/payments/${tid} isTest=${this.isTestMode} body=${respStr}`);
+      logger.info('NicePay approval response', {
+        status: response.status,
+        resultCode: data.resultCode,
+        resultMsg: data.resultMsg,
+        tid: data.tid,
+        orderId: data.orderId,
+        amount: data.amount,
+        isTestMode: this.isTestMode,
+      });
 
       const resultCode = data.resultCode as string | undefined;
 
@@ -120,7 +127,7 @@ export class NicePayProvider {
 
   async approveBillingKey(bid: string): Promise<NicePayPaymentResponse> {
     try {
-      logger.info('Approving NicePay billing key', { bid, isTestMode: this.isTestMode });
+      logger.info('Approving NicePay billing key', { bid: '***masked***', isTestMode: this.isTestMode });
 
       const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
 
@@ -134,8 +141,12 @@ export class NicePayProvider {
       });
 
       const data = (await response.json()) as Record<string, unknown>;
-      const respStr = JSON.stringify(data);
-      logger.info(`NicePay billing key approval resp status=${response.status} body=${respStr}`);
+      logger.info('NicePay billing key approval response', {
+        status: response.status,
+        resultCode: data.resultCode,
+        resultMsg: data.resultMsg,
+        cardName: data.cardName,
+      });
 
       const resultCode = data.resultCode as string | undefined;
 
@@ -159,7 +170,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing key approval failed', { error, bid });
+      logger.error('NicePay billing key approval failed', { error });
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -175,7 +186,7 @@ export class NicePayProvider {
     goodsName: string
   ): Promise<NicePayPaymentResponse> {
     try {
-      logger.info('Charging with billing key', { bid, orderId, amount, isTestMode: this.isTestMode });
+      logger.info('Charging with billing key', { orderId, amount, isTestMode: this.isTestMode });
 
       const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
 
@@ -195,8 +206,14 @@ export class NicePayProvider {
       });
 
       const data = (await response.json()) as Record<string, unknown>;
-      const respStr = JSON.stringify(data);
-      logger.info(`NicePay billing payment resp status=${response.status} body=${respStr}`);
+      logger.info('NicePay billing payment response', {
+        status: response.status,
+        resultCode: data.resultCode,
+        resultMsg: data.resultMsg,
+        tid: data.tid,
+        orderId: data.orderId,
+        amount: data.amount,
+      });
 
       const resultCode = data.resultCode as string | undefined;
 
@@ -222,7 +239,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing payment failed', { error, bid, orderId });
+      logger.error('NicePay billing payment failed', { error, orderId });
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -233,7 +250,7 @@ export class NicePayProvider {
 
   async cancelBillingKey(bid: string): Promise<NicePayPaymentResponse> {
     try {
-      logger.info('Cancelling NicePay billing key', { bid, isTestMode: this.isTestMode });
+      logger.info('Cancelling NicePay billing key', { isTestMode: this.isTestMode });
 
       const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
 
@@ -263,7 +280,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing key cancellation failed', { error, bid });
+      logger.error('NicePay billing key cancellation failed', { error });
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',

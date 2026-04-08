@@ -59,14 +59,14 @@ export class SolapiProvider implements SmsProvider {
       logger.error('Solapi SMS send failed', {
         status: response.status,
         body: errorBody,
-        to,
+        to: to.slice(0, 3) + '****' + to.slice(-4),
       });
       throw new Error(`SMS send failed: ${response.status}`);
     }
 
     const result = await response.json() as { groupId?: string };
     logger.info('SMS sent successfully via Solapi', {
-      to,
+      to: to.slice(0, 3) + '****' + to.slice(-4),
       groupId: result.groupId,
     });
   }

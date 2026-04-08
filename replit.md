@@ -144,6 +144,29 @@ teum/
 
 ## Security Features
 
+### Billing Key Encryption
+- AES-256-GCM으로 빌링키(bid) 암호화 저장
+- `apps/server/src/utils/encryption.ts` — encrypt/decrypt/isEncrypted 유틸리티
+- 암호화 키: `BILLING_ENCRYPTION_KEY` 또는 `JWT_SECRET`에서 SHA-256 파생
+- 기존 평문 bid도 호환 (isEncrypted 감지 → 평문이면 그대로 반환)
+
+### Server Stability
+- **Graceful shutdown**: SIGTERM/SIGINT → HTTP 서버 close → DB 연결 해제 → 10초 타임아웃 후 강제 종료
+- **Process error handlers**: `uncaughtException` → 로그 후 graceful shutdown, `unhandledRejection` → 로그만
+- **이메일 알림 에러 로깅**: `.catch(() => {})` → `.catch(err => logger.error(...))`로 모든 이메일 발송 실패 기록
+- **자동갱신 재시도**: 최대 3회 재시도 (5초 간격), 모든 시도 실패 시 구독 만료 처리
+- **결제 로그 민감정보 제거**: NicePay 응답 전체 JSON 대신 필요한 필드(resultCode, resultMsg, tid 등)만 로깅
+- **SMS 로그 마스킹**: 전화번호 앞3자리+****+뒤4자리만 로깅
+
+### CDN Storage Adapter
+- S3-compatible API (AWS S3 / Cloudflare R2) 구현
+- AWS Signature V4 자체 구현 (외부 SDK 없이)
+- 환경변수: `CDN_URL`, `CDN_BUCKET_NAME`, `CDN_ENDPOINT`, `CDN_ACCESS_KEY_ID`, `CDN_SECRET_ACCESS_KEY`, `CDN_REGION`
+- upload/delete/get 메서드 지원
+
+### JWT Security
+- `default_secret` fallback 제거 — `process.env.JWT_SECRET!` 필수
+
 ### Concurrent Login Prevention (중복 로그인 방지)
 - `users.token_version` (integer, default 0) — 로그인마다 increment
 - Refresh token에 `tokenVersion` 포함

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 
@@ -11,7 +11,7 @@ export const billingKeyStatusEnum = pgEnum('billing_key_status', [
 export const billingKeys = pgTable('billing_keys', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  bid: varchar('bid', { length: 255 }).notNull().unique(),
+  bid: text('bid').notNull().unique(),
   cardCode: varchar('card_code', { length: 10 }),
   cardName: varchar('card_name', { length: 50 }),
   cardNo: varchar('card_no', { length: 50 }),

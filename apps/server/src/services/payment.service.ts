@@ -5,6 +5,7 @@ import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
 import { emailService } from './email/email.service';
+import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 
 setInterval(async () => {
   try {
@@ -108,7 +109,6 @@ export class PaymentService {
     if (!approvalResult.success) {
       logger.error('Billing key approval failed', {
         orderId,
-        bid,
         errorCode: approvalResult.errorCode,
         errorMsg: approvalResult.errorMsg,
       });
@@ -132,16 +132,18 @@ export class PaymentService {
       }
     }
 
+    const encryptedBid = encrypt(bid);
+
     await db.insert(billingKeys).values({
       userId: session.userId,
-      bid,
+      bid: encryptedBid,
       cardCode: approvalResult.cardCode || null,
       cardName: approvalResult.cardName || null,
       cardNo: approvalResult.cardNo || null,
       status: 'active',
     });
 
-    logger.info('Billing key registered', { userId: session.userId, bid });
+    logger.info('Billing key registered', { userId: session.userId });
 
     const chargeResult = await this.chargeWithBillingKey(
       session.userId,
@@ -202,8 +204,8 @@ export class PaymentService {
       logger.info('Billing payment processed (mock)', { userId, chargeOrderId });
 
       this.getUserEmailAndNickname(userId).then(info => {
-        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch(() => {});
-      }).catch(() => {});
+        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+      }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
       return { success: true, message: '구독이 시작되었습니다.' };
     }
@@ -280,8 +282,8 @@ export class PaymentService {
       logger.info('Billing key charge successful', { userId, tid: chargeResult.tid });
 
       this.getUserEmailAndNickname(userId).then(info => {
-        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch(() => {});
-      }).catch(() => {});
+        if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+      }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
       return { success: true, message: '결제가 완료되었습니다.' };
     } catch (txError) {
@@ -317,18 +319,12 @@ export class PaymentService {
 
     logger.info(`Found ${expiredSubs.length} subscriptions to auto-renew`);
 
+    const MAX_RETRY = 3;
+    const RETRY_DELAY_MS = 5000;
+
     for (const sub of expiredSubs) {
       try {
-        const [activeBillingKey] = await db
-          .select()
-          .from(billingKeys)
-          .where(
-            and(
-              eq(billingKeys.userId, sub.userId),
-              eq(billingKeys.status, 'active')
-            )
-          )
-          .limit(1);
+        const activeBillingKey = await this.getActiveBillingKey(sub.userId);
 
         if (!activeBillingKey) {
           logger.warn('No active billing key for auto-renewal, expiring subscription', {
@@ -342,12 +338,27 @@ export class PaymentService {
           continue;
         }
 
-        const result = await this.chargeWithBillingKey(
-          sub.userId,
-          activeBillingKey.bid,
-          Number(sub.amount),
-          sub.planName
-        );
+        let result: { success: boolean; message: string } = { success: false, message: '' };
+        for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
+          result = await this.chargeWithBillingKey(
+            sub.userId,
+            activeBillingKey.bid,
+            Number(sub.amount),
+            sub.planName
+          );
+
+          if (result.success) break;
+
+          logger.warn(`Auto-renewal attempt ${attempt}/${MAX_RETRY} failed`, {
+            userId: sub.userId,
+            subscriptionId: sub.id,
+            message: result.message,
+          });
+
+          if (attempt < MAX_RETRY) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          }
+        }
 
         if (result.success) {
           await db
@@ -360,7 +371,7 @@ export class PaymentService {
             oldSubscriptionId: sub.id,
           });
         } else {
-          logger.error('Auto-renewal charge failed, expiring subscription', {
+          logger.error('Auto-renewal failed after all retries, expiring subscription', {
             userId: sub.userId,
             subscriptionId: sub.id,
             message: result.message,
@@ -380,6 +391,14 @@ export class PaymentService {
     }
   }
 
+  private decryptBid(bid: string): string {
+    try {
+      return isEncrypted(bid) ? decrypt(bid) : bid;
+    } catch {
+      return bid;
+    }
+  }
+
   async getActiveBillingKey(userId: string) {
     const [key] = await db
       .select()
@@ -391,7 +410,8 @@ export class PaymentService {
         )
       )
       .limit(1);
-    return key || null;
+    if (!key) return null;
+    return { ...key, bid: this.decryptBid(key.bid) };
   }
 
   async deactivateBillingKey(userId: string): Promise<{ success: boolean; message: string }> {
@@ -409,7 +429,6 @@ export class PaymentService {
 
     logger.info('Billing key deactivated', {
       userId,
-      bid: activeBillingKey.bid,
       nicepayCancel: cancelResult.success,
     });
 
@@ -592,8 +611,8 @@ export class PaymentService {
 
       if (result.subscriptionId && session.planName) {
         this.getUserEmailAndNickname(session.userId).then(info => {
-          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, session.planName!).catch(() => {});
-        }).catch(() => {});
+          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, session.planName!).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+        }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }
 
       return {
@@ -698,8 +717,8 @@ export class PaymentService {
 
       if (subscription && input.planName) {
         this.getUserEmailAndNickname(userId).then(info => {
-          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, input.planName!).catch(() => {});
-        }).catch(() => {});
+          if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, input.planName!).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+        }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }
 
       return {
@@ -838,8 +857,8 @@ export class PaymentService {
       ? new Date(subscription.endDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
       : '이용 기간 종료 시';
     this.getUserEmailAndNickname(userId).then(info => {
-      if (info) emailService.sendSubscriptionCancelNotification(info.email, info.nickname, endDateStr).catch(() => {});
-    }).catch(() => {});
+      if (info) emailService.sendSubscriptionCancelNotification(info.email, info.nickname, endDateStr).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+    }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return {
       success: true,

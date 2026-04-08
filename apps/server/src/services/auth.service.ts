@@ -437,7 +437,7 @@ export class AuthService {
 
     const onboardingToken = jwt.sign(
       { provider: 'google', providerAccountId: googleId, email, name, picture },
-      process.env.JWT_SECRET || 'default_secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '30m' }
     );
 
@@ -509,7 +509,7 @@ export class AuthService {
 
     const onboardingToken = jwt.sign(
       { provider: 'apple', providerAccountId: appleId, email: isEmailHidden ? '' : email, name, isEmailHidden },
-      process.env.JWT_SECRET || 'default_secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '30m' }
     );
 
@@ -529,7 +529,7 @@ export class AuthService {
   async socialOnboarding(input: SocialOnboardingInput) {
     let tokenPayload: any;
     try {
-      tokenPayload = jwt.verify(input.onboardingToken, process.env.JWT_SECRET || 'default_secret');
+      tokenPayload = jwt.verify(input.onboardingToken, process.env.JWT_SECRET!);
     } catch {
       throw new Error('온보딩 토큰이 만료되었거나 유효하지 않습니다. 다시 소셜 로그인을 진행해주세요.');
     }

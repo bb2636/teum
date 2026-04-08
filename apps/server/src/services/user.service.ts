@@ -30,15 +30,35 @@ export class UserService {
     if (data.profileImageUrl !== undefined) updateData.profileImageUrl = data.profileImageUrl;
     if (data.country !== undefined) updateData.country = data.country;
 
+    const currentUser = await userRepository.findByIdWithProfile(userId);
+    const currentProfile = (currentUser as any)?.profile;
+
     const profile = await userRepository.updateProfile(userId, updateData);
 
-    const changedFields = Object.keys(data).filter(k => (data as any)[k] !== undefined);
-    if (changedFields.length > 0) {
-      const user = await userRepository.findByIdWithProfile(userId);
-      if (user?.email) {
-        const nickname = (user as any)?.profile?.nickname || '회원';
-        emailService.sendProfileUpdateNotification(user.email, nickname, changedFields).catch((err: unknown) => logger.warn('Profile update notification email failed', { error: err instanceof Error ? err.message : String(err) }));
+    const fieldMap: Record<string, string> = {
+      nickname: 'nickname',
+      name: 'name',
+      phone: 'phone',
+      dateOfBirth: 'dateOfBirth',
+      profileImageUrl: 'profileImageUrl',
+      country: 'country',
+    };
+
+    const actuallyChangedFields: string[] = [];
+    for (const [key, profileKey] of Object.entries(fieldMap)) {
+      const newVal = (data as any)[key];
+      if (newVal === undefined) continue;
+      const oldVal = currentProfile?.[profileKey];
+      const normalizedOld = oldVal instanceof Date ? oldVal.toISOString().split('T')[0] : (oldVal ?? '');
+      const normalizedNew = key === 'dateOfBirth' && newVal ? new Date(newVal).toISOString().split('T')[0] : (newVal ?? '');
+      if (String(normalizedOld) !== String(normalizedNew)) {
+        actuallyChangedFields.push(key);
       }
+    }
+
+    if (actuallyChangedFields.length > 0 && currentUser?.email) {
+      const nickname = currentProfile?.nickname || '회원';
+      emailService.sendProfileUpdateNotification(currentUser.email, nickname, actuallyChangedFields).catch((err: unknown) => logger.warn('Profile update notification email failed', { error: err instanceof Error ? err.message : String(err) }));
     }
 
     return profile;

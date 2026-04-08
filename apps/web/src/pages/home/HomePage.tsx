@@ -294,7 +294,7 @@ export function HomePage() {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
+              <span className="text-sm font-medium whitespace-pre-line" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
             </div>
             <div className="flex items-center gap-2">
               {activeSubscription ? (

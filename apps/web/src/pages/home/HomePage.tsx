@@ -294,7 +294,7 @@ export function HomePage() {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-sm font-medium whitespace-pre-line leading-snug pt-0.5" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
+              <span className="text-sm font-medium leading-snug pt-0.5" style={{ color: '#4A2C1A', whiteSpace: 'pre-wrap' }}>{t('home.tagline')}</span>
             </div>
             <div className="flex items-start gap-2 flex-shrink-0">
               <div className="flex flex-col items-end gap-1">

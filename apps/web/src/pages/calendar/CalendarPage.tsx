@@ -410,7 +410,7 @@ export function CalendarPage() {
       <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
 
         <div
-          className="flex items-center justify-between px-4 py-2"
+          className="sticky top-0 z-30 bg-white flex items-center justify-between px-4 py-2"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' }}
         >
           <div className="flex items-center gap-1.5">

@@ -63,13 +63,11 @@ export class AuthService {
       phone: input.phone,
       dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
       profileImageUrl: input.profileImageUrl || undefined,
-      country: input.country,
       language: input.language || 'ko',
     });
 
     await userRepository.createDefaultFolder(user.id);
 
-    // Create auth account
     await userRepository.createAuthAccount({
       userId: user.id,
       provider: 'email',
@@ -572,7 +570,6 @@ export class AuthService {
       name: input.name,
       phone: input.phone,
       dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
-      country: input.country,
       language: input.language || 'ko',
     });
 

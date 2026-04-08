@@ -14,7 +14,6 @@ import {
 import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
 import jwtLib from 'jsonwebtoken';
-import { getClientIp, detectCountryFromIp } from '../utils/ip-geolocation';
 import { userRepository } from '../repositories/user.repository';
 
 const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: string; user: { id: string; role: string }; expiresAt: number }>();
@@ -62,19 +61,7 @@ export class AuthController {
       // Validate input
       const input = signupSchema.parse(req.body);
 
-      // IP 기반 국가 감지 (country가 제공되지 않은 경우)
-      let detectedCountry = input.country;
-      if (!detectedCountry) {
-        const clientIp = getClientIp(req);
-        detectedCountry = await detectCountryFromIp(clientIp) || undefined;
-        logger.info('Detected country from IP', { ip: clientIp, country: detectedCountry });
-      }
-
-      // Create user with detected country
-      const result = await authService.signup({
-        ...input,
-        country: detectedCountry,
-      });
+      const result = await authService.signup(input);
 
       // Set httpOnly cookies (path: '/' so cookie is sent for all /api/* requests)
       res.cookie('accessToken', result.accessToken, {
@@ -763,16 +750,7 @@ export class AuthController {
     try {
       const input = socialOnboardingSchema.parse(req.body);
 
-      let detectedCountry = input.country;
-      if (!detectedCountry) {
-        const clientIp = getClientIp(req);
-        detectedCountry = await detectCountryFromIp(clientIp) || undefined;
-      }
-
-      const result = await authService.socialOnboarding({
-        ...input,
-        country: detectedCountry,
-      });
+      const result = await authService.socialOnboarding(input);
 
       res.cookie('accessToken', result.accessToken, {
         httpOnly: true,

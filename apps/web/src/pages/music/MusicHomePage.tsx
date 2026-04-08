@@ -250,11 +250,12 @@ export function MusicHomePage() {
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
-        <div className="flex items-center justify-between">
+      <div className="max-w-md mx-auto">
+        <div className="sticky top-0 z-30 bg-white px-4 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))', paddingBottom: '8px' }}>
           <h1 className="text-xl font-bold text-gray-900">{t('music.generateTitle')}</h1>
           <ProfileButton />
         </div>
+        <div className="px-4 pb-6 space-y-6">
 
         <div className="bg-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -400,6 +401,7 @@ export function MusicHomePage() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

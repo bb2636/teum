@@ -27,7 +27,6 @@ export const userProfiles = pgTable('user_profiles', {
   phoneVerified: boolean('phone_verified').default(false).notNull(),
   dateOfBirth: timestamp('date_of_birth'),
   profileImageUrl: text('profile_image_url'),
-  country: varchar('country', { length: 100 }),
   language: varchar('language', { length: 10 }).default('ko').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

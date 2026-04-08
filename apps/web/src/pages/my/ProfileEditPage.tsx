@@ -24,7 +24,6 @@ const profileSchema = z.object({
   name: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
-  country: z.string().max(100).optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -64,7 +63,6 @@ export function ProfileEditPage() {
       nickname: user?.profile?.nickname || '',
       name: user?.profile?.name || '',
       phone: user?.profile?.phone || '',
-      country: user?.profile?.country || '',
     },
   });
 
@@ -73,7 +71,6 @@ export function ProfileEditPage() {
       setValue('nickname', user.profile.nickname || '');
       setValue('name', user.profile.name || '');
       setValue('phone', user.profile.phone || '');
-      setValue('country', user.profile.country || '');
       if (user.profile.dateOfBirth) {
         setDateOfBirthISO(user.profile.dateOfBirth);
       }
@@ -100,7 +97,7 @@ export function ProfileEditPage() {
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
-      const { name: _name, country: _country, ...rest } = data;
+      const { name: _name, ...rest } = data;
       await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO, language: selectedLanguage });
       
       setLanguage(selectedLanguage);

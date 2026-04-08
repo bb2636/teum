@@ -24,7 +24,6 @@ export const signupSchema = z.object({
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
   profileImageUrl: z.string().optional(),
-  country: z.string().optional(),
   language: z.enum(['ko', 'en']).optional(),
   termsConsents: z.array(
     z.object({
@@ -107,7 +106,6 @@ export const socialOnboardingSchema = z.object({
   nickname: nicknameSchema,
   name: z.string().min(1, 'Name is required').max(100),
   dateOfBirth: z.string().optional(),
-  country: z.string().optional(),
   phone: z.string().optional(),
   language: z.enum(['ko', 'en']).optional(),
   termsConsents: z.array(

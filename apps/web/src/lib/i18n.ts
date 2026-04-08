@@ -1,13 +1,5 @@
 export type Language = "ko" | "en";
 
-const COUNTRY_TO_LANGUAGE: Record<string, Language> = {
-  KR: "ko",
-  US: "en",
-  IN: "en",
-  CA: "en",
-  GB: "en",
-};
-
 const DEFAULT_LANGUAGE: Language = "ko";
 
 const ko: Record<string, string> = {
@@ -1091,17 +1083,3 @@ export function t(
   return text;
 }
 
-export function setLanguageFromCountry(
-  countryCode: string | null | undefined,
-): void {
-  if (!countryCode) return;
-  const language = COUNTRY_TO_LANGUAGE[countryCode.toUpperCase()];
-  if (language) {
-    setLanguage(language);
-    localStorage.setItem("teum_user_country", countryCode.toUpperCase());
-  }
-}
-
-export function getLanguageFromCountry(countryCode: string): Language {
-  return COUNTRY_TO_LANGUAGE[countryCode.toUpperCase()] || DEFAULT_LANGUAGE;
-}

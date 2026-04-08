@@ -435,7 +435,6 @@ export class EmailService {
       phone: tt(l, 'fieldPhone'),
       dateOfBirth: tt(l, 'fieldDateOfBirth'),
       profileImageUrl: tt(l, 'fieldProfileImage'),
-      country: tt(l, 'fieldCountry'),
     };
     const changedList = changedFields.map(f => fieldNames[f] || f).join(', ');
     const body = `

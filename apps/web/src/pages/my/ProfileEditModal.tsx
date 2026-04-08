@@ -22,7 +22,6 @@ const profileSchema = z.object({
   name: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
-  country: z.string().max(100).optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -70,7 +69,6 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
       nickname: user?.profile?.nickname || '',
       name: user?.profile?.name || '',
       phone: user?.profile?.phone || '',
-      country: user?.profile?.country || '',
     },
   });
 
@@ -79,7 +77,6 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
       setValue('nickname', user.profile.nickname || '');
       setValue('name', user.profile.name || '');
       setValue('phone', user.profile.phone || '');
-      setValue('country', user.profile.country || '');
       if (user.profile.dateOfBirth) {
         setDateOfBirthISO(user.profile.dateOfBirth);
       }
@@ -445,23 +442,6 @@ export function ProfileEditModal({ user, onClose }: ProfileEditModalProps) {
                 onClick={() => setShowCalendar(true)}
                 className={`bg-gray-100 text-center cursor-pointer ${errors.dateOfBirth ? 'border-red-500' : ''}`}
               />
-            </div>
-
-            {/* 국가 선택 */}
-            <div className="space-y-2">
-              <Label htmlFor="country" className="text-brown-900">{t('my.selectCountry')}</Label>
-              <select
-                id="country"
-                {...register('country')}
-                className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 text-sm"
-              >
-                <option value="">{t('my.selectCountry')}</option>
-                <option value="KR">🇰🇷 Korea</option>
-                <option value="US">🇺🇸 USA</option>
-                <option value="JP">🇯🇵 Japan</option>
-                <option value="CN">🇨🇳 China</option>
-                <option value="ETC">{t('common.other')}</option>
-              </select>
             </div>
 
             {/* 로그아웃 | 회원탈퇴 */}

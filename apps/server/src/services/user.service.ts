@@ -9,7 +9,6 @@ export class UserService {
     phone?: string;
     dateOfBirth?: string;
     profileImageUrl?: string;
-    country?: string;
     language?: string;
   }) {
     logger.info('Updating user profile', { userId });
@@ -29,7 +28,6 @@ export class UserService {
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
     if (data.profileImageUrl !== undefined) updateData.profileImageUrl = data.profileImageUrl;
-    if (data.country !== undefined) updateData.country = data.country;
     if (data.language !== undefined) updateData.language = data.language;
 
     const currentUser = await userRepository.findByIdWithProfile(userId);
@@ -43,7 +41,6 @@ export class UserService {
       phone: 'phone',
       dateOfBirth: 'dateOfBirth',
       profileImageUrl: 'profileImageUrl',
-      country: 'country',
     };
 
     const actuallyChangedFields: string[] = [];

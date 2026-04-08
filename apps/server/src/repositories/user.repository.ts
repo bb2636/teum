@@ -55,7 +55,6 @@ export class UserRepository {
     phone?: string;
     dateOfBirth?: Date;
     profileImageUrl?: string;
-    country?: string;
     language?: string;
   }) {
     const [profile] = await db
@@ -67,7 +66,6 @@ export class UserRepository {
         phone: data.phone,
         dateOfBirth: data.dateOfBirth,
         profileImageUrl: data.profileImageUrl,
-        country: data.country,
         language: data.language || 'ko',
       })
       .returning();

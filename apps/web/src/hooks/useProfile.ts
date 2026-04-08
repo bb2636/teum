@@ -11,7 +11,6 @@ export interface UserProfile {
   phoneVerified: boolean;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  country?: string;
   language?: string;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +29,6 @@ export interface UpdateProfileInput {
   phone?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  country?: string;
   language?: string;
 }
 

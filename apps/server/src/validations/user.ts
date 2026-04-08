@@ -6,7 +6,6 @@ export const updateProfileSchema = z.object({
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
   profileImageUrl: z.union([z.string().url(), z.literal('')]).optional(),
-  country: z.string().max(100).optional(),
   language: z.enum(['ko', 'en']).optional(),
 });
 

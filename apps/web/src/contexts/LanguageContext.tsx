@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { getCurrentLanguage, setLanguage as setLangStorage, setLanguageFromCountry as setLangFromCountry, type Language } from '@/lib/i18n';
+import { getCurrentLanguage, setLanguage as setLangStorage, type Language } from '@/lib/i18n';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  setLanguageFromCountry: (countryCode: string | null | undefined) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
@@ -17,14 +16,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLang(lang);
   }, []);
 
-  const setLanguageFromCountry = useCallback((countryCode: string | null | undefined) => {
-    if (!countryCode) return;
-    setLangFromCountry(countryCode);
-    setLang(getCurrentLanguage());
-  }, []);
-
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, setLanguageFromCountry }}>
+    <LanguageContext.Provider value={{ language, setLanguage }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -36,7 +29,6 @@ export function useLanguage() {
     return {
       language: getCurrentLanguage(),
       setLanguage: setLangStorage,
-      setLanguageFromCountry: setLangFromCountry,
     } as LanguageContextType;
   }
   return ctx;

@@ -298,13 +298,22 @@ export class MusicController {
         });
       }
 
-      // Verify webhook (in production, verify signature/token)
-      // For now, update job status directly
+      const webhookSecret = process.env.MUREKA_WEBHOOK_SECRET;
+      if (webhookSecret) {
+        const authHeader = req.headers['authorization'] || req.headers['x-webhook-secret'];
+        if (authHeader !== webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
+          logger.warn('Music webhook unauthorized attempt', { jobId, ip: req.ip });
+          return res.status(401).json({
+            success: false,
+            error: { code: 'UNAUTHORIZED', message: 'Invalid webhook secret' },
+          });
+        }
+      } else {
+        logger.warn('MUREKA_WEBHOOK_SECRET not configured, webhook authentication skipped');
+      }
+
       if (status === 'completed' && audio_url) {
         await musicPollingService.pollJob(jobId);
-      } else if (status === 'failed') {
-        // Update job as failed
-        // This would be handled by pollJob, but we can do it directly here
       }
 
       res.json({ success: true, message: 'Webhook received' });

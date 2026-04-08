@@ -77,7 +77,7 @@ teum/
   - `POST /api/payments/billing/init` → NicePay `subscribe` method로 빌링키 등록
   - `POST /api/payments/nicepay/billing-return` → 빌링키 승인 + 첫 결제 자동 처리
   - `billing_keys` 테이블에 빌링키 저장 (bid, cardCode, cardName, cardNo, status)
-  - 자동 갱신 스케줄러: 매시간 만료된 구독 확인 → 빌링키로 자동 결제 → 새 구독 생성
+  - 자동 갱신 스케줄러: `index.ts`에서 매시간 `processAutoRenewals()` 호출 → 만료된 구독 확인 → 빌링키로 자동 결제 (최대 3회 재시도) → 새 구독 생성
   - 구독 취소 시 빌링키도 자동 해지 (NicePay API + DB)
 - **재구독 본인인증**: 이전 구독 이력이 있으면(취소/만료) 빌링키 등록 전 서버에서 검증
   - `GET /api/payments/needs-verification` → 프론트에서 조건부 SMS 인증 모달
@@ -163,6 +163,20 @@ teum/
 - AWS Signature V4 자체 구현 (외부 SDK 없이)
 - 환경변수: `CDN_URL`, `CDN_BUCKET_NAME`, `CDN_ENDPOINT`, `CDN_ACCESS_KEY_ID`, `CDN_SECRET_ACCESS_KEY`, `CDN_REGION`
 - upload/delete/get 메서드 지원
+
+### Payment Amount Validation
+- `PLAN_PRICES` 상수로 플랜별 정가 관리 (premium_monthly: 4900원)
+- `initBillingKeyRegistration`, `initPayment` 양쪽에서 서버 측 금액 검증
+- 클라이언트가 URL 파라미터로 전달한 금액이 정가와 불일치 시 결제 차단
+
+### Billing Key Return Idempotency
+- `processingBillingReturns` Set으로 동일 orderId 동시 처리 방지
+- NicePay 콜백 중복 호출 시 이중 빌링키 등록/이중 결제 차단
+- 세션 삭제 후 재호출 시에도 "세션 없음"으로 차단 (2중 보호)
+
+### Music Webhook Authentication
+- `MUREKA_WEBHOOK_SECRET` 환경변수 설정 시 Authorization 또는 x-webhook-secret 헤더 검증
+- 미설정 시 경고 로그 출력 (개발 환경 호환)
 
 ### JWT Security
 - `default_secret` fallback 제거 — `process.env.JWT_SECRET!` 필수

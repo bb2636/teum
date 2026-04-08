@@ -4,6 +4,7 @@ import { logger } from './config/logger';
 import { sqlClient } from './db';
 import { startCleanupJob } from './jobs/cleanup-withdrawn-users';
 import { musicPollingService } from './services/music/music-polling.service';
+import { paymentService } from './services/payment.service';
 
 const PORT = process.env.PORT || 3001;
 
@@ -20,6 +21,21 @@ function startMusicPolling() {
     }
   }, MUSIC_POLL_INTERVAL);
   logger.info('Music polling worker started', { intervalMs: MUSIC_POLL_INTERVAL });
+}
+
+const AUTO_RENEWAL_INTERVAL = 60 * 60 * 1000;
+let autoRenewalTimer: NodeJS.Timeout | null = null;
+
+function startAutoRenewal() {
+  if (autoRenewalTimer) return;
+  autoRenewalTimer = setInterval(async () => {
+    try {
+      await paymentService.processAutoRenewals();
+    } catch (err) {
+      logger.error('Auto-renewal scheduler error', { error: err instanceof Error ? err.message : String(err) });
+    }
+  }, AUTO_RENEWAL_INTERVAL);
+  logger.info('Auto-renewal scheduler started (every 1 hour)');
 }
 
 process.on('unhandledRejection', (reason) => {
@@ -41,6 +57,7 @@ const server = app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   startCleanupJob();
   startMusicPolling();
+  startAutoRenewal();
 });
 
 let isShuttingDown = false;
@@ -53,6 +70,11 @@ async function gracefulShutdown(signal: string) {
   if (musicPollTimer) {
     clearInterval(musicPollTimer);
     musicPollTimer = null;
+  }
+
+  if (autoRenewalTimer) {
+    clearInterval(autoRenewalTimer);
+    autoRenewalTimer = null;
   }
 
   server.close(async () => {

@@ -15,7 +15,23 @@ setInterval(async () => {
   }
 }, 5 * 60 * 1000);
 
+const PLAN_PRICES: Record<string, number> = {
+  'premium_monthly': 4900,
+  'monthly': 4900,
+  'premium': 4900,
+};
+
 export class PaymentService {
+  private validatePlanAmount(planName: string, amount: number): boolean {
+    const normalizedPlan = planName.toLowerCase().replace(/\s+/g, '_');
+    for (const [key, price] of Object.entries(PLAN_PRICES)) {
+      if (normalizedPlan.includes(key) || key.includes(normalizedPlan)) {
+        return amount === price;
+      }
+    }
+    return amount === 4900;
+  }
+
   private isPaymentMockSuccess(): boolean {
     return process.env.PAYMENT_MOCK_SUCCESS === 'true';
   }
@@ -57,6 +73,11 @@ export class PaymentService {
     userId: string,
     input: { planName: string; paymentMethod: string; amount: number; identityVerified?: boolean }
   ) {
+    if (!this.validatePlanAmount(input.planName, input.amount)) {
+      logger.error('Invalid plan amount', { planName: input.planName, amount: input.amount, userId });
+      throw new Error('결제 금액이 올바르지 않습니다.');
+    }
+
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
       throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
@@ -89,13 +110,32 @@ export class PaymentService {
     };
   }
 
+  private processingBillingReturns = new Set<string>();
+
   async processBillingKeyReturn(
+    bid: string,
+    orderId: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (this.processingBillingReturns.has(orderId)) {
+      logger.warn('Duplicate billing return detected, skipping', { orderId });
+      return { success: false, message: '이미 처리 중인 요청입니다.' };
+    }
+    this.processingBillingReturns.add(orderId);
+
+    try {
+      return await this._processBillingKeyReturnInner(bid, orderId);
+    } finally {
+      this.processingBillingReturns.delete(orderId);
+    }
+  }
+
+  private async _processBillingKeyReturnInner(
     bid: string,
     orderId: string
   ): Promise<{ success: boolean; message: string }> {
     const session = await this.getPendingSession(orderId);
     if (!session) {
-      logger.error('Billing key session not found', { orderId });
+      logger.error('Billing key session not found or already processed', { orderId });
       return { success: false, message: '세션을 찾을 수 없습니다.' };
     }
 
@@ -439,6 +479,11 @@ export class PaymentService {
     userId: string,
     input: { amount: number; planName: string; paymentMethod: string }
   ) {
+    if (!this.validatePlanAmount(input.planName, input.amount)) {
+      logger.error('Invalid plan amount in initPayment', { planName: input.planName, amount: input.amount, userId });
+      throw new Error('결제 금액이 올바르지 않습니다.');
+    }
+
     const isRenewal = false;
     if (!isRenewal) {
       const activeSubscription = await this.getActiveSubscription(userId);

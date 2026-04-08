@@ -86,6 +86,7 @@ export function useSocialOnboarding() {
       name: string;
       dateOfBirth?: string;
       phone?: string;
+      language?: string;
       termsConsents: Array<{ termsType: string; consented: boolean }>;
     }) => {
       const response = await apiRequest<{ data: { user: User } }>('/auth/social/onboarding', {

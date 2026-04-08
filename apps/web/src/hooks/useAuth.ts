@@ -49,6 +49,7 @@ export function useSignup() {
       phone?: string;
       dateOfBirth?: string;
       profileImageUrl?: string;
+      language?: string;
       termsConsents: Array<{ termsType: string; consented: boolean }>;
     }) => {
       const response = await apiRequest<{ data: { user: User } }>('/auth/signup', {

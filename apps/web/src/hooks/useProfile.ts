@@ -12,6 +12,7 @@ export interface UserProfile {
   dateOfBirth?: string;
   profileImageUrl?: string;
   country?: string;
+  language?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +31,7 @@ export interface UpdateProfileInput {
   dateOfBirth?: string;
   profileImageUrl?: string;
   country?: string;
+  language?: string;
 }
 
 export function useMe() {

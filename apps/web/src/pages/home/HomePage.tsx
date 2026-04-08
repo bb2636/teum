@@ -284,30 +284,7 @@ export function HomePage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
-          <div className="flex items-center justify-end px-4 pt-3 pb-1">
-            <div className="flex items-center gap-2">
-              {activeSubscription ? (
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 text-gray-700 border-0 rounded-full px-4 py-2 h-auto cursor-default text-xs"
-                  disabled
-                >
-                  {t('my.subscribing')}
-                </Button>
-              ) : (
-                <Link to="/payment">
-                  <Button
-                    variant="outline"
-                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-full px-4 py-2 h-auto text-xs"
-                  >
-                    {t('payment.subscribe')}
-                  </Button>
-                </Link>
-              )}
-              <ProfileButton />
-            </div>
-          </div>
-          <div className="flex items-center justify-between px-4 pb-2">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-3 pb-2">
             <div className="flex items-center gap-2">
               <img
                 src="/logo.home.png"
@@ -317,7 +294,7 @@ export function HomePage() {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-sm font-medium whitespace-pre-line" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
+              <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
             </div>
             <div className="relative">
               <button
@@ -374,6 +351,27 @@ export function HomePage() {
                   </div>
                 </>
               )}
+            </div>
+            <div className="flex items-center gap-2 justify-end">
+              {activeSubscription ? (
+                <Button
+                  variant="outline"
+                  className="bg-gray-100 text-gray-700 border-0 rounded-full px-4 py-2 h-auto cursor-default text-xs"
+                  disabled
+                >
+                  {t('my.subscribing')}
+                </Button>
+              ) : (
+                <Link to="/payment">
+                  <Button
+                    variant="outline"
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-full px-4 py-2 h-auto text-xs"
+                  >
+                    {t('payment.subscribe')}
+                  </Button>
+                </Link>
+              )}
+              <ProfileButton />
             </div>
           </div>
         </div>

@@ -179,7 +179,10 @@ const ko: Record<string, string> = {
   "my.saveFailed": "프로필 업데이트에 실패했습니다.",
   "my.nicknamePlaceholder": "닉네임을 입력하세요",
   "my.nicknameRule": "닉네임은 2~12자입니다",
-  "my.selectCountry": "국가 선택",
+  'my.selectCountry': '국가 선택',
+  'my.selectLanguage': '언어 선택',
+  'my.langKorean': '한국어',
+  'my.langEnglish': 'English',
   "my.promoTitle": "기록이 곧, 당신만의 트랙이 됩니다.",
   "my.promoDesc":
     "일기의 감정이 그대로 담긴 단 하나의 선율입니다.\n기록하는 순간, 새로운 음악이 태어납니다.",
@@ -669,7 +672,10 @@ const en: Record<string, string> = {
   "my.saveFailed": "Failed to update profile.",
   "my.nicknamePlaceholder": "Enter nickname",
   "my.nicknameRule": "Nickname must be 2-12 characters",
-  "my.selectCountry": "Select Country",
+  'my.selectCountry': 'Select Country',
+  'my.selectLanguage': 'Select Language',
+  'my.langKorean': '한국어',
+  'my.langEnglish': 'English',
   "my.promoTitle": "Your records become your own track.",
   "my.promoDesc":
     "A unique melody that captures the emotions of your diary.\nThe moment you write, new music is born.",

@@ -12,9 +12,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { WithdrawModal } from './WithdrawModal';
-import { COUNTRY_OPTIONS } from '@/lib/countries';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 const profileSchema = z.object({
   nickname: z
@@ -36,14 +36,15 @@ export function ProfileEditPage() {
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
   const t = useT();
-  const { setLanguageFromCountry } = useLanguage();
+  const { setLanguage } = useLanguage();
   const { data: subscriptions = [] } = useSubscriptions();
   const activeSubscription = getEffectiveSubscription(subscriptions);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showSaveError, setShowSaveError] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [showCountryList, setShowCountryList] = useState(false);
+  const [showLanguageList, setShowLanguageList] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'ko' | 'en'>(getCurrentLanguage());
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarButtonRef = useRef<HTMLButtonElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +58,6 @@ export function ProfileEditPage() {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -100,13 +100,10 @@ export function ProfileEditPage() {
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
-      const { name: _name, ...rest } = data;
+      const { name: _name, country: _country, ...rest } = data;
       await updateProfile.mutateAsync({ ...rest, dateOfBirth: dateOfBirthISO });
       
-      // 국가가 변경된 경우 언어도 업데이트
-      if (data.country) {
-        setLanguageFromCountry(data.country);
-      }
+      setLanguage(selectedLanguage);
       
       setShowSaveSuccess(true);
     } catch (error) {
@@ -237,24 +234,20 @@ export function ProfileEditPage() {
               />
             </div>
 
-            {/* 국가 선택 - 팝업 스타일 토글 목록 (다른 팝업과 UI 통일) */}
+            {/* 언어 선택 */}
             <div className="space-y-2">
-              <Label className="text-brown-900">{t('my.selectCountry')}</Label>
+              <Label className="text-brown-900">{t('my.selectLanguage')}</Label>
               <button
                 type="button"
-                onClick={() => setShowCountryList(true)}
+                onClick={() => setShowLanguageList(true)}
                 className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 text-sm flex items-center justify-between text-left"
               >
-                <span className={watch('country') ? 'text-brown-900' : 'text-muted-foreground'}>
-                  {watch('country')
-                    ? COUNTRY_OPTIONS.find((c) => c.value === watch('country'))?.label ?? t('my.selectCountry')
-                    : t('my.selectCountry')}
+                <span className="text-brown-900">
+                  {selectedLanguage === 'ko' ? t('my.langKorean') : t('my.langEnglish')}
                 </span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
               </button>
             </div>
-
-            {/* 국가 선택 팝업은 form 바깥 fragment 레벨에서 렌더링 */}
 
             {/* 로그아웃 | 회원탈퇴 */}
             <div className="flex items-center justify-center gap-2 py-2">
@@ -356,39 +349,39 @@ export function ProfileEditPage() {
         />
       )}
 
-      {showCountryList && (
+      {showLanguageList && (
         <div
           className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 animate-overlay-fade"
-          onClick={() => setShowCountryList(false)}
+          onClick={() => setShowLanguageList(false)}
         >
           <div
-            className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe min-h-[40vh] max-h-[70vh] flex flex-col animate-modal-sheet"
+            className="bg-white rounded-t-2xl w-full max-w-md shadow-lg pb-safe flex flex-col animate-modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-brown-100 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-semibold text-brown-900">{t('my.selectCountry')}</h2>
+              <h2 className="text-lg font-semibold text-brown-900">{t('my.selectLanguage')}</h2>
               <button
                 type="button"
-                onClick={() => setShowCountryList(false)}
+                onClick={() => setShowLanguageList(false)}
                 className="p-1 rounded-full hover:bg-gray-100"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="divide-y divide-brown-100 overflow-y-auto flex-1 py-2">
-              {COUNTRY_OPTIONS.map(({ value, label }) => (
+            <div className="divide-y divide-brown-100 py-2">
+              {([{ value: 'ko', label: t('my.langKorean') }, { value: 'en', label: t('my.langEnglish') }] as const).map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => {
-                    setValue('country', value);
-                    setShowCountryList(false);
+                    setSelectedLanguage(value);
+                    setShowLanguageList(false);
                   }}
                   className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors text-left"
                 >
                   <span className="font-medium text-brown-900">{label}</span>
-                  {watch('country') === value && (
+                  {selectedLanguage === value && (
                     <span className="text-brown-600 text-sm">✓</span>
                   )}
                 </button>

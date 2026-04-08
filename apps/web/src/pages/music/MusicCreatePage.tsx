@@ -102,11 +102,14 @@ export function MusicCreatePage() {
     });
   };
 
+  const MAX_GENRES = 3;
+
   const toggleGenre = (genreTag: string) => {
     setSelectedGenres((prev) => {
       if (prev.includes(genreTag)) {
         return prev.filter((tag) => tag !== genreTag);
       }
+      if (prev.length >= MAX_GENRES) return prev;
       return [...prev, genreTag];
     });
   };
@@ -256,14 +259,16 @@ export function MusicCreatePage() {
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-brown-200 rounded-lg shadow-lg z-30 max-h-60 overflow-y-auto">
                   {genres.map((genre) => {
                     const isSelected = selectedGenres.includes(genre.tag);
+                    const isDisabled = !isSelected && selectedGenres.length >= MAX_GENRES;
                     return (
                       <button
                         key={genre.tag}
                         type="button"
+                        disabled={isDisabled}
                         onClick={() => {
                           toggleGenre(genre.tag);
                         }}
-                        className="w-full px-4 py-3 text-left hover:bg-brown-50 flex items-center justify-between border-b border-brown-100 last:border-b-0"
+                        className={`w-full px-4 py-3 text-left flex items-center justify-between border-b border-brown-100 last:border-b-0 ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brown-50'}`}
                       >
                         <span className="text-brown-900">{genre.labelKo}</span>
                         {isSelected && <Check className="w-5 h-5 text-brown-600" />}

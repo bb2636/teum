@@ -7,6 +7,7 @@ import { users, subscriptions } from '../db/schema';
 import { updateProfileSchema } from '../validations/user';
 import { db } from '../db';
 import { emailService } from '../services/email/email.service';
+import { logger } from '../config/logger';
 
 export class UserController {
   async getMe(req: Request, res: Response, next: NextFunction) {
@@ -121,7 +122,7 @@ export class UserController {
       await userRepository.softDeleteUser(req.user.userId);
 
       if (userEmail) {
-        emailService.sendWithdrawalNotification(userEmail, userNickname).catch(() => {});
+        emailService.sendWithdrawalNotification(userEmail, userNickname).catch((err: unknown) => logger.error('Withdrawal email notification failed', { error: err instanceof Error ? err.message : String(err) }));
       }
 
       res.clearCookie('accessToken', { path: '/' });

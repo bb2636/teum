@@ -55,7 +55,9 @@ function clearOAuthState() {
   try {
     localStorage.removeItem(OAUTH_NONCE_KEY);
     localStorage.removeItem(OAUTH_PENDING_KEY);
-  } catch {}
+  } catch (e) {
+    console.warn('Failed to clear OAuth storage', e);
+  }
 }
 
 export function SplashPage() {
@@ -174,7 +176,9 @@ export function SplashPage() {
       try {
         const { Browser } = await import('@capacitor/browser');
         await Browser.close();
-      } catch {}
+      } catch (e) {
+        console.warn('Failed to close browser', e);
+      }
 
       const params = new URL(url.replace('com.teum.app://', 'https://placeholder/')).searchParams;
 
@@ -392,7 +396,9 @@ export function SplashPage() {
       try {
         localStorage.setItem(OAUTH_NONCE_KEY, nonce);
         localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
-      } catch {}
+      } catch (e) {
+        console.warn('Failed to save OAuth state', e);
+      }
       try {
         const { Browser } = await import('@capacitor/browser');
         const apiBase = import.meta.env.VITE_API_URL || '/api';
@@ -420,7 +426,9 @@ export function SplashPage() {
     try {
       localStorage.setItem(OAUTH_NONCE_KEY, nonce);
       localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
-    } catch {}
+    } catch (e) {
+      console.warn('Failed to save OAuth state', e);
+    }
     if (isNative) {
       try {
         const { Browser } = await import('@capacitor/browser');

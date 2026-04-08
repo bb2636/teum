@@ -81,7 +81,9 @@ export function useLogout() {
         if (window.google?.accounts?.id) {
           window.google.accounts.id.disableAutoSelect();
         }
-      } catch {}
+      } catch (e) {
+        console.warn('Failed to disable Google auto-select', e);
+      }
       sessionStorage.setItem('teum_logged_out', '1');
       localStorage.clear();
       forceFullCacheClear();

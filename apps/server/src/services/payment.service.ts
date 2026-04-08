@@ -192,6 +192,26 @@ export class PaymentService {
       serverPlanName
     );
 
+    if (!chargeResult.success) {
+      logger.warn('First charge failed after billing key registration, deactivating billing key', {
+        userId: session.userId,
+        message: chargeResult.message,
+      });
+      await db
+        .update(billingKeys)
+        .set({ status: 'inactive', updatedAt: new Date() })
+        .where(and(eq(billingKeys.userId, session.userId), eq(billingKeys.status, 'active')));
+
+      try {
+        await nicePayProvider.cancelBillingKey(bid);
+      } catch (cancelErr) {
+        logger.error('Failed to cancel billing key after charge failure', {
+          userId: session.userId,
+          error: cancelErr instanceof Error ? cancelErr.message : String(cancelErr),
+        });
+      }
+    }
+
     return chargeResult;
   }
 

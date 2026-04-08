@@ -634,7 +634,7 @@ export class AuthController {
 
       let userData: { email?: string; name?: { firstName?: string; lastName?: string } } | undefined;
       if (userJson) {
-        try { userData = JSON.parse(userJson); } catch {}
+        try { userData = JSON.parse(userJson); } catch (e) { logger.warn('Failed to parse Apple user JSON', { error: e instanceof Error ? e.message : String(e) }); }
       }
 
       res.clearCookie('accessToken', { path: '/' });

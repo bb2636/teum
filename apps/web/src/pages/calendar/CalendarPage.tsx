@@ -393,17 +393,15 @@ export function CalendarPage() {
   const weekdayLabels = t('calendar.weekdays').split(',');
 
   useEffect(() => {
-    if (!isListOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
-      const originalHtmlStyle = window.getComputedStyle(document.documentElement).overflow;
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalStyle;
-        document.documentElement.style.overflow = originalHtmlStyle;
-      };
-    }
-  }, [isListOpen]);
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    const originalHtmlStyle = window.getComputedStyle(document.documentElement).overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+      document.documentElement.style.overflow = originalHtmlStyle;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">

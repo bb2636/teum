@@ -65,7 +65,7 @@ externalPort = 3000
 [deployment]
 deploymentTarget = "autoscale"
 run = ["pnpm", "start"]
-build = ["sh", "-c", "pnpm --filter web build"]
+build = ["pnpm", "build"]
 
 [userenv]
 

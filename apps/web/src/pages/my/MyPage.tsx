@@ -135,7 +135,7 @@ export function MyPage() {
       <div className="shrink-0 max-w-md mx-auto w-full px-4 pb-2" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
         <h1 className="text-2xl font-bold text-brown-900">{t('my.profile')}</h1>
       </div>
-      <div className="flex-1 min-h-0 overflow-hidden max-w-md mx-auto w-full px-4 pb-20 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-20 space-y-4">
 
         {/* Profile Section - 가운데 정렬 (아바타 + 닉네임) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -263,6 +263,43 @@ export function MyPage() {
             </div>
           </button>
         </div>
+
+        <footer className="pt-4 pb-2 text-xs text-gray-400 leading-relaxed">
+          <div className="space-y-1">
+            <p className="font-medium text-gray-500">TEUM</p>
+            <p>{t('my.footer.companyName')} | {t('my.footer.ceo')}</p>
+            <p>{t('my.footer.bizNumber')}</p>
+            <p>{t('my.footer.salesNumber')}</p>
+            <p>{t('my.footer.email')}</p>
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={() => { setTermsType('service'); setShowTerms(true); }}
+              className="text-gray-400 hover:text-gray-600 underline underline-offset-2"
+            >
+              {t('my.footer.terms')}
+            </button>
+            <span className="text-gray-300">|</span>
+            <button
+              type="button"
+              onClick={() => { setTermsType('privacy'); setShowTerms(true); }}
+              className="text-gray-400 hover:text-gray-600 underline underline-offset-2"
+            >
+              {t('my.footer.privacy')}
+            </button>
+            <span className="text-gray-300">|</span>
+            <button
+              type="button"
+              onClick={() => { setTermsType('refund'); setShowTerms(true); }}
+              className="text-gray-400 hover:text-gray-600 underline underline-offset-2"
+            >
+              {t('my.footer.refund')}
+            </button>
+          </div>
+          <p className="mt-3 text-gray-300">{t('my.footer.version')} 1.0.0</p>
+          <p className="mt-1 text-gray-300">{t('my.footer.copyright')}</p>
+        </footer>
       </div>
 
       {showLogoutConfirm && (

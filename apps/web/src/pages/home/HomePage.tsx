@@ -13,6 +13,7 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 import { stripHTML } from '@/lib/utils';
 import { Toast } from '@/components/Toast';
 
@@ -294,7 +295,7 @@ export function HomePage() {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-sm font-medium leading-snug" style={{ color: '#4A2C1A', whiteSpace: 'pre-wrap', marginTop: '15px' }}>{t('home.tagline')}</span>
+              <span className="text-sm font-medium leading-snug" style={{ color: '#4A2C1A', whiteSpace: 'pre-wrap', marginTop: getCurrentLanguage() === 'en' ? '5px' : '15px' }}>{t('home.tagline')}</span>
             </div>
             <div className="flex flex-col items-end flex-shrink-0">
               <div className="flex items-center gap-2">

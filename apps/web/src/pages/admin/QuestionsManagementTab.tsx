@@ -85,6 +85,23 @@ export function QuestionsManagementTab() {
     }
   };
 
+  const handleToggleActive = async (question: Question) => {
+    const previousQuestions = [...localQuestions];
+    setLocalQuestions((prev) =>
+      prev.map((q) => (q.id === question.id ? { ...q, isActive: !q.isActive } : q))
+    );
+    try {
+      await updateQuestion.mutateAsync({
+        id: question.id,
+        isActive: !question.isActive,
+      });
+    } catch (error) {
+      console.error('Failed to toggle question status:', error);
+      setLocalQuestions(previousQuestions);
+      alert('상태 변경에 실패했습니다.');
+    }
+  };
+
   const handleCreate = async (questionText: string) => {
     try {
       await createQuestion.mutateAsync({
@@ -212,6 +229,9 @@ export function QuestionsManagementTab() {
               <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">
                 질문내용
               </th>
+              <th className="px-6 py-4 text-center text-sm font-medium text-gray-700 w-20">
+                상태
+              </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 w-32">
                 생성일
               </th>
@@ -223,7 +243,7 @@ export function QuestionsManagementTab() {
           <tbody>
             {sortedQuestions.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   등록된 질문이 없습니다.
                 </td>
               </tr>
@@ -274,7 +294,23 @@ export function QuestionsManagementTab() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">{question.question}</span>
+                    <span className={`text-sm ${question.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>{question.question}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleActive(question);
+                      }}
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                        question.isActive
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                      disabled={updateQuestion.isPending}
+                    >
+                      {question.isActive ? '활성' : '비활성'}
+                    </button>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {format(new Date(question.createdAt), 'yy.MM.dd', { locale: ko })}

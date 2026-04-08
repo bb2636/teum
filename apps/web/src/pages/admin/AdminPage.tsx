@@ -753,15 +753,12 @@ export function AdminPage() {
                   <div className="mb-6">
                     <p className="text-gray-700 whitespace-pre-wrap">
                       {(() => {
-                        // HTML 태그 제거 (기존 데이터에 <br> 태그가 있을 수 있음)
+                        let html = selectedDiary.content;
+                        html = html.replace(/<br\s*\/?>/gi, '\n');
+                        html = html.replace(/&nbsp;/g, ' ');
                         const tmp = document.createElement('div');
-                        tmp.innerHTML = selectedDiary.content;
-                        let text = tmp.textContent || tmp.innerText || '';
-                        // <br> 태그를 줄바꿈으로 변환
-                        text = text.replace(/<br\s*\/?>/gi, '\n');
-                        // HTML 엔티티 디코딩
-                        text = text.replace(/&nbsp;/g, ' ');
-                        return text;
+                        tmp.innerHTML = html;
+                        return tmp.textContent || tmp.innerText || '';
                       })()}
                     </p>
                   </div>

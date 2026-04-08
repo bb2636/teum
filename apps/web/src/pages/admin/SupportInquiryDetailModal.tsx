@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { t } from '@/lib/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminSupportInquiry, useUpdateInquiryAnswer } from '@/hooks/useSupport';
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -20,6 +20,7 @@ export function SupportInquiryDetailModal({
   const { data: inquiry, isLoading } = useAdminSupportInquiry(inquiryId);
   const updateAnswer = useUpdateInquiryAnswer();
   const [answer, setAnswer] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -29,15 +30,17 @@ export function SupportInquiryDetailModal({
     } else {
       setAnswer('');
     }
+    setIsEditing(false);
   }, [inquiry]);
 
   const handleClose = () => {
-    if (answer.trim() && answer !== inquiry?.answer) {
+    if ((isEditing || inquiry?.status !== 'answered') && answer.trim() && answer !== inquiry?.answer) {
       if (!confirm('입력한 답변이 취소됩니다. 계속하시겠습니까?')) {
         return;
       }
     }
     setAnswer('');
+    setIsEditing(false);
     onClose();
   };
 
@@ -186,11 +189,18 @@ export function SupportInquiryDetailModal({
                 )}
               </div>
               
-              {inquiry.status === 'answered' && inquiry.answer ? (
-                <div className="p-4 bg-gray-50 rounded-lg">
+              {inquiry.status === 'answered' && inquiry.answer && !isEditing ? (
+                <div className="relative p-4 bg-gray-50 rounded-lg group">
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {inquiry.answer}
                   </p>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-[#4A2C1A] transition-colors opacity-0 group-hover:opacity-100"
+                    title="답변 수정"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
                 <textarea
@@ -204,10 +214,17 @@ export function SupportInquiryDetailModal({
             </div>
           </div>
 
-          {inquiry.status !== 'answered' && (
+          {(inquiry.status !== 'answered' || isEditing) && (
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
               <Button
-                onClick={handleClose}
+                onClick={() => {
+                  if (isEditing) {
+                    setAnswer(inquiry.answer || '');
+                    setIsEditing(false);
+                  } else {
+                    handleClose();
+                  }
+                }}
                 variant="outline"
                 className="border-0 text-gray-700 hover:bg-gray-50 rounded-full"
               >
@@ -215,14 +232,14 @@ export function SupportInquiryDetailModal({
               </Button>
               <Button
                 onClick={handleSendAnswer}
-                disabled={!answer.trim() || updateAnswer.isPending}
+                disabled={!answer.trim() || answer === inquiry.answer || updateAnswer.isPending}
                 className={`rounded-full ${
-                  answer.trim() && !updateAnswer.isPending
+                  answer.trim() && answer !== inquiry.answer && !updateAnswer.isPending
                     ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                답변 보내기
+                {isEditing ? '답변 수정' : '답변 보내기'}
               </Button>
             </div>
           )}

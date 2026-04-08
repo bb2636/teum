@@ -2,12 +2,28 @@ import { Router, type RequestHandler, type Response as ExpressResponse } from 'e
 import { encouragementService } from '../services/ai/encouragement.service';
 import { db } from '../db';
 import { authenticate } from '../middleware/auth';
+import { z } from 'zod';
 
 const router: Router = Router();
 
+const aiFeedbackParamsSchema = z.object({
+  diaryId: z.string().uuid('Invalid diary ID format'),
+});
+
+const aiFeedbackBodySchema = z.object({
+  content: z.string().optional(),
+  title: z.string().optional(),
+  type: z.enum(['free_form', 'question_based']).default('free_form'),
+  answers: z.array(z.object({
+    answer: z.string(),
+    question: z.object({
+      question: z.string(),
+    }).optional(),
+  })).optional(),
+});
+
 router.use(authenticate);
 
-// Regenerate encouragement message for a diary
 router.post('/feedback/:diaryId', (async (req, res, next): Promise<ExpressResponse | void> => {
   try {
     if (!req.user) {
@@ -17,10 +33,35 @@ router.post('/feedback/:diaryId', (async (req, res, next): Promise<ExpressRespon
       });
     }
 
-    const { diaryId } = req.params;
-    const { content, title, type, answers } = req.body;
+    const paramsResult = aiFeedbackParamsSchema.safeParse(req.params);
+    if (!paramsResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: paramsResult.error.errors[0]?.message || 'Invalid parameters' },
+      });
+    }
 
-    // Regenerate encouragement message
+    const bodyResult = aiFeedbackBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: bodyResult.error.errors[0]?.message || 'Invalid request body' },
+      });
+    }
+
+    const { diaryId } = paramsResult.data;
+    const { content, title, type, answers } = bodyResult.data;
+
+    const diary = await db.query.diaries.findFirst({
+      where: (d, { eq, and }) => and(eq(d.id, diaryId), eq(d.userId, req.user!.userId)),
+    });
+    if (!diary) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Diary not found' },
+      });
+    }
+
     await encouragementService.generateAndSaveEncouragement(
       diaryId,
       req.user.userId,
@@ -51,7 +92,6 @@ router.post('/feedback/:diaryId', (async (req, res, next): Promise<ExpressRespon
   }
 }) as RequestHandler);
 
-// Get AI feedback for a diary
 router.get('/feedback/:diaryId', (async (req, res, next): Promise<ExpressResponse | void> => {
   try {
     if (!req.user) {
@@ -61,7 +101,25 @@ router.get('/feedback/:diaryId', (async (req, res, next): Promise<ExpressRespons
       });
     }
 
-    const { diaryId } = req.params;
+    const paramsResult = aiFeedbackParamsSchema.safeParse(req.params);
+    if (!paramsResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: paramsResult.error.errors[0]?.message || 'Invalid parameters' },
+      });
+    }
+
+    const { diaryId } = paramsResult.data;
+
+    const diary = await db.query.diaries.findFirst({
+      where: (d, { eq, and }) => and(eq(d.id, diaryId), eq(d.userId, req.user!.userId)),
+    });
+    if (!diary) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Diary not found' },
+      });
+    }
 
     const feedback = await db.query.aiFeedback.findFirst({
       where: (feedback, { eq, and }) =>

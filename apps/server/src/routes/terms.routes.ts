@@ -1,31 +1,36 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { termsController } from '../controllers/terms.controller';
-import { authenticate } from '../middleware/auth';
-import { requireRole } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { openAIProvider } from '../services/ai/openai.provider';
 import { logger } from '../config/logger';
 
 const router: Router = Router();
 
-const translationCache = new Map<string, { text: string; timestamp: number }>();
+const translationCache = new Map<string, { text: string; timestamp: number; contentHash: string }>();
 const CACHE_TTL = 1000 * 60 * 60 * 24;
 
-router.post('/translate', async (req: Request, res: Response) => {
+function hashContent(text: string): string {
+  return crypto.createHash('sha256').update(text).digest('hex').slice(0, 16);
+}
+
+router.post('/translate', authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
   try {
     const { title, content, lang, type } = req.body;
     if (!content || !lang || lang === 'ko') {
       return res.json({ data: { title, content } });
     }
 
+    const contentHash = hashContent(content);
     const cacheKey = `${type}_${lang}`;
     const cached = translationCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (cached && cached.contentHash === contentHash && Date.now() - cached.timestamp < CACHE_TTL) {
       const parsed = JSON.parse(cached.text);
       return res.json({ data: parsed });
     }
 
     const translated = await openAIProvider.translateTerms({ title, content, lang });
-    translationCache.set(cacheKey, { text: JSON.stringify(translated), timestamp: Date.now() });
+    translationCache.set(cacheKey, { text: JSON.stringify(translated), timestamp: Date.now(), contentHash });
     return res.json({ data: translated });
   } catch (error) {
     logger.error('Terms translation failed', { error: error instanceof Error ? error.message : String(error) });

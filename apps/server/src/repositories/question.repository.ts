@@ -12,6 +12,14 @@ export class QuestionRepository {
       .orderBy(asc(questions.sortOrder), desc(questions.createdAt));
   }
 
+  async findAll() {
+    return db
+      .select()
+      .from(questions)
+      .where(isNull(questions.deletedAt))
+      .orderBy(asc(questions.sortOrder), desc(questions.createdAt));
+  }
+
   async findById(id: string) {
     const [question] = await db
       .select()
@@ -81,8 +89,7 @@ export class QuestionRepository {
     
     await Promise.all(updates);
     
-    // Return all active questions in updated order
-    return this.findAllActive();
+    return this.findAll();
   }
 
   async delete(id: string) {

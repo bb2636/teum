@@ -3,8 +3,8 @@ import { logger } from '../config/logger';
 
 export class QuestionService {
   async getAllQuestions() {
-    logger.info('Fetching all questions');
-    return questionRepository.findAllActive();
+    logger.info('Fetching all questions (including inactive)');
+    return questionRepository.findAll();
   }
 
   async getQuestionById(id: string) {

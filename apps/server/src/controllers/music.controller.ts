@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { musicService } from '../services/music/music.service';
 import { musicPollingService } from '../services/music/music-polling.service';
 import { generateMusicSchema } from '../validations/music';
@@ -95,11 +96,18 @@ export class MusicController {
         });
       }
 
-      const limitParam = req.query.limit as string | undefined;
-      const offsetParam = req.query.offset as string | undefined;
-
-      const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 100) : undefined;
-      const offset = offsetParam ? Math.max(parseInt(offsetParam, 10) || 0, 0) : undefined;
+      const querySchema = z.object({
+        limit: z.string().optional().transform(v => v ? Math.min(Math.max(parseInt(v, 10) || 20, 1), 100) : undefined),
+        offset: z.string().optional().transform(v => v ? Math.max(parseInt(v, 10) || 0, 0) : undefined),
+      });
+      const queryResult = querySchema.safeParse(req.query);
+      if (!queryResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: queryResult.error.errors[0]?.message || 'Invalid query parameters' },
+        });
+      }
+      const { limit, offset } = queryResult.data;
 
       const data = await musicService.getJobs(req.user.userId, limit != null ? { limit, offset } : undefined);
       res.json({

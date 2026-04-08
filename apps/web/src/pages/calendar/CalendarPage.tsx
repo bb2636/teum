@@ -409,8 +409,9 @@ export function CalendarPage() {
     <div className="min-h-screen bg-white overflow-hidden">
       <div className="max-w-md mx-auto h-screen flex flex-col overflow-hidden relative">
 
+        {!isListFullScreen && (
         <div
-          className="sticky top-0 z-30 bg-white flex items-center justify-between px-4 py-2"
+          className="shrink-0 z-30 bg-white flex items-center justify-between px-4 py-2"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' }}
         >
           <div className="flex items-center gap-1.5">
@@ -437,7 +438,9 @@ export function CalendarPage() {
             <ProfileButton />
           </div>
         </div>
+        )}
 
+        {!isListFullScreen && (
         <div className="grid grid-cols-7 px-2 pt-1">
           {weekdayLabels.map((day, index) => (
             <div
@@ -450,6 +453,7 @@ export function CalendarPage() {
             </div>
           ))}
         </div>
+        )}
 
         {isError && (
           <div className="text-center py-1">
@@ -579,10 +583,10 @@ export function CalendarPage() {
 
         {isListOpen && (
           <div
-            className={`bg-white flex flex-col transition-all duration-300 ease-in-out z-10 ${
+            className={`bg-white flex flex-col transition-all duration-300 ease-in-out ${
               isListFullScreen
-                ? 'absolute inset-0'
-                : 'flex-1'
+                ? 'absolute inset-0 z-40'
+                : 'flex-1 z-10'
             }`}
             style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : { flex: '1 1 auto' }}
           >

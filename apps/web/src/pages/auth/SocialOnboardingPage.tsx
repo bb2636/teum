@@ -295,7 +295,7 @@ export function SocialOnboardingPage() {
               <div className="flex items-center gap-1">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 {isAppleHiddenEmail && (
-                  <span className="text-xs text-gray-400">({t('common.optional')})</span>
+                  <span className="text-xs text-gray-400">(선택)</span>
                 )}
                 <button
                   type="button"

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X } from 'lucide-react';
-import { useInitBillingKey, useNeedsVerification } from '@/hooks/usePayment';
+import { useInitBillingKey } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
@@ -61,7 +61,6 @@ export function PaymentPage() {
   const confirmPhoneVerification = useConfirmPhoneVerification();
 
   const initBillingKey = useInitBillingKey();
-  const { data: needsVerification, isLoading: verificationLoading } = useNeedsVerification();
 
   const nextPaymentDate = useMemo(() => {
     const date = new Date();
@@ -74,15 +73,9 @@ export function PaymentPage() {
 
   const isButtonEnabled = !!cardCode;
 
-  const requiresVerification = needsVerification === true;
-
   const handlePaymentClick = () => {
     if (!cardCode) {
       alert(t('payment.selectCardCompany'));
-      return;
-    }
-    if (requiresVerification && !identityVerified) {
-      setShowIdentityModal(true);
       return;
     }
     setShowTermsSheet(true);
@@ -91,7 +84,11 @@ export function PaymentPage() {
   const handleTermsAgreed = (agreed: boolean) => {
     if (agreed) {
       setShowTermsSheet(false);
-      handleStartBillingRegistration();
+      if (!identityVerified) {
+        setShowIdentityModal(true);
+      } else {
+        handleStartBillingRegistration();
+      }
     }
   };
 
@@ -103,7 +100,7 @@ export function PaymentPage() {
         planName,
         paymentMethod: 'CARD',
         amount: parseInt(amount),
-        identityVerified: identityVerified || !requiresVerification,
+        identityVerified: true,
       });
 
       if (!window.AUTHNICE) {
@@ -163,7 +160,7 @@ export function PaymentPage() {
       setIdentityVerified(true);
       setShowIdentityModal(false);
       setIdentityCode('');
-      setShowTermsSheet(true);
+      handleStartBillingRegistration();
     } catch (err: any) {
       setIdentityError(err?.message || t('auth.verificationInvalid'));
     }
@@ -295,7 +292,7 @@ export function PaymentPage() {
             </p>
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || initBillingKey.isPending || !isButtonEnabled || verificationLoading}
+              disabled={isProcessing || initBillingKey.isPending || !isButtonEnabled}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing || initBillingKey.isPending

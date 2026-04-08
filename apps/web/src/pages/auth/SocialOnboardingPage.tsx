@@ -415,7 +415,7 @@ export function SocialOnboardingPage() {
                   }
                 }}
                 placeholder="YYYY / MM / DD"
-                className={`bg-gray-100 ${profileErrors.dateOfBirth ? 'border-red-500' : ''}`}
+                className={`bg-gray-100 text-center ${profileErrors.dateOfBirth ? 'border-red-500' : ''}`}
                 maxLength={14}
               />
               {profileErrors.dateOfBirth && <p className="text-sm text-red-500">{profileErrors.dateOfBirth.message}</p>}

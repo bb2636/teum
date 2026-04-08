@@ -632,7 +632,7 @@ export function SignupPage() {
                 onFocus={(e) => { e.target.blur(); setShowCalendar(true); }}
                 onClick={() => setShowCalendar(true)}
                 placeholder="YYYY / MM / DD"
-                className="bg-gray-100 cursor-pointer"
+                className="bg-gray-100 text-center cursor-pointer"
               />
               {step2Errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{t(step2Errors.dateOfBirth.message || '')}</p>

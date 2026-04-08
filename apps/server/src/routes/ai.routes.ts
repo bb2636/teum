@@ -16,9 +16,13 @@ const aiFeedbackBodySchema = z.object({
   type: z.enum(['free_form', 'question_based']).default('free_form'),
   answers: z.array(z.object({
     answer: z.string(),
-    question: z.object({
-      question: z.string(),
-    }).optional(),
+    question: z.union([
+      z.string(),
+      z.object({ question: z.string() }),
+    ]).optional().transform(v => {
+      if (!v) return '';
+      return typeof v === 'string' ? v : v.question;
+    }),
   })).optional(),
 });
 

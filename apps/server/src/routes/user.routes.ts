@@ -5,6 +5,7 @@ import { authenticate, requireRole } from '../middleware/auth';
 const router: Router = Router();
 
 router.get('/check-nickname', userController.checkNickname.bind(userController));
+router.get('/check-email', userController.checkEmail.bind(userController));
 
 router.use(authenticate);
 

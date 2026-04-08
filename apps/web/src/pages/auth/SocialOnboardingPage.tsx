@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSocialOnboarding, type SocialProfile } from '@/hooks/useSocialAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
+import { useEmailCheck } from '@/hooks/useEmailCheck';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
@@ -126,6 +127,11 @@ export function SocialOnboardingPage() {
   const shouldCheckNickname = watchNickname && watchNickname.length >= 2 && watchNickname.length <= 12 && !watchNickname.includes(' ') && /^[a-zA-Z0-9가-힣_]+$/.test(watchNickname);
   const nicknameCheck = useNicknameCheck(watchNickname || '', shouldCheckNickname || false);
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const shouldCheckEmail = isAppleHiddenEmail && !!watchEmail && emailRegex.test(watchEmail);
+  const emailCheck = useEmailCheck(watchEmail || '', shouldCheckEmail);
+  const [emailError, setEmailError] = useState<string[]>([]);
+
   useEffect(() => {
     if (watchDateOfBirth && watchDateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const [year, month, day] = watchDateOfBirth.split('-');
@@ -148,6 +154,21 @@ export function SocialOnboardingPage() {
     }
   }, [watchNickname, nicknameCheck.data, shouldCheckNickname]);
 
+  useEffect(() => {
+    if (isAppleHiddenEmail && watchEmail && watchEmail.length > 0) {
+      const errors: string[] = [];
+      if (!emailRegex.test(watchEmail)) {
+        errors.push(t('auth.emailPlaceholder'));
+      } else if (shouldCheckEmail && emailCheck.data && !emailCheck.data.available) {
+        if (emailCheck.data.reason === 'duplicate') errors.push(t('auth.emailDuplicate'));
+        if (emailCheck.data.reason === 'withdrawn') errors.push(t('auth.emailWithdrawn'));
+      }
+      setEmailError(errors);
+    } else {
+      setEmailError([]);
+    }
+  }, [watchEmail, emailCheck.data, shouldCheckEmail, isAppleHiddenEmail]);
+
   const isValidDateOfBirth = (dateStr: string | undefined): boolean => {
     if (!dateStr) return false;
     const parts = dateStr.split('-');
@@ -165,7 +186,7 @@ export function SocialOnboardingPage() {
 
   const profileErrors = profileForm.formState.errors;
   const isEmailOk = isAppleHiddenEmail
-    ? (!watchEmail || !profileErrors.email)
+    ? (!watchEmail || (!profileErrors.email && emailError.length === 0 && (!shouldCheckEmail || (emailCheck.data?.available === true))))
     : (!!watchEmail && !profileErrors.email);
   const isProfileValid =
     isEmailOk &&
@@ -315,10 +336,13 @@ export function SocialOnboardingPage() {
                 type="email"
                 {...profileForm.register('email')}
                 placeholder={isAppleHiddenEmail ? t('auth.emailOptionalPlaceholder') : t('auth.emailPlaceholder')}
-                className={`bg-gray-100 ${profileErrors.email ? 'border-red-500' : ''}`}
+                className={`bg-gray-100 ${profileErrors.email || emailError.length > 0 ? 'border-red-500' : ''}`}
                 disabled={false}
               />
               {profileErrors.email && watchEmail && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
+              {emailError.length > 0 && emailError.map((err, i) => (
+                <p key={i} className="text-sm text-red-500">{err}</p>
+              ))}
             </div>
 
             <div className="space-y-2">

@@ -103,6 +103,54 @@ export class UserController {
     }
   }
 
+  async checkEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.query;
+
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'Email is required' },
+        });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.json({
+          success: true,
+          data: { available: false, reason: 'invalid_format' },
+        });
+      }
+
+      const existingUser = await userRepository.findByEmailIncludingDeleted(email);
+      if (existingUser) {
+        if (existingUser.deletedAt) {
+          const deletedAt = new Date(existingUser.deletedAt);
+          const oneYearLater = new Date(deletedAt);
+          oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+          if (new Date() < oneYearLater) {
+            return res.json({
+              success: true,
+              data: { available: false, reason: 'withdrawn' },
+            });
+          }
+        } else {
+          return res.json({
+            success: true,
+            data: { available: false, reason: 'duplicate' },
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        data: { available: true },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deleteAccount(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {

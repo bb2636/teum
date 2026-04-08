@@ -284,7 +284,7 @@ export function HomePage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
-          <div className="flex items-center justify-between px-4 pt-3 pb-1">
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <div className="flex items-center gap-2">
               <img
                 src="/logo.home.png"
@@ -297,6 +297,62 @@ export function HomePage() {
               <span className="text-sm font-medium whitespace-pre-line" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
             </div>
             <div className="flex items-center gap-2">
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterMenu(!showFilterMenu)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:text-[#4A2C1A] transition-colors rounded-lg hover:bg-gray-50"
+                >
+                  <Filter className="w-4 h-4" />
+                  <span>{t('diary.filter')}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
+                </button>
+                {showFilterMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowFilterMenu(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-2">
+                      <div className="px-3 py-2 border-b border-gray-100">
+                        <p className="text-xs font-medium text-gray-500 mb-2">{t('diary.sort')}</p>
+                        <button
+                          onClick={() => { setSortOrder('newest'); setShowFilterMenu(false); }}
+                          className={`w-full text-left px-2 py-1.5 text-sm rounded ${sortOrder === 'newest' ? 'bg-[#4A2C1A] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          {t('diary.newest')}
+                        </button>
+                        <button
+                          onClick={() => { setSortOrder('oldest'); setShowFilterMenu(false); }}
+                          className={`w-full text-left px-2 py-1.5 text-sm rounded mt-1 ${sortOrder === 'oldest' ? 'bg-[#4A2C1A] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          {t('diary.oldest')}
+                        </button>
+                      </div>
+                      <div className="px-3 py-2">
+                        <p className="text-xs font-medium text-gray-500 mb-2">{t('diary.typeFilter')}</p>
+                        <button
+                          onClick={() => { setTypeFilter('all'); setShowFilterMenu(false); }}
+                          className={`w-full text-left px-2 py-1.5 text-sm rounded ${typeFilter === 'all' ? 'bg-[#4A2C1A] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          {t('diary.all')}
+                        </button>
+                        <button
+                          onClick={() => { setTypeFilter('free_form'); setShowFilterMenu(false); }}
+                          className={`w-full text-left px-2 py-1.5 text-sm rounded mt-1 ${typeFilter === 'free_form' ? 'bg-[#4A2C1A] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          {t('diary.freeForm')}
+                        </button>
+                        <button
+                          onClick={() => { setTypeFilter('question_based'); setShowFilterMenu(false); }}
+                          className={`w-full text-left px-2 py-1.5 text-sm rounded mt-1 ${typeFilter === 'question_based' ? 'bg-[#4A2C1A] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                        >
+                          {t('diary.questionBased')}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
               {activeSubscription ? (
                 <Button
                   variant="outline"
@@ -317,106 +373,6 @@ export function HomePage() {
               )}
               <ProfileButton />
             </div>
-          </div>
-          <div className="px-4 pb-2 flex items-center justify-end">
-          
-          {/* 필터 버튼 */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilterMenu(!showFilterMenu)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:text-[#4A2C1A] transition-colors rounded-lg hover:bg-gray-50"
-            >
-              <Filter className="w-4 h-4" />
-              <span>{t('diary.filter')}</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {/* 필터 메뉴 */}
-            {showFilterMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowFilterMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-2">
-                  {/* 정렬 옵션 */}
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs font-medium text-gray-500 mb-2">{t('diary.sort')}</p>
-                    <button
-                      onClick={() => {
-                        setSortOrder('newest');
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm rounded ${
-                        sortOrder === 'newest'
-                          ? 'bg-[#4A2C1A] text-white'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t('diary.newest')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortOrder('oldest');
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm rounded mt-1 ${
-                        sortOrder === 'oldest'
-                          ? 'bg-[#4A2C1A] text-white'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t('diary.oldest')}
-                    </button>
-                  </div>
-                  
-                  {/* 타입 필터 */}
-                  <div className="px-3 py-2">
-                    <p className="text-xs font-medium text-gray-500 mb-2">{t('diary.typeFilter')}</p>
-                    <button
-                      onClick={() => {
-                        setTypeFilter('all');
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm rounded ${
-                        typeFilter === 'all'
-                          ? 'bg-[#4A2C1A] text-white'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t('diary.all')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTypeFilter('free_form');
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm rounded mt-1 ${
-                        typeFilter === 'free_form'
-                          ? 'bg-[#4A2C1A] text-white'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t('diary.freeForm')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTypeFilter('question_based');
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full text-left px-2 py-1.5 text-sm rounded mt-1 ${
-                        typeFilter === 'question_based'
-                          ? 'bg-[#4A2C1A] text-white'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t('diary.questionBased')}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
           </div>
         </div>
 

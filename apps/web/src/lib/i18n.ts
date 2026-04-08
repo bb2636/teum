@@ -783,7 +783,7 @@ const en: Record<string, string> = {
   "diary.watchAd": "Watch Ad & Save",
   "diary.adLoadFailed": "Failed to load ad. Please try again later.",
   "home.musicReady": "Enjoy music made just for you.",
-  "home.tagline": "Teum: My daily life, in music",
+  "home.tagline": "TEUM: Where Daily Life Becomes Music",
   "home.musicReadyDesc": "You have 7+ diary entries! Create your own music.",
   "diary.folderRenamed": "Folder renamed.",
   "diary.folderRenameFailed": "Failed to rename folder.",

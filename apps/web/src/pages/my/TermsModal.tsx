@@ -100,7 +100,7 @@ export function TermsModal({ type, onClose }: TermsModalProps) {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              {lang === 'en' ? 'Failed to load terms' : '약관을 불러올 수 없습니다'}
+              {t('terms.loadFailed')}
             </div>
           )}
         </div>

@@ -2,7 +2,8 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Payment, Subscription } from '@/hooks/usePayment';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { getDateLocale } from '@/lib/dateFnsLocale';
+import { useT } from '@/hooks/useTranslation';
 
 interface PaymentHistoryModalProps {
   subscriptions: Subscription[];
@@ -15,26 +16,27 @@ export function PaymentHistoryModal({
   payments,
   onClose,
 }: PaymentHistoryModalProps) {
+  const t = useT();
+  const locale = getDateLocale();
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-overlay-fade">
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-modal-pop">
         <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-brown-900">결제 내역</h2>
+          <h2 className="text-xl font-bold text-brown-900">{t('payment.history')}</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         <div className="p-4 space-y-6">
-          {/* Subscriptions */}
           <div>
-            <h3 className="font-semibold text-brown-900 mb-3">구독 내역</h3>
+            <h3 className="font-semibold text-brown-900 mb-3">{t('payment.subscriptionHistory')}</h3>
             {subscriptions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">구독 내역이 없습니다</p>
+              <p className="text-sm text-muted-foreground">{t('payment.noSubscriptionHistory')}</p>
             ) : (
               <div className="space-y-3">
                 {subscriptions.map((sub) => {
-                  // 다음 결제일 계산 (endDate가 있으면 endDate, 없으면 startDate + 1개월)
                   const nextPaymentDate = sub.endDate 
                     ? new Date(sub.endDate)
                     : (() => {
@@ -52,11 +54,11 @@ export function PaymentHistoryModal({
                         <div>
                           <p className="font-medium text-brown-900">{sub.planName}</p>
                           <p className="text-xs text-muted-foreground">
-                            구독일: {format(new Date(sub.startDate), 'yyyy.MM.dd', { locale: ko })}
+                            {t('payment.subscriptionDate', { date: format(new Date(sub.startDate), 'yyyy.MM.dd', { locale }) })}
                           </p>
                           {sub.status === 'active' && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              다음 결제일: {format(nextPaymentDate, 'yyyy.MM.dd', { locale: ko })}
+                              {t('payment.nextPaymentDate', { date: format(nextPaymentDate, 'yyyy.MM.dd', { locale }) })}
                             </p>
                           )}
                         </div>
@@ -70,14 +72,14 @@ export function PaymentHistoryModal({
                           }`}
                         >
                           {sub.status === 'active'
-                            ? '활성'
+                            ? t('payment.statusActive')
                             : sub.status === 'cancelled'
-                            ? '취소됨'
-                            : '만료'}
+                            ? t('payment.statusCancelled')
+                            : t('payment.statusExpired')}
                         </span>
                       </div>
                       <p className="text-sm font-semibold text-brown-900">
-                        {parseInt(sub.amount.toString()).toLocaleString()}원
+                        {parseInt(sub.amount.toString()).toLocaleString()}{t('payment.won')}
                       </p>
                     </div>
                   );
@@ -86,11 +88,10 @@ export function PaymentHistoryModal({
             )}
           </div>
 
-          {/* Payments */}
           <div>
-            <h3 className="font-semibold text-brown-900 mb-3">결제 내역</h3>
+            <h3 className="font-semibold text-brown-900 mb-3">{t('payment.history')}</h3>
             {payments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">결제 내역이 없습니다</p>
+              <p className="text-sm text-muted-foreground">{t('payment.noPaymentHistory')}</p>
             ) : (
               <div className="space-y-3">
                 {payments.map((payment) => (
@@ -101,12 +102,10 @@ export function PaymentHistoryModal({
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(payment.createdAt), 'yyyy.MM.dd HH:mm', {
-                            locale: ko,
-                          })}
+                          {format(new Date(payment.createdAt), 'yyyy.MM.dd HH:mm', { locale })}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {payment.paymentMethod || '결제 수단 미확인'}
+                          {payment.paymentMethod || t('payment.paymentMethodUnconfirmed')}
                         </p>
                       </div>
                       <span
@@ -121,16 +120,16 @@ export function PaymentHistoryModal({
                         }`}
                       >
                         {payment.status === 'completed'
-                          ? '완료'
+                          ? t('payment.statusCompleted')
                           : payment.status === 'failed'
-                          ? '실패'
+                          ? t('payment.statusFailed')
                           : payment.status === 'refunded'
-                          ? '환불'
-                          : '대기'}
+                          ? t('payment.statusRefunded')
+                          : t('payment.statusPending')}
                       </span>
                     </div>
                     <p className="text-sm font-semibold text-brown-900">
-                      {parseInt(payment.amount.toString()).toLocaleString()}원
+                      {parseInt(payment.amount.toString()).toLocaleString()}{t('payment.won')}
                     </p>
                   </div>
                 ))}

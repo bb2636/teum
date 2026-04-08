@@ -20,7 +20,7 @@ const profileSchema = z.object({
   nickname: z
     .string()
     .optional()
-    .refine((v) => !v || v.length === 0 || (v.length >= 2 && v.length <= 12), '닉네임은 2~12자입니다'),
+    .refine((v) => !v || v.length === 0 || (v.length >= 2 && v.length <= 12), { message: 'my.nicknameRule' }),
   name: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
@@ -169,7 +169,7 @@ export function ProfileEditPage() {
                 className="bg-gray-50"
               />
               {errors.nickname && (
-                <p className="text-sm text-red-600">{errors.nickname.message}</p>
+                <p className="text-sm text-red-600">{t(errors.nickname.message || '')}</p>
               )}
             </div>
 

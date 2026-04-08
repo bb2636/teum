@@ -295,7 +295,7 @@ export function SocialOnboardingPage() {
               <div className="flex items-center gap-1">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 {isAppleHiddenEmail && (
-                  <span className="text-xs text-gray-400">({t('common.optional') || '선택'})</span>
+                  <span className="text-xs text-gray-400">({t('common.optional')})</span>
                 )}
                 <button
                   type="button"
@@ -307,14 +307,14 @@ export function SocialOnboardingPage() {
               </div>
               {showEmailTooltip && (
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed">
-                  필수 항목이 아니며, 추가 이메일을 등록하지 않아도 회원가입 및 서비스 이용이 가능합니다. 등록 시 회원가입, 탈퇴, 구독 관련 안내, 문의 등록 및 답변 안내 메일을 받을 수 있습니다.
+                  {t('auth.emailTooltip')}
                 </div>
               )}
               <Input
                 id="email"
                 type="email"
                 {...profileForm.register('email')}
-                placeholder={isAppleHiddenEmail ? '이메일 주소 (선택)' : t('auth.emailPlaceholder')}
+                placeholder={isAppleHiddenEmail ? t('auth.emailOptionalPlaceholder') : t('auth.emailPlaceholder')}
                 className={`bg-gray-100 ${profileErrors.email ? 'border-red-500' : ''}`}
                 disabled={false}
               />

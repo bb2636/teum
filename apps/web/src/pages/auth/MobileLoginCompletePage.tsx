@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+
 export function MobileLoginCompletePage() {
   return (
     <div
@@ -12,8 +14,8 @@ export function MobileLoginCompletePage() {
       }}
     >
       <div style={{ textAlign: 'center' }}>
-        <p style={{ fontSize: '18px', marginBottom: '8px' }}>회원가입 완료</p>
-        <p style={{ fontSize: '14px', opacity: 0.7 }}>이 창을 닫아주세요</p>
+        <p style={{ fontSize: '18px', marginBottom: '8px' }}>{t('auth.signupComplete')}</p>
+        <p style={{ fontSize: '14px', opacity: 0.7 }}>{t('auth.closeThisWindow')}</p>
       </div>
     </div>
   );

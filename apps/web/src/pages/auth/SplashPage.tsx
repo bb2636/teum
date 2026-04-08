@@ -180,7 +180,7 @@ export function SplashPage() {
 
       const error = params.get('error');
       if (error) {
-        if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+        if (!unmounted) alert(t('auth.loginFailed'));
         return;
       }
 
@@ -224,7 +224,7 @@ export function SplashPage() {
             window.location.href = '/home';
           }
         } catch {
-          if (!unmounted) alert(t('auth.loginFailed') || '로그인에 실패했습니다.');
+          if (!unmounted) alert(t('auth.loginFailed'));
         }
         return;
       }

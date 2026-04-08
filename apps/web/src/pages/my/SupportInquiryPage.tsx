@@ -6,23 +6,24 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
-
-const inquirySchema = z.object({
-  subject: z.string().min(1, '제목을 입력해주세요').max(200, '제목은 200자 이하여야 합니다'),
-  message: z.string().min(10, '문의 내용은 최소 10자 이상이어야 합니다').max(500, '문의 내용은 500자 이하여야 합니다'),
-});
-
-type InquiryFormData = z.infer<typeof inquirySchema>;
+import { useT } from '@/hooks/useTranslation';
 
 export function SupportInquiryPage() {
   const navigate = useNavigate();
   const { setHideTabBar } = useHideTabBar();
   const createInquiry = useCreateInquiry();
+  const t = useT();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // 하단바 숨기기
+  const inquirySchema = z.object({
+    subject: z.string().min(1, t('support.subjectRequired')).max(200, t('support.subjectMaxError')),
+    message: z.string().min(10, t('support.contentMinError')).max(500, t('support.contentMaxError')),
+  });
+
+  type InquiryFormData = z.infer<typeof inquirySchema>;
+
   useEffect(() => {
     setHideTabBar(true);
     return () => {
@@ -50,7 +51,7 @@ export function SupportInquiryPage() {
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to create inquiry:', error);
-      setErrorMessage('문의 접수에 실패했습니다.');
+      setErrorMessage(t('support.submitFailed'));
       setShowErrorModal(true);
     }
   };
@@ -67,7 +68,6 @@ export function SupportInquiryPage() {
   return (
     <div className="min-h-screen bg-white pb-24">
       <div className="max-w-md mx-auto">
-        {/* Header - 고정 */}
         <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <button
             onClick={() => navigate(-1)}
@@ -75,21 +75,19 @@ export function SupportInquiryPage() {
           >
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
-          <h1 className="text-lg font-semibold text-[#4A2C1A]">1:1 문의 작성</h1>
-          <div className="w-10" /> {/* Spacer */}
+          <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('support.writeInquiry')}</h1>
+          <div className="w-10" />
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="px-4 py-6 space-y-6">
-          {/* 문의 내용 섹션 */}
           <div className="space-y-4">
-            <label className="text-sm font-medium text-[#4A2C1A]">문의 내용</label>
+            <label className="text-sm font-medium text-[#4A2C1A]">{t('support.contentLabel')}</label>
 
-            {/* 제목 입력 */}
             <div className="space-y-2">
               <input
                 type="text"
                 {...register('subject')}
-                placeholder="제목을 입력해주세요."
+                placeholder={t('support.subjectPlaceholder')}
                 className="w-full px-4 py-3 bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A] placeholder:text-gray-400"
               />
               {errors.subject && (
@@ -97,11 +95,10 @@ export function SupportInquiryPage() {
               )}
             </div>
 
-            {/* 내용 입력 */}
             <div className="space-y-2 relative">
               <textarea
                 {...register('message')}
-                placeholder="문의하실 내용을 입력해주세요."
+                placeholder={t('support.contentPlaceholder')}
                 rows={8}
                 maxLength={500}
                 className="w-full px-4 py-3 bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] resize-none text-[#4A2C1A] placeholder:text-gray-400"
@@ -117,19 +114,17 @@ export function SupportInquiryPage() {
             </div>
           </div>
 
-          {/* 하단 고정 버튼 */}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe-fixed">
             <button
               type="submit"
               disabled={createInquiry.isPending}
               className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createInquiry.isPending ? '등록 중...' : '등록하기'}
+              {createInquiry.isPending ? t('support.registerSubmitting') : t('support.register')}
             </button>
           </div>
         </form>
 
-        {/* 성공 모달 */}
         {showSuccessModal && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
             <div
@@ -137,19 +132,18 @@ export function SupportInquiryPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center space-y-4">
-                <p className="text-[#4A2C1A] mb-6">정상적으로 등록되었습니다.</p>
+                <p className="text-[#4A2C1A] mb-6">{t('support.registerSuccess')}</p>
                 <button
                   onClick={handleSuccessClose}
                   className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
                 >
-                  확인
+                  {t('common.confirm')}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* 에러 모달 */}
         {showErrorModal && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
             <div
@@ -162,7 +156,7 @@ export function SupportInquiryPage() {
                   onClick={handleErrorClose}
                   className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
                 >
-                  확인
+                  {t('common.confirm')}
                 </button>
               </div>
             </div>

@@ -54,10 +54,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(setCacheHeaders);
 app.use(performanceMiddleware);
-app.use('/api/music', (req, _res, next) => {
-  console.log(`[MUSIC-REQ] ${req.method} ${req.path} cookies=${Object.keys(req.cookies || {}).join(',')}`);
-  next();
-});
 app.use('/api', globalApiLimiter);
 
 // Health check

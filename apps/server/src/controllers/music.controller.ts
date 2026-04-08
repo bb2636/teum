@@ -249,8 +249,7 @@ export class MusicController {
     const filename = `${cleanTitle}.mp3`;
     const asciiFilename = cleanTitle.replace(/[^\x20-\x7E]/g, '_').replace(/_+/g, '_').trim() || 'music';
     const encodedFilename = encodeURIComponent(filename);
-    console.log('[streamAudio] title:', title, '→ filename:', filename, '→ ascii:', asciiFilename, '→ encoded:', encodedFilename);
-    console.log('[streamAudio] Content-Disposition:', `attachment; filename="${asciiFilename}.mp3"; filename*=UTF-8''${encodedFilename}`);
+    logger.debug('streamAudio filename', { title, filename, asciiFilename, encodedFilename });
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);

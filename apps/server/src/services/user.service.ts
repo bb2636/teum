@@ -37,7 +37,7 @@ export class UserService {
       const user = await userRepository.findByIdWithProfile(userId);
       if (user?.email) {
         const nickname = (user as any)?.profile?.nickname || '회원';
-        emailService.sendProfileUpdateNotification(user.email, nickname, changedFields).catch(() => {});
+        emailService.sendProfileUpdateNotification(user.email, nickname, changedFields).catch((err: unknown) => logger.warn('Profile update notification email failed', { error: err instanceof Error ? err.message : String(err) }));
       }
     }
 

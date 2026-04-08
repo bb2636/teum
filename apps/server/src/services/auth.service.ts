@@ -89,7 +89,7 @@ export class AuthService {
 
     const tokens = await this.generateTokensForUser(user);
 
-    emailService.sendSignupNotification(user.email, input.nickname).catch(() => {});
+    emailService.sendSignupNotification(user.email, input.nickname).catch((err: unknown) => logger.warn('Signup notification email failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return {
       user: {
@@ -595,7 +595,7 @@ export class AuthService {
 
     const tokens = await this.generateTokensForUser(user);
 
-    emailService.sendSignupNotification(user.email, input.nickname).catch(() => {});
+    emailService.sendSignupNotification(user.email, input.nickname).catch((err: unknown) => logger.warn('Signup notification email failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return {
       user: { id: user.id, email: user.email, role: user.role },

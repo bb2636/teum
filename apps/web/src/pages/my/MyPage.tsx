@@ -268,6 +268,7 @@ export function MyPage() {
             <p>{t('my.footer.phone')}</p>
             <p>{t('my.footer.bizNumber')}</p>
             <p>{t('my.footer.salesNumber')}</p>
+            <p>{t('my.footer.address')}</p>
             <p>{t('my.footer.email')}</p>
           </div>
           <div className="flex items-center gap-2 mt-3">

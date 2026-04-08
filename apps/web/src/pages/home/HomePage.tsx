@@ -284,17 +284,17 @@ export function HomePage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
-          <div className="relative flex items-center justify-end px-4 pt-3 pb-2 min-h-[48px]">
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2">
               <img
                 src="/logo.home.png"
                 alt="teum logo"
-                className="h-8 w-auto object-contain"
+                className="h-9 w-auto object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-xs font-medium whitespace-nowrap" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
+              <span className="text-sm font-medium whitespace-pre-line" style={{ color: '#4A2C1A', fontSize: t('home.tagline').length > 15 ? '0.7rem' : undefined }}>{t('home.tagline')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">

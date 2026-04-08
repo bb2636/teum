@@ -178,19 +178,13 @@ export class UserController {
             ),
           });
           const isWithdrawn = !!user.deletedAt;
-          const maskedProfile = user.profile ? {
-            ...user.profile,
-            phone: user.profile.phone
-              ? user.profile.phone.slice(0, 3) + '****' + user.profile.phone.slice(-4)
-              : null,
-          } : null;
           return {
             id: user.id,
             email: user.email,
             role: user.role,
             createdAt: user.createdAt,
             deletedAt: user.deletedAt,
-            profile: maskedProfile,
+            profile: user.profile,
             hasActiveSubscription: !!activeSubscription,
             isActive: user.isActive ?? true,
             isWithdrawn,

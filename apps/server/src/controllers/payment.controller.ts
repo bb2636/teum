@@ -109,11 +109,13 @@ export class PaymentController {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
       const body = req.body;
+      logger.info('NicePay billing return FULL body', { body: JSON.stringify(body) });
+
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
       const { bid, orderId, amount } = body;
 
-      logger.info('NicePay billing return', { resultCode, resultMsg, orderId });
+      logger.info(`NicePay billing return - code=${resultCode} msg=${resultMsg} bid=${bid} orderId=${orderId}`);
 
       if (!orderId) {
         logger.error('NicePay billing return missing orderId');
@@ -128,7 +130,7 @@ export class PaymentController {
 
       if (!bid) {
         await paymentService.deletePendingSession(orderId);
-        logger.error('NicePay billing return missing billing key', { orderId });
+        logger.error('NicePay billing return missing bid', { orderId });
         return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 정보가 누락되었습니다.')}`);
       }
 
@@ -152,11 +154,12 @@ export class PaymentController {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
       const body = req.body;
+      logger.info('NicePay return FULL body', { body: JSON.stringify(body) });
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
       const { tid, orderId, amount, authToken } = body;
 
-      logger.info('NicePay return', { resultCode, resultMsg, tid, orderId, amount });
+      logger.info(`NicePay return - code=${resultCode} msg=${resultMsg} tid=${tid} orderId=${orderId} amount=${amount}`);
 
       if (!orderId) {
         logger.error('NicePay return missing orderId');

@@ -265,6 +265,7 @@ export function MyPage() {
           <div className="space-y-1">
             <p className="font-medium text-gray-500">TEUM</p>
             <p>{t('my.footer.companyName')} | {t('my.footer.ceo')}</p>
+            <p>{t('my.footer.phone')}</p>
             <p>{t('my.footer.bizNumber')}</p>
             <p>{t('my.footer.salesNumber')}</p>
             <p>{t('my.footer.email')}</p>

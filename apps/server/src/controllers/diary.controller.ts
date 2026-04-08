@@ -1,11 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { diaryService } from '../services/diary.service';
 import { diaryRepository } from '../repositories/diary.repository';
+import { userRepository } from '../repositories/user.repository';
+import { getTranslatedQuestions } from '../services/question-translation.service';
 import {
   createDiarySchema,
   updateDiarySchema,
   calendarQuerySchema,
 } from '../validations/diary';
+
+async function getUserLanguage(userId: string): Promise<string> {
+  try {
+    const user = await userRepository.findByIdWithProfile(userId);
+    return user?.profile?.language || 'ko';
+  } catch {
+    return 'ko';
+  }
+}
+
+async function translateDiaryQuestions(diary: any, lang: string) {
+  if (!diary?.answers?.length || lang === 'ko') return diary;
+  const questionsToTranslate = diary.answers
+    .filter((a: any) => a.question?.question)
+    .map((a: any) => ({ id: a.questionId, question: a.question.question }));
+  if (questionsToTranslate.length === 0) return diary;
+  const translated = await getTranslatedQuestions(questionsToTranslate, lang);
+  const translatedMap = new Map(translated.map((q) => [q.id, q.question]));
+  for (const answer of diary.answers) {
+    if (answer.question?.question && translatedMap.has(answer.questionId)) {
+      answer.question = { ...answer.question, question: translatedMap.get(answer.questionId) };
+    }
+  }
+  return diary;
+}
 
 export class DiaryController {
   async getDiaries(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -25,6 +52,10 @@ export class DiaryController {
       const offset = offsetParam ? Math.max(parseInt(offsetParam, 10) || 0, 0) : undefined;
 
       const result = await diaryService.getDiaries(req.user.userId, folderId, limit != null ? { limit, offset } : undefined);
+      const lang = await getUserLanguage(req.user.userId);
+      if (lang !== 'ko') {
+        await Promise.all(result.items.map((diary: any) => translateDiaryQuestions(diary, lang)));
+      }
       res.json({
         success: true,
         data: {
@@ -48,6 +79,8 @@ export class DiaryController {
       }
 
       const diary = await diaryService.getDiary(req.params.id, req.user.userId);
+      const lang = await getUserLanguage(req.user.userId);
+      await translateDiaryQuestions(diary, lang);
       res.json({
         success: true,
         data: { diary },

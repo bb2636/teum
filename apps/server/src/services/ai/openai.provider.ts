@@ -83,10 +83,13 @@ export class OpenAIProvider implements AIProvider {
         answersCount: input.answers?.length || 0 
       });
 
-      // Build diary text content
+      const lang = input.language || 'ko';
+      const langName = this.getLanguageName(lang);
+      const isKo = lang === 'ko';
+
       let diaryText = '';
       if (input.title) {
-        diaryText += `제목: ${input.title}\n\n`;
+        diaryText += isKo ? `제목: ${input.title}\n\n` : `Title: ${input.title}\n\n`;
       }
       if (input.content) {
         diaryText += input.content;
@@ -99,31 +102,32 @@ export class OpenAIProvider implements AIProvider {
           questionsWithText: input.answers.filter(qa => qa.question?.trim()).length,
         });
         
-        // 질문형식일 때는 각 질문과 답변을 더 자세히 분석
-        // 질문이 없는 경우도 있으므로 답변만으로도 분석 가능하도록 처리
         const validAnswers = input.answers.filter(qa => qa.answer?.trim());
         if (validAnswers.length === 0) {
           logger.warn('No valid answers found for question-based diary');
-          return input.language && input.language !== 'ko'
-            ? 'Great job today. Your record is precious.'
-            : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+          return isKo
+            ? '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.'
+            : 'Great job today. Your record is precious.';
         }
         
-        diaryText += '\n\n=== 질문과 답변 ===\n\n';
+        diaryText += isKo ? '\n\n=== 질문과 답변 ===\n\n' : '\n\n=== Questions & Answers ===\n\n';
         validAnswers.forEach((qa, index) => {
           if (qa.question?.trim()) {
-            diaryText += `질문 ${index + 1}: ${qa.question}\n답변: ${qa.answer}\n\n`;
+            diaryText += isKo
+              ? `질문 ${index + 1}: ${qa.question}\n답변: ${qa.answer}\n\n`
+              : `Q${index + 1}: ${qa.question}\nA: ${qa.answer}\n\n`;
           } else {
-            // 질문이 없어도 답변만으로 분석 가능하도록
-            diaryText += `답변 ${index + 1}: ${qa.answer}\n\n`;
+            diaryText += isKo
+              ? `답변 ${index + 1}: ${qa.answer}\n\n`
+              : `Answer ${index + 1}: ${qa.answer}\n\n`;
           }
         });
 
         if (!diaryText.trim()) {
           logger.warn('Diary text is empty after processing answers');
-          return input.language && input.language !== 'ko'
-            ? 'Great job today. Your record is precious.'
-            : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+          return isKo
+            ? '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.'
+            : 'Great job today. Your record is precious.';
         }
         
         logger.info('Diary text prepared for AI', { 
@@ -131,11 +135,8 @@ export class OpenAIProvider implements AIProvider {
           preview: diaryText.substring(0, 200),
         });
 
-        const lang = input.language || 'ko';
-        const langName = this.getLanguageName(lang);
-        const langRule = lang !== 'ko' ? `\n- You MUST write your response in ${langName}` : '';
-
-        prompt = `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다.
+        if (isKo) {
+          prompt = `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다.
 
 사용자가 여러 질문에 답변한 일기 내용을 읽고, 각 질문에 대한 답변의 감정과 내용을 깊이 있게 이해한 후, 한 문장으로 따뜻하고 공감적인 응원 메시지를 작성해주세요.
 
@@ -155,22 +156,46 @@ export class OpenAIProvider implements AIProvider {
 - 사용자의 답변에서 느껴지는 감정과 경험에 공감하며 응원하는 메시지를 작성하세요
 - 매번 다른 표현과 관점으로 메시지를 작성하세요 (반복하지 마세요)
 - 구체적인 내용을 언급하거나 그에 대한 공감을 표현하세요
-- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요${langRule}
+- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요
 
 일기 내용:
 ${diaryText.substring(0, 2000)}`;
+        } else {
+          prompt = `You are a warm and empathetic diary encouragement message writer.
+
+Read the user's diary where they answered several questions. Deeply understand the emotions and content in each answer, then write a single warm, empathetic encouragement message in ${langName}.
+
+Important rules:
+- Analyze each answer individually and understand them comprehensively
+- Accurately identify the specific emotions, experiences, and thoughts revealed in the answers
+- Even if the answers are short, deeply read the meaning and emotions within them
+- Even if the content seems simple, understand and empathize with the user's sincere heart
+- Do NOT summarize
+- Do NOT use words like "summary" or "analysis"
+- Do NOT be overly dramatic
+- Maintain a warm, calm, and supportive tone
+- Output only ONE sentence
+- Keep it concise, about 1-2 lines
+- Do NOT use quotation marks or numbering
+- Do NOT use emojis
+- Write a message that empathizes with the emotions and experiences felt in the user's answers
+- Write each message with different expressions and perspectives (do not repeat)
+- Mention specific content or express empathy for it
+- Write a personalized message specific to this diary rather than generic encouragement
+- You MUST write your response in ${langName}
+
+Diary content:
+${diaryText.substring(0, 2000)}`;
+        }
       } else {
         if (!diaryText.trim()) {
-          return input.language && input.language !== 'ko'
-            ? 'Great job today. Your record is precious.'
-            : '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.';
+          return isKo
+            ? '오늘 하루도 수고하셨어요. 당신의 기록이 소중합니다.'
+            : 'Great job today. Your record is precious.';
         }
 
-        const lang = input.language || 'ko';
-        const langName = this.getLanguageName(lang);
-        const langRule = lang !== 'ko' ? `\n- You MUST write your response in ${langName}` : '';
-
-        prompt = `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다.
+        if (isKo) {
+          prompt = `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다.
 
 사용자의 일기 내용을 읽고, 한 문장으로 따뜻하고 공감적인 응원 메시지를 작성해주세요.
 
@@ -188,10 +213,35 @@ ${diaryText.substring(0, 2000)}`;
 - 이모지를 사용하지 마세요
 - 매번 다른 표현과 관점으로 메시지를 작성하세요 (반복하지 마세요)
 - 구체적인 내용을 언급하거나 그에 대한 공감을 표현하세요
-- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요${langRule}
+- 일반적인 격려보다는 이 일기에 특화된 개인적인 메시지를 작성하세요
 
 일기 내용:
 ${diaryText.substring(0, 2000)}`;
+        } else {
+          prompt = `You are a warm and empathetic diary encouragement message writer.
+
+Read the user's diary and write a single warm, empathetic encouragement message in ${langName}.
+
+Important rules:
+- Accurately identify the specific emotions, experiences, and thoughts in the diary
+- Even if the content is short, deeply read the meaning and emotions within it
+- Even if the content seems simple, understand and empathize with the user's sincere heart
+- Do NOT summarize
+- Do NOT use words like "summary" or "analysis"
+- Do NOT be overly dramatic
+- Maintain a warm, calm, and supportive tone
+- Output only ONE sentence
+- Keep it concise, about 1-2 lines
+- Do NOT use quotation marks or numbering
+- Do NOT use emojis
+- Write each message with different expressions and perspectives (do not repeat)
+- Mention specific content or express empathy for it
+- Write a personalized message specific to this diary rather than generic encouragement
+- You MUST write your response in ${langName}
+
+Diary content:
+${diaryText.substring(0, 2000)}`;
+        }
       }
 
       logger.info('Sending request to OpenAI', { 
@@ -210,11 +260,9 @@ ${diaryText.substring(0, 2000)}`;
         throw error;
       }
       
-      const lang = input.language || 'ko';
-      const langName = this.getLanguageName(lang);
-      const systemLangNote = lang !== 'ko'
-        ? ` Always respond in ${langName}.`
-        : '';
+      const systemContent = isKo
+        ? '당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다. 매번 다른 관점과 표현으로 개인화된 메시지를 한 문장으로 작성하세요. 반복하지 마세요.'
+        : `You are a warm and empathetic diary encouragement message writer. Write a personalized message in one sentence with different perspectives and expressions each time. Do not repeat. Always respond in ${langName}.`;
 
       let response;
       try {
@@ -223,7 +271,7 @@ ${diaryText.substring(0, 2000)}`;
           messages: [
             {
               role: 'system',
-              content: `당신은 따뜻하고 공감적인 일기 응원 메시지를 작성하는 도우미입니다. 매번 다른 관점과 표현으로 개인화된 메시지를 한 문장으로 작성하세요. 반복하지 마세요.${systemLangNote}`,
+              content: systemContent,
             },
             {
               role: 'user',
@@ -362,9 +410,13 @@ ${diaryText.substring(0, 2000)}`;
     }
 
     try {
+      const lang = input.language || 'ko';
+      const langName = this.getLanguageName(lang);
+      const isKo = lang === 'ko';
+
       let diaryText = '';
       if (input.title) {
-        diaryText += `제목: ${input.title}\n\n`;
+        diaryText += isKo ? `제목: ${input.title}\n\n` : `Title: ${input.title}\n\n`;
       }
       if (input.content) {
         diaryText += input.content;
@@ -375,29 +427,31 @@ ${diaryText.substring(0, 2000)}`;
         isQuestionBased = true;
         diaryText = '';
         if (input.title) {
-          diaryText += `제목: ${input.title}\n\n`;
+          diaryText += isKo ? `제목: ${input.title}\n\n` : `Title: ${input.title}\n\n`;
         }
         input.answers.forEach((qa, index) => {
           if (qa.question) {
-            diaryText += `질문: ${qa.question}\n답변: ${qa.answer}\n\n`;
+            diaryText += isKo
+              ? `질문: ${qa.question}\n답변: ${qa.answer}\n\n`
+              : `Q: ${qa.question}\nA: ${qa.answer}\n\n`;
           } else {
-            diaryText += `답변 ${index + 1}: ${qa.answer}\n\n`;
+            diaryText += isKo
+              ? `답변 ${index + 1}: ${qa.answer}\n\n`
+              : `Answer ${index + 1}: ${qa.answer}\n\n`;
           }
         });
       }
 
       if (!diaryText.trim()) return '';
 
-      const lang = input.language || 'ko';
-      const langName = this.getLanguageName(lang);
-      const langRule = lang !== 'ko' ? `- You MUST write your response in ${langName}\n` : '';
-      const systemLangNote = lang !== 'ko' ? ` Always respond in ${langName}.` : '';
+      let summaryPrompt: string;
+      let systemMsg: string;
 
-      const questionBasedRules = isQuestionBased
-        ? `- 질문과 답변을 하나의 흐름으로 연결하여 요약 (질문 내용도 반영)\n`
-        : '';
-
-      const prompt = `아래 일기를 1-2줄로 짧게 요약해줘.
+      if (isKo) {
+        const questionBasedRules = isQuestionBased
+          ? `- 질문과 답변을 하나의 흐름으로 연결하여 요약 (질문 내용도 반영)\n`
+          : '';
+        summaryPrompt = `아래 일기를 1-2줄로 짧게 요약해줘.
 
 규칙:
 - 핵심 감정과 상황만 간결하게
@@ -405,20 +459,39 @@ ${diaryText.substring(0, 2000)}`;
 - "사용자"라는 단어 절대 쓰지 않기
 - 이모지 쓰지 않기
 - 최대 2문장
-${questionBasedRules}${langRule}
+${questionBasedRules}
 일기:
 ${diaryText.substring(0, 2000)}`;
+        systemMsg = '일기 내용을 1-2문장으로 짧게 요약하는 도우미. "사용자"라는 단어는 절대 쓰지 않는다.';
+      } else {
+        const questionBasedRules = isQuestionBased
+          ? `- Connect the questions and answers into a single flow for the summary (reflect the question content too)\n`
+          : '';
+        summaryPrompt = `Briefly summarize the diary below in 1-2 lines in ${langName}.
+
+Rules:
+- Only the core emotions and situations, concisely
+- Calm, narrative tone
+- NEVER use the word "user"
+- Do NOT use emojis
+- Maximum 2 sentences
+- You MUST write in ${langName}
+${questionBasedRules}
+Diary:
+${diaryText.substring(0, 2000)}`;
+        systemMsg = `A diary summarizer that writes brief 1-2 sentence summaries. Never use the word "user". Always respond in ${langName}.`;
+      }
 
       const response = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           {
             role: 'system',
-            content: `일기 내용을 1-2문장으로 짧게 요약하는 도우미. "사용자"라는 단어는 절대 쓰지 않는다.${systemLangNote}`,
+            content: systemMsg,
           },
           {
             role: 'user',
-            content: prompt,
+            content: summaryPrompt,
           },
         ],
         temperature: 0.5,

@@ -463,9 +463,9 @@ input[type="checkbox"] {
   border-color: #2563eb !important;
 }
 
-/* Home tagline - keep brown like light mode */
+/* Home tagline */
 [data-theme="dark"] .home-tagline {
-  color: #4A2C1A !important;
+  color: #FFFFFF !important;
 }
 
 /* Profile button - keep brown bg, text stays white */

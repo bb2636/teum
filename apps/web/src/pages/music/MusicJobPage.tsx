@@ -288,7 +288,7 @@ export function MusicJobPage() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <img src="/tuem.logo.png" alt="teum" className="w-10 h-10 object-contain opacity-30" />
+                              <img src="/logo.png" alt="teum" className="w-10 h-10 object-contain opacity-30" />
                             </div>
                           )}
                         </div>
@@ -384,7 +384,7 @@ export function MusicJobPage() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <img src="/tuem.logo.png" alt="teum" className="w-10 h-10 object-contain opacity-30" />
+                              <img src="/logo.png" alt="teum" className="w-10 h-10 object-contain opacity-30" />
                             </div>
                           )}
                         </div>

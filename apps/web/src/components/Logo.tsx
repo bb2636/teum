@@ -14,7 +14,7 @@ export function Logo({ size = 'md', className = '' }: LogoProps) {
   return (
     <div className={`flex flex-col items-center ${className}`}>
       <img
-        src="/tuem.logo.png"
+        src="/main.logo.png"
         alt="TEUM logo"
         className={`${sizeClasses[size]} object-contain`}
         onError={(e) => {

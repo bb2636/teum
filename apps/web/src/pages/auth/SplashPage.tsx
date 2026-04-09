@@ -461,7 +461,7 @@ export function SplashPage() {
 
         <div className="flex flex-col items-center text-center">
           <img
-            src="/tuem.logo.png"
+            src="/logo.png"
             alt="teum"
             className="w-12 h-12 object-contain"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

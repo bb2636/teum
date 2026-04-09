@@ -288,7 +288,7 @@ export function HomePage() {
           <div className="flex items-start justify-between px-4 pt-3 pb-2">
             <div className="flex items-start gap-2.5 pt-3">
               <img
-                src="/tuem.logo.png"
+                src="/logo.home.png"
                 alt="teum logo"
                 className="h-11 w-auto object-contain flex-shrink-0"
                 onError={(e) => {

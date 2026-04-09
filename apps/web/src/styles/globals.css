@@ -465,7 +465,7 @@ input[type="checkbox"] {
 
 /* Home tagline */
 [data-theme="dark"] .home-tagline {
-  color: #FFFFFF !important;
+  color: #4A2C1A !important;
 }
 
 /* Profile button - keep brown bg, text stays white */

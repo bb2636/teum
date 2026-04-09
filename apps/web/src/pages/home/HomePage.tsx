@@ -285,49 +285,48 @@ export function HomePage() {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
-          <div className="flex items-start justify-between px-4 pt-3 pb-2">
-            <div className="flex flex-col items-start pt-3">
-              <img
-                src="/teum.home.png"
-                alt="teum logo"
-                className="h-11 w-auto object-contain flex-shrink-0"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <span className="text-sm font-bold leading-snug mt-1" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
-            </div>
-            <div className="flex flex-col items-end flex-shrink-0">
-              <div className="flex items-center gap-2">
-                {activeSubscription ? (
+          <div className="flex items-center justify-between px-4 pt-1 pb-0">
+            <img
+              src="/teum.home.png"
+              alt="teum logo"
+              className="h-10 w-auto object-contain flex-shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {activeSubscription ? (
+                <Button
+                  variant="outline"
+                  className="bg-gray-100 text-gray-700 border-0 rounded-full px-4 py-1.5 h-auto cursor-default text-xs"
+                  disabled
+                >
+                  {t('my.subscribing')}
+                </Button>
+              ) : (
+                <Link to="/payment">
                   <Button
                     variant="outline"
-                    className="bg-gray-100 text-gray-700 border-0 rounded-full px-4 py-1.5 h-auto cursor-default text-xs"
-                    disabled
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-full px-4 py-1.5 h-auto text-xs"
                   >
-                    {t('my.subscribing')}
+                    {t('payment.subscribe')}
                   </Button>
-                ) : (
-                  <Link to="/payment">
-                    <Button
-                      variant="outline"
-                      className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 rounded-full px-4 py-1.5 h-auto text-xs"
-                    >
-                      {t('payment.subscribe')}
-                    </Button>
-                  </Link>
-                )}
-                <ProfileButton />
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() => setShowFilterMenu(!showFilterMenu)}
-                  className="flex items-center gap-1 px-3 py-1 text-sm text-gray-700 hover:text-[#4A2C1A] transition-colors rounded-lg hover:bg-gray-50"
-                >
-                  <Filter className="w-4 h-4" />
-                  <span>{t('diary.filter')}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
-                </button>
+                </Link>
+              )}
+              <ProfileButton />
+            </div>
+          </div>
+          <div className="flex items-center justify-between px-4 pb-1">
+            <span className="text-sm font-bold leading-snug" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowFilterMenu(!showFilterMenu)}
+                className="flex items-center gap-1 px-3 py-1 text-sm text-gray-700 hover:text-[#4A2C1A] transition-colors rounded-lg hover:bg-gray-50"
+              >
+                <Filter className="w-4 h-4" />
+                <span>{t('diary.filter')}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
+              </button>
                 {showFilterMenu && (
                   <>
                     <div
@@ -374,7 +373,6 @@ export function HomePage() {
                     </div>
                   </>
                 )}
-              </div>
             </div>
           </div>
         </div>

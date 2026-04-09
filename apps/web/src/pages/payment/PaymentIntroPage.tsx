@@ -5,12 +5,17 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useEffect } from 'react';
 import { SubscriptionStartModal } from '@/components/SubscriptionStartModal';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 export function PaymentIntroPage() {
   const navigate = useNavigate();
   const { setHideTabBar } = useHideTabBar();
   const [showStartModal, setShowStartModal] = useState(false);
   const t = useT();
+  const isKorean = getCurrentLanguage() === 'ko';
+  const displayAmount = isKorean ? 4900 : 399;
+  const displayAmountFormatted = isKorean ? '4,900' : '3.99';
+  const priceLabel = isKorean ? `4,900${t('payment.won')}` : '$3.99';
 
   useEffect(() => {
     setHideTabBar(true);
@@ -25,7 +30,7 @@ export function PaymentIntroPage() {
 
   const handleConfirmStart = () => {
     setShowStartModal(false);
-    navigate(`/payment/checkout?plan=${encodeURIComponent(t('payment.musicPlanMonthly'))}&amount=4900`);
+    navigate(`/payment/checkout?plan=${encodeURIComponent(t('payment.musicPlanMonthly'))}&amount=${displayAmount}`);
   };
 
   return (
@@ -131,14 +136,14 @@ export function PaymentIntroPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-3xl shadow-lg pb-safe-fixed">
           <div className="max-w-md mx-auto px-4 py-6">
             <div className="mb-4">
-              <div className="text-3xl font-bold text-black mb-1">4,900{t('payment.won')}</div>
+              <div className="text-3xl font-bold text-black mb-1">{priceLabel}</div>
               <div className="text-sm text-gray-600">{t('payment.intro.monthlyAuto')}</div>
             </div>
             <button
               onClick={handleStartClick}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
             >
-              {t('payment.startMonthly', { amount: '4,900' })}
+              {t('payment.startMonthly', { amount: displayAmountFormatted })}
             </button>
           </div>
         </div>
@@ -148,7 +153,7 @@ export function PaymentIntroPage() {
         isOpen={showStartModal}
         onClose={() => setShowStartModal(false)}
         onConfirm={handleConfirmStart}
-        amount={4900}
+        amount={displayAmount}
       />
     </div>
   );

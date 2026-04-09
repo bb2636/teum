@@ -1,4 +1,5 @@
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 interface SubscriptionStartModalProps {
   isOpen: boolean;
@@ -16,6 +17,9 @@ export function SubscriptionStartModal({
   const t = useT();
   if (!isOpen) return null;
 
+  const isKorean = getCurrentLanguage() === 'ko';
+  const formattedAmount = isKorean ? amount.toLocaleString() : (amount / 100).toFixed(2);
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade"
@@ -26,7 +30,7 @@ export function SubscriptionStartModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center">
-          <p className="text-sm text-gray-500">{t('payment.monthlyPrice', { amount: amount.toLocaleString() })}</p>
+          <p className="text-sm text-gray-500">{t('payment.monthlyPrice', { amount: formattedAmount })}</p>
           <h2 className="text-lg font-bold text-[#4A2C1A] mt-1">
             {t('payment.startSubscriptionQuestion')}
           </h2>

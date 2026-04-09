@@ -5,6 +5,7 @@ import { useInitBillingKey } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -247,7 +248,7 @@ export function PaymentPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">{t('payment.amount')}</span>
                 <span className="text-base font-bold text-[#4A2C1A]">
-                  {parseInt(amount).toLocaleString()}{t('payment.won')}
+                  {getCurrentLanguage() === 'ko' ? `${parseInt(amount).toLocaleString()}${t('payment.won')}` : `$${(parseInt(amount) / 100).toFixed(2)}`}
                 </span>
               </div>
             </div>
@@ -298,7 +299,7 @@ export function PaymentPage() {
             >
               {isProcessing || initBillingKey.isPending
                 ? t('payment.processing')
-                : t('payment.startMonthly', { amount: parseInt(amount).toLocaleString() })}
+                : t('payment.startMonthly', { amount: getCurrentLanguage() === 'ko' ? parseInt(amount).toLocaleString() : (parseInt(amount) / 100).toFixed(2) })}
             </button>
           </div>
         </div>

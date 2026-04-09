@@ -974,8 +974,8 @@ const en: Record<string, string> = {
   "payment.paymentNote":
     "Pressing the payment button will open the NicePay window.",
   "payment.processing": "Processing...",
-  "payment.startMonthly": "Start at {amount}/month",
-  "payment.won": "KRW",
+  "payment.startMonthly": "Start at ${amount}/month",
+  "payment.won": "",
   "payment.selectPaymentMethod": "Please select a payment method.",
   "payment.selectCardCompany": "Please select a card company",
   "payment.nicepayLoadFailed":
@@ -994,11 +994,11 @@ const en: Record<string, string> = {
   "payment.intro.benefit1Desc": "Record without any limits.",
   "payment.intro.benefit2Desc": "Analyze diary content and generate lyrics.",
   "payment.intro.benefit3Desc": "Up to 5 songs per month, max 2 minutes each.",
-  "payment.intro.monthlyAuto": "Monthly subscription · Auto-billed monthly",
+  "payment.intro.monthlyAuto": "Monthly subscription · Auto-billed monthly ($3.99/mo)",
   "payment.fail.title": "Payment Failed",
   "payment.fail.retry": "Try Again",
   "payment.paymentInfoLabel": "Payment Info",
-  "payment.monthlyAmount": "{amount}/month",
+  "payment.monthlyAmount": "${amount}/month",
   "payment.nextPaymentSchedule": "Next payment date",
   "payment.cancelSubscription": "Cancel Subscription",
   "payment.paymentMethodUnknown": "Payment method unknown",
@@ -1007,12 +1007,12 @@ const en: Record<string, string> = {
   "payment.subscriptionCancelled": "Subscription cancelled.",
   "payment.cancelFailed": "Failed to cancel subscription.",
   "payment.alreadyCancelled": "Subscription already cancelled.",
-  "payment.monthlyPrice": "{amount}/mo",
+  "payment.monthlyPrice": "${amount}/mo",
   "payment.startSubscriptionQuestion": "Start your subscription?",
   "payment.subscriptionDesc":
     "Write freely or organize\nyour thoughts step by step.",
   "payment.proceedPaymentQuestion": "Proceed with payment?",
-  "payment.monthlyAutoRenewDesc": "{amount}/month, auto-renewed monthly.",
+  "payment.monthlyAutoRenewDesc": "${amount}/month, auto-renewed monthly.",
   "payment.pay": "Pay",
   "payment.termsTitle": "Please agree to the terms",
   "payment.agreeAll": "Agree to all",
@@ -1021,7 +1021,7 @@ const en: Record<string, string> = {
     "[Required] I agree to recurring billing and auto-renewal.",
   "payment.agreeRefundRequired":
     "[Required] I have reviewed the refund/cancellation policy.",
-  "payment.startWithMonthly": "Start at {amount}/mo",
+  "payment.startWithMonthly": "Start at ${amount}/mo",
   "payment.musicPlanMonthly": "Music Generation Plan (Monthly)",
   "payment.success.subscriptionStarted": "Your subscription\nhas started.",
   "payment.success.analyzeAndCreate":

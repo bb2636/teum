@@ -1,11 +1,11 @@
 import { SmsProvider } from './sms.provider';
-import { solapiProvider } from './solapi.provider';
+import { twilioProvider } from './twilio.provider';
 import { logger } from '../../config/logger';
 
 export class SmsService {
   private provider: SmsProvider;
 
-  constructor(provider: SmsProvider = solapiProvider) {
+  constructor(provider: SmsProvider = twilioProvider) {
     this.provider = provider;
   }
 

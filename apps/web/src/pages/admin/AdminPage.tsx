@@ -221,7 +221,7 @@ export function AdminPage() {
                   </button>
                   <Button
                     onClick={handleDeleteUser}
-                    className="px-4 py-2 bg-[#8B4513] hover:bg-[#6B3410] text-white"
+                    className="px-4 py-2 bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
                   >
                     나가기
                   </Button>
@@ -230,7 +230,7 @@ export function AdminPage() {
             )}
             {deleteStatus === 'loading' && (
               <div className="flex items-center justify-center py-12">
-                <div className="w-3 h-3 rounded-full bg-[#8B4513] animate-pulse"></div>
+                <div className="w-3 h-3 rounded-full bg-[#4A2C1A] animate-pulse"></div>
               </div>
             )}
             {deleteStatus === 'completed' && (
@@ -238,7 +238,7 @@ export function AdminPage() {
                 <p className="text-gray-900 mb-6">삭제가 완료되었습니다</p>
                 <Button
                   onClick={handleDeleteComplete}
-                  className="px-4 py-2 text-[#8B4513] hover:text-[#6B3410] transition-colors"
+                  className="px-4 py-2 bg-[#4A2C1A] hover:bg-[#3A2010] text-white transition-colors"
                 >
                   완료
                 </Button>

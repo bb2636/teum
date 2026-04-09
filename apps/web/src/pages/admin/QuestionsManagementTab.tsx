@@ -211,7 +211,7 @@ export function QuestionsManagementTab() {
         </div>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className="bg-black text-white hover:bg-gray-800"
+          className="bg-[#4A2C1A] text-white hover:bg-[#3A2010]"
         >
           <Plus className="w-4 h-4 mr-2" />
           등록하기

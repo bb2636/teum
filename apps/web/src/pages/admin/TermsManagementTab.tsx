@@ -340,7 +340,7 @@ export function TermsManagementTab() {
                     disabled={!content.trim() || !hasChanges || updateMutation.isPending}
                     className={`rounded-lg ${
                       content.trim() && hasChanges && !updateMutation.isPending
-                        ? 'bg-black text-white hover:bg-gray-800'
+                        ? 'bg-[#4A2C1A] text-white hover:bg-[#3A2010]'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >

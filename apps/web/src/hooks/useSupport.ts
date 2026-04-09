@@ -59,8 +59,8 @@ export function useSupportInquiries() {
       );
       return response.data.inquiries;
     },
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 60,
+    staleTime: 1000 * 10,
+    refetchOnMount: 'always',
   });
 }
 
@@ -88,7 +88,8 @@ export function useAllSupportInquiries() {
       );
       return response.data.inquiries;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 10,
+    refetchOnMount: 'always',
   });
 }
 
@@ -161,6 +162,7 @@ export function useUpdateInquiryAnswer() {
           : old
       );
       queryClient.refetchQueries({ queryKey: ['support', 'admin', 'all'] });
+      queryClient.invalidateQueries({ queryKey: ['support', 'inquiries'] });
     },
   });
 }

@@ -59,7 +59,7 @@ teum/
 - Mureka API generates custom music from diary content
 - 가사 생성 시 일기 원문 재구성 (직접 인용 금지), 쉼표 맞춤법 준수
 - 부정적 내용도 희망적으로 승화
-- **언어별 가사 생성**: 앱 언어설정(ko/en)에 따라 가사 언어 자동 분기 — 한국어 설정 시 한국어 가사, 영어 설정 시 영어 가사 생성. frontend `getCurrentLanguage()` → backend `language` 파라미터로 전달
+- **언어별 가사 생성**: 앱 언어설정(ko/en) + 일기 내용 언어를 모두 고려. 일기가 전부 한국어면 한국어 가사, 전부 영어면 영어 가사, 한영 혼합이면 비율에 맞춰 자연스럽게 한영 믹스 가사 생성. frontend `getCurrentLanguage()` → backend `language` 파라미터로 전달
 - 음악 상세 페이지에서 곡 정보 확인 및 다운로드
 - 실제 오디오 메타데이터에서 곡 길이 표시
 - On quota/rate-limit failure, saves AI-generated lyrics with `lyrics_only` status

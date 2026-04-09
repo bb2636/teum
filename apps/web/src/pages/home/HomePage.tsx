@@ -15,11 +15,13 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import { stripHTML } from '@/lib/utils';
 import { Toast } from '@/components/Toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type SortOrder = 'newest' | 'oldest';
 type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';
 
 export function HomePage() {
+  const { theme } = useTheme();
   const t = useT();
   const navigate = useNavigate();
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
@@ -286,7 +288,7 @@ export function HomePage() {
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
           <div className="flex items-center justify-between px-4 pt-1 pb-0">
             <img
-              src="/teum.home.png"
+              src={theme === 'dark' ? '/틈 가로_3.png' : '/teum.home.png'}
               alt="teum logo"
               className="h-10 w-auto object-contain flex-shrink-0"
               onError={(e) => {

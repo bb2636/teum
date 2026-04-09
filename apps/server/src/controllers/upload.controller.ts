@@ -28,11 +28,11 @@ export class UploadController {
         });
       }
 
-      // Validate file size (20MB limit)
-      if (file.size > 20 * 1024 * 1024) {
+      // Validate file size (50MB limit)
+      if (file.size > 50 * 1024 * 1024) {
         return res.status(400).json({
           success: false,
-          error: { code: 'BAD_REQUEST', message: 'File size must be less than 20MB' },
+          error: { code: 'BAD_REQUEST', message: 'File size must be less than 50MB' },
         });
       }
 

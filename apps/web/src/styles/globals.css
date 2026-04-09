@@ -469,7 +469,7 @@ input[type="checkbox"] {
 }
 
 [data-theme="dark"] .home-logo {
-  filter: sepia(1) saturate(3) brightness(0.3) hue-rotate(-10deg) !important;
+  filter: sepia(1) saturate(2) brightness(0.45) hue-rotate(-10deg) !important;
 }
 
 /* Profile button - keep brown bg, text stays white */

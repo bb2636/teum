@@ -436,6 +436,28 @@ export function DiaryWritePage() {
     handleContentChange();
   };
 
+  const removeStrikethroughTags = (node: Node) => {
+    const editor = contentEditableRef.current;
+    if (!editor) return;
+
+    const strikeTags = editor.querySelectorAll('strike, s, del');
+    strikeTags.forEach((tag) => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+
+      if (range.intersectsNode(tag)) {
+        const parent = tag.parentNode;
+        if (parent) {
+          while (tag.firstChild) {
+            parent.insertBefore(tag.firstChild, tag);
+          }
+          parent.removeChild(tag);
+        }
+      }
+    });
+  };
+
   const applyFormat = (format: FormatType) => {
     restoreSelection();
     const selection = window.getSelection();
@@ -444,11 +466,22 @@ export function DiaryWritePage() {
       contentEditableRef.current?.focus();
     }
 
-    const commandMap: Record<FormatType, string> = {
+    if (format === 'strikethrough') {
+      const isActive = document.queryCommandState('strikethrough');
+      if (isActive && selection && selection.rangeCount > 0) {
+        removeStrikethroughTags(contentEditableRef.current!);
+      } else {
+        document.execCommand('strikethrough', false);
+      }
+      updateActiveFormats();
+      handleContentChange();
+      return;
+    }
+
+    const commandMap: Record<string, string> = {
       bold: 'bold',
       italic: 'italic',
       underline: 'underline',
-      strikethrough: 'strikethrough',
       unorderedList: 'insertUnorderedList',
       orderedList: 'insertOrderedList',
     };
@@ -560,17 +593,33 @@ export function DiaryWritePage() {
     return 'body';
   }, []);
 
+  const isInsideStrikethrough = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    let node: Node | null = sel.anchorNode;
+    while (node && node !== contentEditableRef.current) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as Element).tagName.toLowerCase();
+        if (tag === 'strike' || tag === 's' || tag === 'del') return true;
+        const style = window.getComputedStyle(node as Element);
+        if (style.textDecorationLine?.includes('line-through')) return true;
+      }
+      node = node.parentNode;
+    }
+    return false;
+  }, []);
+
   const updateActiveFormats = useCallback(() => {
     const formats = new Set<FormatType>();
     if (document.queryCommandState('bold')) formats.add('bold');
     if (document.queryCommandState('italic')) formats.add('italic');
     if (document.queryCommandState('underline')) formats.add('underline');
-    if (document.queryCommandState('strikethrough')) formats.add('strikethrough');
+    if (document.queryCommandState('strikethrough') || isInsideStrikethrough()) formats.add('strikethrough');
     if (document.queryCommandState('insertUnorderedList')) formats.add('unorderedList');
     if (document.queryCommandState('insertOrderedList')) formats.add('orderedList');
     setActiveFormats(formats);
     setSelectedTextStyle(detectCurrentBlockStyle());
-  }, [detectCurrentBlockStyle]);
+  }, [detectCurrentBlockStyle, isInsideStrikethrough]);
 
   const handleFormatToggle = (format: FormatType) => {
     restoreSelection();

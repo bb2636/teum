@@ -674,8 +674,8 @@ export function SignupPage() {
             </div>
 
             {showCalendar && (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={() => setShowCalendar(false)}>
-                <div className="bg-white rounded-t-2xl w-full p-4 animate-modal-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4" onClick={() => setShowCalendar(false)}>
+                <div className="bg-white rounded-2xl w-full max-w-sm p-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
                   <ScrollYearMonthPicker
                     selectedYear={step2DateOfBirth ? parseInt(step2DateOfBirth.split('-')[0]) : 2000}
                     selectedMonth={step2DateOfBirth ? parseInt(step2DateOfBirth.split('-')[1]) : 1}

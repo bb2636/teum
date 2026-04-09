@@ -319,7 +319,7 @@ export function MyPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                className="flex-1 py-2.5 border border-brown-200 text-brown-700 rounded-full hover:bg-gray-100 transition-colors"
+                className="flex-1 py-2.5 border border-brown-200 text-[#4A2C1A] rounded-full hover:bg-gray-100 transition-colors font-medium"
                 onClick={() => setShowLogoutConfirm(false)}
               >
                 {t('common.cancel')}

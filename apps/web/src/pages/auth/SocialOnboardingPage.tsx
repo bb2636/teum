@@ -446,8 +446,8 @@ export function SocialOnboardingPage() {
             </div>
 
             {showCalendar && (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={() => setShowCalendar(false)}>
-                <div className="bg-white rounded-t-2xl w-full p-4 animate-modal-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4" onClick={() => setShowCalendar(false)}>
+                <div className="bg-white rounded-2xl w-full max-w-sm p-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
                   <ScrollYearMonthPicker
                     selectedYear={watchDateOfBirth ? parseInt(watchDateOfBirth.split('-')[0]) : 2000}
                     selectedMonth={watchDateOfBirth ? parseInt(watchDateOfBirth.split('-')[1]) : 1}

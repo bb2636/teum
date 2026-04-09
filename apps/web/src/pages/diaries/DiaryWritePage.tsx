@@ -98,6 +98,7 @@ export function DiaryWritePage() {
   const isUserInputRef = useRef(false);
   const isInitializingRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const isIOS = Capacitor.getPlatform() === 'ios' || /iPhone|iPad|iPod/.test(navigator.userAgent);
   const savedSelectionRef = useRef<Range | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -1110,13 +1111,15 @@ export function DiaryWritePage() {
                   >
                     <Type className="w-6 h-6 text-gray-600" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleCameraClick}
-                    className="cursor-pointer p-1"
-                  >
-                    <Camera className="w-6 h-6 text-gray-600" />
-                  </button>
+                  {!isIOS && (
+                    <button
+                      type="button"
+                      onClick={handleCameraClick}
+                      className="cursor-pointer p-1"
+                    >
+                      <Camera className="w-6 h-6 text-gray-600" />
+                    </button>
+                  )}
                   <input
                     ref={cameraInputRef}
                     type="file"
@@ -1369,9 +1372,11 @@ export function DiaryWritePage() {
               >
                 <Type className="w-6 h-6 text-gray-600" />
               </button>
-              <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
-                <Camera className="w-6 h-6 text-gray-600" />
-              </button>
+              {!isIOS && (
+                <button type="button" onClick={handleCameraClick} className="cursor-pointer p-1">
+                  <Camera className="w-6 h-6 text-gray-600" />
+                </button>
+              )}
               <input
                 ref={cameraInputRef}
                 type="file"

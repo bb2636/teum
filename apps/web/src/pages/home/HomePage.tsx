@@ -317,7 +317,7 @@ export function HomePage() {
             </div>
           </div>
           <div className="flex items-center justify-between px-4 pb-1">
-            <span className="font-bold leading-snug whitespace-nowrap text-[clamp(0.65rem,2.8vw,0.875rem)]" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
+            <span className="home-tagline font-bold leading-snug whitespace-nowrap text-[clamp(0.65rem,2.8vw,0.875rem)]" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowFilterMenu(!showFilterMenu)}

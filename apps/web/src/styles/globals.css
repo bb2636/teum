@@ -424,6 +424,27 @@ input[type="checkbox"] {
   color: #A89080 !important;
 }
 
+[data-theme="dark"] nav.bottom-tab-bar,
+[data-theme="dark"] nav.bottom-tab-bar .bg-white {
+  background-color: #FFFFFF !important;
+}
+
+[data-theme="dark"] nav.bottom-tab-bar .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+[data-theme="dark"] nav.bottom-tab-bar .text-\[\#4A2C1A\] {
+  color: #4A2C1A !important;
+}
+
+[data-theme="dark"] nav.bottom-tab-bar .bg-gray-200 {
+  background-color: #e5e7eb !important;
+}
+
+[data-theme="dark"] .home-tagline {
+  color: #FFFFFF !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-page-in,
   .animate-tab-bounce,

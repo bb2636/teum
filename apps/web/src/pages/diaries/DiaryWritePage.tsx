@@ -1372,14 +1372,16 @@ export function DiaryWritePage() {
           {selectedImages.length > 0 && (
             <div className="px-4 py-2">
               <p className="text-xs text-gray-400 mb-1.5">{t('diary.imageCardHint')}</p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex overflow-x-auto pb-1 pl-1 pt-0.5">
                 {selectedImages.map((url, index) => (
-                  <div key={index} className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+                  <div key={index} className="relative shrink-0 w-20 h-20 mt-2 mr-2">
+                    <div className="w-full h-full rounded-lg overflow-hidden border border-gray-200">
+                      <img
+                        src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1387,9 +1389,9 @@ export function DiaryWritePage() {
                         setSelectedImages((prev) => prev.filter((_, i) => i !== index));
                         setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
                       }}
-                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                      className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center z-10"
                     >
-                      <X className="w-3 h-3 text-white" />
+                      <X className="w-3.5 h-3.5 text-white" />
                     </button>
                   </div>
                 ))}

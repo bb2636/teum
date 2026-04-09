@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
@@ -74,7 +74,6 @@ interface DiaryListPanelProps {
 function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanelProps) {
   const t = useT();
   const locale = getDateLocale();
-  const navigate = useNavigate();
   const swipeStartX = useRef<number | null>(null);
   const swipeStartY = useRef<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -151,7 +150,9 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
       >
         <div className="flex items-center justify-between pt-3 pb-2">
           <h2 className="text-base font-semibold text-[#4A2C1A]">{dateLabel}</h2>
-          <button onClick={onClose} className="text-gray-400 text-xs px-2 py-1">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+            <X className="w-[18px] h-[18px] text-gray-500" />
+          </button>
         </div>
 
         <div className="space-y-2.5">
@@ -166,40 +167,28 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
                 to={`/diaries/${diary.id}?from=calendar&date=${format(date, 'yyyy-MM-dd')}`}
                 className="block bg-white rounded-xl p-3.5 shadow-sm border border-gray-100"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-1">{folderName}</p>
-                    <p className="text-sm text-gray-800 leading-relaxed line-clamp-3">
-                      {firstLine || t('diary.noTitle')}
-                      {diary.content?.trim() && firstLine !== stripHTML(diary.content).trim() && (
-                        <span className="text-gray-500"> {stripHTML(diary.content).trim()}</span>
-                      )}
-                    </p>
-                    {diary.images && diary.images.length > 0 && (
-                      <div className="flex gap-2 mt-2">
-                        {diary.images.slice(0, 4).map((img, idx) => (
-                          <StorageImage
-                            key={idx}
-                            url={img.imageUrl}
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                          />
-                        ))}
-                        {diary.images.length > 4 && (
-                          <span className="flex items-center text-gray-400 text-xs">+{diary.images.length - 4}</span>
-                        )}
-                      </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 mb-1">{folderName}</p>
+                  <p className="text-sm text-gray-800 leading-relaxed line-clamp-3">
+                    {firstLine || t('diary.noTitle')}
+                    {diary.content?.trim() && firstLine !== stripHTML(diary.content).trim() && (
+                      <span className="text-gray-500"> {stripHTML(diary.content).trim()}</span>
                     )}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      navigate(`/diaries/${diary.id}?from=calendar&date=${format(date, 'yyyy-MM-dd')}`);
-                    }}
-                    className="text-gray-400 p-1 flex-shrink-0 ml-2"
-                  >
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
+                  </p>
+                  {diary.images && diary.images.length > 0 && (
+                    <div className="flex gap-2 mt-2">
+                      {diary.images.slice(0, 4).map((img, idx) => (
+                        <StorageImage
+                          key={idx}
+                          url={img.imageUrl}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ))}
+                      {diary.images.length > 4 && (
+                        <span className="flex items-center text-gray-400 text-xs">+{diary.images.length - 4}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Link>
             );

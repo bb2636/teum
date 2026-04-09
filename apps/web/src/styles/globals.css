@@ -508,6 +508,11 @@ input[type="checkbox"] {
   border-color: #4A2C1A !important;
 }
 
+/* Mureka logo invert in dark mode */
+[data-theme="dark"] .mureka-logo {
+  filter: invert(1) !important;
+}
+
 /* Hover states */
 [data-theme="dark"] .hover\:bg-gray-50:hover,
 [data-theme="dark"] .hover\:bg-gray-100:hover {

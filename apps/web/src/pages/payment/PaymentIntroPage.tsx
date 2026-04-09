@@ -56,7 +56,7 @@ export function PaymentIntroPage() {
             <img
               src="/mureka_logo.png"
               alt="Mureka"
-              className="h-4 w-auto"
+              className="h-4 w-auto mureka-logo"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
@@ -80,7 +80,7 @@ export function PaymentIntroPage() {
               <img
                 src="/mureka_logo.png"
                 alt="Mureka"
-                className="h-3 w-auto"
+                className="h-3 w-auto mureka-logo"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

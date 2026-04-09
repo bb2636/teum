@@ -161,7 +161,7 @@ export function MyPage() {
               <img
                 src="/mureka_logo.png"
                 alt="Mureka"
-                className="h-4 w-auto shrink-0"
+                className="h-4 w-auto shrink-0 mureka-logo"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

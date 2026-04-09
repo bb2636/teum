@@ -79,16 +79,17 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
   const swipeStartY = useRef<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const dateLabel = `${getDate(date)}. ${format(date, 'E', { locale })}`;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: TouchEvent) => {
     if (isTransitioning) return;
     swipeStartX.current = e.touches[0].clientX;
     swipeStartY.current = e.touches[0].clientY;
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: TouchEvent) => {
     if (swipeStartX.current === null || swipeStartY.current === null || isTransitioning) return;
     const diffX = e.touches[0].clientX - swipeStartX.current;
     const diffY = e.touches[0].clientY - swipeStartY.current;
@@ -98,6 +99,17 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
     }
     setSwipeOffset(diffX);
   };
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+    };
+  });
 
   const handleTouchEnd = () => {
     if (swipeStartX.current === null || isTransitioning) {
@@ -125,9 +137,8 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
 
   return (
     <div
+      ref={panelRef}
       className="flex-1 overflow-y-auto scrollbar-hide"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ touchAction: 'pan-y', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >

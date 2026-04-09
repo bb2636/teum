@@ -194,7 +194,7 @@ export function DiaryDetailPage() {
           </div>
         </div>
 
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 diary-detail-content">
           <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">

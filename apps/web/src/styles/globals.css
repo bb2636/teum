@@ -424,7 +424,10 @@ input[type="checkbox"] {
   color: #A89080 !important;
 }
 
-[data-theme="dark"] nav.bottom-tab-bar,
+[data-theme="dark"] nav.bottom-tab-bar {
+  background-color: transparent !important;
+}
+
 [data-theme="dark"] nav.bottom-tab-bar .bg-white {
   background-color: #FFFFFF !important;
 }
@@ -439,6 +442,13 @@ input[type="checkbox"] {
 
 [data-theme="dark"] nav.bottom-tab-bar .bg-gray-200 {
   background-color: #e5e7eb !important;
+}
+
+[data-theme="dark"] .diary-detail-content .text-brown-800,
+[data-theme="dark"] .diary-detail-content .text-brown-700,
+[data-theme="dark"] .diary-detail-content .text-muted-foreground,
+[data-theme="dark"] .diary-detail-content .text-base {
+  color: #FFFFFF !important;
 }
 
 [data-theme="dark"] .home-tagline {

@@ -436,7 +436,7 @@ export function DiaryWritePage() {
     handleContentChange();
   };
 
-  const removeStrikethroughTags = (node: Node) => {
+  const removeStrikethroughTags = (_node: Node) => {
     const editor = contentEditableRef.current;
     if (!editor) return;
 

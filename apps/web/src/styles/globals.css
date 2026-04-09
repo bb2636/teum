@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+a, .no-callout {
+  -webkit-touch-callout: none;
+}
+
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 @layer base {
   :root {
     --background: 45 20% 96%; /* 따뜻한 베이지 */

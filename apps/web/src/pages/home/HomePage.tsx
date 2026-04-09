@@ -402,7 +402,7 @@ export function HomePage() {
               {editingFolderId === folder.id ? (
                 // 편집 모드
                 <div 
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-3"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <input
@@ -425,7 +425,7 @@ export function HomePage() {
                       e.stopPropagation();
                       handleFolderNameSave(folder.id);
                     }}
-                    className="text-[#4A2C1A] hover:text-[#3A2010]"
+                    className="text-[#4A2C1A] hover:text-[#3A2010] min-w-[32px] min-h-[32px] flex items-center justify-center"
                   >
                     ✓
                   </button>
@@ -434,10 +434,10 @@ export function HomePage() {
                       e.stopPropagation();
                       handleFolderDeleteClick(folder);
                     }}
-                    className="text-red-600 hover:text-red-700 p-0.5"
+                    className="text-red-600 hover:text-red-700 min-w-[32px] min-h-[32px] flex items-center justify-center"
                     title={t('diary.deleteFolder')}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               ) : (

@@ -114,11 +114,12 @@ export function PaymentPage() {
 
       const payParams: Record<string, unknown> = {
         clientId: initResult.clientId,
-        method: 'subscribe',
+        method: 'card',
         orderId: initResult.orderId,
         amount: parseInt(amount),
         goodsName: planName,
         returnUrl: initResult.returnUrl,
+        subscYn: 'Y',
         fnError: (result: { errorMsg?: string }) => {
           setIsProcessing(false);
           alert(result.errorMsg || t('payment.paymentError'));

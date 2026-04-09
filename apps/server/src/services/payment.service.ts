@@ -105,7 +105,7 @@ export class PaymentService {
     return {
       clientId,
       orderId,
-      method: 'subscribe',
+      method: 'card',
       isTestMode: nicePayProvider.getIsTestMode(),
     };
   }

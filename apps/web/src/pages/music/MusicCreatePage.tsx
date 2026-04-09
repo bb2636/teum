@@ -355,7 +355,7 @@ export function MusicCreatePage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-[#F5F0EB]">
-                        <img src="/logo.png" alt="teum" className="w-8 h-8 object-contain opacity-60" />
+                        <img src="/tuem.logo.png" alt="teum" className="w-8 h-8 object-contain opacity-60" />
                       </div>
                     )}
                   </div>

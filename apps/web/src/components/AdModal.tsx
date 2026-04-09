@@ -219,7 +219,7 @@ export function AdModal({ isOpen, onClose, onAdComplete }: AdModalProps) {
           <div className="bg-gradient-to-br from-[#f5ede4] to-[#e8ddd1] p-6 flex flex-col items-center justify-center">
             <div className="w-16 h-16 bg-white/80 rounded-full flex items-center justify-center mb-3">
               <img
-                src="/logo.png"
+                src="/tuem.logo.png"
                 alt="teum"
                 className="w-10 h-10 object-contain"
                 onError={(e) => {

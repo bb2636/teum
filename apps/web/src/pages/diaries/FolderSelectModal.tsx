@@ -286,7 +286,7 @@ export function FolderSelectModal({
                     />
                   ) : (
                     <div className="w-full h-32 bg-[#f5f0eb] flex items-center justify-center">
-                      <img src="/logo.png" alt="teum" className="w-14 h-14 object-contain opacity-30" />
+                      <img src="/tuem.logo.png" alt="teum" className="w-14 h-14 object-contain opacity-30" />
                     </div>
                   )}
                   <div className="p-3 bg-white">

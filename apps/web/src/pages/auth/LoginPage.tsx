@@ -82,7 +82,7 @@ export function LoginPage() {
       
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-1">
-          <img src="/logo.png" alt="TEUM logo" className="h-24 w-auto object-contain mx-auto" />
+          <img src="/tuem.logo.png" alt="TEUM logo" className="h-24 w-auto object-contain mx-auto" />
           <p className="text-muted-foreground text-sm">
             {t('app.tagline')}
           </p>

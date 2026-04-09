@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,9 +89,9 @@ export function SocialOnboardingPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
-  const [showEmailTooltip, setShowEmailTooltip] = useState(false);
 
   const isAppleHiddenEmail = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
+  const isGoogleProvider = socialProfile?.provider === 'google';
 
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
@@ -318,28 +317,16 @@ export function SocialOnboardingPage() {
               <div className="flex items-center gap-1">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 {isAppleHiddenEmail && (
-                  <span className="text-xs text-gray-400">(선택)</span>
+                  <span className="text-xs text-gray-400">({t('common.optional')})</span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setShowEmailTooltip(!showEmailTooltip)}
-                  className="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                </button>
               </div>
-              {showEmailTooltip && (
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed">
-                  {t('auth.emailTooltip')}
-                </div>
-              )}
               <Input
                 id="email"
                 type="email"
                 {...profileForm.register('email')}
                 placeholder={isAppleHiddenEmail ? t('auth.emailOptionalPlaceholder') : t('auth.emailPlaceholder')}
                 className={`bg-gray-100 ${profileErrors.email || emailError.length > 0 ? 'border-red-500' : ''}`}
-                disabled={false}
+                disabled={isGoogleProvider}
               />
               {profileErrors.email && watchEmail && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
               {emailError.length > 0 && emailError.map((err, i) => (
@@ -388,6 +375,7 @@ export function SocialOnboardingPage() {
                   {...profileForm.register('nickname')}
                   placeholder={t('auth.enterNickname')}
                   className={`pr-10 bg-gray-100 ${nicknameError.length > 0 ? 'border-red-500' : ''}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('name')?.focus(); } }}
                 />
                 {watchNickname && nicknameError.length === 0 && !profileErrors.nickname && nicknameCheck.data?.available && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -412,6 +400,13 @@ export function SocialOnboardingPage() {
                 {...profileForm.register('name')}
                 placeholder={t('auth.enterName')}
                 className={`bg-gray-100 ${profileErrors.name ? 'border-red-500' : ''}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLInputElement).blur();
+                    setShowCalendar(true);
+                  }
+                }}
               />
               {profileErrors.name && <p className="text-sm text-red-500">{profileErrors.name.message}</p>}
             </div>
@@ -427,22 +422,12 @@ export function SocialOnboardingPage() {
                 id="dateOfBirth"
                 type="text"
                 value={dateDisplayValue}
-                onChange={(e) => {
-                  let value = e.target.value.replace(/[^0-9/\s]/g, '');
-                  setDateDisplayValue(value);
-                  const cleaned = value.replace(/[\s/]/g, '');
-                  if (cleaned.length === 8) {
-                    const year = cleaned.substring(0, 4);
-                    const month = cleaned.substring(4, 6);
-                    const day = cleaned.substring(6, 8);
-                    profileForm.setValue('dateOfBirth', `${year}-${month}-${day}`, { shouldValidate: true });
-                  } else {
-                    profileForm.setValue('dateOfBirth', '', { shouldValidate: true });
-                  }
-                }}
+                readOnly
+                onFocus={(e) => { e.target.blur(); setShowCalendar(true); }}
+                onClick={() => setShowCalendar(true)}
                 placeholder="YYYY / MM / DD"
-                className={`bg-gray-100 text-center ${profileErrors.dateOfBirth ? 'border-red-500' : ''}`}
-                maxLength={14}
+                className={`bg-gray-100 text-center cursor-pointer select-none ${profileErrors.dateOfBirth ? 'border-red-500' : ''}`}
+                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
               />
               {profileErrors.dateOfBirth && <p className="text-sm text-red-500">{profileErrors.dateOfBirth.message}</p>}
             </div>

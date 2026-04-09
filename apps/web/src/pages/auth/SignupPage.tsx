@@ -161,6 +161,14 @@ export function SignupPage() {
     }
   }, [shouldCheckEmail, emailDuplicateCheck.data]);
 
+  const handleEnterKey = (e: React.KeyboardEvent, nextId: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const next = document.getElementById(nextId);
+      if (next) next.focus();
+    }
+  };
+
   const step1Errors = step1Form.formState.errors;
   const isVerified = verificationMode === 'phone' ? phoneVerified : emailVerified;
   const isStep1Valid =
@@ -422,6 +430,7 @@ export function SignupPage() {
                 {...step1Form.register('email')}
                 placeholder={t('auth.emailPlaceholder')}
                 className={emailError ? 'border-red-500' : ''}
+                onKeyDown={(e) => handleEnterKey(e, 'password')}
               />
               {step1Errors.email && (
                 <p className="text-sm text-red-500">{t(step1Errors.email.message || '')}</p>
@@ -439,6 +448,7 @@ export function SignupPage() {
                   type={showPassword ? 'text' : 'password'}
                   {...step1Form.register('password')}
                   placeholder={t('auth.passwordPlaceholder')}
+                  onKeyDown={(e) => handleEnterKey(e, 'confirmPassword')}
                 />
                 <button
                   type="button"
@@ -461,6 +471,7 @@ export function SignupPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...step1Form.register('confirmPassword')}
                   placeholder={t('auth.passwordPlaceholder')}
+                  onKeyDown={(e) => handleEnterKey(e, 'phone')}
                 />
                 <button
                   type="button"
@@ -575,6 +586,7 @@ export function SignupPage() {
                   className={`pr-10 bg-gray-100 ${
                     nicknameError.length > 0 ? 'border-red-500' : ''
                   }`}
+                  onKeyDown={(e) => handleEnterKey(e, 'name')}
                 />
                 {step2Nickname && 
                  nicknameError.length === 0 && 
@@ -607,6 +619,13 @@ export function SignupPage() {
                 {...step2Form.register('name')}
                 placeholder={t('auth.enterName')}
                 className="bg-gray-100"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLInputElement).blur();
+                    setShowCalendar(true);
+                  }
+                }}
               />
               {step2Errors.name && (
                 <p className="text-sm text-red-500">{t(step2Errors.name.message || '')}</p>
@@ -634,7 +653,8 @@ export function SignupPage() {
                 onFocus={(e) => { e.target.blur(); setShowCalendar(true); }}
                 onClick={() => setShowCalendar(true)}
                 placeholder="YYYY / MM / DD"
-                className="bg-gray-100 text-center cursor-pointer"
+                className="bg-gray-100 text-center cursor-pointer select-none"
+                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
               />
               {step2Errors.dateOfBirth && (
                 <p className="text-sm text-red-500">{t(step2Errors.dateOfBirth.message || '')}</p>

@@ -13,7 +13,7 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
-import { getCurrentLanguage } from '@/lib/i18n';
+
 import { stripHTML } from '@/lib/utils';
 import { Toast } from '@/components/Toast';
 
@@ -286,16 +286,16 @@ export function HomePage() {
         {/* Header */}
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
           <div className="flex items-start justify-between px-4 pt-3 pb-2">
-            <div className="flex items-start gap-2.5 pt-3">
+            <div className="flex flex-col items-start pt-3">
               <img
-                src="/logo.home.png"
+                src="/teum.home.png"
                 alt="teum logo"
                 className="h-11 w-auto object-contain flex-shrink-0"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <span className="text-sm font-medium leading-snug" style={{ color: '#4A2C1A', whiteSpace: 'pre-wrap', marginTop: getCurrentLanguage() === 'en' ? '5px' : '15px' }}>{t('home.tagline')}</span>
+              <span className="text-sm font-bold leading-snug mt-1" style={{ color: '#4A2C1A' }}>{t('home.tagline')}</span>
             </div>
             <div className="flex flex-col items-end flex-shrink-0">
               <div className="flex items-center gap-2">

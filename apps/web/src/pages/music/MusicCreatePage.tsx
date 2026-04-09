@@ -27,6 +27,7 @@ export function MusicCreatePage() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const [selectedDiaryIds, setSelectedDiaryIds] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [showGenreDropdown, setShowGenreDropdown] = useState(false);
   const [showProcessingModal, setShowProcessingModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -80,9 +81,16 @@ export function MusicCreatePage() {
     };
   }, [setHideTabBar]);
 
-  const diaries = selectedFolderId
-    ? diariesAll.filter((d) => d.folderId === selectedFolderId)
-    : diariesAll;
+  const diaries = (() => {
+    let filtered = selectedFolderId
+      ? diariesAll.filter((d) => d.folderId === selectedFolderId)
+      : diariesAll;
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  })();
 
   const genres = genresData?.genres ?? [];
   const selectedCount = selectedDiaryIds.length;
@@ -336,8 +344,13 @@ export function MusicCreatePage() {
           </div>
 
           <div className="flex items-center justify-end">
-            <select className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none">
-              <option>{t('music.sortNewest')}</option>
+            <select
+              className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+            >
+              <option value="newest">{t('music.sortNewest')}</option>
+              <option value="oldest">{t('music.sortOldest')}</option>
             </select>
           </div>
         </div>
@@ -383,7 +396,7 @@ export function MusicCreatePage() {
                     size="sm"
                     onClick={() => toggleDiarySelection(diary.id)}
                     disabled={!isSelected && selectedCount >= 7}
-                    className={isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010]' : 'music-diary-select-btn'}
+                    className={isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010] text-white border-[#4A2C1A]' : 'border-[#4A2C1A] text-[#4A2C1A] hover:bg-[#4A2C1A]/10'}
                   >
                     {isSelected ? t('common.deselect') : t('common.select')}
                   </Button>

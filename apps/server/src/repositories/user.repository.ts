@@ -73,6 +73,13 @@ export class UserRepository {
   }
 
   async createDefaultFolder(userId: string) {
+    const [existing] = await db
+      .select()
+      .from(folders)
+      .where(and(eq(folders.userId, userId), eq(folders.isDefault, true), isNull(folders.deletedAt)))
+      .limit(1);
+    if (existing) return existing;
+
     const [folder] = await db
       .insert(folders)
       .values({

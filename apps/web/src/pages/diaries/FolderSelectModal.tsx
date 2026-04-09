@@ -273,7 +273,7 @@ export function FolderSelectModal({
                   onClick={() => onSelect(folder.id)}
                   className={`relative rounded-xl overflow-hidden shadow-sm transition-all flex-shrink-0 w-[140px] ${
                     selectedFolderId === folder.id
-                      ? 'ring-2 ring-[#4A2C1A]'
+                      ? 'ring-2 ring-[#4A2C1A] ring-offset-2'
                       : 'hover:shadow-md'
                   }`}
                   title={folder.name}

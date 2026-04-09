@@ -317,6 +317,13 @@ export class DiaryRepository {
       .where(and(eq(diaries.folderId, folderId), isNull(diaries.deletedAt)));
   }
 
+  async softDeleteByFolderId(folderId: string) {
+    await db
+      .update(diaries)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(diaries.folderId, folderId), isNull(diaries.deletedAt)));
+  }
+
   async delete(id: string) {
     await db
       .update(diaries)

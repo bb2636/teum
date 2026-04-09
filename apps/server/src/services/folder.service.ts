@@ -63,7 +63,7 @@ export class FolderService {
       throw new Error('Cannot delete default folder');
     }
 
-    await diaryRepository.clearFolderIdByFolderId(id);
+    await diaryRepository.softDeleteByFolderId(id);
     await folderRepository.delete(id);
   }
 }

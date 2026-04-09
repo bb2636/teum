@@ -203,6 +203,7 @@ export function MusicHomePage() {
   const musicSentinelRef = useInfiniteScroll({ hasMore: hasNextPage, isFetchingNextPage, fetchNextPage });
   const { data: diariesAll = [] } = useAllDiaries();
   const { data: subscriptions = [] } = useSubscriptions();
+  const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
 
   const jobs = jobsData?.jobs ?? [];
   const monthlyUsed = jobsData?.monthlyUsed ?? 0;
@@ -234,7 +235,13 @@ export function MusicHomePage() {
 
   const handleDownload = async (e: React.MouseEvent, job: MusicJobListItem) => {
     e.stopPropagation();
-    await downloadMusicFile(job.jobId, job.title, job.audioUrl);
+    if (downloadingJobId) return;
+    setDownloadingJobId(job.jobId);
+    try {
+      await downloadMusicFile(job.jobId, job.title, job.audioUrl);
+    } finally {
+      setDownloadingJobId(null);
+    }
   };
 
   const handleOpenCreateModal = () => {

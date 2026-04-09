@@ -13,8 +13,6 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
-import { useTheme } from '@/contexts/ThemeContext';
-
 import { stripHTML } from '@/lib/utils';
 import { Toast } from '@/components/Toast';
 
@@ -23,7 +21,6 @@ type DiaryTypeFilter = 'all' | 'free_form' | 'question_based';
 
 export function HomePage() {
   const t = useT();
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
@@ -289,7 +286,7 @@ export function HomePage() {
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
           <div className="flex items-center justify-between px-4 pt-1 pb-0">
             <img
-              src={theme === 'dark' ? '/dark.logo.png' : '/teum.home.png'}
+              src="/teum.home.png"
               alt="teum logo"
               className="h-10 w-auto object-contain flex-shrink-0"
               onError={(e) => {

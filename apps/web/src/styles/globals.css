@@ -36,32 +36,32 @@
   }
 
   [data-theme="dark"] {
-    --background: 0 0% 0%;
+    --background: 0 0% 10%;
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 10%;
+    --card: 0 0% 13%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 10%;
+    --popover: 0 0% 13%;
     --popover-foreground: 0 0% 100%;
 
     --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
+    --primary-foreground: 0 0% 10%;
 
-    --secondary: 0 0% 15%;
+    --secondary: 0 0% 18%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 18%;
+    --muted: 0 0% 20%;
     --muted-foreground: 0 0% 70%;
 
-    --accent: 0 0% 20%;
+    --accent: 0 0% 22%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
     --ring: 0 0% 100%;
   }
 }
@@ -333,23 +333,23 @@ input[type="checkbox"] {
 
 /* ===== DARK MODE OVERRIDES ===== */
 
-/* Backgrounds → black */
+/* Backgrounds → dark gray */
 [data-theme="dark"] .bg-white,
 [data-theme="dark"] .bg-beige-50,
 [data-theme="dark"] .bg-gray-50,
 [data-theme="dark"] .bg-gray-100 {
-  background-color: #000000 !important;
-}
-
-[data-theme="dark"] .min-h-screen {
-  background-color: #000000 !important;
-}
-
-[data-theme="dark"] .bg-gray-200 {
   background-color: #1a1a1a !important;
 }
 
-/* Cards & containers → dark gray */
+[data-theme="dark"] .min-h-screen {
+  background-color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .bg-gray-200 {
+  background-color: #252525 !important;
+}
+
+/* Cards & containers */
 [data-theme="dark"] .bg-\[\#f6efed\],
 [data-theme="dark"] .bg-\[\#F5F0EB\],
 [data-theme="dark"] .bg-\[\#f5f0eb\],
@@ -357,7 +357,7 @@ input[type="checkbox"] {
 [data-theme="dark"] .bg-\[\#F8F4EF\],
 [data-theme="dark"] .bg-brown-50,
 [data-theme="dark"] .hover\:bg-brown-50:hover {
-  background-color: #1a1a1a !important;
+  background-color: #252525 !important;
 }
 
 /* Text → white */
@@ -474,25 +474,25 @@ input[type="checkbox"] {
   color: #FFFFFF !important;
 }
 
-/* Bottom tab bar - always light mode */
+/* Bottom tab bar - dark brown */
 [data-theme="dark"] nav.bottom-tab-bar {
   background-color: transparent !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .bg-white {
-  background-color: #FFFFFF !important;
+  background-color: #2C1A0E !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .text-gray-400 {
-  color: #9ca3af !important;
+  color: #8B7355 !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .text-\[\#4A2C1A\] {
-  color: #4A2C1A !important;
+  color: #FFFFFF !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .bg-gray-200 {
-  background-color: #e5e7eb !important;
+  background-color: #4A2C1A !important;
 }
 
 /* Folder/tab buttons in dark mode → brown bg + white text */
@@ -546,13 +546,13 @@ input[type="checkbox"] {
 /* Payment fixed bottom bar */
 [data-theme="dark"] .pb-safe-fixed,
 [data-theme="dark"] .rounded-t-3xl {
-  background-color: #000000 !important;
+  background-color: #1a1a1a !important;
   border-color: #333333 !important;
 }
 
 /* Sticky headers */
 [data-theme="dark"] .sticky {
-  background-color: #000000 !important;
+  background-color: #1a1a1a !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

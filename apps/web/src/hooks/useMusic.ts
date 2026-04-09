@@ -139,14 +139,14 @@ export function useMusicJobs() {
 export interface GenerateMusicParams {
   diaryIds: string[];
   genreTag: string;
+  language?: string;
 }
 
-// Generate music from selected diaries + selected genre
 export function useGenerateMusic() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ diaryIds, genreTag }: GenerateMusicParams) => {
+    mutationFn: async ({ diaryIds, genreTag, language }: GenerateMusicParams) => {
       if (diaryIds.length !== 7) {
         throw new Error('정확히 7개의 일기를 선택해주세요');
       }
@@ -158,7 +158,7 @@ export function useGenerateMusic() {
         '/music/generate',
         {
           method: 'POST',
-          body: JSON.stringify({ diaryIds, genreTag: genreTag.trim() }),
+          body: JSON.stringify({ diaryIds, genreTag: genreTag.trim(), language: language || 'ko' }),
         }
       );
       return response.data;

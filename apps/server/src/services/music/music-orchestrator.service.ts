@@ -27,7 +27,8 @@ export class MusicOrchestratorService {
   async generateMusic(
     userId: string,
     diaryIds: string[],
-    genreTag?: string
+    genreTag?: string,
+    language?: string
   ): Promise<{
     jobId: string;
     status: 'queued' | 'processing' | 'completed' | 'failed' | 'lyrics_only';
@@ -104,8 +105,7 @@ export class MusicOrchestratorService {
         })
       );
 
-      // Analyze with AI
-      const analysis = await lyricAnalysisService.analyzeDiaries(diaryData, genreTag);
+      const analysis = await lyricAnalysisService.analyzeDiaries(diaryData, genreTag, language);
 
       // Save analysis results immediately BEFORE calling Mureka
       await db

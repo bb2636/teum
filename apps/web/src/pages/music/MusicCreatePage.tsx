@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { StorageImage } from '@/components/StorageImage';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
 import { getFirstLine } from '@/lib/utils';
 import { apiRequest } from '@/lib/api';
 
@@ -132,6 +133,7 @@ export function MusicCreatePage() {
       const result = await generateMusic.mutateAsync({
         diaryIds: selectedDiaryIds,
         genreTag: selectedGenres.join(', '),
+        language: getCurrentLanguage(),
       });
 
       setShowProcessingModal(false);

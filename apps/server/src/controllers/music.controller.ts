@@ -41,7 +41,8 @@ export class MusicController {
       const result = await musicService.generateMusic(
         req.user.userId,
         input.diaryIds,
-        input.genreTag
+        input.genreTag,
+        input.language
       );
 
       res.json({

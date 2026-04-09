@@ -128,21 +128,21 @@ export class MusicService {
     };
   }
 
-  async generateMusic(userId: string, diaryIds: string[], genreTag?: string) {
+  async generateMusic(userId: string, diaryIds: string[], genreTag?: string, language?: string) {
     const hasSubscription = await this.hasActiveSubscription(userId);
     if (!hasSubscription) {
-      throw new Error('SUBSCRIPTION_REQUIRED'); // 구독이 필요합니다
+      throw new Error('SUBSCRIPTION_REQUIRED');
     }
 
     const monthlyUsed = await this.getMonthlyUsage(userId);
     if (monthlyUsed >= MUSIC_MONTHLY_LIMIT) {
-      throw new Error('MONTHLY_LIMIT_EXCEEDED'); // 이번 달 생성 한도(5곡)를 모두 사용했습니다
+      throw new Error('MONTHLY_LIMIT_EXCEEDED');
     }
 
     if (this.useQueue) {
-      return musicOrchestratorService.generateMusic(userId, diaryIds, genreTag);
+      return musicOrchestratorService.generateMusic(userId, diaryIds, genreTag, language);
     }
-    return musicOrchestratorService.generateMusic(userId, diaryIds, genreTag);
+    return musicOrchestratorService.generateMusic(userId, diaryIds, genreTag, language);
   }
 
   async getJob(userId: string, jobId: string) {

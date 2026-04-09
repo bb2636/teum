@@ -204,11 +204,14 @@ export function HomePage() {
 
 
   const handleFolderClick = (folderId: string | undefined, e?: React.MouseEvent) => {
+    if (editingFolderId) {
+      setEditingFolderId(null);
+      setEditingFolderName('');
+    }
     setSelectedFolderId(folderId);
-    // 모바일: 폴더명 클릭 시 편집 버튼 표시
+    setHoveredFolderId(null);
     if (folderId && e) {
       setHoveredFolderId(folderId);
-      // 일정 시간 후 자동으로 숨김 (선택적)
       setTimeout(() => {
         setHoveredFolderId((prev) => prev === folderId ? null : prev);
       }, 3000);
@@ -534,13 +537,6 @@ export function HomePage() {
               </p>
             </div>
 
-            {/* Learn More Link - 캘린더 탭으로 이동 */}
-            <Link
-              to="/calendar"
-              className="text-sm text-[#4A2C1A] underline underline-offset-2"
-            >
-              {t('common.learnMore')}
-            </Link>
           </div>
         ) : filteredAndSortedDiaries.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-12 space-y-4">

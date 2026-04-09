@@ -501,6 +501,13 @@ input[type="checkbox"] {
   color: #FFFFFF !important;
 }
 
+/* Music diary select button in dark mode */
+[data-theme="dark"] .music-diary-select-btn {
+  background-color: #4A2C1A !important;
+  color: #FFFFFF !important;
+  border-color: #4A2C1A !important;
+}
+
 /* Hover states */
 [data-theme="dark"] .hover\:bg-gray-50:hover,
 [data-theme="dark"] .hover\:bg-gray-100:hover {

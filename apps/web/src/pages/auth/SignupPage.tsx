@@ -33,7 +33,7 @@ const step1Schema = z.object({
   email: z.string().email('auth.emailPlaceholder'),
   password: passwordSchema,
   confirmPassword: z.string(),
-  phone: z.string().max(15).optional().or(z.literal('')),
+  phone: z.string().min(10, 'auth.phoneInvalidLength').max(11, 'auth.phoneInvalidLength').optional().or(z.literal('')),
 });
 
 const step2Schema = z.object({
@@ -82,6 +82,8 @@ export function SignupPage() {
   const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [emailVerificationInput, setEmailVerificationInput] = useState('');
+  const [phoneVerificationError, setPhoneVerificationError] = useState<string | null>(null);
+  const [emailVerificationError, setEmailVerificationError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [nicknameError, setNicknameError] = useState<string[]>([]);
@@ -255,16 +257,16 @@ export function SignupPage() {
   const handleConfirmPhoneVerification = async () => {
     const phone = step1Form.getValues('phone');
     if (!phone || !phoneVerificationInput) {
-      setError(t('auth.enterVerification'));
+      setPhoneVerificationError(t('auth.enterVerification'));
       return;
     }
 
     if (phoneVerificationInput.length !== 6) {
-      setError(t('auth.verification6Digits'));
+      setPhoneVerificationError(t('auth.verification6Digits'));
       return;
     }
 
-    setError(null);
+    setPhoneVerificationError(null);
 
     try {
       await confirmPhoneVerification.mutateAsync({
@@ -274,9 +276,10 @@ export function SignupPage() {
       setPhoneVerified(true);
       setShowPhoneVerificationModal(false);
       setPhoneVerificationInput('');
+      setPhoneVerificationError(null);
     } catch (err) {
       const error = err as Error;
-      setError(error.message || t('auth.verificationInvalid'));
+      setPhoneVerificationError(error.message || t('auth.verificationInvalid'));
     }
   };
 
@@ -306,16 +309,16 @@ export function SignupPage() {
   const handleConfirmEmailVerification = async () => {
     const email = step1Form.getValues('email');
     if (!email || !emailVerificationInput) {
-      setError(t('auth.enterVerification'));
+      setEmailVerificationError(t('auth.enterVerification'));
       return;
     }
 
     if (emailVerificationInput.length !== 6) {
-      setError(t('auth.verification6Digits'));
+      setEmailVerificationError(t('auth.verification6Digits'));
       return;
     }
 
-    setError(null);
+    setEmailVerificationError(null);
 
     try {
       await confirmEmailVerification.mutateAsync({
@@ -325,9 +328,10 @@ export function SignupPage() {
       setEmailVerified(true);
       setShowEmailVerificationModal(false);
       setEmailVerificationInput('');
+      setEmailVerificationError(null);
     } catch (err) {
       const error = err as Error;
-      setError(error.message || t('auth.verificationInvalid'));
+      setEmailVerificationError(error.message || t('auth.verificationInvalid'));
     }
   };
 
@@ -497,10 +501,17 @@ export function SignupPage() {
                   <Input
                     id="phone"
                     type="tel"
-                    {...step1Form.register('phone')}
+                    {...step1Form.register('phone', {
+                      onChange: (e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                        step1Form.setValue('phone', val, { shouldValidate: true });
+                      }
+                    })}
                     placeholder={t('auth.phonePlaceholder')}
-                    className="pr-32"
+                    className={`pr-32 ${step1Errors.phone ? 'border-red-500' : ''}`}
                     disabled={phoneVerified}
+                    maxLength={11}
+                    inputMode="numeric"
                   />
                   <Button
                     type="button"
@@ -650,10 +661,11 @@ export function SignupPage() {
                 type="text"
                 value={dateDisplayValue}
                 readOnly
+                inputMode="none"
                 onFocus={(e) => { e.target.blur(); setShowCalendar(true); }}
                 onClick={() => setShowCalendar(true)}
                 placeholder="YYYY / MM / DD"
-                className="bg-gray-100 text-center cursor-pointer select-none"
+                className={`bg-gray-100 text-center cursor-pointer select-none ${step2Errors.dateOfBirth ? 'border-red-500' : ''}`}
                 style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
               />
               {step2Errors.dateOfBirth && (
@@ -791,13 +803,17 @@ export function SignupPage() {
                 id="verificationCode"
                 type="text"
                 value={phoneVerificationInput}
-                onChange={(e) =>
-                  setPhoneVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))
-                }
+                onChange={(e) => {
+                  setPhoneVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  setPhoneVerificationError(null);
+                }}
                 placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
-                className="text-center text-lg tracking-widest"
+                className={`text-center text-lg tracking-widest ${phoneVerificationError ? 'border-red-500' : ''}`}
               />
+              {phoneVerificationError && (
+                <p className="text-sm text-red-500">{phoneVerificationError}</p>
+              )}
             </div>
             <Button
               onClick={handleConfirmPhoneVerification}
@@ -836,13 +852,17 @@ export function SignupPage() {
               <Input
                 type="text"
                 value={emailVerificationInput}
-                onChange={(e) =>
-                  setEmailVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))
-                }
+                onChange={(e) => {
+                  setEmailVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  setEmailVerificationError(null);
+                }}
                 placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
-                className="text-center text-lg tracking-widest"
+                className={`text-center text-lg tracking-widest ${emailVerificationError ? 'border-red-500' : ''}`}
               />
+              {emailVerificationError && (
+                <p className="text-sm text-red-500">{emailVerificationError}</p>
+              )}
             </div>
             <Button
               onClick={handleConfirmEmailVerification}

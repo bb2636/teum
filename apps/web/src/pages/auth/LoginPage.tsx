@@ -62,16 +62,13 @@ export function LoginPage() {
     loginMutation.mutate(data, {
       onError: (err) => {
         console.error('Login error:', err);
-        const errorMessage = err instanceof Error 
-          ? err.message 
-          : t('auth.loginFailed');
-        setError(errorMessage);
+        setError(t('auth.loginFailed'));
       },
     });
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative overflow-y-auto" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))', paddingBottom: 'max(32px, env(safe-area-inset-bottom, 32px))' }}>
       <button
         onClick={() => navigate('/splash')}
         className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm"
@@ -103,6 +100,7 @@ export function LoginPage() {
               {...register('email')}
               placeholder={t('auth.emailPlaceholder')}
               className={errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
+              onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
             />
             {errors.email && (
               <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -117,6 +115,7 @@ export function LoginPage() {
                 {...register('password')}
                 placeholder={t('auth.passwordPlaceholder')}
                 className={errors.password ? 'border-red-500 placeholder:text-red-500 pr-10' : 'pr-10'}
+                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
               />
               <button
                 type="button"

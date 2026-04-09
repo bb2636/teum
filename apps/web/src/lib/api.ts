@@ -66,6 +66,11 @@ export async function apiRequest<T>(
     credentials: 'include',
   });
 
+  if (response.status === 401 && endpoint === '/auth/login') {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(errorBody?.error?.message || 'Login failed');
+  }
+
   if (response.status === 401 && endpoint !== '/auth/refresh') {
     const errorBody = await response.json().catch(() => null);
     if (errorBody?.error?.code === 'SESSION_EXPIRED') {

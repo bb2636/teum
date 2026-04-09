@@ -29,7 +29,7 @@ const createProfileSchema = (isEmailOptional: boolean) => z.object({
     : z.string().email('auth.emailPlaceholder'),
   nickname: nicknameSchema,
   name: z.string().min(1, 'auth.enterName').max(100),
-  phone: z.string().min(10, 'auth.phoneRequired'),
+  phone: z.string().min(10, 'auth.phoneInvalidLength').max(11, 'auth.phoneInvalidLength'),
   dateOfBirth: z
     .string()
     .refine((val) => {
@@ -89,6 +89,7 @@ export function SocialOnboardingPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
+  const [phoneVerificationError, setPhoneVerificationError] = useState<string | null>(null);
 
   const isAppleHiddenEmail = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
   const isGoogleProvider = socialProfile?.provider === 'google';
@@ -227,15 +228,19 @@ export function SocialOnboardingPage() {
 
   const handleConfirmPhoneVerification = async () => {
     const phone = profileForm.getValues('phone');
-    if (!phone || !phoneVerificationInput) return;
-    setError(null);
+    if (!phone || !phoneVerificationInput) {
+      setPhoneVerificationError(t('auth.enterVerification'));
+      return;
+    }
+    setPhoneVerificationError(null);
     try {
       await confirmPhoneVerification.mutateAsync({ phone, code: phoneVerificationInput });
       setPhoneVerified(true);
       setShowPhoneVerificationModal(false);
       setPhoneVerificationInput('');
+      setPhoneVerificationError(null);
     } catch (err: any) {
-      setError(err?.message || t('auth.verificationInvalid'));
+      setPhoneVerificationError(err?.message || t('auth.verificationInvalid'));
     }
   };
 
@@ -340,16 +345,20 @@ export function SocialOnboardingPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  {...profileForm.register('phone')}
+                  {...profileForm.register('phone', {
+                    onChange: (e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      profileForm.setValue('phone', val, { shouldValidate: true });
+                      if (phoneVerified) {
+                        setPhoneVerified(false);
+                      }
+                    }
+                  })}
                   placeholder={t('auth.phonePlaceholder')}
                   className={`pr-28 bg-gray-100 ${profileErrors.phone ? 'border-red-500' : ''}`}
                   disabled={phoneVerified}
-                  onChange={(e) => {
-                    profileForm.setValue('phone', e.target.value, { shouldValidate: true });
-                    if (phoneVerified) {
-                      setPhoneVerified(false);
-                    }
-                  }}
+                  maxLength={11}
+                  inputMode="numeric"
                 />
                 <Button
                   type="button"
@@ -361,6 +370,9 @@ export function SocialOnboardingPage() {
                   {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
                 </Button>
               </div>
+              {profileErrors.phone && !phoneVerified && (
+                <p className="text-sm text-red-500">{t(profileErrors.phone.message || '')}</p>
+              )}
               {phoneVerified && (
                 <p className="text-sm text-green-600">✓ {t('auth.phoneVerified')}</p>
               )}
@@ -408,7 +420,7 @@ export function SocialOnboardingPage() {
                   }
                 }}
               />
-              {profileErrors.name && <p className="text-sm text-red-500">{profileErrors.name.message}</p>}
+              {profileErrors.name && <p className="text-sm text-red-500">{t(profileErrors.name.message || '')}</p>}
             </div>
 
             <div className="space-y-2">
@@ -423,13 +435,14 @@ export function SocialOnboardingPage() {
                 type="text"
                 value={dateDisplayValue}
                 readOnly
+                inputMode="none"
                 onFocus={(e) => { e.target.blur(); setShowCalendar(true); }}
                 onClick={() => setShowCalendar(true)}
                 placeholder="YYYY / MM / DD"
                 className={`bg-gray-100 text-center cursor-pointer select-none ${profileErrors.dateOfBirth ? 'border-red-500' : ''}`}
                 style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
               />
-              {profileErrors.dateOfBirth && <p className="text-sm text-red-500">{profileErrors.dateOfBirth.message}</p>}
+              {profileErrors.dateOfBirth && <p className="text-sm text-red-500">{t(profileErrors.dateOfBirth.message || '')}</p>}
             </div>
 
             {showCalendar && (
@@ -521,11 +534,17 @@ export function SocialOnboardingPage() {
                 id="phoneCode"
                 type="text"
                 value={phoneVerificationInput}
-                onChange={(e) => setPhoneVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => {
+                  setPhoneVerificationInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  setPhoneVerificationError(null);
+                }}
                 placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
-                className="text-center text-lg tracking-widest"
+                className={`text-center text-lg tracking-widest ${phoneVerificationError ? 'border-red-500' : ''}`}
               />
+              {phoneVerificationError && (
+                <p className="text-sm text-red-500">{phoneVerificationError}</p>
+              )}
             </div>
             <Button onClick={handleConfirmPhoneVerification} className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={phoneVerificationInput.length !== 6 || confirmPhoneVerification.isPending}>
               {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}

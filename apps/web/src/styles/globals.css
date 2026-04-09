@@ -474,17 +474,26 @@ input[type="checkbox"] {
   color: #FFFFFF !important;
 }
 
-/* Bottom tab bar - keep white pill, remove outer white background */
-[data-theme="dark"] nav.bottom-tab-bar {
-  background-color: transparent !important;
+/* Bottom tab bar - identical to light mode */
+[data-theme="dark"] nav.bottom-tab-bar,
+[data-theme="dark"] nav.bottom-tab-bar *:not(.text-\[\#4A2C1A\]):not(.text-gray-400) {
+  color: inherit;
 }
 
-[data-theme="dark"] nav.bottom-tab-bar > div {
-  background-color: transparent !important;
-}
-
-[data-theme="dark"] nav.bottom-tab-bar .bg-white.rounded-full {
+[data-theme="dark"] nav.bottom-tab-bar .bg-white {
   background-color: #FFFFFF !important;
+}
+
+[data-theme="dark"] nav.bottom-tab-bar .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+[data-theme="dark"] nav.bottom-tab-bar .text-\[\#4A2C1A\] {
+  color: #4A2C1A !important;
+}
+
+[data-theme="dark"] nav.bottom-tab-bar .bg-gray-200 {
+  background-color: #e5e7eb !important;
 }
 
 /* Folder/tab buttons in dark mode → brown bg + white text */

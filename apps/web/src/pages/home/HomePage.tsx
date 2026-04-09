@@ -288,7 +288,7 @@ export function HomePage() {
         <div className="sticky top-0 z-30 bg-white" style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 4px))' }}>
           <div className="flex items-center justify-between px-4 pt-1 pb-0">
             <img
-              src={theme === 'dark' ? '/틈 가로_3.png' : '/teum.home.png'}
+              src={theme === 'dark' ? '/dark.logo.png' : '/teum.home.png'}
               alt="teum logo"
               className="h-10 w-auto object-contain flex-shrink-0 home-logo"
               onError={(e) => {

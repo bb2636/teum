@@ -36,32 +36,32 @@
   }
 
   [data-theme="dark"] {
-    --background: 0 0% 10%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 13%;
+    --card: 0 0% 5%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 13%;
+    --popover: 0 0% 5%;
     --popover-foreground: 0 0% 100%;
 
     --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 10%;
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 18%;
+    --secondary: 0 0% 10%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 20%;
+    --muted: 0 0% 12%;
     --muted-foreground: 0 0% 70%;
 
-    --accent: 0 0% 22%;
+    --accent: 0 0% 14%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 25%;
-    --input: 0 0% 25%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
     --ring: 0 0% 100%;
   }
 }
@@ -338,11 +338,11 @@ input[type="checkbox"] {
 [data-theme="dark"] .bg-beige-50,
 [data-theme="dark"] .bg-gray-50,
 [data-theme="dark"] .bg-gray-100 {
-  background-color: #1a1a1a !important;
+  background-color: #000000 !important;
 }
 
 [data-theme="dark"] .min-h-screen {
-  background-color: #1a1a1a !important;
+  background-color: #000000 !important;
 }
 
 [data-theme="dark"] .bg-gray-200 {
@@ -357,7 +357,7 @@ input[type="checkbox"] {
 [data-theme="dark"] .bg-\[\#F8F4EF\],
 [data-theme="dark"] .bg-brown-50,
 [data-theme="dark"] .hover\:bg-brown-50:hover {
-  background-color: #252525 !important;
+  background-color: #1a1a1a !important;
 }
 
 /* Text → white */
@@ -465,7 +465,7 @@ input[type="checkbox"] {
 
 /* Home tagline */
 [data-theme="dark"] .home-tagline {
-  color: #4A2C1A !important;
+  color: #A67C5B !important;
 }
 
 /* Profile button - keep brown bg, text stays white */
@@ -474,25 +474,22 @@ input[type="checkbox"] {
   color: #FFFFFF !important;
 }
 
-/* Bottom tab bar - dark brown */
-[data-theme="dark"] nav.bottom-tab-bar {
-  background-color: transparent !important;
-}
-
+/* Bottom tab bar - same as light mode */
+[data-theme="dark"] nav.bottom-tab-bar,
 [data-theme="dark"] nav.bottom-tab-bar .bg-white {
-  background-color: #2C1A0E !important;
+  background-color: #FFFFFF !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .text-gray-400 {
-  color: #8B7355 !important;
+  color: #9ca3af !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .text-\[\#4A2C1A\] {
-  color: #FFFFFF !important;
+  color: #4A2C1A !important;
 }
 
 [data-theme="dark"] nav.bottom-tab-bar .bg-gray-200 {
-  background-color: #4A2C1A !important;
+  background-color: #e5e7eb !important;
 }
 
 /* Folder/tab buttons in dark mode → brown bg + white text */
@@ -516,7 +513,7 @@ input[type="checkbox"] {
 /* Hover states */
 [data-theme="dark"] .hover\:bg-gray-50:hover,
 [data-theme="dark"] .hover\:bg-gray-100:hover {
-  background-color: #1a1a1a !important;
+  background-color: #111111 !important;
 }
 
 /* Blue/amber badge backgrounds */
@@ -540,19 +537,19 @@ input[type="checkbox"] {
 /* Modals & overlays */
 [data-theme="dark"] .bg-white.rounded-2xl,
 [data-theme="dark"] .bg-white.rounded-xl {
-  background-color: #1a1a1a !important;
+  background-color: #000000 !important;
 }
 
 /* Payment fixed bottom bar */
 [data-theme="dark"] .pb-safe-fixed,
 [data-theme="dark"] .rounded-t-3xl {
-  background-color: #1a1a1a !important;
+  background-color: #000000 !important;
   border-color: #333333 !important;
 }
 
 /* Sticky headers */
 [data-theme="dark"] .sticky {
-  background-color: #1a1a1a !important;
+  background-color: #000000 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

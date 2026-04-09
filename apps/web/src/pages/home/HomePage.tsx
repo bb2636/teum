@@ -149,7 +149,6 @@ export function HomePage() {
     try {
       setIsCreating(true);
 
-      // Upload cover image if selected
       let coverImageUrl: string | undefined;
       if (coverImage) {
         try {
@@ -157,10 +156,11 @@ export function HomePage() {
         } catch (error) {
           console.error('Failed to upload cover image:', error);
           setUploadErrorToast(true);
+          setIsCreating(false);
+          return;
         }
       }
 
-      // Create folder
       const folderData: { name: string; coverImageUrl?: string } = {
         name: folderName.trim(),
       };
@@ -733,9 +733,9 @@ export function HomePage() {
 
       {/* 폴더 생성 모달 */}
       {showCreateFolderModal && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end animate-overlay-fade" onClick={() => setShowCreateFolderModal(false)}>
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShowCreateFolderModal(false)}>
           <div
-            className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto animate-modal-sheet"
+            className="bg-white rounded-2xl w-full max-w-sm mx-4 max-h-[80vh] overflow-y-auto animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 드래그 핸들 */}

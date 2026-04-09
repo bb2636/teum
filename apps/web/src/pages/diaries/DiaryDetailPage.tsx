@@ -9,6 +9,15 @@ import { useT } from '@/hooks/useTranslation';
 import { useState, useRef, useMemo, useCallback } from 'react';
 import { DiaryDeleteModal } from './DiaryDeleteModal';
 import { Toast } from '@/components/Toast';
+import DOMPurify from 'dompurify';
+
+const sanitizeHTML = (html: string) => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'i', 'u', 's', 'strike', 'del', 'em', 'strong', 'span', 'p', 'br', 'div', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'pre', 'img', 'font'],
+    ALLOWED_ATTR: ['style', 'color', 'src', 'alt', 'class'],
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|data):)/i,
+  });
+};
 
 export function DiaryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -225,16 +234,10 @@ export function DiaryDetailPage() {
 
           {diary.content && (
             <div className="prose prose-sm max-w-none">
-              <div className="text-brown-800 leading-relaxed whitespace-pre-wrap">
-                {(() => {
-                  const tmp = document.createElement('div');
-                  tmp.innerHTML = diary.content;
-                  let text = tmp.textContent || tmp.innerText || '';
-                  text = text.replace(/<br\s*\/?>/gi, '\n');
-                  text = text.replace(/&nbsp;/g, ' ');
-                  return text;
-                })()}
-              </div>
+              <div
+                className="diary-content text-[#4A2C1A] leading-relaxed whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: sanitizeHTML(diary.content) }}
+              />
             </div>
           )}
 
@@ -245,7 +248,10 @@ export function DiaryDetailPage() {
                   <h3 className="font-semibold text-brown-900">
                     {answer.question?.question || '질문'}
                   </h3>
-                  <p className="text-brown-700">{answer.answer}</p>
+                  <div
+                    className="diary-content text-brown-700 leading-relaxed whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(answer.answer || '') }}
+                  />
                 </div>
               ))}
             </div>

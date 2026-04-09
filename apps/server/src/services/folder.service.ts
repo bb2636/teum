@@ -59,11 +59,11 @@ export class FolderService {
       throw new Error('Folder not found');
     }
 
-    // Don't allow deleting default folder
     if (folder.isDefault) {
       throw new Error('Cannot delete default folder');
     }
 
+    await diaryRepository.clearFolderIdByFolderId(id);
     await folderRepository.delete(id);
   }
 }

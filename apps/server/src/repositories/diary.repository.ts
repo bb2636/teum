@@ -310,6 +310,13 @@ export class DiaryRepository {
     return diary;
   }
 
+  async clearFolderIdByFolderId(folderId: string) {
+    await db
+      .update(diaries)
+      .set({ folderId: null as any, updatedAt: new Date() })
+      .where(and(eq(diaries.folderId, folderId), isNull(diaries.deletedAt)));
+  }
+
   async delete(id: string) {
     await db
       .update(diaries)

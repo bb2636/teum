@@ -979,11 +979,9 @@ export function DiaryWritePage() {
               }))
           : undefined;
 
-      // Get latest content from contentEditable for free_form type and convert to plain text
       let finalContent = formData.content;
       if (type === 'free_form' && contentEditableRef.current) {
-        const rawContent = contentEditableRef.current.innerHTML;
-        finalContent = htmlToPlainText(rawContent);
+        finalContent = contentEditableRef.current.innerHTML;
       }
 
       // Ensure folderId is properly set - validate that it's not empty string

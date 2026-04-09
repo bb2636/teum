@@ -63,6 +63,7 @@ export interface GenerateMusicResponse {
 export interface MusicGenre {
   tag: string;
   labelKo: string;
+  labelEn: string;
 }
 
 export interface MusicGenresResponse {

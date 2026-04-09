@@ -213,9 +213,16 @@ export function MusicCreatePage() {
     navigate('/music');
   };
 
+  const currentLang = getCurrentLanguage();
+  const getGenreLabel = (genre: { labelKo: string; labelEn: string }) =>
+    currentLang === 'ko' ? genre.labelKo : genre.labelEn;
+
   const getSelectedGenreLabels = () => {
     return selectedGenres
-      .map((tag) => genres.find((g) => g.tag === tag)?.labelKo)
+      .map((tag) => {
+        const g = genres.find((g) => g.tag === tag);
+        return g ? getGenreLabel(g) : tag;
+      })
       .filter(Boolean)
       .join(', ');
   };
@@ -272,7 +279,7 @@ export function MusicCreatePage() {
                         }}
                         className={`w-full px-4 py-3 text-left flex items-center justify-between border-b border-brown-100 last:border-b-0 ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brown-50'}`}
                       >
-                        <span className="text-brown-900">{genre.labelKo}</span>
+                        <span className="text-brown-900">{getGenreLabel(genre)}</span>
                         {isSelected && <Check className="w-5 h-5 text-brown-600" />}
                       </button>
                     );

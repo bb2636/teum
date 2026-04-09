@@ -290,7 +290,7 @@ export function HomePage() {
             <img
               src={theme === 'dark' ? '/틈 가로_3.png' : '/teum.home.png'}
               alt="teum logo"
-              className="h-10 w-auto object-contain flex-shrink-0"
+              className="h-10 w-auto object-contain flex-shrink-0 home-logo"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}

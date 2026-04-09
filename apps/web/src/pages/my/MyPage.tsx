@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronRight,
   X,
+  Settings,
 } from 'lucide-react';
 import { useMe } from '@/hooks/useProfile';
 import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
@@ -247,6 +248,16 @@ export function MyPage() {
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-brown-600" />
               <span className="font-medium text-brown-900">{t('my.customerSupport')}</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/my/app-settings')}
+            className="w-full p-4 flex items-center justify-between hover:bg-brown-50 transition-colors border-b border-brown-100 menu-item-tap"
+          >
+            <div className="flex items-center gap-3">
+              <Settings className="w-5 h-5 text-brown-600" />
+              <span className="font-medium text-brown-900">{t('my.appSettings')}</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>

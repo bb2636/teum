@@ -30,6 +30,7 @@ const PaymentPage = lazy(() => import('../pages/payment/PaymentPage').then(m => 
 const PaymentSuccessPage = lazy(() => import('../pages/payment/PaymentSuccessPage').then(m => ({ default: m.PaymentSuccessPage })));
 const PaymentHistoryPage = lazy(() => import('../pages/my/PaymentHistoryPage').then(m => ({ default: m.PaymentHistoryPage })));
 const PaymentFailPage = lazy(() => import('../pages/payment/PaymentFailPage').then(m => ({ default: m.PaymentFailPage })));
+const AppSettingsPage = lazy(() => import('../pages/my/AppSettingsPage').then(m => ({ default: m.AppSettingsPage })));
 const SupportPage = lazy(() => import('../pages/my/SupportPage').then(m => ({ default: m.SupportPage })));
 const SupportInquiryPage = lazy(() => import('../pages/my/SupportInquiryPage').then(m => ({ default: m.SupportInquiryPage })));
 const AdminPage = lazy(() => import('../pages/admin/AdminPage').then(m => ({ default: m.AdminPage })));
@@ -277,6 +278,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <PaymentHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my/app-settings"
+                element={
+                  <ProtectedRoute>
+                    <AppSettingsPage />
                   </ProtectedRoute>
                 }
               />

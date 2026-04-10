@@ -657,15 +657,14 @@ export function DiaryWritePage() {
     if (!files) return;
 
     const newFiles = Array.from(files);
-    setSelectedFiles([...selectedFiles, ...newFiles]);
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
 
-    // Create preview URLs immediately
     const previewUrls: string[] = [];
     newFiles.forEach((file) => {
       const url = URL.createObjectURL(file);
       previewUrls.push(url);
     });
-    setSelectedImages([...selectedImages, ...previewUrls]);
+    setSelectedImages((prev) => [...prev, ...previewUrls]);
     
     // Upload images immediately and insert into content (only for free_form)
     for (let i = 0; i < newFiles.length; i++) {

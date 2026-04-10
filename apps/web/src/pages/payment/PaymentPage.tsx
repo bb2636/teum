@@ -136,6 +136,16 @@ export function PaymentPage() {
       }
 
       window.AUTHNICE.requestPay(payParams);
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          setTimeout(() => {
+            setIsProcessing(false);
+          }, 3000);
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
     } catch (error: any) {
       console.error('Billing key init error:', error);
       alert(error?.message || t('payment.initError'));

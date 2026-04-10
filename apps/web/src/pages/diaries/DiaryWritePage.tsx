@@ -103,6 +103,7 @@ export function DiaryWritePage() {
   const isUserInputRef = useRef(false);
   const isInitializingRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const isIOS = Capacitor.getPlatform() === 'ios' || /iPhone|iPad|iPod/.test(navigator.userAgent);
   const savedSelectionRef = useRef<Range | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -1241,16 +1242,21 @@ export function DiaryWritePage() {
                     onChange={handleImageSelect}
                     className="hidden"
                   />
-                  <label className="cursor-pointer p-1 relative">
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="cursor-pointer p-1"
+                  >
                     <ImageIcon className="w-6 h-6 text-gray-600" />
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </label>
+                  </button>
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
                 </div>
               </div>
             </div>
@@ -1515,16 +1521,21 @@ export function DiaryWritePage() {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <label className="cursor-pointer p-1 relative">
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="cursor-pointer p-1"
+              >
                 <ImageIcon className="w-6 h-6 text-gray-600" />
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-              </label>
+              </button>
+              <input
+                ref={galleryInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
             </div>
           </div>
         </div>

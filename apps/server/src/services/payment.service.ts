@@ -280,7 +280,7 @@ export class PaymentService {
     if (!chargeResult.success) {
       logger.error('Billing key charge failed', {
         userId,
-        bid,
+        bidSuffix: bid ? `***${bid.slice(-4)}` : 'N/A',
         chargeOrderId,
         errorMsg: chargeResult.errorMsg,
       });

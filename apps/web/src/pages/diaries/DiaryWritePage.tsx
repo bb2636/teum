@@ -250,10 +250,12 @@ export function DiaryWritePage() {
 
   useEffect(() => {
     let cleanups: (() => void)[] = [];
+    let unmounted = false;
 
     if (Capacitor.isNativePlatform()) {
       let pluginWorking = false;
       import('@capacitor/keyboard').then(({ Keyboard }) => {
+        if (unmounted) return;
         const showP = Keyboard.addListener('keyboardWillShow', (info) => {
           pluginWorking = true;
           setKeyboardHeight(info.keyboardHeight);
@@ -287,7 +289,7 @@ export function DiaryWritePage() {
         });
       }
 
-      return () => cleanups.forEach(fn => fn());
+      return () => { unmounted = true; cleanups.forEach(fn => fn()); };
     }
 
     const vv = window.visualViewport;
@@ -1090,6 +1092,7 @@ export function DiaryWritePage() {
       alert(t('diary.saveFailed'));
     } finally {
       setUploading(false);
+      isSavingRef.current = false;
     }
   };
 

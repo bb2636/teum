@@ -35,9 +35,13 @@ export const createDiarySchema = z.object({
   type: z.enum(['free_form', 'question_based']),
   title: z.string().max(200).optional(),
   content: z.string().optional(),
-  textStyle: z.string().optional(), // JSON string
-  date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-  // 업로드가 상대 경로(/storage/...) 또는 절대 URL 반환 가능
+  textStyle: z.string().optional(),
+  date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).refine((val) => {
+    const dateOnly = val.length > 10 ? val.slice(0, 10) : val;
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return dateOnly <= todayStr;
+  }, { message: 'Cannot create diary for a future date' }),
   imageUrls: z.array(z.string().min(1)).optional(),
   answers: z.array(
     z.object({

@@ -760,7 +760,7 @@ export function HomePage() {
                 <button
                   onClick={() => {
                     setShowFolderLimitModal(false);
-                    navigate('/settings/subscription');
+                    navigate('/payment');
                   }}
                   className="w-full py-3 bg-[#4A2C1A] text-white rounded-full font-medium hover:bg-[#4A2C1A] transition-colors"
                 >

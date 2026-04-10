@@ -94,6 +94,7 @@ export function DiaryWritePage() {
   const [showFormatMenu, setShowFormatMenu] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showContentRequired, setShowContentRequired] = useState(false);
   const [selectedTextStyle, setSelectedTextStyle] = useState<TextStyle>('body');
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
   const [textColor, setTextColor] = useState(defaultTextColor);
@@ -861,7 +862,31 @@ export function DiaryWritePage() {
 
   const isSavingRef = useRef(false);
 
+  const hasTextContent = (): boolean => {
+    if (type === 'free_form') {
+      if (contentEditableRef.current) {
+        const clone = contentEditableRef.current.cloneNode(true) as HTMLDivElement;
+        clone.querySelectorAll('img').forEach((img) => img.remove());
+        const text = (clone.textContent || clone.innerText || '').trim();
+        return text.length > 0;
+      }
+      return false;
+    }
+    if (type === 'question_based') {
+      const formData = watch();
+      return (formData.answers || []).some((a: any) => {
+        const text = (a.answer || '').replace(/<[^>]*>/g, '').trim();
+        return text.length > 0;
+      });
+    }
+    return true;
+  };
+
   const handleSaveClick = () => {
+    if (!hasTextContent()) {
+      setShowContentRequired(true);
+      return;
+    }
     setShowFolderModal(true);
   };
 
@@ -1481,6 +1506,21 @@ export function DiaryWritePage() {
           onSelect={handleFolderSelect}
           onClose={() => setShowFolderModal(false)}
         />
+      )}
+
+      {showContentRequired && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 mx-8 max-w-sm w-full text-center shadow-xl">
+            <p className="text-brown-900 text-base mb-5">{t('diary.enterContentRequired')}</p>
+            <button
+              type="button"
+              onClick={() => setShowContentRequired(false)}
+              className="w-full py-2.5 bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-full font-medium"
+            >
+              {t('common.confirm')}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Exit Confirm Modal */}

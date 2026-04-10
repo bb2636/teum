@@ -8,6 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function stripHTML(html: string): string {
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
+  tmp.querySelectorAll('img').forEach((img) => img.remove());
   return tmp.textContent || tmp.innerText || '';
 }
 

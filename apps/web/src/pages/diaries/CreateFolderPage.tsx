@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useCreateFolder } from '@/hooks/useFolders';
@@ -83,20 +83,51 @@ export function CreateFolderPage() {
   };
 
   const isFormValid = folderName.trim().length > 0;
+  const [kbHeight, setKbHeight] = useState(0);
+  const formContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const h = window.innerHeight - vv.height;
+      setKbHeight(h > 50 ? h : 0);
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (kbHeight > 0 && formContainerRef.current) {
+      const input = formContainerRef.current.querySelector('input[type="text"]');
+      if (input) {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+  }, [kbHeight]);
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <div className="max-w-md mx-auto h-screen flex flex-col">
+    <div className="fixed inset-0 bg-white">
+      <div
+        ref={formContainerRef}
+        className="max-w-md mx-auto flex flex-col overflow-y-auto"
+        style={{
+          height: kbHeight > 0 ? `${window.innerHeight - kbHeight}px` : '100%',
+          transition: 'height 0.2s ease-out',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
           <button onClick={() => navigate(-1)} className="p-2">
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>
           <h1 className="text-lg font-semibold text-[#4A2C1A]">{t('diary.newFolderTitle')}</h1>
-          <div className="w-10" /> {/* Spacer */}
+          <div className="w-10" />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-4 py-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col px-4 py-6 space-y-6 overflow-y-auto">
           {/* Folder Photo */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderPhoto')}</label>
@@ -156,7 +187,7 @@ export function CreateFolderPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 mt-auto">
+          <div className="flex gap-3 pt-4 mt-auto" style={{ paddingBottom: kbHeight > 0 ? '16px' : 'max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px))' }}>
             <button
               type="button"
               onClick={() => navigate(-1)}

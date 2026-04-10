@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus, ArrowLeft } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders } from '@/hooks/useDiaries';
@@ -116,15 +116,46 @@ export function FolderSelectModal({
     }
   };
 
+  const [createFormKeyboardHeight, setCreateFormKeyboardHeight] = useState(0);
+  const createFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showCreateForm) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const kbHeight = window.innerHeight - vv.height;
+      setCreateFormKeyboardHeight(kbHeight > 50 ? kbHeight : 0);
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [showCreateForm]);
+
+  useEffect(() => {
+    if (createFormKeyboardHeight > 0 && createFormRef.current) {
+      const input = createFormRef.current.querySelector('input[type="text"]');
+      if (input) {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+  }, [createFormKeyboardHeight]);
+
   if (showCreateForm) {
     return (
       <div className="fixed inset-0 z-[60] bg-white animate-overlay-fade flex flex-col" onClick={onClose}>
         <div
-          className="flex-1 flex flex-col w-full max-w-md mx-auto overflow-y-auto"
+          ref={createFormRef}
+          className="flex flex-col w-full max-w-md mx-auto overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
+          style={{
+            height: createFormKeyboardHeight > 0 ? `${window.innerHeight - createFormKeyboardHeight}px` : '100%',
+            transition: 'height 0.2s ease-out',
+          }}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10" style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}>
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10 shrink-0" style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}>
             <button
               onClick={() => {
                 setShowCreateForm(false);
@@ -193,11 +224,6 @@ export function FolderSelectModal({
                       setFolderName(val);
                     }
                   }}
-                  onFocus={(e) => {
-                    setTimeout(() => {
-                      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 300);
-                  }}
                   placeholder={t('diary.folderNameLabel')}
                   maxLength={10}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
@@ -209,7 +235,7 @@ export function FolderSelectModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 pb-8" style={{ paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px))' }}>
+            <div className="flex gap-3 pt-4 pb-8" style={{ paddingBottom: createFormKeyboardHeight > 0 ? '16px' : 'max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px))' }}>
               <button
                 type="button"
                 onClick={() => {

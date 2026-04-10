@@ -391,15 +391,14 @@ export function MusicCreatePage() {
                     </p>
                   </div>
 
-                  <Button
-                    variant={isSelected ? 'default' : 'outline'}
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={() => toggleDiarySelection(diary.id)}
                     disabled={!isSelected && selectedCount >= 7}
-                    className={isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010] text-white border-[#4A2C1A]' : 'bg-white border-[#4A2C1A] text-[#4A2C1A] hover:bg-[#4A2C1A]/10'}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010] text-white border-[#4A2C1A]' : 'bg-white border-[#4A2C1A] text-[#4A2C1A] hover:bg-[#4A2C1A]/10'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isSelected ? t('common.deselect') : t('common.select')}
-                  </Button>
+                  </button>
                 </div>
               );
             })

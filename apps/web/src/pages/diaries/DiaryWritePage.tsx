@@ -747,7 +747,7 @@ export function DiaryWritePage() {
     container.style.margin = '8px 0';
     container.style.width = '100%';
     container.style.maxWidth = '100%';
-    container.style.overflow = 'hidden';
+    container.style.padding = '4px';
     
     const img = document.createElement('img');
     img.src = getStorageImageSrc(imageUrl);
@@ -762,7 +762,7 @@ export function DiaryWritePage() {
     
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    deleteBtn.className = 'absolute -top-1 -right-1 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors';
+    deleteBtn.className = 'absolute top-0 right-0 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors z-10';
     deleteBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
     deleteBtn.onclick = (e) => {
       e.preventDefault();

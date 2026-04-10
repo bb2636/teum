@@ -140,11 +140,11 @@ export function FolderSelectModal({
               <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
             </button>
             <h2 className="text-lg font-semibold text-[#4A2C1A]">{t('diary.newFolderTitle')}</h2>
-            <div className="w-10" /> {/* Spacer */}
+            <div className="w-10" />
           </div>
 
           {/* Form */}
-          <div className="px-4 py-6 space-y-6">
+          <div className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
             {/* Folder Photo */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#4A2C1A]">{t('diary.folderPhoto')}</label>
@@ -193,6 +193,11 @@ export function FolderSelectModal({
                       setFolderName(val);
                     }
                   }}
+                  onFocus={(e) => {
+                    setTimeout(() => {
+                      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                  }}
                   placeholder={t('diary.folderNameLabel')}
                   maxLength={10}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
@@ -204,7 +209,7 @@ export function FolderSelectModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+            <div className="flex gap-3 pt-4 pb-8" style={{ paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px))' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -304,7 +309,7 @@ export function FolderSelectModal({
         </div>
 
         {/* Create New Folder Button */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200" style={{ paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }}>
           <button
             onClick={() => setShowCreateForm(true)}
             className="w-full py-4 px-4 bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"

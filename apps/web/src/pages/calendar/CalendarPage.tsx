@@ -622,6 +622,20 @@ export function CalendarPage() {
                 setShowTypeModal(true);
               }}
             />
+            {isListFullScreen && (
+              <button
+                onClick={() => {
+                  if (selectedDate) {
+                    setTypeModalDate(selectedDate);
+                    setShowTypeModal(true);
+                  }
+                }}
+                className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] flex items-center justify-center shadow-lg z-50 transition-colors"
+                style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
+              >
+                <Plus className="w-7 h-7 text-white" />
+              </button>
+            )}
           </div>
         )}
 

@@ -867,7 +867,10 @@ export function DiaryWritePage() {
       if (contentEditableRef.current) {
         const clone = contentEditableRef.current.cloneNode(true) as HTMLDivElement;
         clone.querySelectorAll('img').forEach((img) => img.remove());
-        const text = (clone.textContent || clone.innerText || '').trim();
+        const text = (clone.textContent || clone.innerText || '')
+          .replace(/\u00A0/g, '')
+          .replace(/\n/g, '')
+          .trim();
         return text.length > 0;
       }
       return false;

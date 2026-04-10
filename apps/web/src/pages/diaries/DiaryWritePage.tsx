@@ -1013,7 +1013,23 @@ export function DiaryWritePage() {
 
       let finalContent = formData.content;
       if (type === 'free_form' && contentEditableRef.current) {
-        finalContent = contentEditableRef.current.innerHTML;
+        const tmp = contentEditableRef.current.cloneNode(true) as HTMLElement;
+        tmp.querySelectorAll('font[color]').forEach((font) => {
+          const color = font.getAttribute('color');
+          if (color) {
+            const span = document.createElement('span');
+            span.style.cssText = `color: ${color} !important`;
+            span.innerHTML = font.innerHTML;
+            font.replaceWith(span);
+          }
+        });
+        tmp.querySelectorAll('[style]').forEach((el) => {
+          const style = (el as HTMLElement).style;
+          if (style.color && !style.cssText.includes('!important')) {
+            style.setProperty('color', style.color, 'important');
+          }
+        });
+        finalContent = tmp.innerHTML;
       }
 
       // Ensure folderId is properly set - validate that it's not empty string

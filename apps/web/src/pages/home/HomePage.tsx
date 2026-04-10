@@ -826,9 +826,6 @@ export function HomePage() {
                     maxLength={10}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
                   />
-                  <span className="absolute bottom-2 right-3 text-xs text-gray-400">
-                    {folderName.length}/10
-                  </span>
                 </div>
               </div>
 

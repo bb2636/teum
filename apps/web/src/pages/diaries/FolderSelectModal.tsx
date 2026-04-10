@@ -136,8 +136,8 @@ export function FolderSelectModal({
       const input = createFormRef.current.querySelector('input[type="text"]');
       if (input) {
         setTimeout(() => {
-          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+          input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
       }
     }
   }, [createFormKeyboardHeight]);
@@ -151,7 +151,8 @@ export function FolderSelectModal({
           onClick={(e) => e.stopPropagation()}
           style={{
             height: createFormKeyboardHeight > 0 ? `${window.innerHeight - createFormKeyboardHeight}px` : '100%',
-            transition: 'height 0.2s ease-out',
+            transform: createFormKeyboardHeight > 0 ? `translateY(-${Math.min(createFormKeyboardHeight * 0.15, 40)}px)` : 'none',
+            transition: 'height 0.2s ease-out, transform 0.2s ease-out',
           }}
         >
           {/* Header */}
@@ -228,9 +229,6 @@ export function FolderSelectModal({
                   maxLength={10}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
                 />
-                <span className="absolute bottom-2 right-3 text-xs text-gray-400">
-                  {folderName.length}/10
-                </span>
               </div>
             </div>
 

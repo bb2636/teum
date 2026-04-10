@@ -751,7 +751,7 @@ export function DiaryWritePage() {
     
     const img = document.createElement('img');
     img.src = getStorageImageSrc(imageUrl);
-    img.alt = 'Uploaded image';
+    img.alt = '';
     img.className = 'rounded-lg';
     img.style.maxWidth = '100%';
     img.style.width = '100%';

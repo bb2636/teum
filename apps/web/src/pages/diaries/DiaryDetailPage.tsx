@@ -19,6 +19,9 @@ const sanitizeHTML = (html: string) => {
   });
   const tmp = document.createElement('div');
   tmp.innerHTML = clean;
+  tmp.querySelectorAll('img').forEach((img) => {
+    img.setAttribute('alt', '');
+  });
   tmp.querySelectorAll('font[color]').forEach((font) => {
     const color = font.getAttribute('color');
     const span = document.createElement('span');

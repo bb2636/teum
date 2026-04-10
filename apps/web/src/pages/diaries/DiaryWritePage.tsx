@@ -18,6 +18,7 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getStorageImageSrc } from '@/lib/api';
 import { useT } from '@/hooks/useTranslation';
 import { Toast } from '@/components/Toast';
@@ -82,6 +83,9 @@ export function DiaryWritePage() {
   const [fileToUrlMap, setFileToUrlMap] = useState<Map<File, string>>(new Map());
   const [uploadErrorToast, setUploadErrorToast] = useState(false);
   const t = useT();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const defaultTextColor = isDark ? '#FFFFFF' : '#4A2C1A';
   const [selectedDate, setSelectedDate] = useState(
     searchParams.get('date') || format(new Date(), 'yyyy-MM-dd')
   );
@@ -92,7 +96,7 @@ export function DiaryWritePage() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [selectedTextStyle, setSelectedTextStyle] = useState<TextStyle>('body');
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
-  const [textColor, setTextColor] = useState('#4A2C1A');
+  const [textColor, setTextColor] = useState(defaultTextColor);
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const isUserInputRef = useRef(false);
@@ -1108,8 +1112,8 @@ export function DiaryWritePage() {
                 {...register('title')}
                 type="text"
                 placeholder={t('diary.titlePlaceholder')}
-                className="w-full px-4 pt-4 pb-2 text-lg font-semibold outline-none bg-white border-b border-gray-100"
-                style={{ color: '#4A2C1A' }}
+                className="w-full px-4 pt-4 pb-2 text-lg font-semibold outline-none bg-white border-b border-gray-100 dark:bg-[#1a1a1a] dark:border-gray-800"
+                style={{ color: defaultTextColor }}
                 maxLength={100}
               />
               <div
@@ -1123,9 +1127,9 @@ export function DiaryWritePage() {
                 onFocus={updateActiveFormats}
                 onSelect={() => { updateActiveFormats(); saveSelection(); }}
                 data-placeholder={t('diary.writingPlaceholder')}
-                className="w-full resize-none outline-none bg-white min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
+                className="w-full resize-none outline-none bg-white dark:bg-[#1a1a1a] min-h-[200px] px-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-medium [&_p]:text-base [&_pre]:text-sm [&_pre]:font-mono [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-gray-400"
                 style={{ 
-                  color: '#4A2C1A',
+                  color: defaultTextColor,
                   lineHeight: '24px',
                   fontSize: '16px',
                   paddingTop: '12px',

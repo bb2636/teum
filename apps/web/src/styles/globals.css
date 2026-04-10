@@ -467,11 +467,17 @@ input[type="checkbox"] {
 
 /* Diary detail content */
 [data-theme="dark"] .diary-detail-content .text-base,
-[data-theme="dark"] .diary-detail-content p,
-[data-theme="dark"] .diary-detail-content span,
-[data-theme="dark"] .diary-detail-content div {
+[data-theme="dark"] .diary-detail-content p:not(.diary-user-formatted p),
+[data-theme="dark"] .diary-detail-content span:not(.diary-user-formatted span),
+[data-theme="dark"] .diary-detail-content div:not(.diary-user-formatted div):not(.diary-user-formatted) {
   color: #FFFFFF !important;
 }
+
+[data-theme="dark"] .diary-user-formatted {
+  color: #FFFFFF;
+}
+
+
 
 [data-theme="dark"] .diary-detail-content .text-amber-800,
 [data-theme="dark"] .diary-detail-content .text-blue-800 {

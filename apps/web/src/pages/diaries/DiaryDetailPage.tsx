@@ -12,11 +12,27 @@ import { Toast } from '@/components/Toast';
 import DOMPurify from 'dompurify';
 
 const sanitizeHTML = (html: string) => {
-  return DOMPurify.sanitize(html, {
+  const clean = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['b', 'i', 'u', 's', 'strike', 'del', 'em', 'strong', 'span', 'p', 'br', 'div', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'pre', 'img', 'font'],
     ALLOWED_ATTR: ['style', 'color', 'src', 'alt', 'class'],
     ALLOWED_URI_REGEXP: /^(?:(?:https?|data):)/i,
   });
+  const tmp = document.createElement('div');
+  tmp.innerHTML = clean;
+  tmp.querySelectorAll('font[color]').forEach((font) => {
+    const color = font.getAttribute('color');
+    const span = document.createElement('span');
+    span.style.cssText = `color: ${color} !important`;
+    span.innerHTML = font.innerHTML;
+    font.replaceWith(span);
+  });
+  tmp.querySelectorAll('[style]').forEach((el) => {
+    const style = (el as HTMLElement).style;
+    if (style.color) {
+      style.setProperty('color', style.color, 'important');
+    }
+  });
+  return tmp.innerHTML;
 };
 
 export function DiaryDetailPage() {
@@ -235,7 +251,7 @@ export function DiaryDetailPage() {
           {diary.content && (
             <div className="prose prose-sm max-w-none">
               <div
-                className="diary-content text-[#4A2C1A] leading-relaxed whitespace-pre-wrap"
+                className="diary-content text-[#4A2C1A] leading-relaxed whitespace-pre-wrap diary-user-formatted"
                 dangerouslySetInnerHTML={{ __html: sanitizeHTML(diary.content) }}
               />
             </div>
@@ -249,7 +265,7 @@ export function DiaryDetailPage() {
                     {answer.question?.question || '질문'}
                   </h3>
                   <div
-                    className="diary-content text-brown-700 leading-relaxed whitespace-pre-wrap"
+                    className="diary-content text-brown-700 leading-relaxed whitespace-pre-wrap diary-user-formatted"
                     dangerouslySetInnerHTML={{ __html: sanitizeHTML(answer.answer || '') }}
                   />
                 </div>

@@ -94,7 +94,7 @@ export function DiaryWritePage() {
   const [showFormatMenu, setShowFormatMenu] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [showContentRequired, setShowContentRequired] = useState(false);
+  const [showContentRequired, setShowContentRequired] = useState<string | null>(null);
   const [selectedTextStyle, setSelectedTextStyle] = useState<TextStyle>('body');
   const [activeFormats, setActiveFormats] = useState<Set<FormatType>>(new Set());
   const [textColor, setTextColor] = useState(defaultTextColor);
@@ -886,8 +886,15 @@ export function DiaryWritePage() {
   };
 
   const handleSaveClick = () => {
+    if (type === 'free_form') {
+      const title = (watch('title') || '').trim();
+      if (!title) {
+        setShowContentRequired(t('diary.enterTitleRequired'));
+        return;
+      }
+    }
     if (!hasTextContent()) {
-      setShowContentRequired(true);
+      setShowContentRequired(t('diary.enterContentRequired'));
       return;
     }
     setShowFolderModal(true);
@@ -1530,10 +1537,10 @@ export function DiaryWritePage() {
       {showContentRequired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 mx-8 max-w-sm w-full text-center shadow-xl">
-            <p className="text-brown-900 text-base mb-5">{t('diary.enterContentRequired')}</p>
+            <p className="text-brown-900 text-base mb-5">{showContentRequired}</p>
             <button
               type="button"
-              onClick={() => setShowContentRequired(false)}
+              onClick={() => setShowContentRequired(null)}
               className="w-full py-2.5 bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-full font-medium"
             >
               {t('common.confirm')}

@@ -767,7 +767,18 @@ export function DiaryWritePage() {
     deleteBtn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      const deletedUrl = img.dataset.imageUrl || '';
       container.remove();
+      if (deletedUrl) {
+        setSelectedFiles((prev) => {
+          const newFiles = prev.filter((file) => {
+            const mappedUrl = fileToUrlMap.get(file);
+            return mappedUrl !== deletedUrl;
+          });
+          return newFiles;
+        });
+        setSelectedImages((prev) => prev.filter((u) => u !== deletedUrl));
+      }
       handleContentChange();
     };
     
@@ -876,9 +887,8 @@ export function DiaryWritePage() {
       return false;
     }
     if (type === 'question_based') {
-      const formData = watch() as any;
-      return (formData.answers || []).some((a: any) => {
-        const text = (a.answer || '').replace(/<[^>]*>/g, '').trim();
+      return Object.values(answers).some((a) => {
+        const text = (a || '').replace(/<[^>]*>/g, '').trim();
         return text.length > 0;
       });
     }
@@ -1288,6 +1298,21 @@ export function DiaryWritePage() {
             onClose={() => setShowAdModal(false)}
             onAdComplete={handleAdComplete}
           />
+
+          {showContentRequired && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 mx-8 max-w-sm w-full text-center shadow-xl">
+                <p className="text-brown-900 text-base mb-5">{showContentRequired}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowContentRequired(null)}
+                  className="w-full py-2.5 bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-full font-medium"
+                >
+                  {t('common.confirm')}
+                </button>
+              </div>
+            </div>
+          )}
 
           <Toast
             message={t('error.imageUploadFailed')}

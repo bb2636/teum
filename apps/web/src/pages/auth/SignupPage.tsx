@@ -532,7 +532,7 @@ export function SignupPage() {
                 {!phoneVerified && (
                   <button
                     type="button"
-                    onClick={() => { setVerificationMode('email'); setError(null); }}
+                    onClick={() => { setVerificationMode('email'); setError(null); setPhoneVerificationInput(''); setPhoneVerificationError(null); setShowPhoneVerificationModal(false); }}
                     className="text-sm text-[#4A2C1A] underline"
                   >
                     {t('auth.switchToEmailVerification')}
@@ -565,7 +565,7 @@ export function SignupPage() {
                 {!emailVerified && (
                   <button
                     type="button"
-                    onClick={() => { setVerificationMode('phone'); setError(null); }}
+                    onClick={() => { setVerificationMode('phone'); setError(null); setEmailVerificationInput(''); setEmailVerificationError(null); setShowEmailVerificationModal(false); }}
                     className="text-sm text-[#4A2C1A] underline"
                   >
                     {t('auth.switchToPhoneVerification')}

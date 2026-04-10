@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Plus } from 'lucide-react';
 import { StorageImage } from '@/components/StorageImage';
 import { ProfileButton } from '@/components/ProfileButton';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
@@ -69,9 +69,11 @@ interface DiaryListPanelProps {
   diaries: Diary[];
   onDateChange: (date: Date) => void;
   onClose: () => void;
+  isFullScreen?: boolean;
+  onWriteDiary?: (date: Date) => void;
 }
 
-function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanelProps) {
+function DiaryListPanel({ date, diaries, onDateChange, onClose, isFullScreen, onWriteDiary }: DiaryListPanelProps) {
   const t = useT();
   const locale = getDateLocale();
   const swipeStartX = useRef<number | null>(null);
@@ -156,11 +158,23 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
         </div>
 
         <div className="space-y-2.5">
-          {diaries.map((diary) => {
+          {diaries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <p className="text-sm text-gray-400">{t('calendar.noDiariesDay')}</p>
+              {isFullScreen && onWriteDiary && (
+                <button
+                  onClick={() => onWriteDiary(date)}
+                  className="mt-4 w-12 h-12 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] flex items-center justify-center shadow-lg transition-colors"
+                >
+                  <Plus className="w-6 h-6 text-white" />
+                </button>
+              )}
+            </div>
+          ) : (
+          diaries.map((diary) => {
             const firstLine = getFirstLine(diary);
-            const folderName = diary.folder
-              ? (diary.folder.isDefault || diary.folder.name === 'All' ? t('common.all') : diary.folder.name)
-              : t('common.all');
+            const contentText = diary.content ? stripHTML(diary.content).trim() : '';
+            const hasContent = contentText && firstLine !== contentText;
             return (
               <Link
                 key={diary.id}
@@ -168,13 +182,14 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
                 className="block bg-white rounded-xl p-3.5 shadow-sm border border-gray-100"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 mb-1">{folderName}</p>
-                  <p className="text-sm text-gray-800 leading-relaxed line-clamp-3">
+                  <p className="text-sm font-semibold text-[#4A2C1A] leading-snug">
                     {firstLine || t('diary.noTitle')}
-                    {diary.content?.trim() && firstLine !== stripHTML(diary.content).trim() && (
-                      <span className="text-gray-500"> {stripHTML(diary.content).trim()}</span>
-                    )}
                   </p>
+                  {hasContent && (
+                    <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mt-1">
+                      {contentText}
+                    </p>
+                  )}
                   {diary.images && diary.images.length > 0 && (
                     <div className="flex gap-2 mt-2">
                       {diary.images.slice(0, 4).map((img, idx) => (
@@ -192,7 +207,8 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
                 </div>
               </Link>
             );
-          })}
+          })
+          )}
         </div>
       </div>
     </div>
@@ -600,6 +616,11 @@ export function CalendarPage() {
               diaries={selectedDateDiaries}
               onDateChange={handleDateChangeFromList}
               onClose={closeList}
+              isFullScreen={isListFullScreen}
+              onWriteDiary={(d) => {
+                setTypeModalDate(d);
+                setShowTypeModal(true);
+              }}
             />
           </div>
         )}

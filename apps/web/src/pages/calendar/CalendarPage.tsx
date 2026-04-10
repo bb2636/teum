@@ -161,14 +161,6 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose, isFullScreen, on
           {diaries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <p className="text-sm text-gray-400">{t('calendar.noDiariesDay')}</p>
-              {isFullScreen && onWriteDiary && (
-                <button
-                  onClick={() => onWriteDiary(date)}
-                  className="mt-4 w-12 h-12 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] flex items-center justify-center shadow-lg transition-colors"
-                >
-                  <Plus className="w-6 h-6 text-white" />
-                </button>
-              )}
             </div>
           ) : (
           diaries.map((diary) => {

@@ -296,8 +296,8 @@ export function FolderSelectModal({
         </div>
 
         {/* Folder Slider */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
+        <div className="pt-4 pb-2">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 py-2">
             {filteredFolders.map((folder) => {
               const diaryCount = getDiaryCount(folder.id);
               return (

@@ -60,6 +60,7 @@ export function ForgotPasswordPage() {
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [verifyKbHeight, setVerifyKbHeight] = useState(0);
 
   const infoForm = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -93,6 +94,18 @@ export function ForgotPasswordPage() {
       passwordForm.setValue('token', resetToken);
     }
   }, [resetToken]);
+
+  useEffect(() => {
+    if (!showPhoneVerificationModal) { setVerifyKbHeight(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const kbH = window.innerHeight - vv.height;
+      setVerifyKbHeight(kbH > 50 ? kbH : 0);
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [showPhoneVerificationModal]);
 
   const handleRequestPhoneVerification = async () => {
     const phone = infoForm.getValues('phone');
@@ -366,6 +379,10 @@ export function ForgotPasswordPage() {
           <div
             className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: verifyKbHeight > 0 ? `translateY(-${verifyKbHeight / 2}px)` : 'none',
+              transition: 'transform 0.2s ease-out',
+            }}
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('auth.verificationModalTitle')}</h2>

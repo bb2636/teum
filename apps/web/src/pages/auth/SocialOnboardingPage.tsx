@@ -90,6 +90,7 @@ export function SocialOnboardingPage() {
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [phoneVerificationError, setPhoneVerificationError] = useState<string | null>(null);
+  const [verifyKbHeight, setVerifyKbHeight] = useState(0);
 
   const isAppleHiddenEmail = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
   const isGoogleProvider = socialProfile?.provider === 'google';
@@ -102,6 +103,18 @@ export function SocialOnboardingPage() {
       navigate('/splash');
     }
   }, [socialProfile, onboardingToken, navigate]);
+
+  useEffect(() => {
+    if (!showPhoneVerificationModal) { setVerifyKbHeight(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const kbH = window.innerHeight - vv.height;
+      setVerifyKbHeight(kbH > 50 ? kbH : 0);
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [showPhoneVerificationModal]);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(createProfileSchema(!!isAppleHiddenEmail)),
@@ -520,7 +533,14 @@ export function SocialOnboardingPage() {
 
       {showPhoneVerificationModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4" onClick={() => setShowPhoneVerificationModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: verifyKbHeight > 0 ? `translateY(-${verifyKbHeight / 2}px)` : 'none',
+              transition: 'transform 0.2s ease-out',
+            }}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('auth.phoneVerifyTitle')}</h2>
               <button onClick={() => setShowPhoneVerificationModal(false)} className="p-2 rounded-full hover:bg-gray-100">

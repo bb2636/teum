@@ -80,6 +80,7 @@ export function SignupPage() {
   const [verificationMode, setVerificationMode] = useState<'phone' | 'email'>('phone');
   const [showPhoneVerificationModal, setShowPhoneVerificationModal] = useState(false);
   const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
+  const [verifyKbHeight, setVerifyKbHeight] = useState(0);
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [emailVerificationInput, setEmailVerificationInput] = useState('');
   const [phoneVerificationError, setPhoneVerificationError] = useState<string | null>(null);
@@ -133,6 +134,19 @@ export function SignupPage() {
       setDateDisplayValue(`${year} / ${month} / ${day}`);
     }
   }, [step2DateOfBirth]);
+
+  useEffect(() => {
+    const isOpen = showPhoneVerificationModal || showEmailVerificationModal;
+    if (!isOpen) { setVerifyKbHeight(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const kbH = window.innerHeight - vv.height;
+      setVerifyKbHeight(kbH > 50 ? kbH : 0);
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [showPhoneVerificationModal, showEmailVerificationModal]);
   const step3TermsService = step3Form.watch('termsService');
   const step3TermsPayment = step3Form.watch('termsPayment');
   const step3TermsRefund = step3Form.watch('termsRefund');
@@ -787,6 +801,10 @@ export function SignupPage() {
           <div
             className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: verifyKbHeight > 0 ? `translateY(-${verifyKbHeight / 2}px)` : 'none',
+              transition: 'transform 0.2s ease-out',
+            }}
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('auth.verificationCode')}</h2>
@@ -836,6 +854,10 @@ export function SignupPage() {
           <div
             className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: verifyKbHeight > 0 ? `translateY(-${verifyKbHeight / 2}px)` : 'none',
+              transition: 'transform 0.2s ease-out',
+            }}
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('auth.verificationCode')}</h2>

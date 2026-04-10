@@ -359,10 +359,20 @@ export function HomePage() {
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className="flex items-center gap-1 px-3 py-1 text-sm text-gray-700 hover:text-[#4A2C1A] transition-colors rounded-lg hover:bg-gray-50"
+                className={`flex items-center gap-1 px-3 py-1 text-sm transition-colors rounded-lg ${
+                  typeFilter !== 'all' || sortOrder !== 'newest'
+                    ? 'text-[#4A2C1A] bg-[#4A2C1A]/10 font-medium'
+                    : 'text-gray-700 hover:text-[#4A2C1A] hover:bg-gray-50'
+                }`}
               >
                 <Filter className="w-4 h-4" />
-                <span>{t('diary.filter')}</span>
+                <span>
+                  {typeFilter === 'all'
+                    ? t('diary.filter')
+                    : typeFilter === 'free_form'
+                      ? t('diary.freeForm')
+                      : t('diary.questionBased')}
+                </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
               </button>
                 {showFilterMenu && (

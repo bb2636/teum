@@ -6,7 +6,7 @@ import { ProfileButton } from '@/components/ProfileButton';
 import { useCalendarDiaries } from '@/hooks/useDiaries';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { MonthPickerModal } from './MonthPickerModal';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths, subMonths, getDate, addDays, subDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, addMonths, subMonths, getDate, addDays, subDays, isAfter, startOfDay } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 import { Diary } from '@/hooks/useDiaries';
@@ -373,6 +373,8 @@ export function CalendarPage() {
     if (dayDiaries.length > 0) {
       setSelectedDate(date);
     } else {
+      const today = startOfDay(new Date());
+      if (isAfter(startOfDay(date), today)) return;
       setTypeModalDate(date);
       setShowTypeModal(true);
     }
@@ -607,7 +609,7 @@ export function CalendarPage() {
               onDateChange={handleDateChangeFromList}
               onClose={closeList}
             />
-            {isListFullScreen && (
+            {isListFullScreen && selectedDate && !isAfter(startOfDay(selectedDate), startOfDay(new Date())) && (
               <button
                 onClick={() => {
                   if (selectedDate) {

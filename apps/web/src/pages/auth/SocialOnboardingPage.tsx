@@ -105,7 +105,7 @@ export function SocialOnboardingPage() {
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(createProfileSchema(!!isAppleHiddenEmail)),
-    mode: 'onChange',
+    mode: 'onTouched',
     defaultValues: {
       email: isAppleHiddenEmail ? '' : (socialProfile?.email || ''),
       nickname: socialProfile?.name?.replace(/\s/g, '') || '',

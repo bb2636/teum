@@ -68,10 +68,11 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative overflow-y-auto" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))', paddingBottom: 'max(32px, env(safe-area-inset-bottom, 32px))' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative overflow-y-auto" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))', paddingBottom: 'max(60px, env(safe-area-inset-bottom, 60px))' }}>
       <button
         onClick={() => navigate('/splash')}
         className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm"
+        style={{ top: 'max(16px, env(safe-area-inset-top, 16px))' }}
         aria-label="Back"
       >
         <ChevronLeft className="w-5 h-5 text-gray-700" />

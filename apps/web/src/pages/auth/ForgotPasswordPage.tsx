@@ -177,22 +177,22 @@ export function ForgotPasswordPage() {
 
   if (step === 'reset') {
     return (
-      <div className="min-h-screen flex flex-col bg-white px-4 py-6 pb-24" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
-        <div className="flex items-center mb-8">
+      <div className="min-h-screen flex flex-col bg-white px-4 pb-24" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
+        <div className="flex items-center mb-8 px-1">
           <button
             onClick={() => {
               setStep('info');
               setResetToken(null);
               setPhoneVerified(false);
             }}
-            className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mr-3"
+            className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mr-3 shrink-0"
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <h1 className="text-xl font-bold text-gray-900">{t('auth.forgotPasswordTitle')}</h1>
         </div>
 
-        <div className="w-full max-w-sm mx-auto space-y-6 flex-1 overflow-y-auto">
+        <div className="w-full max-w-sm mx-auto space-y-6 flex-1 overflow-y-auto overflow-x-hidden">
           <div className="space-y-2">
             <h2 className="text-base font-bold text-gray-900">{t('auth.newPasswordPrompt')}</h2>
           </div>

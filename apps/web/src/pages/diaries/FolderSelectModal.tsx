@@ -270,37 +270,39 @@ export function FolderSelectModal({
         </div>
 
         {/* Folder Slider */}
-        <div className="p-4">
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+        <div className="px-4 pt-4 pb-2">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
             {filteredFolders.map((folder) => {
               const diaryCount = getDiaryCount(folder.id);
               return (
                 <button
                   key={folder.id}
                   onClick={() => onSelect(folder.id)}
-                  className={`relative rounded-xl overflow-hidden shadow-sm transition-all flex-shrink-0 w-[140px] ${
+                  className={`relative rounded-xl shadow-sm transition-all flex-shrink-0 w-[140px] ${
                     selectedFolderId === folder.id
                       ? 'ring-2 ring-[#4A2C1A] ring-offset-2'
                       : 'hover:shadow-md'
                   }`}
                   title={folder.name}
                 >
-                  {folder.coverImageUrl ? (
-                    <img
-                      src={getStorageImageSrc(folder.coverImageUrl)}
-                      alt={folder.name}
-                      className="w-full h-32 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-32 bg-[#f5f0eb] flex items-center justify-center">
-                      <img src="/logo.png" alt="teum" className="w-14 h-14 object-contain opacity-30" />
+                  <div className="rounded-xl overflow-hidden">
+                    {folder.coverImageUrl ? (
+                      <img
+                        src={getStorageImageSrc(folder.coverImageUrl)}
+                        alt={folder.name}
+                        className="w-full h-32 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-32 bg-[#f5f0eb] flex items-center justify-center">
+                        <img src="/logo.png" alt="teum" className="w-14 h-14 object-contain opacity-30" />
+                      </div>
+                    )}
+                    <div className="p-3 bg-white">
+                      <p className="text-sm font-medium text-[#4A2C1A] mb-1 truncate" title={folder.name}>
+                        {folder.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{t('diary.diaryCountLabel', { count: diaryCount })}</p>
                     </div>
-                  )}
-                  <div className="p-3 bg-white">
-                    <p className="text-sm font-medium text-[#4A2C1A] mb-1 truncate" title={folder.name}>
-                      {folder.name}
-                    </p>
-                    <p className="text-xs text-gray-500">{t('diary.diaryCountLabel', { count: diaryCount })}</p>
                   </div>
                 </button>
               );

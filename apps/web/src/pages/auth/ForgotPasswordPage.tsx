@@ -407,7 +407,7 @@ export function ForgotPasswordPage() {
                 }}
                 placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
-                className="text-center text-lg tracking-widest"
+                className="text-center text-lg tracking-widest focus:placeholder-transparent"
                 disabled={phoneVerified}
               />
             </div>

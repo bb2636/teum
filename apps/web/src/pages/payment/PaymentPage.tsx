@@ -370,7 +370,7 @@ export function PaymentPage() {
                   onChange={(e) => setIdentityCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder={t('auth.enterVerificationCode')}
                   maxLength={6}
-                  className="text-center text-lg tracking-widest"
+                  className="text-center text-lg tracking-widest focus:placeholder-transparent"
                 />
               </div>
             )}

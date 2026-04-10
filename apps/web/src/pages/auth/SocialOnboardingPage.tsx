@@ -560,7 +560,7 @@ export function SocialOnboardingPage() {
                 }}
                 placeholder={t('auth.enterVerificationCode')}
                 maxLength={6}
-                className={`text-center text-lg tracking-widest ${phoneVerificationError ? 'border-red-500' : ''}`}
+                className={`text-center text-lg tracking-widest focus:placeholder-transparent ${phoneVerificationError ? 'border-red-500' : ''}`}
               />
               {phoneVerificationError && (
                 <p className="text-sm text-red-500">{phoneVerificationError}</p>

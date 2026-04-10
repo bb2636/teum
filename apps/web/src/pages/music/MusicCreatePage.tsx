@@ -318,7 +318,7 @@ export function MusicCreatePage() {
                 </span>
               )}
             </button>
-            {folders.map((f) => {
+            {folders.filter((f) => !f.isDefault && f.name !== 'All').map((f) => {
               const count = getFolderDiaryCount(f.id);
               const isSelected = selectedFolderId === f.id;
               return (

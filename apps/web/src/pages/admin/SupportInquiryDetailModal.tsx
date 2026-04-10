@@ -268,7 +268,7 @@ export function SupportInquiryDetailModal({
                 <Button
                   onClick={handleConfirmSend}
                   disabled={updateAnswer.isPending}
-                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-xl px-6"
+                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-full px-6"
                 >
                   {updateAnswer.isPending ? '전송 중...' : '전송'}
                 </Button>
@@ -291,7 +291,7 @@ export function SupportInquiryDetailModal({
               </p>
               <Button
                 onClick={handleSuccessClose}
-                className="bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-xl px-6"
+                className="bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-full px-6"
               >
                 완료
               </Button>

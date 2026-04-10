@@ -69,11 +69,9 @@ interface DiaryListPanelProps {
   diaries: Diary[];
   onDateChange: (date: Date) => void;
   onClose: () => void;
-  isFullScreen?: boolean;
-  onWriteDiary?: (date: Date) => void;
 }
 
-function DiaryListPanel({ date, diaries, onDateChange, onClose, isFullScreen, onWriteDiary }: DiaryListPanelProps) {
+function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanelProps) {
   const t = useT();
   const locale = getDateLocale();
   const swipeStartX = useRef<number | null>(null);
@@ -608,11 +606,6 @@ export function CalendarPage() {
               diaries={selectedDateDiaries}
               onDateChange={handleDateChangeFromList}
               onClose={closeList}
-              isFullScreen={isListFullScreen}
-              onWriteDiary={(d) => {
-                setTypeModalDate(d);
-                setShowTypeModal(true);
-              }}
             />
             {isListFullScreen && (
               <button

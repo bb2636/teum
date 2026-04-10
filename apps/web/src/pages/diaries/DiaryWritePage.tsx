@@ -1206,14 +1206,14 @@ export function DiaryWritePage() {
                     onChange={handleImageSelect}
                     className="hidden"
                   />
-                  <label className="cursor-pointer p-1">
+                  <label className="cursor-pointer p-1 relative">
                     <ImageIcon className="w-6 h-6 text-gray-600" />
                     <input
                       type="file"
                       multiple
                       accept="image/*"
                       onChange={handleImageSelect}
-                      className="hidden"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   </label>
                 </div>
@@ -1465,14 +1465,14 @@ export function DiaryWritePage() {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <label className="cursor-pointer p-1">
+              <label className="cursor-pointer p-1 relative">
                 <ImageIcon className="w-6 h-6 text-gray-600" />
                 <input
                   type="file"
                   multiple
                   accept="image/*"
                   onChange={handleImageSelect}
-                  className="hidden"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </label>
             </div>

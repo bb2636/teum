@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Filter, ChevronDown, Pencil, Trash2, X, ArrowLeft, ChevronRight, Music, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -223,12 +223,15 @@ export function HomePage() {
     setEditingFolderName(folder.name);
   };
 
+  const folderSavingRef = useRef(false);
   const handleFolderNameSave = async (folderId: string) => {
+    if (folderSavingRef.current) return;
     if (!editingFolderName.trim()) {
       alert(t('diary.folderNameRequired'));
       return;
     }
     
+    folderSavingRef.current = true;
     try {
       await updateFolder.mutateAsync({
         id: folderId,
@@ -236,14 +239,17 @@ export function HomePage() {
       });
       setEditingFolderId(null);
       setEditingFolderName('');
+      setToastMessages([]);
       const toastId = Date.now().toString();
-      setToastMessages((prev) => [...prev, { id: toastId, message: t('diary.folderRenamed') }]);
+      setToastMessages([{ id: toastId, message: t('diary.folderRenamed') }]);
       setTimeout(() => {
         setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
       }, 3000);
     } catch (error) {
       console.error('Failed to update folder:', error);
       alert(t('diary.folderRenameFailed'));
+    } finally {
+      folderSavingRef.current = false;
     }
   };
 

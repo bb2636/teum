@@ -1372,9 +1372,9 @@ export function DiaryWritePage() {
           {selectedImages.length > 0 && (
             <div className="px-4 py-2">
               <p className="text-xs text-gray-400 mb-1.5">{t('diary.imageCardHint')}</p>
-              <div className="flex overflow-x-auto pb-1 pl-1 pt-0.5">
+              <div className="flex overflow-x-auto pb-2 pl-2 pt-2 pr-2">
                 {selectedImages.map((url, index) => (
-                  <div key={index} className="relative shrink-0 w-20 h-20 mt-2 mr-2">
+                  <div key={index} className="relative shrink-0 w-20 h-20 mr-3">
                     <div className="w-full h-full rounded-lg overflow-hidden border border-gray-200">
                       <img
                         src={url.startsWith('blob:') ? url : getStorageImageSrc(url)}
@@ -1389,7 +1389,7 @@ export function DiaryWritePage() {
                         setSelectedImages((prev) => prev.filter((_, i) => i !== index));
                         setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
                       }}
-                      className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center z-10"
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center z-10"
                     >
                       <X className="w-3.5 h-3.5 text-white" />
                     </button>

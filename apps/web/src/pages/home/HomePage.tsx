@@ -382,7 +382,7 @@ export function HomePage() {
         </div>
 
         {/* Folder Tabs - 전체 + 폴더 목록 */}
-        <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-3 px-4 py-3 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => handleFolderClick(undefined)}
             className="relative flex-shrink-0 h-7 flex items-center"

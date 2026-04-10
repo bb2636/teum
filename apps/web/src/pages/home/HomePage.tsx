@@ -57,6 +57,8 @@ export function HomePage() {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [uploadErrorToast, setUploadErrorToast] = useState(false);
+  const [createFolderKbHeight, setCreateFolderKbHeight] = useState(0);
+  const createFolderModalRef = useRef<HTMLDivElement>(null);
   const [showFolderLimitModal, setShowFolderLimitModal] = useState(false);
 
   const scrollSentinelRef = useInfiniteScroll({
@@ -72,6 +74,32 @@ export function HomePage() {
       setHideTabBar(false);
     };
   }, [showCreateFolderModal, setHideTabBar]);
+
+  useEffect(() => {
+    if (!showCreateFolderModal) {
+      setCreateFolderKbHeight(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const kbH = window.innerHeight - vv.height;
+      setCreateFolderKbHeight(kbH > 50 ? kbH : 0);
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [showCreateFolderModal]);
+
+  useEffect(() => {
+    if (createFolderKbHeight > 0 && createFolderModalRef.current) {
+      const input = createFolderModalRef.current.querySelector('input[type="text"]');
+      if (input) {
+        setTimeout(() => {
+          input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
+      }
+    }
+  }, [createFolderKbHeight]);
   
   const activeSubscription = getEffectiveSubscription(subscriptions);
   
@@ -744,8 +772,13 @@ export function HomePage() {
       {showCreateFolderModal && (
         <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center animate-overlay-fade" onClick={() => setShowCreateFolderModal(false)}>
           <div
+            ref={createFolderModalRef}
             className="bg-white rounded-2xl w-full max-w-sm mx-4 max-h-[80vh] overflow-y-auto animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: createFolderKbHeight > 0 ? `translateY(-${createFolderKbHeight / 2}px)` : 'none',
+              transition: 'transform 0.2s ease-out',
+            }}
           >
             {/* 드래그 핸들 */}
             <div className="flex justify-center pt-2 pb-1">

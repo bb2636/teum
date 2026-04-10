@@ -396,7 +396,7 @@ export function MusicCreatePage() {
                     size="sm"
                     onClick={() => toggleDiarySelection(diary.id)}
                     disabled={!isSelected && selectedCount >= 7}
-                    className={isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010] text-white border-[#4A2C1A]' : 'border-[#4A2C1A] text-[#4A2C1A] hover:bg-[#4A2C1A]/10'}
+                    className={isSelected ? 'bg-[#4A2C1A] hover:bg-[#3A2010] text-white border-[#4A2C1A]' : 'bg-white border-[#4A2C1A] text-[#4A2C1A] hover:bg-[#4A2C1A]/10'}
                   >
                     {isSelected ? t('common.deselect') : t('common.select')}
                   </Button>

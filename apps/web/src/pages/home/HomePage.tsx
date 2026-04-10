@@ -400,12 +400,12 @@ export function HomePage() {
             <div
               key={folder.id}
               data-folder-id={folder.id}
-              className="relative flex-shrink-0 max-w-[120px] group h-7 flex items-center"
+              className={`relative flex-shrink-0 group h-7 flex items-center ${editingFolderId === folder.id ? '' : 'max-w-[120px]'}`}
             >
               {editingFolderId === folder.id ? (
                 // 편집 모드
                 <div 
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-1 z-10"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <input

@@ -873,7 +873,7 @@ export function DiaryWritePage() {
       return false;
     }
     if (type === 'question_based') {
-      const formData = watch();
+      const formData = watch() as any;
       return (formData.answers || []).some((a: any) => {
         const text = (a.answer || '').replace(/<[^>]*>/g, '').trim();
         return text.length > 0;

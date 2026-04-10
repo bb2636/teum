@@ -137,13 +137,20 @@ export function CreateFolderPage() {
               <input
                 type="text"
                 value={folderName}
-                onChange={(e) => setFolderName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const koCount = (val.match(/[가-힣ㄱ-ㅎㅏ-ㅣ]/g) || []).length;
+                  const enCount = val.length - koCount;
+                  if (koCount <= 5 && enCount <= 10 && val.length <= 10) {
+                    setFolderName(val);
+                  }
+                }}
                 placeholder={t('diary.folderNameLabel')}
-                maxLength={50}
+                maxLength={10}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] text-[#4A2C1A]"
               />
               <span className="absolute bottom-2 right-3 text-xs text-gray-400">
-                {folderName.length}/50
+                {folderName.length}/10
               </span>
             </div>
           </div>

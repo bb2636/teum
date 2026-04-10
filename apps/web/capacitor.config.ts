@@ -21,6 +21,8 @@ const config: CapacitorConfig = {
       '*.google.com',
       '*.gstatic.com',
       'teum.replit.app',
+      'pay.nicepay.co.kr',
+      '*.nicepay.co.kr',
     ],
   },
   plugins: {

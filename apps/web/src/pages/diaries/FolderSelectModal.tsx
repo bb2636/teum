@@ -118,18 +118,13 @@ export function FolderSelectModal({
 
   if (showCreateForm) {
     return (
-      <div className="fixed inset-0 z-[60] bg-black/50 flex items-end animate-overlay-fade" onClick={onClose}>
+      <div className="fixed inset-0 z-[60] bg-white animate-overlay-fade flex flex-col" onClick={onClose}>
         <div
-          className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto animate-modal-sheet"
+          className="flex-1 flex flex-col w-full max-w-md mx-auto overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 드래그 핸들 */}
-          <div className="flex justify-center pt-2 pb-1">
-            <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden />
-          </div>
-
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10" style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}>
             <button
               onClick={() => {
                 setShowCreateForm(false);
@@ -202,7 +197,7 @@ export function FolderSelectModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-4" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
               <button
                 type="button"
                 onClick={() => {

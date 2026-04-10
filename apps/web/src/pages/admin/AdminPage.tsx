@@ -283,7 +283,7 @@ export function AdminPage() {
       )}
 
       {/* Top Navigation Bar */}
-      <div className="bg-white flex-shrink-0">
+      <div className="bg-white flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-8">
@@ -692,7 +692,7 @@ export function AdminPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10" style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}>
                 <div className="flex items-center gap-4">
                   {selectedDiary.folder && (
                     <span className="text-sm text-gray-600">{selectedDiary.folder.name}</span>
@@ -795,7 +795,7 @@ export function AdminPage() {
           {/* Detail Panel */}
           <div className="fixed right-0 top-0 h-full w-[500px] bg-white shadow-2xl z-50 overflow-y-auto animate-slide-in-right">
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4 z-10">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4 z-10" style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 16px))' }}>
               <button
                 onClick={() => setSelectedUserId(null)}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"

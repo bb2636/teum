@@ -88,7 +88,7 @@ export function CreateFolderPage() {
     <div className="min-h-screen bg-white pb-20">
       <div className="max-w-md mx-auto h-screen flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <button onClick={() => navigate(-1)} className="p-2">
             <ArrowLeft className="w-5 h-5 text-[#4A2C1A]" />
           </button>

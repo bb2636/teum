@@ -177,7 +177,7 @@ export function ForgotPasswordPage() {
 
   if (step === 'reset') {
     return (
-      <div className="min-h-screen flex flex-col bg-white px-4 pb-24" style={{ paddingTop: 'max(24px, env(safe-area-inset-top, 24px))' }}>
+      <div className="min-h-screen flex flex-col bg-white px-4 pb-24" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
         <div className="flex items-center mb-8 px-1">
           <button
             onClick={() => {
@@ -289,7 +289,7 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">{t('auth.forgotPasswordTitle')}</h1>

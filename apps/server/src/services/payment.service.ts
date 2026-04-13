@@ -281,7 +281,6 @@ export class PaymentService {
             status: 'active',
             startDate,
             endDate,
-            autoRenew: false,
             paymentId: payment.id,
           })
           .returning();
@@ -298,13 +297,10 @@ export class PaymentService {
       try {
         const userInfo = await this.getUserEmailAndNickname(session.userId);
         if (userInfo) {
-          await emailService.sendSubscriptionConfirmation(
+          await emailService.sendSubscriptionStartNotification(
             userInfo.email,
             userInfo.nickname,
             serverPlanName,
-            serverAmount,
-            startDate,
-            endDate,
             userInfo.language
           );
         }
@@ -312,7 +308,7 @@ export class PaymentService {
         logger.error({ error: emailError }, 'Failed to send subscription confirmation email');
       }
 
-      return { success: true, message: '결제가 완료되었습니다. (자동 갱신은 빌링키 등록 후 가능합니다)' };
+      return { success: true, message: '결제가 완료되었습니다.' };
     } catch (error) {
       logger.error({ error, orderId, tid }, 'Failed to process direct payment');
       return { success: false, message: '결제 처리 중 오류가 발생했습니다.' };

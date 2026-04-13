@@ -110,6 +110,21 @@ export class PaymentService {
     };
   }
 
+  async issueBillingKey(
+    authToken: string,
+    orderId: string,
+    amount: number
+  ): Promise<{ success: boolean; message: string; bid?: string }> {
+    const issueResult = await nicePayProvider.issueBillingKey(authToken, orderId, amount);
+    if (issueResult.success && issueResult.bid) {
+      return { success: true, message: '빌링키 발급 성공', bid: issueResult.bid };
+    }
+    return {
+      success: false,
+      message: issueResult.errorMsg || '빌링키 발급에 실패했습니다.',
+    };
+  }
+
   private processingBillingReturns = new Set<string>();
 
   async processBillingKeyReturn(

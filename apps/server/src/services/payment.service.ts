@@ -286,11 +286,6 @@ export class PaymentService {
           })
           .returning();
 
-        await tx
-          .update(users)
-          .set({ isPremium: true })
-          .where(eq(users.id, session.userId));
-
         logger.info({
           userId: session.userId,
           subscriptionId: newSubscription.id,

@@ -281,7 +281,6 @@ export class PaymentService {
             status: 'active',
             startDate,
             endDate,
-            paymentId: payment.id,
           })
           .returning();
 

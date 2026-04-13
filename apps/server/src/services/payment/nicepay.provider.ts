@@ -134,7 +134,7 @@ export class NicePayProvider {
         amount: Math.round(amount),
       };
 
-      logger.info('Issuing NicePay billing key - REQUEST', {
+      logger.info({
         url: requestUrl,
         orderId,
         amount: Math.round(amount),
@@ -142,7 +142,7 @@ export class NicePayProvider {
         clientId: this.clientId,
         authTokenLength: authToken?.length || 0,
         authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'none',
-      });
+      }, 'Issuing NicePay billing key - REQUEST');
 
       const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
 
@@ -157,7 +157,7 @@ export class NicePayProvider {
 
       const data = (await response.json()) as Record<string, unknown>;
       const responseKeys = Object.keys(data);
-      logger.info('NicePay billing key issue - RESPONSE', {
+      logger.info({
         httpStatus: response.status,
         responseKeys: responseKeys.join(', '),
         resultCode: data.resultCode,
@@ -168,7 +168,7 @@ export class NicePayProvider {
         cardNo: data.cardNo,
         cardCode: data.cardCode,
         fullResponse: JSON.stringify(data),
-      });
+      }, 'NicePay billing key issue - RESPONSE');
 
       const resultCode = data.resultCode as string | undefined;
 
@@ -192,7 +192,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing key issue failed', { error, orderId });
+      logger.error({ error, orderId }, 'NicePay billing key issue failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',

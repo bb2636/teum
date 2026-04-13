@@ -110,7 +110,7 @@ export class PaymentController {
     try {
       const body = req.body;
       const bodyKeys = Object.keys(body);
-      logger.info('NicePay billing return FULL body', {
+      logger.info({
         bodyKeys: bodyKeys.join(', '),
         bodyRaw: JSON.stringify(body),
         hasAuthToken: !!body.authToken,
@@ -126,7 +126,7 @@ export class PaymentController {
         authTokenLength: body.authToken?.length || 0,
         encDataLength: body.encData?.length || 0,
         bidValue: body.bid || 'none',
-      });
+      }, 'NicePay billing return FULL body');
 
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
@@ -134,7 +134,7 @@ export class PaymentController {
       const authToken = body.authToken || body.encData;
       let bid = body.bid;
 
-      logger.info('NicePay billing return parsed', {
+      logger.info({
         resultCode,
         resultMsg,
         hasBid: !!bid,
@@ -142,7 +142,7 @@ export class PaymentController {
         authTokenPreview: authToken ? `${authToken.substring(0, 20)}...` : 'none',
         orderId,
         amount,
-      });
+      }, 'NicePay billing return parsed');
 
       if (!orderId) {
         logger.error('NicePay billing return missing orderId');
@@ -162,7 +162,7 @@ export class PaymentController {
           bid = issueResult.bid;
         } else {
           await paymentService.deletePendingSession(orderId);
-          logger.error('NicePay billing key issue failed', { orderId, errorMsg: issueResult.message });
+          logger.error({ orderId, errorMsg: issueResult.message }, 'NicePay billing key issue failed');
           return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(issueResult.message || '빌링키 발급에 실패했습니다.')}`);
         }
       }

@@ -130,7 +130,7 @@ export class PaymentController {
 
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
-      const { orderId, amount } = body;
+      const { orderId, amount, tid } = body;
       const authToken = body.authToken || body.encData;
       let bid = body.bid;
 
@@ -138,6 +138,7 @@ export class PaymentController {
         resultCode,
         resultMsg,
         hasBid: !!bid,
+        hasTid: !!tid,
         hasAuthToken: !!authToken,
         authTokenPreview: authToken ? `${authToken.substring(0, 20)}...` : 'none',
         orderId,
@@ -155,9 +156,9 @@ export class PaymentController {
         return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(resultMsg || '빌링키 등록에 실패했습니다.')}`);
       }
 
-      if (!bid && authToken) {
+      if (!bid && authToken && tid) {
         const numericAmount = Number(amount) || 0;
-        const issueResult = await paymentService.issueBillingKey(authToken, orderId, numericAmount);
+        const issueResult = await paymentService.issueBillingKey(authToken, tid, orderId, numericAmount);
         if (issueResult.success && issueResult.bid) {
           bid = issueResult.bid;
         } else {

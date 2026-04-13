@@ -112,10 +112,11 @@ export class PaymentService {
 
   async issueBillingKey(
     authToken: string,
+    tid: string,
     orderId: string,
     amount: number
   ): Promise<{ success: boolean; message: string; bid?: string }> {
-    const issueResult = await nicePayProvider.issueBillingKey(authToken, orderId, amount);
+    const issueResult = await nicePayProvider.issueBillingKey(authToken, tid, orderId, amount);
     if (issueResult.success && issueResult.bid) {
       return { success: true, message: '빌링키 발급 성공', bid: issueResult.bid };
     }

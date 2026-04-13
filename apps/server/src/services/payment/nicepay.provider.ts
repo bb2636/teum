@@ -125,17 +125,13 @@ export class NicePayProvider {
     }
   }
 
-  async issueBillingKey(authToken: string, orderId: string, amount: number): Promise<NicePayPaymentResponse & { bid?: string }> {
+  async issueBillingKey(authToken: string, tid: string, orderId: string, amount: number): Promise<NicePayPaymentResponse & { bid?: string }> {
     try {
-      const requestUrl = `${this.approvalBaseUrl}/v1/subscribe/regist`;
-      const requestBody = {
-        encData: authToken,
-        orderId,
-        amount: Math.round(amount),
-      };
+      const requestUrl = `${this.approvalBaseUrl}/v1/subscribe/${tid}`;
 
       logger.info({
         url: requestUrl,
+        tid,
         orderId,
         amount: Math.round(amount),
         isTestMode: this.isTestMode,
@@ -144,7 +140,7 @@ export class NicePayProvider {
         authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'none',
       }, 'Issuing NicePay billing key - REQUEST');
 
-      const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
+      const authHeader = `Basic ${Buffer.from(`${authToken}:${this.secretKey}`).toString('base64')}`;
 
       const response = await fetch(requestUrl, {
         method: 'POST',
@@ -152,7 +148,10 @@ export class NicePayProvider {
           'Content-Type': 'application/json',
           Authorization: authHeader,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          orderId,
+          amount: Math.round(amount),
+        }),
       });
 
       const data = (await response.json()) as Record<string, unknown>;

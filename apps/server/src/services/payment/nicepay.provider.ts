@@ -127,31 +127,47 @@ export class NicePayProvider {
 
   async issueBillingKey(authToken: string, orderId: string, amount: number): Promise<NicePayPaymentResponse & { bid?: string }> {
     try {
-      logger.info('Issuing NicePay billing key', { orderId, amount, isTestMode: this.isTestMode });
+      const requestUrl = `${this.approvalBaseUrl}/v1/subscribe/regist`;
+      const requestBody = {
+        encData: authToken,
+        orderId,
+        amount: Math.round(amount),
+      };
+
+      logger.info('Issuing NicePay billing key - REQUEST', {
+        url: requestUrl,
+        orderId,
+        amount: Math.round(amount),
+        isTestMode: this.isTestMode,
+        clientId: this.clientId,
+        authTokenLength: authToken?.length || 0,
+        authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'none',
+      });
 
       const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
 
-      const response = await fetch(`${this.approvalBaseUrl}/v1/subscribe/regist`, {
+      const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: authHeader,
         },
-        body: JSON.stringify({
-          encData: authToken,
-          orderId,
-          amount: Math.round(amount),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = (await response.json()) as Record<string, unknown>;
-      logger.info('NicePay billing key issue response', {
-        status: response.status,
+      const responseKeys = Object.keys(data);
+      logger.info('NicePay billing key issue - RESPONSE', {
+        httpStatus: response.status,
+        responseKeys: responseKeys.join(', '),
         resultCode: data.resultCode,
         resultMsg: data.resultMsg,
-        bid: data.bid ? '***masked***' : undefined,
+        hasBid: !!data.bid,
+        bid: data.bid ? '***masked***' : 'none',
         cardName: data.cardName,
         cardNo: data.cardNo,
+        cardCode: data.cardCode,
+        fullResponse: JSON.stringify(data),
       });
 
       const resultCode = data.resultCode as string | undefined;

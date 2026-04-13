@@ -109,7 +109,24 @@ export class PaymentController {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
       const body = req.body;
-      logger.info('NicePay billing return FULL body', { body: JSON.stringify(body) });
+      const bodyKeys = Object.keys(body);
+      logger.info('NicePay billing return FULL body', {
+        bodyKeys: bodyKeys.join(', '),
+        bodyRaw: JSON.stringify(body),
+        hasAuthToken: !!body.authToken,
+        hasEncData: !!body.encData,
+        hasBid: !!body.bid,
+        hasTid: !!body.tid,
+        authResultCode: body.authResultCode,
+        resultCode: body.resultCode,
+        authResultMsg: body.authResultMsg,
+        resultMsg: body.resultMsg,
+        orderId: body.orderId,
+        amount: body.amount,
+        authTokenLength: body.authToken?.length || 0,
+        encDataLength: body.encData?.length || 0,
+        bidValue: body.bid || 'none',
+      });
 
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
@@ -117,7 +134,15 @@ export class PaymentController {
       const authToken = body.authToken || body.encData;
       let bid = body.bid;
 
-      logger.info(`NicePay billing return - code=${resultCode} msg=${resultMsg} bid=${bid ? '***' : 'none'} authToken=${authToken ? '***' : 'none'} orderId=${orderId}`);
+      logger.info('NicePay billing return parsed', {
+        resultCode,
+        resultMsg,
+        hasBid: !!bid,
+        hasAuthToken: !!authToken,
+        authTokenPreview: authToken ? `${authToken.substring(0, 20)}...` : 'none',
+        orderId,
+        amount,
+      });
 
       if (!orderId) {
         logger.error('NicePay billing return missing orderId');

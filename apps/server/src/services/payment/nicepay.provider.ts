@@ -127,7 +127,7 @@ export class NicePayProvider {
 
   async issueBillingKey(authToken: string, tid: string, orderId: string, amount: number): Promise<NicePayPaymentResponse & { bid?: string }> {
     try {
-      const requestUrl = `${this.approvalBaseUrl}/v1/subscribe/${tid}`;
+      const requestUrl = `${this.approvalBaseUrl}/v1/subscribe/regist`;
 
       logger.info({
         url: requestUrl,
@@ -149,6 +149,8 @@ export class NicePayProvider {
           Authorization: authHeader,
         },
         body: JSON.stringify({
+          authToken,
+          tid,
           orderId,
           amount: Math.round(amount),
         }),

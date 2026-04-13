@@ -149,8 +149,7 @@ export class NicePayProvider {
           Authorization: authHeader,
         },
         body: JSON.stringify({
-          authToken,
-          tid,
+          encData: authToken,
           orderId,
           amount: Math.round(amount),
         }),

@@ -277,6 +277,7 @@ export class PaymentService {
           .values({
             userId: session.userId,
             planName: serverPlanName,
+            amount: serverAmount.toString(),
             status: 'active',
             startDate,
             endDate,

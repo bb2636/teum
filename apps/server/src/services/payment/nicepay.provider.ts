@@ -127,7 +127,7 @@ export class NicePayProvider {
 
   async issueBillingKey(authToken: string, tid: string, orderId: string, amount: number): Promise<NicePayPaymentResponse & { bid?: string }> {
     try {
-      const requestUrl = `${this.approvalBaseUrl}/v1/subscribe/regist`;
+      const requestUrl = `${this.approvalBaseUrl}/v1/payments/${tid}`;
 
       logger.info({
         url: requestUrl,
@@ -149,8 +149,6 @@ export class NicePayProvider {
           Authorization: authHeader,
         },
         body: JSON.stringify({
-          encData: authToken,
-          orderId,
           amount: Math.round(amount),
         }),
       });
@@ -164,20 +162,26 @@ export class NicePayProvider {
         resultMsg: data.resultMsg,
         hasBid: !!data.bid,
         bid: data.bid ? '***masked***' : 'none',
+        tid: data.tid,
+        orderId: data.orderId,
         cardName: data.cardName,
         cardNo: data.cardNo,
         cardCode: data.cardCode,
+        payMethod: data.payMethod,
         fullResponse: JSON.stringify(data),
       }, 'NicePay billing key issue - RESPONSE');
 
       const resultCode = data.resultCode as string | undefined;
 
-      if (resultCode === '0000' && data.bid) {
+      if (resultCode === '0000') {
         return {
           success: true,
           resultCode: resultCode || '',
           resultMsg: (data.resultMsg || '빌링키 발급 성공') as string,
-          bid: data.bid as string,
+          bid: (data.bid) as string | undefined,
+          tid: (data.tid || tid) as string,
+          orderId: (data.orderId || orderId) as string,
+          amount: (data.amount || amount) as number,
           cardCode: (data.cardCode) as string | undefined,
           cardName: (data.cardName) as string | undefined,
           cardNo: (data.cardNo) as string | undefined,

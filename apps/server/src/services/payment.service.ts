@@ -259,19 +259,6 @@ export class PaymentService {
 
     try {
       await db.transaction(async (tx) => {
-        const [payment] = await tx
-          .insert(payments)
-          .values({
-            userId: session.userId,
-            status: 'completed',
-            amount: serverAmount.toString(),
-            currency: 'KRW',
-            paymentMethod: 'CARD',
-            transactionId: tid,
-            paidAt: startDate,
-          })
-          .returning();
-
         const [newSubscription] = await tx
           .insert(subscriptions)
           .values({
@@ -284,13 +271,25 @@ export class PaymentService {
           })
           .returning();
 
+        await tx
+          .insert(payments)
+          .values({
+            userId: session.userId,
+            subscriptionId: newSubscription.id,
+            status: 'completed',
+            amount: serverAmount.toString(),
+            currency: 'KRW',
+            paymentMethod: 'CARD',
+            transactionId: tid,
+            paidAt: startDate,
+          });
+
         logger.info({
           userId: session.userId,
           subscriptionId: newSubscription.id,
           tid,
           cardName,
-          autoRenew: false,
-        }, 'Direct payment subscription created (no billing key - auto-renewal disabled)');
+        }, 'Direct payment subscription created with linked payment record');
       });
 
       try {

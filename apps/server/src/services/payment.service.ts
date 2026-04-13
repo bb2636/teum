@@ -115,10 +115,14 @@ export class PaymentService {
     tid: string,
     orderId: string,
     amount: number
-  ): Promise<{ success: boolean; message: string; bid?: string }> {
+  ): Promise<{ success: boolean; message: string; bid?: string; tid?: string; cardCode?: string; cardName?: string; cardNo?: string; paidWithoutBid?: boolean }> {
     const issueResult = await nicePayProvider.issueBillingKey(authToken, tid, orderId, amount);
     if (issueResult.success && issueResult.bid) {
-      return { success: true, message: '빌링키 발급 성공', bid: issueResult.bid };
+      return { success: true, message: '빌링키 발급 성공', bid: issueResult.bid, cardCode: issueResult.cardCode, cardName: issueResult.cardName, cardNo: issueResult.cardNo };
+    }
+    if (issueResult.success && !issueResult.bid) {
+      logger.warn({ orderId, tid: issueResult.tid }, 'Payment approved but no bid returned (sandbox mode). Treating as successful first payment.');
+      return { success: true, message: '결제 승인 성공 (빌링키 미발급)', tid: issueResult.tid, paidWithoutBid: true, cardCode: issueResult.cardCode, cardName: issueResult.cardName, cardNo: issueResult.cardNo };
     }
     return {
       success: false,
@@ -229,6 +233,94 @@ export class PaymentService {
     }
 
     return chargeResult;
+  }
+
+  async processDirectPaymentReturn(
+    orderId: string,
+    tid: string,
+    cardCode?: string,
+    cardName?: string,
+    cardNo?: string
+  ): Promise<{ success: boolean; message: string }> {
+    const session = await this.getPendingSession(orderId);
+    if (!session) {
+      logger.error({ orderId }, 'Direct payment session not found or already processed');
+      return { success: false, message: '세션을 찾을 수 없습니다.' };
+    }
+
+    const serverAmount = Number(session.amount);
+    const serverPlanName = session.planName;
+
+    await this.deletePendingSession(orderId);
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    try {
+      await db.transaction(async (tx) => {
+        const [payment] = await tx
+          .insert(payments)
+          .values({
+            userId: session.userId,
+            status: 'completed',
+            amount: serverAmount.toString(),
+            currency: 'KRW',
+            paymentMethod: 'CARD',
+            transactionId: tid,
+            paidAt: startDate,
+          })
+          .returning();
+
+        const [newSubscription] = await tx
+          .insert(subscriptions)
+          .values({
+            userId: session.userId,
+            planName: serverPlanName,
+            status: 'active',
+            startDate,
+            endDate,
+            autoRenew: false,
+            paymentId: payment.id,
+          })
+          .returning();
+
+        await tx
+          .update(users)
+          .set({ isPremium: true })
+          .where(eq(users.id, session.userId));
+
+        logger.info({
+          userId: session.userId,
+          subscriptionId: newSubscription.id,
+          tid,
+          cardName,
+          autoRenew: false,
+        }, 'Direct payment subscription created (no billing key - auto-renewal disabled)');
+      });
+
+      try {
+        const userInfo = await this.getUserEmailAndNickname(session.userId);
+        if (userInfo) {
+          await emailService.sendSubscriptionConfirmation(
+            userInfo.email,
+            userInfo.nickname,
+            serverPlanName,
+            serverAmount,
+            startDate,
+            endDate,
+            userInfo.language
+          );
+        }
+      } catch (emailError) {
+        logger.error({ error: emailError }, 'Failed to send subscription confirmation email');
+      }
+
+      return { success: true, message: '결제가 완료되었습니다. (자동 갱신은 빌링키 등록 후 가능합니다)' };
+    } catch (error) {
+      logger.error({ error, orderId, tid }, 'Failed to process direct payment');
+      return { success: false, message: '결제 처리 중 오류가 발생했습니다.' };
+    }
   }
 
   async chargeWithBillingKey(

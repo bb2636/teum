@@ -161,6 +161,20 @@ export class PaymentController {
         const issueResult = await paymentService.issueBillingKey(authToken, tid, orderId, numericAmount);
         if (issueResult.success && issueResult.bid) {
           bid = issueResult.bid;
+        } else if (issueResult.success && issueResult.paidWithoutBid) {
+          logger.info({ orderId, tid: issueResult.tid }, 'Payment approved without bid - processing as direct payment');
+          const directResult = await paymentService.processDirectPaymentReturn(
+            orderId,
+            issueResult.tid || tid,
+            issueResult.cardCode,
+            issueResult.cardName,
+            issueResult.cardNo
+          );
+          if (directResult.success) {
+            return res.redirect(`${frontendUrl}/payment/success`);
+          } else {
+            return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(directResult.message)}`);
+          }
         } else {
           await paymentService.deletePendingSession(orderId);
           logger.error({ orderId, errorMsg: issueResult.message }, 'NicePay billing key issue failed');

@@ -174,17 +174,28 @@ export class NicePayProvider {
       const resultCode = data.resultCode as string | undefined;
 
       if (resultCode === '0000') {
+        const cardData = data.card as Record<string, unknown> | undefined;
+        const bidValue = (data.bid || cardData?.bid) as string | undefined;
+
+        logger.info({
+          bidFromResponse: data.bid || 'none',
+          bidFromCard: cardData?.bid || 'none',
+          hasBid: !!bidValue,
+          tid: data.tid || tid,
+          status: data.status,
+        }, 'NicePay billing key - checking bid in response');
+
         return {
           success: true,
           resultCode: resultCode || '',
-          resultMsg: (data.resultMsg || '빌링키 발급 성공') as string,
-          bid: (data.bid) as string | undefined,
+          resultMsg: (data.resultMsg || '결제 승인 성공') as string,
+          bid: bidValue,
           tid: (data.tid || tid) as string,
           orderId: (data.orderId || orderId) as string,
           amount: (data.amount || amount) as number,
-          cardCode: (data.cardCode) as string | undefined,
-          cardName: (data.cardName) as string | undefined,
-          cardNo: (data.cardNo) as string | undefined,
+          cardCode: (cardData?.cardCode || data.cardCode) as string | undefined,
+          cardName: (cardData?.cardName || data.cardName) as string | undefined,
+          cardNo: (cardData?.cardNum || data.cardNo) as string | undefined,
         };
       } else {
         return {

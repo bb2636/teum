@@ -140,7 +140,7 @@ export class NicePayProvider {
         authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'none',
       }, 'Issuing NicePay billing key - REQUEST');
 
-      const authHeader = `Basic ${Buffer.from(`${authToken}:${this.secretKey}`).toString('base64')}`;
+      const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
 
       const response = await fetch(requestUrl, {
         method: 'POST',

@@ -72,15 +72,23 @@ teum/
 - **Behavior**: Native (Android) → real AdMob interstitial; Web → 5초 countdown fallback UI
 - **Trigger**: Free users see interstitial ad from 4th diary onwards before save
 
-### 6. Payments (NicePay)
+### 6. Payments (NicePay + PayPal)
+- **듀얼 결제 시스템**: NicePay (한국 카드, KRW) + PayPal (해외, USD)
 - NicePay JS SDK 연동 (신용/체크카드)
+- **PayPal Checkout**: PayPal Orders API v2 (Capture flow)
+  - `POST /api/payments/paypal/init` → PayPal 주문 생성 → approveUrl 반환
+  - `GET /api/payments/paypal/return` → PayPal 결제 캡처 → 구독 생성
+  - `GET /api/payments/paypal/cancel` → 취소 처리
+  - 서버 `services/payment/paypal.provider.ts`: OAuth2 토큰 자동 갱신, 주문 생성/캡처
+  - 캡처 시 금액/통화 검증 (세션 대비)
+  - 세션 삭제는 DB 커밋 성공 후에만 수행
 - **동적 환율 기반 가격**: 기준가 $3.99 USD → 실시간 환율 적용 → KRW 100원 단위 반올림
   - `GET /api/payments/plan-price` → `{ usd, krw, rate }` 반환 (인증 불필요)
   - 환율 소스: open.er-api.com (6시간 캐싱, 실패 시 fallback 1450)
-  - 서버 `utils/currency.ts`: `getKRWPrice()`, `getExchangeInfo()`
+  - 서버 `utils/currency.ts`: `getKRWPrice()`, `getExchangeInfo()`, `getBasePriceUSD()`
   - 프론트 `usePlanPrice()` 훅으로 동적 금액 표시
   - 서버 금액 검증: ±200원 허용 오차 (환율 변동 대비)
-- **빌링키(Billing Key) 기반 자동결제**:
+- **빌링키(Billing Key) 기반 자동결제** (NicePay):
   - `POST /api/payments/billing/init` → NicePay `subscribe` method로 빌링키 등록
   - `POST /api/payments/nicepay/billing-return` → 빌링키 승인 + 첫 결제 자동 처리
   - 빌링키 미반환 시(샌드박스) → `processDirectPaymentReturn`으로 직접 결제 처리
@@ -96,6 +104,7 @@ teum/
 - 결제 실패/성공 페이지 제공
 - 관리자 구독 취소: `/api/payments/admin/subscriptions/cancel`
 - 취소된 구독은 `endDate`까지 유효 (Grace Period)
+- 프론트엔드 결제 방법 선택: 라디오 버튼으로 NicePay/PayPal 전환 (언어 기반 기본값)
 
 ### 7. Push Notifications (Firebase FCM)
 - 음악 생성 완료, 관리자 문의 답변 시 자동 발송
@@ -273,7 +282,10 @@ teum/
 - `NICEPAY_API_SECRET` - NicePay API Secret Key
 - `NICEPAY_TEST_MODE` - `TRUE`면 sandbox API 사용
 - `PAYMENT_MOCK_SUCCESS` - `true`면 실제 NicePay 호출 없이 DB만 저장 (테스트용)
-- `BACKEND_URL` - NicePay returnUrl 생성용 백엔드 URL
+- `PAYPAL_CLIENT_ID` - PayPal REST API Client ID
+- `PAYPAL_CLIENT_SECRET` - PayPal REST API Secret
+- `PAYPAL_MODE` - `live`면 운영 API, 미설정 시 sandbox
+- `BACKEND_URL` - NicePay/PayPal returnUrl 생성용 백엔드 URL
 - `SOLAPI_API_KEY` - 솔라피 API Key (SMS)
 - `SOLAPI_API_SECRET` - 솔라피 API Secret
 - `SOLAPI_SENDER_NUMBER` - 솔라피 발신번호 (하이픈 없이)

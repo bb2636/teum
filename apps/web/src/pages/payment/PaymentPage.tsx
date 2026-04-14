@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X } from 'lucide-react';
-import { useInitBillingKey, usePlanPrice } from '@/hooks/usePayment';
+import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X, CreditCard, Globe } from 'lucide-react';
+import { useInitBillingKey, useInitPayPal, usePlanPrice } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
@@ -32,6 +32,8 @@ const NICEPAY_CARD_COMPANIES = [
   { code: '11', name: '씨티카드' },
 ];
 
+type PaymentMethodType = 'nicepay' | 'paypal';
+
 export function PaymentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -50,6 +52,7 @@ export function PaymentPage() {
     };
   }, [setHideTabBar]);
 
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>(isKorean ? 'nicepay' : 'paypal');
   const [cardCode, setCardCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
@@ -65,6 +68,7 @@ export function PaymentPage() {
   const confirmPhoneVerification = useConfirmPhoneVerification();
 
   const initBillingKey = useInitBillingKey();
+  const initPayPal = useInitPayPal();
 
   const nextPaymentDate = useMemo(() => {
     const date = new Date();
@@ -75,10 +79,10 @@ export function PaymentPage() {
     return `${y}.${m}.${d}`;
   }, []);
 
-  const isButtonEnabled = !!cardCode;
+  const isButtonEnabled = paymentMethod === 'paypal' || !!cardCode;
 
   const handlePaymentClick = () => {
-    if (!cardCode) {
+    if (paymentMethod === 'nicepay' && !cardCode) {
       alert(t('payment.selectCardCompany'));
       return;
     }
@@ -88,11 +92,27 @@ export function PaymentPage() {
   const handleTermsAgreed = (agreed: boolean) => {
     if (agreed) {
       setShowTermsSheet(false);
-      if (!identityVerified) {
-        setShowIdentityModal(true);
+      if (paymentMethod === 'paypal') {
+        handleStartPayPal();
       } else {
-        handleStartBillingRegistration();
+        if (!identityVerified) {
+          setShowIdentityModal(true);
+        } else {
+          handleStartBillingRegistration();
+        }
       }
+    }
+  };
+
+  const handleStartPayPal = async () => {
+    setIsProcessing(true);
+    try {
+      const result = await initPayPal.mutateAsync();
+      window.location.href = result.approveUrl;
+    } catch (error: any) {
+      console.error('PayPal init error:', error);
+      alert(error?.message || t('payment.initError'));
+      setIsProcessing(false);
     }
   };
 
@@ -260,7 +280,12 @@ export function PaymentPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">{t('payment.amount')}</span>
                 <span className="text-base font-bold text-[#4A2C1A]">
-                  {isKorean ? `${displayAmountFormatted}${t('payment.won')}` : `$${displayAmountFormatted}`}
+                  {paymentMethod === 'paypal'
+                    ? `$${(planPrice?.usd ?? 3.99).toFixed(2)}`
+                    : isKorean
+                      ? `${displayAmountFormatted}${t('payment.won')}`
+                      : `$${displayAmountFormatted}`
+                  }
                 </span>
               </div>
             </div>
@@ -273,28 +298,71 @@ export function PaymentPage() {
             <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">{t('payment.method')}</h2>
 
             <div className="space-y-3 mb-4">
-              <p className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</p>
-              <div className="relative">
-                <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">
-                  <span className="text-sm text-gray-600">
-                    {NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode)?.name || t('payment.selectCard')}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+              <button
+                onClick={() => setPaymentMethod('nicepay')}
+                className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'nicepay'
+                    ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  paymentMethod === 'nicepay' ? 'border-[#4A2C1A]' : 'border-gray-300'
+                }`}>
+                  {paymentMethod === 'nicepay' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
                 </div>
-                <select
-                  value={cardCode}
-                  onChange={(e) => setCardCode(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                >
-                  <option value="">{t('payment.selectCard')}</option>
-                  {NICEPAY_CARD_COMPANIES.map((card) => (
-                    <option key={card.code} value={card.code}>
-                      {card.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <CreditCard className="w-5 h-5 text-[#4A2C1A]" />
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</p>
+                  <p className="text-xs text-gray-500">{t('payment.koreanCards')}</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setPaymentMethod('paypal')}
+                className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'paypal'
+                    ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  paymentMethod === 'paypal' ? 'border-[#4A2C1A]' : 'border-gray-300'
+                }`}>
+                  {paymentMethod === 'paypal' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
+                </div>
+                <Globe className="w-5 h-5 text-[#003087]" />
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-[#4A2C1A]">PayPal</p>
+                  <p className="text-xs text-gray-500">USD ${ (planPrice?.usd ?? 3.99).toFixed(2) }</p>
+                </div>
+              </button>
             </div>
+
+            {paymentMethod === 'nicepay' && (
+              <div className="space-y-3">
+                <div className="relative">
+                  <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">
+                    <span className="text-sm text-gray-600">
+                      {NICEPAY_CARD_COMPANIES.find(c => c.code === cardCode)?.name || t('payment.selectCard')}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <select
+                    value={cardCode}
+                    onChange={(e) => setCardCode(e.target.value)}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  >
+                    <option value="">{t('payment.selectCard')}</option>
+                    {NICEPAY_CARD_COMPANIES.map((card) => (
+                      <option key={card.code} value={card.code}>
+                        {card.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
@@ -302,16 +370,18 @@ export function PaymentPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 pb-safe-fixed">
           <div className="max-w-md mx-auto">
             <p className="text-xs text-gray-600 text-center mb-3">
-              {t('payment.paymentNote')}
+              {paymentMethod === 'paypal' ? t('payment.paypalNote') : t('payment.paymentNote')}
             </p>
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || initBillingKey.isPending || !isButtonEnabled}
+              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || !isButtonEnabled}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing || initBillingKey.isPending
+              {isProcessing || initBillingKey.isPending || initPayPal.isPending
                 ? t('payment.processing')
-                : t('payment.startMonthly', { amount: displayAmountFormatted })}
+                : paymentMethod === 'paypal'
+                  ? t('payment.payWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) })
+                  : t('payment.startMonthly', { amount: displayAmountFormatted })}
             </button>
           </div>
         </div>

@@ -4,9 +4,10 @@ import { eq, desc, lt, and, lte } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
+import { paypalProvider } from './payment/paypal.provider';
 import { emailService } from './email/email.service';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
-import { getKRWPrice } from '../utils/currency';
+import { getKRWPrice, getBasePriceUSD } from '../utils/currency';
 
 setInterval(async () => {
   try {
@@ -1011,6 +1012,149 @@ export class PaymentService {
       success: true,
       message: '구독이 취소되었습니다. 이용 기간이 끝나면 자동결제가 중단됩니다.',
     };
+  }
+
+  async initPayPalPayment(
+    userId: string,
+    planName: string,
+    baseUrl: string
+  ): Promise<{ approveUrl: string; orderId: string; paypalOrderId: string }> {
+    const activeSubscription = await this.getActiveSubscription(userId);
+    if (activeSubscription) {
+      throw new Error('You already have an active subscription.');
+    }
+
+    const usdAmount = getBasePriceUSD().toFixed(2);
+    const orderId = `PAYPAL_${Date.now()}_${userId.substring(0, 8)}`;
+
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await db.insert(paymentSessions).values({
+      orderId,
+      userId,
+      amount: usdAmount,
+      planName,
+      paymentMethod: 'PAYPAL',
+      expiresAt,
+    });
+
+    const returnUrl = `${baseUrl}/api/payments/paypal/return?oid=${encodeURIComponent(orderId)}`;
+    const cancelUrl = `${baseUrl}/api/payments/paypal/cancel?oid=${encodeURIComponent(orderId)}`;
+
+    const result = await paypalProvider.createOrder(
+      usdAmount,
+      'USD',
+      orderId,
+      planName,
+      returnUrl,
+      cancelUrl
+    );
+
+    logger.info({ orderId, paypalOrderId: result.id, userId }, 'PayPal payment initiated');
+
+    return {
+      approveUrl: result.approveUrl,
+      orderId,
+      paypalOrderId: result.id,
+    };
+  }
+
+  async capturePayPalPayment(
+    paypalOrderId: string,
+    internalOrderId: string
+  ): Promise<{ success: boolean; message: string }> {
+    const session = await this.getPendingSession(internalOrderId);
+    if (!session) {
+      logger.error({ internalOrderId }, 'PayPal session not found');
+      return { success: false, message: 'Payment session not found.' };
+    }
+
+    const captureResult = await paypalProvider.captureOrder(paypalOrderId);
+    if (!captureResult.success) {
+      logger.error({ paypalOrderId, error: captureResult.errorMsg }, 'PayPal capture failed');
+      return { success: false, message: captureResult.errorMsg || 'Payment capture failed.' };
+    }
+
+    const serverAmount = Number(session.amount);
+    const capturedAmount = captureResult.amount ? Number(captureResult.amount) : null;
+    if (capturedAmount !== null && Math.abs(capturedAmount - serverAmount) > 0.01) {
+      logger.error({
+        paypalOrderId,
+        expected: serverAmount,
+        captured: capturedAmount,
+      }, 'PayPal captured amount mismatch');
+      return { success: false, message: 'Payment amount mismatch.' };
+    }
+
+    if (captureResult.currency && captureResult.currency !== 'USD') {
+      logger.error({
+        paypalOrderId,
+        expectedCurrency: 'USD',
+        capturedCurrency: captureResult.currency,
+      }, 'PayPal currency mismatch');
+      return { success: false, message: 'Payment currency mismatch.' };
+    }
+
+    const serverPlanName = session.planName;
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    try {
+      await db.transaction(async (tx) => {
+        const [newSubscription] = await tx
+          .insert(subscriptions)
+          .values({
+            userId: session.userId,
+            planName: serverPlanName,
+            amount: serverAmount.toString(),
+            status: 'active',
+            startDate,
+            endDate,
+          })
+          .returning();
+
+        await tx
+          .insert(payments)
+          .values({
+            userId: session.userId,
+            subscriptionId: newSubscription.id,
+            status: 'completed',
+            amount: serverAmount.toString(),
+            currency: 'USD',
+            paymentMethod: 'PAYPAL',
+            transactionId: captureResult.transactionId || paypalOrderId,
+            paidAt: startDate,
+          });
+
+        logger.info({
+          userId: session.userId,
+          subscriptionId: newSubscription.id,
+          paypalOrderId,
+          transactionId: captureResult.transactionId,
+        }, 'PayPal subscription created');
+      });
+
+      await this.deletePendingSession(internalOrderId);
+
+      try {
+        const userInfo = await this.getUserEmailAndNickname(session.userId);
+        if (userInfo) {
+          await emailService.sendSubscriptionStartNotification(
+            userInfo.email,
+            userInfo.nickname,
+            serverPlanName,
+            userInfo.language
+          );
+        }
+      } catch (emailError) {
+        logger.error({ error: emailError }, 'Failed to send subscription email after PayPal payment');
+      }
+
+      return { success: true, message: 'Payment completed successfully.' };
+    } catch (error) {
+      logger.error({ error, internalOrderId, paypalOrderId }, 'Failed to process PayPal payment');
+      return { success: false, message: 'Failed to process payment.' };
+    }
   }
 }
 

@@ -200,7 +200,26 @@ export function getEffectiveSubscription(subscriptions: Subscription[]): Subscri
   );
 }
 
-// Cancel subscription
+export interface InitPayPalResponse {
+  approveUrl: string;
+  orderId: string;
+  paypalOrderId: string;
+}
+
+export function useInitPayPal() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest<{ data: InitPayPalResponse }>(
+        '/payments/paypal/init',
+        {
+          method: 'POST',
+        }
+      );
+      return response.data;
+    },
+  });
+}
+
 export function useCancelSubscription() {
   const queryClient = useQueryClient();
 

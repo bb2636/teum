@@ -413,6 +413,67 @@ export class PaymentController {
       next(error);
     }
   }
+
+  async initPayPal(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const userId = req.user.userId;
+      const planName = 'Music Plan Monthly';
+
+      const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+
+      const result = await paymentService.initPayPalPayment(
+        userId,
+        planName,
+        backendUrl
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async paypalReturn(req: Request, res: Response, _next: NextFunction) {
+    const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+    try {
+      const { token: paypalOrderId, oid: internalOrderId } = req.query;
+
+      if (!paypalOrderId || !internalOrderId) {
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal payment information is missing.')}`);
+      }
+
+      const result = await paymentService.capturePayPalPayment(
+        paypalOrderId as string,
+        internalOrderId as string
+      );
+
+      if (result.success) {
+        return res.redirect(`${frontendUrl}/payment/success`);
+      } else {
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}`);
+      }
+    } catch (error) {
+      logger.error({ error }, 'PayPal return processing failed');
+      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal payment processing failed.')}`);
+    }
+  }
+
+  async paypalCancel(req: Request, res: Response, _next: NextFunction) {
+    const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+    const { token: paypalOrderId } = req.query;
+    logger.info({ paypalOrderId }, 'PayPal payment cancelled by user');
+    return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('Payment was cancelled.')}`);
+  }
 }
 
 export const paymentController = new PaymentController();

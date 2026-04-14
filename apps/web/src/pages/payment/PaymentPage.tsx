@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X } from 'lucide-react';
-import { useInitBillingKey } from '@/hooks/usePayment';
+import { useInitBillingKey, usePlanPrice } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
@@ -37,8 +37,11 @@ export function PaymentPage() {
   const [searchParams] = useSearchParams();
   const { setHideTabBar } = useHideTabBar();
   const t = useT();
-  const amount = searchParams.get('amount') || '0';
   const planName = searchParams.get('plan') || t('payment.plan');
+  const { data: planPrice } = usePlanPrice();
+  const isKorean = getCurrentLanguage() === 'ko';
+  const displayAmount = isKorean ? (planPrice?.krw ?? 5800) : planPrice?.usd ?? 3.99;
+  const displayAmountFormatted = isKorean ? displayAmount.toLocaleString() : (displayAmount as number).toFixed(2);
 
   useEffect(() => {
     setHideTabBar(true);
@@ -100,7 +103,6 @@ export function PaymentPage() {
       const initResult = await initBillingKey.mutateAsync({
         planName,
         paymentMethod: 'CARD',
-        amount: parseInt(amount),
         identityVerified: true,
       });
 
@@ -117,7 +119,7 @@ export function PaymentPage() {
         clientId: initResult.clientId,
         method: 'card',
         orderId: initResult.orderId,
-        amount: parseInt(amount),
+        amount: initResult.amount,
         goodsName: planName,
         returnUrl: initResult.returnUrl,
         subscYn: 'Y',
@@ -258,7 +260,7 @@ export function PaymentPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">{t('payment.amount')}</span>
                 <span className="text-base font-bold text-[#4A2C1A]">
-                  {getCurrentLanguage() === 'ko' ? `${parseInt(amount).toLocaleString()}${t('payment.won')}` : `$${(parseInt(amount) / 100).toFixed(2)}`}
+                  {isKorean ? `${displayAmountFormatted}${t('payment.won')}` : `$${displayAmountFormatted}`}
                 </span>
               </div>
             </div>
@@ -309,7 +311,7 @@ export function PaymentPage() {
             >
               {isProcessing || initBillingKey.isPending
                 ? t('payment.processing')
-                : t('payment.startMonthly', { amount: getCurrentLanguage() === 'ko' ? parseInt(amount).toLocaleString() : (parseInt(amount) / 100).toFixed(2) })}
+                : t('payment.startMonthly', { amount: displayAmountFormatted })}
             </button>
           </div>
         </div>

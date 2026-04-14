@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { SubscriptionStartModal } from '@/components/SubscriptionStartModal';
 import { useT } from '@/hooks/useTranslation';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { usePlanPrice } from '@/hooks/usePayment';
 
 export function PaymentIntroPage() {
   const navigate = useNavigate();
@@ -13,9 +14,11 @@ export function PaymentIntroPage() {
   const [showStartModal, setShowStartModal] = useState(false);
   const t = useT();
   const isKorean = getCurrentLanguage() === 'ko';
-  const displayAmount = isKorean ? 4900 : 399;
-  const displayAmountFormatted = isKorean ? '4,900' : '3.99';
-  const priceLabel = isKorean ? `4,900${t('payment.won')}` : '$3.99';
+  const { data: planPrice } = usePlanPrice();
+  const krwAmount = planPrice?.krw ?? 5800;
+  const displayAmount = isKorean ? krwAmount : 399;
+  const displayAmountFormatted = isKorean ? krwAmount.toLocaleString() : '3.99';
+  const priceLabel = isKorean ? `${krwAmount.toLocaleString()}${t('payment.won')}` : '$3.99';
 
   useEffect(() => {
     setHideTabBar(true);
@@ -30,7 +33,7 @@ export function PaymentIntroPage() {
 
   const handleConfirmStart = () => {
     setShowStartModal(false);
-    navigate(`/payment/checkout?plan=${encodeURIComponent(t('payment.musicPlanMonthly'))}&amount=${displayAmount}`);
+    navigate(`/payment/checkout?plan=${encodeURIComponent(t('payment.musicPlanMonthly'))}`);
   };
 
   return (

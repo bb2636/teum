@@ -1,6 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 
+export interface PlanPrice {
+  usd: number;
+  krw: number;
+  rate: number;
+}
+
+export function usePlanPrice() {
+  return useQuery<PlanPrice>({
+    queryKey: ['plan-price'],
+    queryFn: async () => {
+      const res = await fetch('/api/payments/plan-price');
+      const data = await res.json();
+      if (!data.success) throw new Error('Failed to fetch plan price');
+      return data.data;
+    },
+    staleTime: 6 * 60 * 60 * 1000,
+  });
+}
+
 export interface Payment {
   id: string;
   userId: string;
@@ -45,7 +64,6 @@ export interface ProcessPaymentResponse {
 }
 
 export interface InitPaymentInput {
-  amount: number;
   planName: string;
   paymentMethod: string;
 }
@@ -63,13 +81,13 @@ export interface InitPaymentResponse {
 export interface InitBillingKeyInput {
   planName: string;
   paymentMethod: string;
-  amount: number;
   identityVerified?: boolean;
 }
 
 export interface InitBillingKeyResponse {
   clientId: string;
   orderId: string;
+  amount: number;
   method: string;
   returnUrl: string;
   isTestMode: boolean;

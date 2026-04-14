@@ -6,6 +6,7 @@ const router: Router = Router();
 
 router.post('/nicepay/return', paymentController.nicepayReturn.bind(paymentController));
 router.post('/nicepay/billing-return', paymentController.nicepayBillingReturn.bind(paymentController));
+router.get('/plan-price', paymentController.getPlanPrice.bind(paymentController));
 
 router.use(authenticate);
 

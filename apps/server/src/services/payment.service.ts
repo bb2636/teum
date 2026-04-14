@@ -6,6 +6,7 @@ import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
 import { emailService } from './email/email.service';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
+import { getKRWPrice } from '../utils/currency';
 
 setInterval(async () => {
   try {
@@ -15,21 +16,9 @@ setInterval(async () => {
   }
 }, 5 * 60 * 1000);
 
-const PLAN_PRICES: Record<string, number> = {
-  'premium_monthly': 4900,
-  'monthly': 4900,
-  'premium': 4900,
-};
-
 export class PaymentService {
-  private validatePlanAmount(planName: string, amount: number): boolean {
-    const normalizedPlan = planName.toLowerCase().replace(/\s+/g, '_');
-    for (const [key, price] of Object.entries(PLAN_PRICES)) {
-      if (normalizedPlan.includes(key) || key.includes(normalizedPlan)) {
-        return amount === price;
-      }
-    }
-    return amount === 4900;
+  async getServerPlanAmount(): Promise<number> {
+    return await getKRWPrice();
   }
 
   private isPaymentMockSuccess(): boolean {
@@ -71,12 +60,9 @@ export class PaymentService {
 
   async initBillingKeyRegistration(
     userId: string,
-    input: { planName: string; paymentMethod: string; amount: number; identityVerified?: boolean }
+    input: { planName: string; paymentMethod: string; identityVerified?: boolean }
   ) {
-    if (!this.validatePlanAmount(input.planName, input.amount)) {
-      logger.error('Invalid plan amount', { planName: input.planName, amount: input.amount, userId });
-      throw new Error('결제 금액이 올바르지 않습니다.');
-    }
+    const serverAmount = await this.getServerPlanAmount();
 
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
@@ -94,7 +80,7 @@ export class PaymentService {
     await db.insert(paymentSessions).values({
       orderId,
       userId,
-      amount: input.amount.toString(),
+      amount: serverAmount.toString(),
       planName: input.planName,
       paymentMethod: input.paymentMethod,
       expiresAt,
@@ -105,6 +91,7 @@ export class PaymentService {
     return {
       clientId,
       orderId,
+      amount: serverAmount,
       method: 'card',
       isTestMode: nicePayProvider.getIsTestMode(),
     };
@@ -595,12 +582,9 @@ export class PaymentService {
 
   async initPayment(
     userId: string,
-    input: { amount: number; planName: string; paymentMethod: string }
+    input: { planName: string; paymentMethod: string }
   ) {
-    if (!this.validatePlanAmount(input.planName, input.amount)) {
-      logger.error('Invalid plan amount in initPayment', { planName: input.planName, amount: input.amount, userId });
-      throw new Error('결제 금액이 올바르지 않습니다.');
-    }
+    const serverAmount = await this.getServerPlanAmount();
 
     const isRenewal = false;
     if (!isRenewal) {
@@ -616,7 +600,7 @@ export class PaymentService {
     await db.insert(paymentSessions).values({
       orderId,
       userId,
-      amount: input.amount.toString(),
+      amount: serverAmount.toString(),
       planName: input.planName,
       paymentMethod: input.paymentMethod,
       expiresAt,
@@ -631,7 +615,7 @@ export class PaymentService {
     return {
       clientId,
       orderId,
-      amount: input.amount,
+      amount: serverAmount,
       goodsName: input.planName,
       method: nicepayMethodMap[input.paymentMethod] || 'card',
       isTestMode: nicePayProvider.getIsTestMode(),

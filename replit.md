@@ -74,9 +74,16 @@ teum/
 
 ### 6. Payments (NicePay)
 - NicePay JS SDK 연동 (신용/체크카드)
+- **동적 환율 기반 가격**: 기준가 $3.99 USD → 실시간 환율 적용 → KRW 100원 단위 반올림
+  - `GET /api/payments/plan-price` → `{ usd, krw, rate }` 반환 (인증 불필요)
+  - 환율 소스: open.er-api.com (6시간 캐싱, 실패 시 fallback 1450)
+  - 서버 `utils/currency.ts`: `getKRWPrice()`, `getExchangeInfo()`
+  - 프론트 `usePlanPrice()` 훅으로 동적 금액 표시
+  - 서버 금액 검증: ±200원 허용 오차 (환율 변동 대비)
 - **빌링키(Billing Key) 기반 자동결제**:
   - `POST /api/payments/billing/init` → NicePay `subscribe` method로 빌링키 등록
   - `POST /api/payments/nicepay/billing-return` → 빌링키 승인 + 첫 결제 자동 처리
+  - 빌링키 미반환 시(샌드박스) → `processDirectPaymentReturn`으로 직접 결제 처리
   - `billing_keys` 테이블에 빌링키 저장 (bid, cardCode, cardName, cardNo, status)
   - 자동 갱신 스케줄러: `index.ts`에서 매시간 `processAutoRenewals()` 호출 → 만료된 구독 확인 → 빌링키로 자동 결제 (최대 3회 재시도) → 새 구독 생성
   - 구독 취소 시 빌링키도 자동 해지 (NicePay API + DB)

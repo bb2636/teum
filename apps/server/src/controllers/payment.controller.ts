@@ -2,8 +2,25 @@ import { Request, Response, NextFunction } from 'express';
 import { paymentService } from '../services/payment.service';
 import { processPaymentSchema } from '../validations/payment';
 import { logger } from '../config/logger';
+import { getExchangeInfo } from '../utils/currency';
 
 export class PaymentController {
+  async getPlanPrice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const exchangeInfo = await getExchangeInfo();
+      res.json({
+        success: true,
+        data: {
+          usd: exchangeInfo.usd,
+          krw: exchangeInfo.krw,
+          rate: exchangeInfo.rate,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async initPayment(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
@@ -13,19 +30,11 @@ export class PaymentController {
         });
       }
 
-      const { amount, planName, paymentMethod } = req.body;
-      if (!amount || !planName || !paymentMethod) {
+      const { planName, paymentMethod } = req.body;
+      if (!planName || !paymentMethod) {
         return res.status(400).json({
           success: false,
-          error: { code: 'BAD_REQUEST', message: 'amount, planName, paymentMethod are required' },
-        });
-      }
-
-      const numericAmount = Number(amount);
-      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'amount must be a positive number' },
+          error: { code: 'BAD_REQUEST', message: 'planName, paymentMethod are required' },
         });
       }
 
@@ -41,7 +50,6 @@ export class PaymentController {
       const returnUrl = `${backendUrl}/api/payments/nicepay/return`;
 
       const result = await paymentService.initPayment(req.user.userId, {
-        amount: Number(amount),
         planName,
         paymentMethod,
       });
@@ -67,19 +75,11 @@ export class PaymentController {
         });
       }
 
-      const { planName, paymentMethod, amount, identityVerified } = req.body;
-      if (!planName || !paymentMethod || !amount) {
+      const { planName, paymentMethod, identityVerified } = req.body;
+      if (!planName || !paymentMethod) {
         return res.status(400).json({
           success: false,
-          error: { code: 'BAD_REQUEST', message: 'planName, paymentMethod, amount are required' },
-        });
-      }
-
-      const numericAmount = Number(amount);
-      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'amount must be a positive number' },
+          error: { code: 'BAD_REQUEST', message: 'planName, paymentMethod are required' },
         });
       }
 
@@ -89,7 +89,6 @@ export class PaymentController {
       const result = await paymentService.initBillingKeyRegistration(req.user.userId, {
         planName,
         paymentMethod,
-        amount: numericAmount,
         identityVerified: !!identityVerified,
       });
 

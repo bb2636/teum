@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { useT } from '@/hooks/useTranslation';
+import { getCurrentLanguage } from '@/lib/i18n';
+import { usePlanPrice } from '@/hooks/usePayment';
 
 interface PaymentTermsSheetProps {
   isOpen: boolean;
@@ -11,6 +13,9 @@ interface PaymentTermsSheetProps {
 
 export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsSheetProps) {
   const t = useT();
+  const isKorean = getCurrentLanguage() === 'ko';
+  const { data: planPrice } = usePlanPrice();
+  const priceDisplay = isKorean ? (planPrice?.krw ?? 5800).toLocaleString() : '3.99';
   const [agreeAll, setAgreeAll] = useState(false);
   const [agreeService, setAgreeService] = useState(false);
   const [agreePayment, setAgreePayment] = useState(false);
@@ -152,7 +157,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
               disabled={!allRequiredAgreed}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t('payment.startWithMonthly', { amount: '4,900' })}
+              {t('payment.startWithMonthly', { amount: priceDisplay })}
             </button>
           </div>
         </div>

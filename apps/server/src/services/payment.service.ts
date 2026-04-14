@@ -223,23 +223,49 @@ export class PaymentService {
     return chargeResult;
   }
 
+  private processingDirectReturns = new Set<string>();
+
   async processDirectPaymentReturn(
     orderId: string,
     tid: string,
     cardCode?: string,
     cardName?: string,
-    cardNo?: string
+    cardNo?: string,
+    preloadedSession?: { userId: string; amount: string; planName: string } | null
   ): Promise<{ success: boolean; message: string }> {
-    const session = await this.getPendingSession(orderId);
+    if (this.processingDirectReturns.has(orderId)) {
+      logger.warn({ orderId }, 'Duplicate direct payment return detected, treating as success');
+      return { success: true, message: '결제가 이미 처리되었습니다.' };
+    }
+    this.processingDirectReturns.add(orderId);
+
+    try {
+      return await this._processDirectPaymentReturnInner(orderId, tid, cardCode, cardName, cardNo, preloadedSession);
+    } finally {
+      this.processingDirectReturns.delete(orderId);
+    }
+  }
+
+  private async _processDirectPaymentReturnInner(
+    orderId: string,
+    tid: string,
+    cardCode?: string,
+    cardName?: string,
+    cardNo?: string,
+    preloadedSession?: { userId: string; amount: string; planName: string } | null
+  ): Promise<{ success: boolean; message: string }> {
+    let session = preloadedSession;
     if (!session) {
-      logger.error({ orderId }, 'Direct payment session not found or already processed');
-      return { success: false, message: '세션을 찾을 수 없습니다.' };
+      const dbSession = await this.getPendingSession(orderId);
+      if (!dbSession) {
+        logger.error({ orderId }, 'Direct payment session not found or already processed');
+        return { success: false, message: '세션을 찾을 수 없습니다.' };
+      }
+      session = { userId: dbSession.userId, amount: dbSession.amount, planName: dbSession.planName };
     }
 
     const serverAmount = Number(session.amount);
     const serverPlanName = session.planName;
-
-    await this.deletePendingSession(orderId);
 
     const startDate = new Date();
     const endDate = new Date();
@@ -276,9 +302,10 @@ export class PaymentService {
           userId: session.userId,
           subscriptionId: newSubscription.id,
           tid,
-          cardName,
         }, 'Direct payment subscription created with linked payment record');
       });
+
+      await this.deletePendingSession(orderId);
 
       try {
         const userInfo = await this.getUserEmailAndNickname(session.userId);

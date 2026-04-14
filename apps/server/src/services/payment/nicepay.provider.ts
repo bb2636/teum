@@ -137,7 +137,6 @@ export class NicePayProvider {
         isTestMode: this.isTestMode,
         clientId: this.clientId,
         authTokenLength: authToken?.length || 0,
-        authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'none',
       }, 'Issuing NicePay billing key - REQUEST');
 
       const authHeader = `Basic ${Buffer.from(`${this.clientId}:${this.secretKey}`).toString('base64')}`;
@@ -168,7 +167,6 @@ export class NicePayProvider {
         cardNo: data.cardNo,
         cardCode: data.cardCode,
         payMethod: data.payMethod,
-        fullResponse: JSON.stringify(data),
       }, 'NicePay billing key issue - RESPONSE');
 
       const resultCode = data.resultCode as string | undefined;

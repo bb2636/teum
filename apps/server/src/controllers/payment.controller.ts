@@ -111,21 +111,15 @@ export class PaymentController {
       const bodyKeys = Object.keys(body);
       logger.info({
         bodyKeys: bodyKeys.join(', '),
-        bodyRaw: JSON.stringify(body),
         hasAuthToken: !!body.authToken,
         hasEncData: !!body.encData,
         hasBid: !!body.bid,
         hasTid: !!body.tid,
         authResultCode: body.authResultCode,
-        resultCode: body.resultCode,
         authResultMsg: body.authResultMsg,
-        resultMsg: body.resultMsg,
         orderId: body.orderId,
         amount: body.amount,
-        authTokenLength: body.authToken?.length || 0,
-        encDataLength: body.encData?.length || 0,
-        bidValue: body.bid || 'none',
-      }, 'NicePay billing return FULL body');
+      }, 'NicePay billing return received');
 
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
@@ -139,7 +133,6 @@ export class PaymentController {
         hasBid: !!bid,
         hasTid: !!tid,
         hasAuthToken: !!authToken,
-        authTokenPreview: authToken ? `${authToken.substring(0, 20)}...` : 'none',
         orderId,
         amount,
       }, 'NicePay billing return parsed');
@@ -148,6 +141,14 @@ export class PaymentController {
         logger.error('NicePay billing return missing orderId');
         return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('주문 정보가 누락되었습니다.')}`);
       }
+
+      const preloadedSession = await paymentService.getPendingSession(orderId);
+      if (!preloadedSession) {
+        logger.error({ orderId }, 'NicePay billing return: session not found at entry');
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('결제 세션을 찾을 수 없습니다. 다시 시도해주세요.')}`);
+      }
+
+      logger.info({ orderId, sessionUserId: preloadedSession.userId, sessionAmount: preloadedSession.amount }, 'Session preloaded for billing return');
 
       if (resultCode !== '0000') {
         await paymentService.deletePendingSession(orderId);
@@ -167,7 +168,8 @@ export class PaymentController {
             issueResult.tid || tid,
             issueResult.cardCode,
             issueResult.cardName,
-            issueResult.cardNo
+            issueResult.cardNo,
+            { userId: preloadedSession.userId, amount: preloadedSession.amount, planName: preloadedSession.planName }
           );
           if (directResult.success) {
             return res.redirect(`${frontendUrl}/payment/success`);

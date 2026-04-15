@@ -59,7 +59,8 @@ export function PaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
 
-  const [identityVerified, setIdentityVerified] = useState(false);
+  // TODO: 본인인증 재활성화 시 identityVerified 체크 복구 필요
+  const [_identityVerified, setIdentityVerified] = useState(false);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [identityPhone, setIdentityPhone] = useState('');
   const [identityCode, setIdentityCode] = useState('');

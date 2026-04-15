@@ -97,7 +97,10 @@ export function BottomTabBar() {
                   : '0 2px 12px rgba(0,0,0,0.08), 0 0 4px rgba(0,0,0,0.04)',
               }}
             >
-              <div className="w-full h-full bg-white rounded-full" />
+              <div
+                className="w-full h-full rounded-full"
+                style={{ backgroundColor: isDark ? '#1c1c1e' : '#ffffff' }}
+              />
             </div>
             <div className="flex items-center justify-around w-full relative z-10 px-2">
               {mainTabs.map((tab) => {
@@ -115,14 +118,23 @@ export function BottomTabBar() {
                     )}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-gray-200 rounded-full"></div>
+                      <div
+                        className="absolute inset-0 rounded-full"
+                        style={{ backgroundColor: isDark ? '#3a3a3c' : '#e5e7eb' }}
+                      />
                     )}
                     <div
                       ref={isActive ? activeTabRef : undefined}
                       className="relative z-10 flex flex-col items-center justify-center"
                     >
-                      <Icon className={cn('w-6 h-6 mb-1', isActive ? 'text-[#4A2C1A]' : 'text-gray-400')} />
-                      <span className={cn('text-xs font-medium', isActive ? 'text-[#4A2C1A]' : 'text-gray-400')}>
+                      <Icon
+                        className="w-6 h-6 mb-1"
+                        style={{ color: isActive ? (isDark ? '#c4a882' : '#4A2C1A') : (isDark ? '#8e8e93' : '#9ca3af') }}
+                      />
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: isActive ? (isDark ? '#c4a882' : '#4A2C1A') : (isDark ? '#8e8e93' : '#9ca3af') }}
+                      >
                         {t(tab.labelKey)}
                       </span>
                     </div>

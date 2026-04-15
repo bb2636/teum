@@ -599,23 +599,6 @@ input[type="checkbox"] {
   border-color: #333333 !important;
 }
 
-/* Bottom tab bar */
-[data-theme="dark"] .bottom-tab-bar .bg-white {
-  background-color: #1c1c1e !important;
-}
-
-[data-theme="dark"] .bottom-tab-bar .bg-gray-200 {
-  background-color: #3a3a3c !important;
-}
-
-[data-theme="dark"] .bottom-tab-bar .text-gray-400 {
-  color: #8e8e93 !important;
-}
-
-[data-theme="dark"] .bottom-tab-bar .text-\[\#4A2C1A\] {
-  color: #c4a882 !important;
-}
-
 /* Sticky headers */
 [data-theme="dark"] .sticky {
   background-color: #000000 !important;

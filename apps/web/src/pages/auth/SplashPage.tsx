@@ -334,7 +334,7 @@ export function SplashPage() {
         const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
         await Browser.open({
           url: `${baseUrl}/auth/google/init?state=${encodeURIComponent(state)}`,
-          presentationStyle: 'fullscreen',
+          presentationStyle: 'popover',
         });
       } catch {
         window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;

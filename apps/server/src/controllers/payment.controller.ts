@@ -530,22 +530,21 @@ export class PaymentController {
   async nicepayWebhook(req: Request, res: Response) {
     const NICEPAY_WEBHOOK_SECRET = process.env.NICEPAY_WEBHOOK_SECRET;
 
-    if (!NICEPAY_WEBHOOK_SECRET) {
-      logger.error('NICEPAY_WEBHOOK_SECRET not configured, rejecting webhook');
-      return res.status(503).json({ error: 'Webhook not configured' });
-    }
-
     const signatureHeader = req.headers['x-nicepay-signature'] as string | undefined;
     const rawBody = (req as Request & { rawBody?: string }).rawBody;
+
+    if (!NICEPAY_WEBHOOK_SECRET || !signatureHeader) {
+      if (!rawBody || !req.body?.tid) {
+        logger.info('NicePay webhook: registration test ping, returning 200');
+        return res.status(200).json({ success: true });
+      }
+      logger.error('NicePay webhook: signature verification not possible (missing secret or header)');
+      return res.status(401).json({ error: 'Missing signature' });
+    }
 
     if (!rawBody) {
       logger.error('NicePay webhook: missing raw body');
       return res.status(400).json({ error: 'Missing request body' });
-    }
-
-    if (!signatureHeader) {
-      logger.warn('NicePay webhook: missing x-nicepay-signature header');
-      return res.status(401).json({ error: 'Missing signature' });
     }
 
     const expectedSig = crypto

@@ -40,13 +40,18 @@ export class PaymentService {
   async getActiveSubscription(userId: string) {
     const subs = await this.getSubscriptions(userId);
     const now = new Date();
+
     const activeSub = subs.find(
       (s) => s.status === 'active' && (!s.endDate || new Date(s.endDate) >= now)
     );
     if (activeSub) return activeSub;
-    return subs.find(
+
+    const cancelledSub = subs.find(
       (s) => s.status === 'cancelled' && s.endDate && new Date(s.endDate) >= now
-    ) ?? null;
+    );
+    if (cancelledSub) return cancelledSub;
+
+    return null;
   }
 
   async needsIdentityVerification(userId: string): Promise<boolean> {
@@ -1026,6 +1031,13 @@ export class PaymentService {
       return {
         success: true,
         message: '이미 취소된 구독입니다.',
+      };
+    }
+
+    if (subscription.status === 'refunded') {
+      return {
+        success: true,
+        message: '환불 처리된 구독입니다.',
       };
     }
 

@@ -3,6 +3,9 @@ import { paymentService } from '../services/payment.service';
 import { processPaymentSchema } from '../validations/payment';
 import { logger } from '../config/logger';
 import { getExchangeInfo } from '../utils/currency';
+import { refundService } from '../services/payment/refund.service';
+import { paypalProvider } from '../services/payment/paypal.provider';
+import crypto from 'crypto';
 
 export class PaymentController {
   async getPlanPrice(req: Request, res: Response, next: NextFunction) {
@@ -475,6 +478,156 @@ export class PaymentController {
     const { token: paypalOrderId } = req.query;
     logger.info({ paypalOrderId }, 'PayPal payment cancelled by user');
     return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('Payment was cancelled.')}`);
+  }
+
+  async paypalWebhook(req: Request, res: Response) {
+    const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID;
+
+    if (!PAYPAL_WEBHOOK_ID) {
+      logger.error('PAYPAL_WEBHOOK_ID not configured, rejecting webhook');
+      return res.status(503).json({ error: 'Webhook not configured' });
+    }
+
+    const rawBody = (req as Request & { rawBody?: string }).rawBody;
+    if (!rawBody) {
+      logger.error('PayPal webhook: missing raw body');
+      return res.status(400).json({ error: 'Missing request body' });
+    }
+
+    const verified = await paypalProvider.verifyWebhookSignature(
+      req.headers,
+      rawBody,
+      PAYPAL_WEBHOOK_ID
+    );
+
+    if (!verified) {
+      logger.warn({ headers: {
+        authAlgo: req.headers['paypal-auth-algo'],
+        transmissionId: req.headers['paypal-transmission-id'],
+      }}, 'PayPal webhook signature verification failed');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    let event: Record<string, unknown>;
+    try {
+      event = JSON.parse(rawBody);
+    } catch {
+      logger.error('PayPal webhook: invalid JSON body');
+      return res.status(400).json({ error: 'Invalid JSON' });
+    }
+
+    const eventType = event.event_type as string;
+    const eventId = event.id as string;
+
+    if (!eventId || !eventType) {
+      logger.error({ event }, 'PayPal webhook: missing event_type or id');
+      return res.status(400).json({ error: 'Missing event_type or id' });
+    }
+
+    const REFUND_EVENTS = ['PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'];
+
+    if (!REFUND_EVENTS.includes(eventType)) {
+      logger.info({ eventType, eventId }, 'PayPal webhook: non-refund event, acknowledging');
+      return res.status(200).json({ status: 'acknowledged' });
+    }
+
+    const resource = event.resource as Record<string, unknown> | undefined;
+    if (!resource) {
+      logger.error({ eventId, eventType }, 'PayPal webhook: missing resource');
+      return res.status(400).json({ error: 'Missing resource' });
+    }
+
+    const saleId = (resource.id as string) || '';
+    const billingAgreementId = resource.billing_agreement_id as string | undefined;
+    const amountObj = resource.amount as Record<string, unknown> | undefined;
+    const amount = amountObj?.total as string | undefined;
+    const currency = amountObj?.currency as string | undefined;
+
+    const result = await refundService.processPayPalRefund({
+      eventId,
+      eventType,
+      saleId,
+      billingAgreementId,
+      amount,
+      currency,
+      rawPayload: rawBody,
+    });
+
+    logger.info({
+      eventId,
+      eventType,
+      saleId,
+      billingAgreementId,
+      processed: result.processed,
+      reason: result.reason,
+    }, 'PayPal refund webhook handled');
+
+    return res.status(200).json({ status: result.reason });
+  }
+
+  async nicepayWebhook(req: Request, res: Response) {
+    const NICEPAY_WEBHOOK_SECRET = process.env.NICEPAY_WEBHOOK_SECRET;
+
+    if (!NICEPAY_WEBHOOK_SECRET) {
+      logger.error('NICEPAY_WEBHOOK_SECRET not configured, rejecting webhook');
+      return res.status(503).json({ error: 'Webhook not configured' });
+    }
+
+    const signatureHeader = req.headers['x-nicepay-signature'] as string | undefined;
+    const rawBody = (req as Request & { rawBody?: string }).rawBody;
+
+    if (!rawBody) {
+      logger.error('NicePay webhook: missing raw body');
+      return res.status(400).json({ error: 'Missing request body' });
+    }
+
+    if (!signatureHeader) {
+      logger.warn('NicePay webhook: missing x-nicepay-signature header');
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    const expectedSig = crypto
+      .createHmac('sha256', NICEPAY_WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest('hex');
+
+    const sigBuffer = Buffer.from(signatureHeader);
+    const expectedBuffer = Buffer.from(expectedSig);
+
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+      logger.warn('NicePay webhook: signature verification failed');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const body = req.body;
+    const { tid, orderId, resultCode, resultMsg, cancelAmt, mallReserved } = body;
+
+    if (!tid) {
+      logger.error('NicePay webhook: missing tid');
+      return res.status(400).json({ error: 'Missing tid' });
+    }
+
+    const eventId = body.cancelNum || body.tid || `nicepay_${Date.now()}`;
+
+    const result = await refundService.processNicePayRefund({
+      eventId,
+      tid,
+      orderId,
+      amount: cancelAmt || body.amount,
+      resultCode: resultCode || '0000',
+      resultMsg,
+      rawPayload: rawBody,
+    });
+
+    logger.info({
+      eventId,
+      tid,
+      orderId,
+      processed: result.processed,
+      reason: result.reason,
+    }, 'NicePay refund webhook handled');
+
+    return res.status(200).json({ status: result.reason });
   }
 }
 

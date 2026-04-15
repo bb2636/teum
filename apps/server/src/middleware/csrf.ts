@@ -32,7 +32,16 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   const checkPath = req.originalUrl || req.path;
-  if (checkPath.startsWith('/api/payments/nicepay/') || checkPath.startsWith('/api/payments/paypal/return') || checkPath.startsWith('/api/payments/paypal/cancel') || req.path.startsWith('/payments/nicepay/') || req.path.startsWith('/payments/paypal/return') || req.path.startsWith('/payments/paypal/cancel')) {
+  if (
+    checkPath.startsWith('/api/payments/nicepay/') ||
+    checkPath.startsWith('/api/payments/paypal/return') ||
+    checkPath.startsWith('/api/payments/paypal/cancel') ||
+    checkPath.startsWith('/api/payments/paypal/webhook') ||
+    req.path.startsWith('/payments/nicepay/') ||
+    req.path.startsWith('/payments/paypal/return') ||
+    req.path.startsWith('/payments/paypal/cancel') ||
+    req.path.startsWith('/payments/paypal/webhook')
+  ) {
     return next();
   }
 

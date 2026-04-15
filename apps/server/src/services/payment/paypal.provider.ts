@@ -274,6 +274,45 @@ export class PayPalProvider {
     return true;
   }
 
+  async verifyWebhookSignature(
+    headers: Record<string, string | string[] | undefined>,
+    body: string,
+    webhookId: string
+  ): Promise<boolean> {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await fetch(`${PAYPAL_BASE_URL}/v1/notifications/verify-webhook-signature`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          auth_algo: headers['paypal-auth-algo'] as string,
+          cert_url: headers['paypal-cert-url'] as string,
+          transmission_id: headers['paypal-transmission-id'] as string,
+          transmission_sig: headers['paypal-transmission-sig'] as string,
+          transmission_time: headers['paypal-transmission-time'] as string,
+          webhook_id: webhookId,
+          webhook_event: JSON.parse(body),
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        logger.error({ status: response.status, body: text }, 'PayPal webhook signature verification request failed');
+        return false;
+      }
+
+      const data = await response.json() as { verification_status: string };
+      return data.verification_status === 'SUCCESS';
+    } catch (error) {
+      logger.error({ error }, 'PayPal webhook signature verification error');
+      return false;
+    }
+  }
+
   getClientId(): string {
     return this.clientId;
   }

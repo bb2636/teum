@@ -2,12 +2,12 @@ import { pgTable, uuid, varchar, timestamp, decimal, pgEnum, boolean } from 'dri
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 
-// Subscription status enum
 export const subscriptionStatusEnum = pgEnum('subscription_status', [
   'active',
   'cancelled',
   'expired',
   'pending',
+  'refunded',
 ]);
 
 // Payment status enum

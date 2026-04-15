@@ -107,6 +107,16 @@ teum/
 - 관리자 구독 취소: `/api/payments/admin/subscriptions/cancel`
 - 취소된 구독은 `endDate`까지 유효 (Grace Period)
 - 프론트엔드 결제 방법 선택: 라디오 버튼으로 NicePay/PayPal 전환 (언어 기반 기본값)
+- **환불 안전 구독 로직 (Refund-Safe Subscriptions)**:
+  - `subscription_status` enum: `active`, `cancelled`, `expired`, `pending`, `refunded`
+  - PayPal 웹훅: `POST /api/payments/paypal/webhook` — `PAYMENT.SALE.REFUNDED`, `PAYMENT.SALE.REVERSED` 처리
+  - NicePay 웹훅: `POST /api/payments/nicepay/webhook` — 환불 콜백 처리
+  - 환불 시: `subscription.status = 'refunded'`, `endDate = now()` → 즉시 접근 차단 (잔여 기간 무시)
+  - `getActiveSubscription()`: `status === 'refunded'`는 매칭 불가 → 자동 deny
+  - **멱등성**: `webhook_events` 테이블 (eventId UNIQUE) — 중복 웹훅 처리 방지
+  - **시그니처 검증**: PayPal API 서명 검증 (`PAYPAL_WEBHOOK_ID` 필수), NicePay HMAC-SHA256 (`NICEPAY_WEBHOOK_SECRET` 필수)
+  - `apps/server/src/services/payment/refund.service.ts` — 환불 처리 로직
+  - Raw body 보존: `express.json({ verify })` — webhook 경로만 `req.rawBody` 저장
 
 ### 7. Push Notifications (Firebase FCM)
 - 음악 생성 완료, 관리자 문의 답변 시 자동 발송
@@ -304,6 +314,8 @@ teum/
 - `PAYPAL_CLIENT_ID` - PayPal REST API Client ID
 - `PAYPAL_CLIENT_SECRET` - PayPal REST API Secret
 - `PAYPAL_MODE` - `live`면 운영 API, 미설정 시 sandbox
+- `PAYPAL_WEBHOOK_ID` - PayPal 웹훅 ID (환불 이벤트 서명 검증용, PayPal Dashboard에서 생성)
+- `NICEPAY_WEBHOOK_SECRET` - NicePay 웹훅 시크릿 (환불 콜백 HMAC 검증용)
 - `BACKEND_URL` - NicePay/PayPal returnUrl 생성용 백엔드 URL
 - `SOLAPI_API_KEY` - 솔라피 API Key (SMS)
 - `SOLAPI_API_SECRET` - 솔라피 API Secret

@@ -51,8 +51,23 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    const url = (req as express.Request).originalUrl || (req as express.Request).url || '';
+    if (url.includes('/webhook')) {
+      (req as express.Request & { rawBody?: string }).rawBody = buf.toString('utf8');
+    }
+  },
+}));
+app.use(express.urlencoded({
+  extended: true,
+  verify: (req, _res, buf) => {
+    const url = (req as express.Request).originalUrl || (req as express.Request).url || '';
+    if (url.includes('/webhook')) {
+      (req as express.Request & { rawBody?: string }).rawBody = buf.toString('utf8');
+    }
+  },
+}));
 app.use(cookieParser());
 app.use(setCacheHeaders);
 app.use(performanceMiddleware);

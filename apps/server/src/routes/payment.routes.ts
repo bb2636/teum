@@ -6,9 +6,11 @@ const router: Router = Router();
 
 router.post('/nicepay/return', paymentController.nicepayReturn.bind(paymentController));
 router.post('/nicepay/billing-return', paymentController.nicepayBillingReturn.bind(paymentController));
+router.post('/nicepay/webhook', paymentController.nicepayWebhook.bind(paymentController));
 router.get('/plan-price', paymentController.getPlanPrice.bind(paymentController));
 router.get('/paypal/return', paymentController.paypalReturn.bind(paymentController));
 router.get('/paypal/cancel', paymentController.paypalCancel.bind(paymentController));
+router.post('/paypal/webhook', paymentController.paypalWebhook.bind(paymentController));
 
 router.use(authenticate);
 

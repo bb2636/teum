@@ -215,9 +215,9 @@ export function HomePage() {
       setTimeout(() => {
         setToastMessages((prev) => prev.filter((t) => t.id !== toastId));
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create folder:', error);
-      const msg = error?.message || '';
+      const msg = error instanceof Error ? error.message : '';
       if (msg.includes('2 folders') || msg.includes('FOLDER_LIMIT')) {
         setShowFolderLimitModal(true);
       } else {

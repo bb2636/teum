@@ -56,8 +56,8 @@ export function AdMobTestPage() {
       AdMob = mod.AdMob;
       InterstitialAdPluginEvents = mod.InterstitialAdPluginEvents;
       updateStep(1, { status: 'ok', detail: 'Plugin imported successfully' });
-    } catch (e: any) {
-      updateStep(1, { status: 'fail', detail: `Import failed: ${e.message || e}` });
+    } catch (e: unknown) {
+      updateStep(1, { status: 'fail', detail: `Import failed: ${e instanceof Error ? e.message : String(e)}` });
       for (let i = 2; i < initial.length; i++) {
         updateStep(i, { status: 'fail', detail: 'Skipped' });
       }
@@ -69,8 +69,8 @@ export function AdMobTestPage() {
     try {
       await AdMob.initialize({ initializeForTesting: true });
       updateStep(2, { status: 'ok', detail: 'MobileAds initialized' });
-    } catch (e: any) {
-      updateStep(2, { status: 'fail', detail: `${e.message || e}` });
+    } catch (e: unknown) {
+      updateStep(2, { status: 'fail', detail: `${e instanceof Error ? e.message : String(e)}` });
       for (let i = 3; i < initial.length; i++) {
         updateStep(i, { status: 'fail', detail: 'Skipped' });
       }
@@ -106,8 +106,8 @@ export function AdMobTestPage() {
       await loadPromise;
       updateStep(4, { status: 'ok', detail: 'Loaded event received' });
 
-    } catch (e: any) {
-      const msg = `${e.message || e}`;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes('FailedToLoad')) {
         updateStep(3, { status: 'ok', detail: `prepareInterstitial resolved, adId: ${adId}` });
         updateStep(4, { status: 'fail', detail: msg });
@@ -127,8 +127,8 @@ export function AdMobTestPage() {
     try {
       await AdMob.showInterstitial();
       updateStep(5, { status: 'ok', detail: 'Ad shown successfully' });
-    } catch (e: any) {
-      updateStep(5, { status: 'fail', detail: `${e.message || e}` });
+    } catch (e: unknown) {
+      updateStep(5, { status: 'fail', detail: `${e instanceof Error ? e.message : String(e)}` });
     }
 
     setRunning(false);

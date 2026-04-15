@@ -172,10 +172,10 @@ export function PaymentHistoryPage() {
               await cancelSubscription.mutateAsync(effectiveSubscription.id);
               setShowCancelModal(false);
               setShowCancelSuccess(true);
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error('Failed to cancel subscription:', error);
               setShowCancelModal(false);
-              const msg = error?.message || '';
+              const msg = error instanceof Error ? error.message : '';
               if (msg.includes('active') || msg.includes('cancelled')) {
                 setCancelErrorMessage(t('payment.alreadyCancelled'));
               } else {

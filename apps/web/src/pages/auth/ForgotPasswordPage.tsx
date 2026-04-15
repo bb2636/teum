@@ -121,8 +121,8 @@ export function ForgotPasswordPage() {
       setShowPhoneVerificationModal(true);
       setPhoneVerified(false);
       setPhoneVerificationInput('');
-    } catch (err: any) {
-      setError(err?.message || t('auth.verificationSendFailed'));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('auth.verificationSendFailed'));
     }
   };
 
@@ -149,8 +149,8 @@ export function ForgotPasswordPage() {
           } else {
             setError(t('auth.resetTokenFailed'));
           }
-        } catch (resetErr: any) {
-          const errorMessage = resetErr?.message || t('auth.accountNotFound');
+        } catch (resetErr: unknown) {
+          const errorMessage = resetErr instanceof Error ? resetErr.message : t('auth.accountNotFound');
           setError(errorMessage);
         }
       }

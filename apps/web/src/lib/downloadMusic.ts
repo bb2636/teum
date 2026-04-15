@@ -88,8 +88,8 @@ async function handleIOSWebDownload(url: string, filename: string): Promise<void
     link.click();
     document.body.removeChild(link);
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-  } catch (err: any) {
-    alert(`다운로드에 실패했습니다: ${err?.message || '네트워크 오류'}`);
+  } catch (err: unknown) {
+    alert(`다운로드에 실패했습니다: ${err instanceof Error ? err.message : '네트워크 오류'}`);
   }
 }
 
@@ -132,8 +132,8 @@ async function handleNativeDownload(url: string, filename: string, platform: str
           const uriResult = await Filesystem.getUri({ path, directory: dir });
           savedUri = uriResult?.uri || null;
           break;
-        } catch (e: any) {
-          errors.push(`${label}: ${e?.message || String(e)}`);
+        } catch (e: unknown) {
+          errors.push(`${label}: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
 
@@ -156,8 +156,8 @@ async function handleNativeDownload(url: string, filename: string, platform: str
           await navigator.share({ files: [file], title: filename });
           return;
         }
-      } catch (shareErr: any) {
-        errors.push(`WebShare: ${shareErr?.message || String(shareErr)}`);
+      } catch (shareErr: unknown) {
+        errors.push(`WebShare: ${shareErr instanceof Error ? shareErr.message : String(shareErr)}`);
       }
 
       await showUrlCopyFallback(url, filename, errors);
@@ -187,7 +187,7 @@ async function handleNativeDownload(url: string, filename: string, platform: str
           throw new Error('Failed to get file URI');
         }
         return;
-      } catch (e: any) {
+      } catch (e: unknown) {
         try {
           const resp = await fetch(url);
           if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -198,12 +198,12 @@ async function handleNativeDownload(url: string, filename: string, platform: str
             return;
           }
         } catch {}
-        await showUrlCopyFallback(url, filename, [e?.message || String(e)]);
+        await showUrlCopyFallback(url, filename, [e instanceof Error ? e.message : String(e)]);
         return;
       }
     }
-  } catch (err: any) {
-    alert(`다운로드 오류: ${err?.message || String(err)}`);
+  } catch (err: unknown) {
+    alert(`다운로드 오류: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

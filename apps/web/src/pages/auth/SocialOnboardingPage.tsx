@@ -234,8 +234,8 @@ export function SocialOnboardingPage() {
     try {
       await requestPhoneVerification.mutateAsync(phone);
       setShowPhoneVerificationModal(true);
-    } catch (err: any) {
-      setError(err?.message || t('auth.verificationFailed'));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('auth.verificationFailed'));
     }
   };
 
@@ -252,8 +252,8 @@ export function SocialOnboardingPage() {
       setShowPhoneVerificationModal(false);
       setPhoneVerificationInput('');
       setPhoneVerificationError(null);
-    } catch (err: any) {
-      setPhoneVerificationError(err?.message || t('auth.verificationInvalid'));
+    } catch (err: unknown) {
+      setPhoneVerificationError(err instanceof Error ? err.message : t('auth.verificationInvalid'));
     }
   };
 

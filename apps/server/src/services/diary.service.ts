@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { diaryRepository } from '../repositories/diary.repository';
 import { folderRepository } from '../repositories/folder.repository';
@@ -80,40 +80,34 @@ export class DiaryService {
     if (data.type === 'question_based' && data.answers && data.answers.length > 0) {
       await diaryRepository.createAnswers(diary.id, data.answers);
 
-      // Record question usage for new question system
-      for (const answer of data.answers) {
-        await questionService.recordQuestionUsage(userId, answer.questionId, diary.id);
+      await questionRepository.recordQuestionUsageBatch(
+        data.answers.map((a) => ({ userId, questionId: a.questionId, diaryId: diary.id }))
+      );
+
+      const questionIds = data.answers.map((a) => a.questionId);
+      const questionsFromDb = await questionRepository.findByIds(questionIds);
+      const questionMap = new Map(questionsFromDb.map((q) => [q.id, q.question]));
+
+      const missingIds = questionIds.filter((id) => !questionMap.has(id));
+      if (missingIds.length > 0) {
+        const { diaryQuestions } = await import('../db/schema');
+        const oldQuestions = await db
+          .select()
+          .from(diaryQuestions)
+          .where(inArray(diaryQuestions.id, missingIds));
+        for (const oq of oldQuestions) {
+          questionMap.set(oq.id, oq.question);
+        }
+        const stillMissing = missingIds.filter((id) => !questionMap.has(id));
+        if (stillMissing.length > 0) {
+          logger.warn({ questionIds: stillMissing, diaryId: diary.id }, 'Question text not found in both tables');
+        }
       }
 
-      // Build questionAnswers for AI encouragement: fetch question text from questions table
-      // (diary_answers.questionId can reference either questions table (new) or diary_questions (old))
-      questionAnswers = await Promise.all(
-        data.answers.map(async ({ questionId, answer }) => {
-          // Try to get question from questions table first (new system)
-          let q = await questionRepository.findById(questionId);
-          let questionText = q?.question ?? '';
-          
-          // If not found, try diary_questions table (old system, backward compatibility)
-          if (!questionText) {
-            const { diaryQuestions } = await import('../db/schema');
-            const [oldQuestion] = await db
-              .select()
-              .from(diaryQuestions)
-              .where(eq(diaryQuestions.id, questionId))
-              .limit(1);
-            questionText = oldQuestion?.question ?? '';
-            
-            if (questionText) {
-              logger.info('Found question in diary_questions table (old system)', { questionId, diaryId: diary.id });
-            }
-          }
-          
-          if (!questionText) {
-            logger.warn('Question text not found in both tables for questionId', { questionId, diaryId: diary.id });
-          }
-          return { question: questionText, answer };
-        })
-      );
+      questionAnswers = data.answers.map(({ questionId, answer }) => ({
+        question: questionMap.get(questionId) ?? '',
+        answer,
+      }));
       
       // Log question answers for debugging
       logger.info('Question answers prepared for AI', {
@@ -240,31 +234,32 @@ export class DiaryService {
       // For question-based diaries, fetch answers to include in AI analysis
       let questionAnswers: Array<{ question: string; answer: string }> = [];
       if (updatedDiary.type === 'question_based' && updatedDiary.answers && updatedDiary.answers.length > 0) {
-        // Build questionAnswers from existing answers
-        questionAnswers = await Promise.all(
-          updatedDiary.answers.map(async (answer) => {
-            // Try to get question from questions table first (new system)
-            let q = await questionRepository.findById(answer.questionId);
-            let questionText = q?.question ?? '';
-            
-            // If not found, try diary_questions table (old system, backward compatibility)
-            if (!questionText && answer.question?.question) {
-              questionText = answer.question.question;
-            }
-            
-            if (!questionText) {
-              const { diaryQuestions } = await import('../db/schema');
-              const [oldQuestion] = await db
-                .select()
-                .from(diaryQuestions)
-                .where(eq(diaryQuestions.id, answer.questionId))
-                .limit(1);
-              questionText = oldQuestion?.question ?? '';
-            }
-            
-            return { question: questionText, answer: answer.answer };
-          })
-        );
+        const answerQuestionIds = updatedDiary.answers.map((a) => a.questionId);
+        const questionsFromDb = await questionRepository.findByIds(answerQuestionIds);
+        const questionMap = new Map(questionsFromDb.map((q) => [q.id, q.question]));
+
+        for (const a of updatedDiary.answers) {
+          if (!questionMap.has(a.questionId) && a.question?.question) {
+            questionMap.set(a.questionId, a.question.question);
+          }
+        }
+
+        const missingIds = answerQuestionIds.filter((id) => !questionMap.has(id));
+        if (missingIds.length > 0) {
+          const { diaryQuestions } = await import('../db/schema');
+          const oldQuestions = await db
+            .select()
+            .from(diaryQuestions)
+            .where(inArray(diaryQuestions.id, missingIds));
+          for (const oq of oldQuestions) {
+            questionMap.set(oq.id, oq.question);
+          }
+        }
+
+        questionAnswers = updatedDiary.answers.map((a) => ({
+          question: questionMap.get(a.questionId) ?? '',
+          answer: a.answer,
+        }));
         
         logger.info('Question answers prepared for AI (update)', {
           diaryId: id,

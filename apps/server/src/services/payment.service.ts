@@ -70,11 +70,10 @@ export class PaymentService {
       throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
     }
 
-    // TODO: 본인인증 임시 비활성화 — 나중에 다시 활성화 필요
-    // const needsVerification = await this.needsIdentityVerification(userId);
-    // if (needsVerification && !input.identityVerified) {
-    //   throw new Error('재구독 시 본인인증이 필요합니다.');
-    // }
+    const needsVerification = await this.needsIdentityVerification(userId);
+    if (needsVerification && !input.identityVerified) {
+      throw new Error('재구독 시 본인인증이 필요합니다.');
+    }
 
     const orderId = `BILLING_${Date.now()}_${userId.substring(0, 8)}`;
 

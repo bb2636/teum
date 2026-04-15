@@ -281,27 +281,26 @@ ${diaryText.substring(0, 2000)}`;
           temperature: 0.9,
           max_tokens: 200,
         });
-      } catch (apiError: any) {
-        // OpenAI SDK 에러는 구조가 다를 수 있음
-        const errorInfo: Record<string, any> = {
+      } catch (apiError: unknown) {
+        const err = apiError as Record<string, unknown>;
+        const errorInfo: Record<string, unknown> = {
           errorMessage: apiError instanceof Error ? apiError.message : String(apiError),
           errorName: apiError instanceof Error ? apiError.name : undefined,
           model: this.model,
           promptLength: prompt.length,
         };
 
-        // OpenAI SDK 에러 속성들
-        if (apiError?.code) errorInfo.errorCode = apiError.code;
-        if (apiError?.status) errorInfo.errorStatus = apiError.status;
-        if (apiError?.statusText) errorInfo.errorStatusText = apiError.statusText;
-        if (apiError?.type) errorInfo.errorType = apiError.type;
+        if (err?.code) errorInfo.errorCode = err.code;
+        if (err?.status) errorInfo.errorStatus = err.status;
+        if (err?.statusText) errorInfo.errorStatusText = err.statusText;
+        if (err?.type) errorInfo.errorType = err.type;
         
         // response 객체가 있는 경우
-        if (apiError?.response) {
+        if (err?.response) {
           try {
-            errorInfo.errorResponse = typeof apiError.response === 'string' 
-              ? apiError.response 
-              : JSON.stringify(apiError.response, null, 2);
+            errorInfo.errorResponse = typeof err.response === 'string' 
+              ? err.response 
+              : JSON.stringify(err.response, null, 2);
           } catch (e) {
             errorInfo.errorResponse = 'Failed to stringify response';
           }
@@ -309,10 +308,10 @@ ${diaryText.substring(0, 2000)}`;
 
         // error 객체의 모든 속성 로깅
         if (apiError && typeof apiError === 'object') {
-          Object.keys(apiError).forEach((key) => {
+          Object.keys(apiError as object).forEach((key) => {
             if (!errorInfo[key] && !key.startsWith('_')) {
               try {
-                const value = apiError[key];
+                const value = (apiError as Record<string, unknown>)[key];
                 if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
                   errorInfo[`error_${key}`] = value;
                 } else if (value === null || value === undefined) {
@@ -321,7 +320,7 @@ ${diaryText.substring(0, 2000)}`;
                   errorInfo[`error_${key}`] = JSON.stringify(value).substring(0, 500);
                 }
               } catch (e) {
-                errorInfo[`error_${key}`] = String(apiError[key]).substring(0, 500);
+                errorInfo[`error_${key}`] = String((apiError as Record<string, unknown>)[key]).substring(0, 500);
               }
             }
           });
@@ -349,15 +348,15 @@ ${diaryText.substring(0, 2000)}`;
       const finalMessage = firstSentence || message.substring(0, 100);
       logger.info('Final encouragement message', { finalMessage });
       return finalMessage;
-    } catch (error: any) {
-      // 더 상세한 에러 로깅
-      const errorDetails: Record<string, any> = {
+    } catch (error: unknown) {
+      const err = error as Record<string, unknown>;
+      const errorDetails: Record<string, unknown> = {
         errorMessage: error instanceof Error ? error.message : String(error),
         errorName: error instanceof Error ? error.name : undefined,
-        errorCode: error?.code,
-        errorStatus: error?.status,
-        errorStatusText: error?.statusText,
-        errorType: error?.type,
+        errorCode: err?.code,
+        errorStatus: err?.status,
+        errorStatusText: err?.statusText,
+        errorType: err?.type,
         inputType: input.type,
         hasContent: !!input.content,
         contentLength: input.content?.length || 0,
@@ -365,23 +364,22 @@ ${diaryText.substring(0, 2000)}`;
         answersCount: input.answers?.length || 0,
       };
 
-      // OpenAI API 에러인 경우 추가 정보
-      if (error?.response) {
+      if (err?.response) {
         try {
-          errorDetails.openAIResponse = JSON.stringify(error.response.data || error.response);
+          const resp = err.response as Record<string, unknown>;
+          errorDetails.openAIResponse = JSON.stringify(resp.data || resp);
         } catch (e) {
           errorDetails.openAIResponse = 'Failed to stringify response';
         }
       }
 
-      // 에러 객체의 모든 속성 로깅
       if (error && typeof error === 'object') {
-        Object.keys(error).forEach((key) => {
+        Object.keys(error as object).forEach((key) => {
           if (!errorDetails[key] && key !== 'stack') {
             try {
-              errorDetails[`error_${key}`] = JSON.stringify(error[key]);
+              errorDetails[`error_${key}`] = JSON.stringify((error as Record<string, unknown>)[key]);
             } catch (e) {
-              errorDetails[`error_${key}`] = String(error[key]);
+              errorDetails[`error_${key}`] = String((error as Record<string, unknown>)[key]);
             }
           }
         });

@@ -853,10 +853,11 @@ export function DiaryWritePage() {
           } as unknown as React.ChangeEvent<HTMLInputElement>;
           handleImageSelect(fakeEvent);
         }
-      } catch (err: any) {
-        if (err?.message?.includes('denied') || err?.message?.includes('permission')) {
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.includes('denied') || msg.includes('permission')) {
           alert(t('diary.cameraPermissionDenied') || '카메라 권한이 필요합니다. 설정에서 카메라 권한을 허용해주세요.');
-        } else if (!err?.message?.includes('cancelled') && !err?.message?.includes('User cancelled')) {
+        } else if (!msg.includes('cancelled') && !msg.includes('User cancelled')) {
           console.log('Camera error:', err);
         }
       }

@@ -188,30 +188,37 @@ export class MusicPollingService {
     }
   }
 
-  /**
-   * Poll all pending/processing jobs
-   * Should be called periodically (e.g., every 10 seconds)
-   */
+  private isPolling = false;
+
   async pollAllPendingJobs(): Promise<void> {
-    const pendingJobs = await db
-      .select()
-      .from(musicJobs)
-      .where(
-        and(
-          eq(musicJobs.status, 'processing'),
-          // Only poll jobs older than 5 seconds (avoid immediate polling)
-          // This is a simple check - in production, use a proper timestamp comparison
-        )
-      );
+    if (this.isPolling) {
+      logger.info('Polling already in progress, skipping');
+      return;
+    }
 
-    logger.info('Polling pending music jobs', { count: pendingJobs.length });
+    this.isPolling = true;
+    try {
+      const pendingJobs = await db
+        .select()
+        .from(musicJobs)
+        .where(
+          and(
+            eq(musicJobs.status, 'processing'),
+          )
+        );
 
-    for (const job of pendingJobs) {
-      if (job.providerJobId) {
-        await this.pollJob(job.id);
-        // Small delay between polls to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      if (pendingJobs.length > 0) {
+        logger.info({ count: pendingJobs.length }, 'Polling pending music jobs');
       }
+
+      for (const job of pendingJobs) {
+        if (job.providerJobId) {
+          await this.pollJob(job.id);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    } finally {
+      this.isPolling = false;
     }
   }
 }

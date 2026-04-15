@@ -11,6 +11,7 @@ import { authenticate } from './middleware/auth';
 import { requireRole } from './middleware/auth';
 import { adapter } from './storage';
 import { globalApiLimiter } from './middleware/rate-limiter';
+import { csrfProtection } from './middleware/csrf';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +55,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(setCacheHeaders);
 app.use(performanceMiddleware);
+app.use('/api', csrfProtection);
 app.use('/api', globalApiLimiter);
 
 // Health check

@@ -43,11 +43,15 @@ export function errorHandler(
   const statusCode = (err as ApiError).statusCode || 500;
   const code = (err as ApiError).code || 'INTERNAL_SERVER_ERROR';
 
+  const safeMessage = statusCode >= 500
+    ? 'Internal server error'
+    : err.message || 'An error occurred';
+
   return res.status(statusCode).json({
     success: false,
     error: {
       code,
-      message: err.message || 'Internal server error',
+      message: safeMessage,
     },
   });
 }

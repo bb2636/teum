@@ -1,4 +1,4 @@
-import { eq, and, isNull, notInArray, desc, gte, asc } from 'drizzle-orm';
+import { eq, and, isNull, notInArray, desc, gte, asc, inArray } from 'drizzle-orm';
 import { db, sqlClient } from '../db';
 import { logger } from '../config/logger';
 import { questions, userQuestionHistory } from '../db/schema';
@@ -27,6 +27,25 @@ export class QuestionRepository {
       .where(and(eq(questions.id, id), isNull(questions.deletedAt)))
       .limit(1);
     return question;
+  }
+
+  async findByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    const uniqueIds = [...new Set(ids)];
+    return db
+      .select()
+      .from(questions)
+      .where(and(inArray(questions.id, uniqueIds), isNull(questions.deletedAt)));
+  }
+
+  async recordQuestionUsageBatch(
+    entries: Array<{ userId: string; questionId: string; diaryId?: string }>
+  ) {
+    if (entries.length === 0) return [];
+    return db
+      .insert(userQuestionHistory)
+      .values(entries)
+      .returning();
   }
 
   async create(data: { question: string; isActive?: boolean; sortOrder?: number }) {

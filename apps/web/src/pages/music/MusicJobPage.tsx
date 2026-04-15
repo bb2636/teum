@@ -27,7 +27,7 @@ export function MusicJobPage() {
     setIsDownloading(true);
     try {
       await downloadMusicFile(job.jobId, job.title, job.audioUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Download failed:', err);
     } finally {
       setIsDownloading(false);

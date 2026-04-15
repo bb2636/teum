@@ -18,17 +18,31 @@ async function getUserLanguage(userId: string): Promise<string> {
   }
 }
 
-async function translateDiaryQuestions(diary: any, lang: string) {
+interface DiaryAnswer {
+  questionId: string;
+  answer: string;
+  question?: { question: string };
+}
+
+interface DiaryWithAnswers {
+  answers?: DiaryAnswer[];
+  [key: string]: unknown;
+}
+
+async function translateDiaryQuestions(diary: DiaryWithAnswers, lang: string) {
   if (!diary?.answers?.length || lang === 'ko') return diary;
-  const questionsToTranslate = diary.answers
-    .filter((a: any) => a.question?.question)
-    .map((a: any) => ({ id: a.questionId, question: a.question.question }));
+  const questionsToTranslate: { id: string; question: string }[] = [];
+  for (const a of diary.answers) {
+    if (a.question?.question) {
+      questionsToTranslate.push({ id: a.questionId, question: a.question.question });
+    }
+  }
   if (questionsToTranslate.length === 0) return diary;
   const translated = await getTranslatedQuestions(questionsToTranslate, lang);
   const translatedMap = new Map(translated.map((q) => [q.id, q.question]));
   for (const answer of diary.answers) {
     if (answer.question?.question && translatedMap.has(answer.questionId)) {
-      answer.question = { ...answer.question, question: translatedMap.get(answer.questionId) };
+      answer.question = { ...answer.question, question: translatedMap.get(answer.questionId)! };
     }
   }
   return diary;
@@ -54,7 +68,7 @@ export class DiaryController {
       const result = await diaryService.getDiaries(req.user.userId, folderId, limit != null ? { limit, offset } : undefined);
       const lang = await getUserLanguage(req.user.userId);
       if (lang !== 'ko') {
-        await Promise.all(result.items.map((diary: any) => translateDiaryQuestions(diary, lang)));
+        await Promise.all(result.items.map((diary) => translateDiaryQuestions(diary as DiaryWithAnswers, lang)));
       }
       res.json({
         success: true,

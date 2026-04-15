@@ -525,9 +525,9 @@ export class AuthService {
   }
 
   async socialOnboarding(input: SocialOnboardingInput) {
-    let tokenPayload: any;
+    let tokenPayload: Record<string, unknown>;
     try {
-      tokenPayload = jwt.verify(input.onboardingToken, process.env.JWT_SECRET!);
+      tokenPayload = jwt.verify(input.onboardingToken, process.env.JWT_SECRET!) as Record<string, unknown>;
     } catch {
       throw new Error('온보딩 토큰이 만료되었거나 유효하지 않습니다. 다시 소셜 로그인을 진행해주세요.');
     }

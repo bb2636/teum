@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X, CreditCard, Globe } from 'lucide-react';
-import { useInitBillingKey, useInitPayPal, usePlanPrice } from '@/hooks/usePayment';
+import { useInitBillingKey, useInitPayPal, usePlanPrice, useNeedsVerification } from '@/hooks/usePayment';
 import { PaymentTermsSheet } from '@/components/PaymentTermsSheet';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
@@ -43,6 +43,7 @@ export function PaymentPage() {
   const t = useT();
   const planName = searchParams.get('plan') || t('payment.plan');
   const { data: planPrice } = usePlanPrice();
+  const { data: needsVerificationData, isLoading: isVerificationLoading } = useNeedsVerification();
   const isKorean = getCurrentLanguage() === 'ko';
   const displayAmount = isKorean ? (planPrice?.krw ?? 5800) : planPrice?.usd ?? 3.99;
   const displayAmountFormatted = isKorean ? displayAmount.toLocaleString() : (displayAmount as number).toFixed(2);
@@ -59,8 +60,7 @@ export function PaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
 
-  // TODO: 본인인증 재활성화 시 identityVerified 체크 복구 필요
-  const [_identityVerified, setIdentityVerified] = useState(false);
+  const [identityVerified, setIdentityVerified] = useState(false);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [identityPhone, setIdentityPhone] = useState('');
   const [identityCode, setIdentityCode] = useState('');
@@ -95,6 +95,13 @@ export function PaymentPage() {
   const handleTermsAgreed = (agreed: boolean) => {
     if (agreed) {
       setShowTermsSheet(false);
+      if (isVerificationLoading) {
+        return;
+      }
+      if (needsVerificationData && !identityVerified) {
+        setShowIdentityModal(true);
+        return;
+      }
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
       } else {
@@ -116,9 +123,9 @@ export function PaymentPage() {
       } else {
         window.location.href = result.approveUrl;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('PayPal init error:', error);
-      alert(error?.message || t('payment.initError'));
+      alert(error instanceof Error ? error.message : t('payment.initError'));
       setIsProcessing(false);
     }
   };
@@ -130,7 +137,7 @@ export function PaymentPage() {
       const initResult = await initBillingKey.mutateAsync({
         planName,
         paymentMethod: 'CARD',
-        identityVerified: true,
+        identityVerified,
       });
 
       if (!window.AUTHNICE) {
@@ -174,9 +181,9 @@ export function PaymentPage() {
         }
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Billing key init error:', error);
-      alert(error?.message || t('payment.initError'));
+      alert(error instanceof Error ? error.message : t('payment.initError'));
       setIsProcessing(false);
     }
   };
@@ -187,8 +194,8 @@ export function PaymentPage() {
     try {
       await requestPhoneVerification.mutateAsync(identityPhone);
       setIdentityCodeSent(true);
-    } catch (err: any) {
-      setIdentityError(err?.message || t('auth.verificationFailed'));
+    } catch (err: unknown) {
+      setIdentityError(err instanceof Error ? err.message : t('auth.verificationFailed'));
     }
   };
 
@@ -200,9 +207,13 @@ export function PaymentPage() {
       setIdentityVerified(true);
       setShowIdentityModal(false);
       setIdentityCode('');
-      handleStartBillingRegistration();
-    } catch (err: any) {
-      setIdentityError(err?.message || t('auth.verificationInvalid'));
+      if (paymentMethod === 'paypal') {
+        handleStartPayPal();
+      } else {
+        handleStartBillingRegistration();
+      }
+    } catch (err: unknown) {
+      setIdentityError(err instanceof Error ? err.message : t('auth.verificationInvalid'));
     }
   };
 

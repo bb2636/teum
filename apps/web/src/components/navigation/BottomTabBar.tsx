@@ -3,6 +3,7 @@ import { Home, Calendar, Music, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef, useEffect, useCallback } from 'react';
 import { useT } from '@/hooks/useTranslation';
+import { useTheme } from '@/contexts/ThemeContext';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/api';
 
@@ -45,6 +46,8 @@ const prefetchMap: Record<string, () => void> = {
 
 export function BottomTabBar() {
   const t = useT();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const location = useLocation();
   const prevPathRef = useRef(location.pathname);
   const activeTabRef = useRef<HTMLDivElement | null>(null);
@@ -85,9 +88,13 @@ export function BottomTabBar() {
             <div
               className="absolute inset-0 rounded-full"
               style={{
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.03) 40%, rgba(0,0,0,0.08) 100%)',
+                background: isDark
+                  ? 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.08) 100%)'
+                  : 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.03) 40%, rgba(0,0,0,0.08) 100%)',
                 padding: '1.5px',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 0 4px rgba(0,0,0,0.04)',
+                boxShadow: isDark
+                  ? '0 2px 12px rgba(0,0,0,0.4), 0 0 4px rgba(0,0,0,0.2)'
+                  : '0 2px 12px rgba(0,0,0,0.08), 0 0 4px rgba(0,0,0,0.04)',
               }}
             >
               <div className="w-full h-full bg-white rounded-full" />

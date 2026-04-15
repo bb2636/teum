@@ -538,8 +538,8 @@ export class PaymentController {
     }
 
     if (!NICEPAY_WEBHOOK_SECRET) {
-      logger.error('NICEPAY_WEBHOOK_SECRET not configured, rejecting webhook');
-      return res.status(503).json({ error: 'Webhook not configured' });
+      logger.warn('NICEPAY_WEBHOOK_SECRET not configured, accepting but not processing webhook');
+      return res.status(200).json({ success: true });
     }
 
     if (!rawBody) {

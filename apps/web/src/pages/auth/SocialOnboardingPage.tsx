@@ -368,7 +368,7 @@ export function SocialOnboardingPage() {
                 className={`bg-gray-100 ${profileErrors.email || emailError.length > 0 ? 'border-red-500' : ''}`}
                 disabled={isGoogleProvider}
               />
-              {profileErrors.email && watchEmail && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
+              {profileErrors.email && watchEmail && !isAppleHiddenEmail && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
               {emailError.length > 0 && emailError.map((err, i) => (
                 <p key={i} className="text-sm text-red-500">{err}</p>
               ))}

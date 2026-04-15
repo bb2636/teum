@@ -92,7 +92,7 @@ export const mobileTokenExchangeLimiter = rateLimit({
 
 export const globalApiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'production' ? 100 : 500,
   message: {
     success: false,
     error: {

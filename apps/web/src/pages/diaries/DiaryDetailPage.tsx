@@ -278,7 +278,7 @@ export function DiaryDetailPage() {
           </div>
 
           {(diary.aiMessage || diary.aiFeedback?.outputText) && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300 mt-4">
+            <div className="diary-ai-card bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-300 mt-4">
               <p className="text-sm font-semibold text-amber-800 mb-2">{t('diary.encouragementMessage')}</p>
               <p className="text-base text-brown-800 leading-relaxed">
                 {diary.aiMessage || diary.aiFeedback?.outputText}
@@ -287,7 +287,7 @@ export function DiaryDetailPage() {
           )}
 
           {diary.aiSummary && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-300 mt-4">
+            <div className="diary-ai-card bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-300 mt-4">
               <p className="text-sm font-semibold text-blue-800 mb-2">{t('diary.aiSummary')}</p>
               <p className="text-base text-brown-800 leading-relaxed">
                 {diary.aiSummary}
@@ -297,7 +297,8 @@ export function DiaryDetailPage() {
 
           <button
             onClick={() => setShowComingSoon(true)}
-            className="w-full mt-4 py-3.5 px-4 rounded-full bg-[#F5F0EB] text-[#4A2C1A] font-medium transition-colors hover:bg-[#EDE5DC] flex items-center justify-center gap-2"
+            className="diary-ai-chat-btn w-full mt-4 mb-8 py-3.5 px-4 rounded-full bg-[#F5F0EB] text-[#4A2C1A] font-medium transition-colors hover:bg-[#EDE5DC] flex items-center justify-center gap-2"
+            style={{ marginBottom: 'max(2rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))' }}
           >
             <MessageCircle className="w-4 h-4" />
             {t('diary.chatWithAi')}

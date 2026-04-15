@@ -479,17 +479,40 @@ input[type="checkbox"] {
 
 
 
-[data-theme="dark"] .diary-detail-content .text-amber-800,
-[data-theme="dark"] .diary-detail-content .text-blue-800 {
-  color: #FFFFFF !important;
+[data-theme="dark"] .diary-detail-content .diary-ai-card {
+  background-color: #FFFFFF !important;
+  border-color: inherit;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
-[data-theme="dark"] .diary-detail-content .border-amber-300 {
-  border-color: #b45309 !important;
+[data-theme="dark"] .diary-detail-content .diary-ai-card p,
+[data-theme="dark"] .diary-detail-content .diary-ai-card span {
+  color: inherit !important;
 }
 
-[data-theme="dark"] .diary-detail-content .border-blue-300 {
-  border-color: #2563eb !important;
+[data-theme="dark"] .diary-detail-content .diary-ai-card .text-amber-800 {
+  color: #92400e !important;
+}
+
+[data-theme="dark"] .diary-detail-content .diary-ai-card .text-blue-800 {
+  color: #1e40af !important;
+}
+
+[data-theme="dark"] .diary-detail-content .diary-ai-card .text-brown-800 {
+  color: #4A2C1A !important;
+}
+
+[data-theme="dark"] .diary-detail-content .diary-ai-card .border-amber-300 {
+  border-color: #fcd34d !important;
+}
+
+[data-theme="dark"] .diary-detail-content .diary-ai-card .border-blue-300 {
+  border-color: #93c5fd !important;
+}
+
+[data-theme="dark"] .diary-detail-content .diary-ai-chat-btn {
+  background-color: #F5F0EB !important;
+  color: #4A2C1A !important;
 }
 
 /* Home tagline - white in dark mode */

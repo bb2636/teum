@@ -209,7 +209,7 @@ export class PaymentController {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
       const body = req.body;
-      logger.info('NicePay return FULL body', { body: JSON.stringify(body) });
+      logger.info({ bodyKeys: Object.keys(body).join(', ') }, 'NicePay return received');
       const resultCode = body.authResultCode || body.resultCode;
       const resultMsg = body.authResultMsg || body.resultMsg;
       const { tid, orderId, amount, authToken } = body;

@@ -63,7 +63,18 @@ export class PayPalProvider {
     if (listPlansRes.ok) {
       const plansData = await listPlansRes.json() as { plans?: Array<{ id: string; status: string; name: string; billing_cycles: Array<{ pricing_scheme: { fixed_price: { value: string; currency_code: string } } }> }> };
       const existingPlan = plansData.plans?.find(
-        (p) => p.status === 'ACTIVE' && p.name === 'Teum Music Plan Monthly'
+        (p) => {
+          if (p.status !== 'ACTIVE' || p.name !== 'Teum Music Plan Monthly') return false;
+          const cycle = p.billing_cycles?.[0];
+          if (cycle) {
+            const price = cycle.pricing_scheme?.fixed_price;
+            if (price && (price.value !== amount || price.currency_code !== currency)) {
+              logger.info({ planId: p.id, planPrice: price.value, planCurrency: price.currency_code, expectedAmount: amount, expectedCurrency: currency }, 'Skipping plan with mismatched pricing');
+              return false;
+            }
+          }
+          return true;
+        }
       );
       if (existingPlan) {
         cachedPlanId = existingPlan.id;

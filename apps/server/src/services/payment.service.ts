@@ -1216,11 +1216,3 @@ export class PaymentService {
 }
 
 export const paymentService = new PaymentService();
-
-setInterval(async () => {
-  try {
-    await paymentService.processAutoRenewals();
-  } catch (e) {
-    logger.error('Auto-renewal scheduler error', { error: e });
-  }
-}, 60 * 60 * 1000);

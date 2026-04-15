@@ -109,10 +109,10 @@ export function PaymentPage() {
       const result = await initPayPal.mutateAsync();
       if (Capacitor.isNativePlatform()) {
         await Browser.open({ url: result.approveUrl, windowName: '_self' });
-        const handleBrowserFinished = () => {
+        const listener = await Browser.addListener('browserFinished', () => {
           setIsProcessing(false);
-        };
-        Browser.addListener('browserFinished', handleBrowserFinished);
+          listener.remove();
+        });
       } else {
         window.location.href = result.approveUrl;
       }

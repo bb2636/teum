@@ -84,7 +84,7 @@ export function BottomTabBar() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-transparent bottom-tab-bar" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="max-w-md mx-auto px-4 pb-2 relative">
         <div className="flex items-end justify-center relative">
-          {location.pathname !== '/music' && location.pathname !== '/my' && (
+          {location.pathname !== '/music' && !location.pathname.startsWith('/my') && (
             <div className="absolute bottom-20 right-4 z-50">
               <button
                 onClick={(e) => {

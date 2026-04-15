@@ -143,11 +143,11 @@ export function BottomTabBar() {
                     >
                       <Icon
                         className="w-6 h-6 mb-1"
-                        style={{ color: isActive ? (isDark ? '#c9ad91' : '#4A2C1A') : (isDark ? '#a08870' : '#9ca3af') }}
+                        style={{ color: isActive ? (isDark ? '#c9ad91' : '#4A2C1A') : (isDark ? '#6b5d50' : '#9ca3af') }}
                       />
                       <span
                         className="text-xs font-medium"
-                        style={{ color: isActive ? (isDark ? '#c9ad91' : '#4A2C1A') : (isDark ? '#a08870' : '#9ca3af') }}
+                        style={{ color: isActive ? (isDark ? '#c9ad91' : '#4A2C1A') : (isDark ? '#6b5d50' : '#9ca3af') }}
                       >
                         {t(tab.labelKey)}
                       </span>

@@ -97,11 +97,7 @@ export function PaymentPage() {
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
       } else {
-        if (!identityVerified) {
-          setShowIdentityModal(true);
-        } else {
-          handleStartBillingRegistration();
-        }
+        handleStartBillingRegistration();
       }
     }
   };

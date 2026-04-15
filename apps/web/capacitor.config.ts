@@ -23,6 +23,8 @@ const config: CapacitorConfig = {
       'teum.replit.app',
       'pay.nicepay.co.kr',
       '*.nicepay.co.kr',
+      '*.paypal.com',
+      '*.paypalobjects.com',
     ],
   },
   plugins: {

@@ -10,6 +10,8 @@ import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hook
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 declare global {
   interface Window {
@@ -108,7 +110,15 @@ export function PaymentPage() {
     setIsProcessing(true);
     try {
       const result = await initPayPal.mutateAsync();
-      window.location.href = result.approveUrl;
+      if (Capacitor.isNativePlatform()) {
+        await Browser.open({ url: result.approveUrl, windowName: '_self' });
+        const handleBrowserFinished = () => {
+          setIsProcessing(false);
+        };
+        Browser.addListener('browserFinished', handleBrowserFinished);
+      } else {
+        window.location.href = result.approveUrl;
+      }
     } catch (error: any) {
       console.error('PayPal init error:', error);
       alert(error?.message || t('payment.initError'));
@@ -132,8 +142,7 @@ export function PaymentPage() {
         return;
       }
 
-      const capacitor = (window as any).Capacitor;
-      const isNative = !!capacitor?.isNativePlatform?.();
+      const isNative = Capacitor.isNativePlatform();
 
       const payParams: Record<string, unknown> = {
         clientId: initResult.clientId,

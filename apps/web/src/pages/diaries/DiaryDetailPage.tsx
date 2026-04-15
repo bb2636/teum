@@ -11,12 +11,31 @@ import { DiaryDeleteModal } from './DiaryDeleteModal';
 import { Toast } from '@/components/Toast';
 import DOMPurify from 'dompurify';
 
+const SAFE_CSS_PROPERTY = /^(color|background-color|font-size|font-weight|font-style|text-align|text-decoration|line-height)$/i;
+
 const sanitizeHTML = (html: string) => {
+  DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+    if (data.attrName === 'style' && data.attrValue) {
+      const safe = data.attrValue
+        .split(';')
+        .map((d) => d.trim())
+        .filter((d) => {
+          const [prop] = d.split(':');
+          return prop && SAFE_CSS_PROPERTY.test(prop.trim());
+        })
+        .join('; ');
+      data.attrValue = safe;
+    }
+  });
+
   const clean = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['b', 'i', 'u', 's', 'strike', 'del', 'em', 'strong', 'span', 'p', 'br', 'div', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'pre', 'img', 'font'],
     ALLOWED_ATTR: ['style', 'color', 'src', 'alt', 'class'],
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|data):)/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|data|blob):)|^\/api\/storage\//i,
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
   });
+
+  DOMPurify.removeHook('uponSanitizeAttribute');
   const tmp = document.createElement('div');
   tmp.innerHTML = clean;
   tmp.querySelectorAll('img').forEach((img) => {

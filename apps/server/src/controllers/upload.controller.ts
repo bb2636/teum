@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { adapter } from '../storage';
 import { logger } from '../config/logger';
+import { buildSignedUrl } from '../utils/signed-url';
 
 export class UploadController {
   async uploadImage(req: Request, res: Response, next: NextFunction) {
@@ -42,14 +43,14 @@ export class UploadController {
       const extension = file.originalname.split('.').pop() || 'jpg';
       const filename = `${req.user.userId}/${timestamp}-${randomStr}.${extension}`;
 
-      // Upload to storage adapter
       const url = await adapter.upload(file.buffer, filename, file.mimetype);
+      const signedUrl = buildSignedUrl(url.replace(/^\/storage\//, ''), 86400 * 365);
 
       logger.info('Image uploaded successfully', { userId: req.user.userId, filename });
 
       res.json({
         success: true,
-        data: { url },
+        data: { url, signedUrl },
       });
     } catch (error) {
       logger.error('Upload error:', error);

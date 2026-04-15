@@ -307,17 +307,48 @@ export class MusicController {
       }
 
       const webhookSecret = process.env.MUREKA_WEBHOOK_SECRET;
-      if (webhookSecret) {
-        const authHeader = req.headers['authorization'] || req.headers['x-webhook-secret'];
-        if (authHeader !== webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
-          logger.warn('Music webhook unauthorized attempt', { jobId, ip: req.ip });
-          return res.status(401).json({
-            success: false,
-            error: { code: 'UNAUTHORIZED', message: 'Invalid webhook secret' },
-          });
+      if (!webhookSecret) {
+        logger.error('MUREKA_WEBHOOK_SECRET not configured — rejecting webhook');
+        return res.status(503).json({
+          success: false,
+          error: { code: 'SERVICE_UNAVAILABLE', message: 'Webhook not configured' },
+        });
+      }
+
+      const signature = req.headers['x-webhook-signature'] as string | undefined;
+      const authHeader = (req.headers['authorization'] || req.headers['x-webhook-secret']) as string | undefined;
+
+      let authenticated = false;
+      const crypto = await import('crypto');
+
+      if (signature) {
+        const rawBody = JSON.stringify(req.body);
+        const expected = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+        const sigBuf = Buffer.from(signature);
+        const expBuf = Buffer.from(expected);
+        if (sigBuf.length === expBuf.length) {
+          authenticated = crypto.timingSafeEqual(sigBuf, expBuf);
         }
-      } else {
-        logger.warn('MUREKA_WEBHOOK_SECRET not configured, webhook authentication skipped');
+      }
+
+      if (!authenticated && authHeader) {
+        const candidates = [webhookSecret, `Bearer ${webhookSecret}`];
+        for (const candidate of candidates) {
+          const aBuf = Buffer.from(authHeader);
+          const bBuf = Buffer.from(candidate);
+          if (aBuf.length === bBuf.length && crypto.timingSafeEqual(aBuf, bBuf)) {
+            authenticated = true;
+            break;
+          }
+        }
+      }
+
+      if (!authenticated) {
+        logger.warn({ jobId, ip: req.ip }, 'Music webhook unauthorized attempt');
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Invalid webhook secret' },
+        });
       }
 
       if (status === 'completed' && audio_url) {

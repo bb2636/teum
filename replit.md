@@ -171,7 +171,8 @@ teum/
 ### Billing Key Encryption
 - AES-256-GCM으로 빌링키(bid) 암호화 저장
 - `apps/server/src/utils/encryption.ts` — encrypt/decrypt/isEncrypted 유틸리티
-- 암호화 키: `BILLING_ENCRYPTION_KEY` 또는 `JWT_SECRET`에서 SHA-256 파생
+- 암호화 키: `BILLING_ENCRYPTION_KEY` (필수, 전용 키). JWT_SECRET 재사용 금지
+- 복호화 시 현재 키 실패 → JWT_SECRET 레거시 키로 fallback (마이그레이션 지원, 경고 로그)
 - 기존 평문 bid도 호환 (isEncrypted 감지 → 평문이면 그대로 반환)
 
 ### Server Stability
@@ -199,8 +200,24 @@ teum/
 - 세션 삭제 후 재호출 시에도 "세션 없음"으로 차단 (2중 보호)
 
 ### Music Webhook Authentication
-- `MUREKA_WEBHOOK_SECRET` 환경변수 설정 시 Authorization 또는 x-webhook-secret 헤더 검증
-- 미설정 시 경고 로그 출력 (개발 환경 호환)
+- `MUREKA_WEBHOOK_SECRET` 필수 — 미설정 시 503 거부 (no bypass)
+- HMAC-SHA256 서명 검증 (`x-webhook-signature` 헤더, `timingSafeEqual` + 길이 체크)
+- Bearer/secret 헤더 fallback (역시 timing-safe 비교)
+
+### Storage Access Control
+- `/api/storage/*` 경로 인증 필수 (서명 토큰 또는 세션 쿠키)
+- `apps/server/src/utils/signed-url.ts` — HMAC 기반 서명 URL 생성/검증
+- 업로드 시 `signedUrl` 반환 (1년 유효), 기존 `url`도 함께 반환 (호환)
+- 세션 쿠키 인증 시 tokenVersion 검증 포함 (세션 해지 시 즉시 차단)
+
+### XSS Protection
+- DOMPurify로 일기 콘텐츠 sanitize (허용 태그/속성 화이트리스트)
+- CSS `style` 속성: 안전한 CSS 속성만 허용 (color, font-size 등), 그 외 제거
+- `onerror`, `onload`, `onclick`, `onmouseover` 속성 금지 (FORBID_ATTR)
+
+### CSRF Protection
+- `apps/server/src/middleware/csrf.ts` — Origin/Referer 검증
+- NicePay/PayPal 결제 콜백은 bypass (originalUrl + path 이중 체크)
 
 ### JWT Security
 - `default_secret` fallback 제거 — `process.env.JWT_SECRET!` 필수

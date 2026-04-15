@@ -12,6 +12,7 @@ import { requireRole } from './middleware/auth';
 import { adapter } from './storage';
 import { globalApiLimiter } from './middleware/rate-limiter';
 import { csrfProtection } from './middleware/csrf';
+import { verifySignedToken } from './utils/signed-url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -103,23 +104,51 @@ app.use('/api/terms', termsRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/questions', questionRoutes);
 
-// Serve uploaded images (memory adapter: /storage/uploads/... → GET /api/storage/uploads/...)
-// This endpoint is public (no authentication required) to allow image access
 app.get(/^\/api\/storage\/(.+)$/, async (req, res) => {
-  const path = (req.params as Record<string, string>)[0];
-  if (!path) {
+  const filePath = (req.params as Record<string, string>)[0];
+  if (!filePath) {
     return res.status(404).json({ success: false, error: { message: 'Not found' } });
   }
   if (!adapter.get) {
     return res.status(404).json({ success: false, error: { message: 'Storage not serveable' } });
   }
+
+  const token = req.query.token as string | undefined;
+  let authorized = false;
+
+  if (token) {
+    const result = verifySignedToken(token);
+    authorized = result.valid === true && result.path === filePath;
+  }
+
+  if (!authorized) {
+    try {
+      const cookieToken = req.cookies?.accessToken;
+      if (cookieToken) {
+        const { verifyAccessToken } = await import('./utils/jwt');
+        const payload = verifyAccessToken(cookieToken);
+        if (payload) {
+          const { userRepository } = await import('./repositories/user.repository');
+          const currentVersion = await userRepository.getTokenVersion(payload.userId);
+          if (currentVersion !== null && payload.tokenVersion !== undefined && payload.tokenVersion === currentVersion) {
+            authorized = true;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (!authorized) {
+    return res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
+  }
+
   try {
-    const file = await adapter.get(path);
+    const file = await adapter.get(filePath);
     if (!file) {
       return res.status(404).json({ success: false, error: { message: 'File not found' } });
     }
     res.setHeader('Content-Type', file.mimetype);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
     res.send(file.buffer);
   } catch (error) {
     console.error('Storage get error:', error);

@@ -51,6 +51,7 @@ build = ["pnpm", "build"]
 
 [userenv.shared]
 BILLING_ENCRYPTION_KEY = "0f47b3a1f16020791efe0018a9f99ca230c2b9a83c231f6e7eaee41d3fc94a91"
+PAYPAL_WEBHOOK_ID = "40057983VB383012R"
 
 [userenv.production]
 FRONTEND_URL = "https://teum.replit.app"

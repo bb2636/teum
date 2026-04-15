@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, decimal, pgEnum, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, decimal, pgEnum, boolean, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 
@@ -25,6 +25,8 @@ export const subscriptions = pgTable('subscriptions', {
   startDate: timestamp('start_date').notNull(),
   endDate: timestamp('end_date'),
   cancelledAt: timestamp('cancelled_at'),
+  renewalFailCount: integer('renewal_fail_count').default(0).notNull(),
+  nextRetryAt: timestamp('next_retry_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

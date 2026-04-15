@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { payments, subscriptions, paymentSessions, billingKeys, users, userProfiles } from '../db/schema';
-import { eq, desc, lt, and, lte } from 'drizzle-orm';
+import { eq, desc, lt, and, lte, or, isNotNull } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
@@ -482,8 +482,27 @@ export class PaymentService {
     }
   }
 
+  private isProcessingRenewals = false;
+
   async processAutoRenewals() {
+    if (this.isProcessingRenewals) {
+      logger.warn('Auto-renewal already in progress, skipping');
+      return;
+    }
+    this.isProcessingRenewals = true;
+
+    try {
+      await this._processAutoRenewalsInner();
+    } finally {
+      this.isProcessingRenewals = false;
+    }
+  }
+
+  private async _processAutoRenewalsInner() {
     const now = new Date();
+    const GRACE_PERIOD_DAYS = 3;
+    const MAX_RETRY = 3;
+    const RETRY_DELAY_MS = 5000;
 
     const expiredSubs = await db
       .select()
@@ -491,42 +510,29 @@ export class PaymentService {
       .where(
         and(
           eq(subscriptions.status, 'active'),
-          lte(subscriptions.endDate, now)
+          or(
+            and(lte(subscriptions.endDate, now), eq(subscriptions.renewalFailCount, 0)),
+            and(isNotNull(subscriptions.nextRetryAt), lte(subscriptions.nextRetryAt, now))
+          )
         )
       );
 
-    logger.info(`Found ${expiredSubs.length} subscriptions to auto-renew`);
-
-    const MAX_RETRY = 3;
-    const RETRY_DELAY_MS = 5000;
+    logger.info({ count: expiredSubs.length }, 'Subscriptions due for auto-renewal');
 
     for (const sub of expiredSubs) {
       try {
         if (sub.paypalSubscriptionId) {
-          try {
-            const ppDetails = await paypalProvider.getSubscriptionDetails(sub.paypalSubscriptionId);
-            if (ppDetails.status === 'ACTIVE') {
-              const newEndDate = new Date();
-              newEndDate.setMonth(newEndDate.getMonth() + 1);
-              await db.update(subscriptions).set({ endDate: newEndDate, updatedAt: new Date() }).where(eq(subscriptions.id, sub.id));
-              logger.info({ subscriptionId: sub.id, paypalSubscriptionId: sub.paypalSubscriptionId }, 'PayPal subscription still active, extended endDate');
-            } else {
-              await db.update(subscriptions).set({ status: 'expired', updatedAt: new Date() }).where(eq(subscriptions.id, sub.id));
-              logger.info({ subscriptionId: sub.id, paypalStatus: ppDetails.status }, 'PayPal subscription no longer active, expired');
-            }
-          } catch (ppError) {
-            logger.error({ error: ppError, subscriptionId: sub.id }, 'Failed to check PayPal subscription status during auto-renewal');
-          }
+          await this.processPayPalAutoRenewal(sub);
           continue;
         }
 
         const activeBillingKey = await this.getActiveBillingKey(sub.userId);
 
         if (!activeBillingKey) {
-          logger.warn('No active billing key for auto-renewal, expiring subscription', {
+          logger.warn({
             userId: sub.userId,
             subscriptionId: sub.id,
-          });
+          }, 'No active billing key for auto-renewal, expiring subscription');
           await db
             .update(subscriptions)
             .set({ status: 'expired', updatedAt: new Date() })
@@ -534,22 +540,26 @@ export class PaymentService {
           continue;
         }
 
+        const currentAmount = await this.getServerPlanAmount();
+
         let result: { success: boolean; message: string } = { success: false, message: '' };
         for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
           result = await this.chargeWithBillingKey(
             sub.userId,
             activeBillingKey.bid,
-            Number(sub.amount),
+            currentAmount,
             sub.planName
           );
 
           if (result.success) break;
 
-          logger.warn(`Auto-renewal attempt ${attempt}/${MAX_RETRY} failed`, {
+          logger.warn({
             userId: sub.userId,
             subscriptionId: sub.id,
+            attempt,
+            maxRetry: MAX_RETRY,
             message: result.message,
-          });
+          }, 'Auto-renewal attempt failed');
 
           if (attempt < MAX_RETRY) {
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
@@ -559,31 +569,109 @@ export class PaymentService {
         if (result.success) {
           await db
             .update(subscriptions)
-            .set({ status: 'expired', updatedAt: new Date() })
+            .set({ status: 'expired', renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
             .where(eq(subscriptions.id, sub.id));
 
-          logger.info('Auto-renewal successful', {
+          logger.info({
             userId: sub.userId,
             oldSubscriptionId: sub.id,
-          });
+          }, 'Auto-renewal successful');
         } else {
-          logger.error('Auto-renewal failed after all retries, expiring subscription', {
-            userId: sub.userId,
-            subscriptionId: sub.id,
-            message: result.message,
-          });
-          await db
-            .update(subscriptions)
-            .set({ status: 'expired', updatedAt: new Date() })
-            .where(eq(subscriptions.id, sub.id));
+          const failCount = sub.renewalFailCount + 1;
+
+          if (failCount > GRACE_PERIOD_DAYS) {
+            await db
+              .update(subscriptions)
+              .set({ status: 'expired', renewalFailCount: failCount, nextRetryAt: null, updatedAt: new Date() })
+              .where(eq(subscriptions.id, sub.id));
+
+            logger.error({
+              userId: sub.userId,
+              subscriptionId: sub.id,
+              failCount,
+              message: result.message,
+            }, 'Auto-renewal failed after grace period, subscription expired');
+          } else {
+            const nextRetry = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            const graceEndDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+            await db
+              .update(subscriptions)
+              .set({
+                renewalFailCount: failCount,
+                nextRetryAt: nextRetry,
+                endDate: graceEndDate,
+                updatedAt: new Date(),
+              })
+              .where(eq(subscriptions.id, sub.id));
+
+            logger.warn({
+              userId: sub.userId,
+              subscriptionId: sub.id,
+              failCount,
+              nextRetryAt: nextRetry.toISOString(),
+              graceDaysRemaining: GRACE_PERIOD_DAYS - failCount,
+            }, 'Auto-renewal failed, grace period active');
+          }
         }
       } catch (error) {
-        logger.error('Auto-renewal error', {
+        logger.error({
           userId: sub.userId,
           subscriptionId: sub.id,
           error,
-        });
+        }, 'Auto-renewal error');
       }
+    }
+  }
+
+  private async processPayPalAutoRenewal(sub: typeof subscriptions.$inferSelect) {
+    if (!sub.paypalSubscriptionId) return;
+
+    try {
+      const ppDetails = await paypalProvider.getSubscriptionDetails(sub.paypalSubscriptionId);
+      if (ppDetails.status === 'ACTIVE') {
+        const newEndDate = new Date();
+        newEndDate.setMonth(newEndDate.getMonth() + 1);
+
+        const basePriceUSD = getBasePriceUSD();
+
+        await db.transaction(async (tx) => {
+          await tx.update(subscriptions)
+            .set({ endDate: newEndDate, renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
+            .where(eq(subscriptions.id, sub.id));
+
+          await tx.insert(payments).values({
+            userId: sub.userId,
+            subscriptionId: sub.id,
+            status: 'completed',
+            amount: basePriceUSD.toString(),
+            currency: 'USD',
+            paymentMethod: 'PAYPAL',
+            transactionId: `paypal_renewal_${sub.paypalSubscriptionId}_${Date.now()}`,
+            paidAt: new Date(),
+          });
+        });
+
+        logger.info({
+          subscriptionId: sub.id,
+          paypalSubscriptionId: sub.paypalSubscriptionId,
+          amount: basePriceUSD,
+        }, 'PayPal subscription renewed, payment recorded');
+      } else {
+        await db.update(subscriptions)
+          .set({ status: 'expired', updatedAt: new Date() })
+          .where(eq(subscriptions.id, sub.id));
+
+        logger.info({
+          subscriptionId: sub.id,
+          paypalStatus: ppDetails.status,
+        }, 'PayPal subscription no longer active, expired');
+      }
+    } catch (ppError) {
+      logger.error({
+        error: ppError,
+        subscriptionId: sub.id,
+      }, 'Failed to check PayPal subscription status during auto-renewal');
     }
   }
 

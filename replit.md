@@ -118,6 +118,15 @@ teum/
   - `apps/server/src/services/payment/refund.service.ts` — 환불 처리 로직
   - Raw body 보존: `express.json({ verify })` — webhook 경로만 `req.rawBody` 저장
 
+- **자동 갱신 (Auto-Renewal)**:
+  - 1시간 주기 (`setInterval`), 동시 실행 방지 (`isProcessingRenewals` 가드)
+  - NicePay: 현재 서버 환율 기준 금액으로 청구 (`getServerPlanAmount()`, 구독 당시 금액 아님)
+  - PayPal: PayPal API에서 구독 상태 확인 후 `endDate` 연장 + `payments` 테이블에 결제 기록 저장
+  - **유예기간 (Grace Period)**: 결제 실패 시 즉시 만료하지 않고 3일간 일 1회 재시도
+    - `renewalFailCount` (실패 횟수), `nextRetryAt` (다음 재시도 시각) 컬럼으로 추적
+    - 3회 초과 실패 시 `status = 'expired'`로 전환
+  - 빌링키 없는 경우 즉시 만료
+
 ### 7. Push Notifications (Firebase FCM)
 - 음악 생성 완료, 관리자 문의 답변 시 자동 발송
 - `@capacitor/push-notifications` (프론트) + `firebase-admin` SDK (서버)

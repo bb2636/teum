@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, Music, Plus } from 'lucide-react';
+import { Calendar, Music, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRef, useEffect, useCallback } from 'react';
 import { useT } from '@/hooks/useTranslation';
@@ -7,8 +7,22 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/api';
 
+function HomeFilled({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      style={style}
+    >
+      <path d="M12.707 2.293a1 1 0 0 0-1.414 0l-9 9A1 1 0 0 0 3 13h1v7a2 2 0 0 0 2 2h4v-5a2 2 0 0 1 2-2 2 2 0 0 1 2 2v5h4a2 2 0 0 0 2-2v-7h1a1 1 0 0 0 .707-1.707l-9-9Z" />
+    </svg>
+  );
+}
+
 const mainTabs = [
-  { path: '/home', labelKey: 'tab.home', icon: Home },
+  { path: '/home', labelKey: 'tab.home', icon: HomeFilled },
   { path: '/calendar', labelKey: 'tab.calendar', icon: Calendar },
   { path: '/music', labelKey: 'tab.music', icon: Music },
 ];

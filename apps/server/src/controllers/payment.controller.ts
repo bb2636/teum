@@ -534,12 +534,12 @@ export class PaymentController {
 
     if (!req.body?.tid) {
       logger.info('NicePay webhook: registration test ping (no tid), returning 200');
-      return res.status(200).json({ success: true });
+      return res.status(200).send('OK');
     }
 
     if (!NICEPAY_WEBHOOK_SECRET) {
       logger.warn('NICEPAY_WEBHOOK_SECRET not configured, accepting but not processing webhook');
-      return res.status(200).json({ success: true });
+      return res.status(200).send('OK');
     }
 
     if (!rawBody) {

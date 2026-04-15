@@ -858,7 +858,6 @@ export function DiaryWritePage() {
         if (msg.includes('denied') || msg.includes('permission')) {
           alert(t('diary.cameraPermissionDenied') || '카메라 권한이 필요합니다. 설정에서 카메라 권한을 허용해주세요.');
         } else if (!msg.includes('cancelled') && !msg.includes('User cancelled')) {
-          console.log('Camera error:', err);
         }
       }
     } else {
@@ -927,14 +926,10 @@ export function DiaryWritePage() {
     } as React.ChangeEvent<HTMLInputElement>;
     register('folderId').onChange(event);
 
-    console.log('[AdFlow] handleFolderSelect — needsAd:', needsAd, '| diaryCount:', diaryCount, '| isEditMode:', isEditMode, '| hasSubscription:', !!activeSubscription);
-
     if (needsAd) {
       setPendingFolderId(folderId);
       setShowAdModal(true);
-      console.log('[AdFlow] Ad required → showAdModal=true, pendingFolderId=', folderId);
     } else {
-      console.log('[AdFlow] No ad needed → saving directly');
       setTimeout(() => {
         submitDiary(folderId);
       }, 100);
@@ -942,11 +937,9 @@ export function DiaryWritePage() {
   };
 
   const handleAdComplete = useCallback(() => {
-    console.log('[AdFlow] handleAdComplete called, pendingFolderId=', pendingFolderId, '| isSaving=', isSavingRef.current);
     setShowAdModal(false);
     if (pendingFolderId && !isSavingRef.current) {
       isSavingRef.current = true;
-      console.log('[AdFlow] → submitDiary with folderId=', pendingFolderId);
       setTimeout(() => {
         submitDiary(pendingFolderId);
       }, 100);

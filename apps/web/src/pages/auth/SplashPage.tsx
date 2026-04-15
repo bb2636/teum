@@ -89,13 +89,11 @@ export function SplashPage() {
     const { nonce, pendingTs } = getOAuthState();
     if (!nonce || !pendingTs) return;
     if (Date.now() - pendingTs > 5 * 60 * 1000) {
-      console.log('[OAuth] OAuth state expired, clearing');
       clearOAuthState();
       return;
     }
 
     exchangingRef.current = true;
-    console.log('[OAuth] Attempting token exchange, nonce:', nonce.substring(0, 8) + '...');
 
     try {
       const apiBase = import.meta.env.VITE_API_URL || '/api';
@@ -107,13 +105,11 @@ export function SplashPage() {
       });
 
       if (res.status === 404) {
-        console.log('[OAuth] Token not ready yet on server, will retry');
         exchangingRef.current = false;
         return;
       }
 
       if (!res.ok) {
-        console.log('[OAuth] Token exchange HTTP error:', res.status);
         exchangingRef.current = false;
         return;
       }
@@ -121,7 +117,6 @@ export function SplashPage() {
       const data = await res.json();
 
       if (data?.data?.onboardingData) {
-        console.log('[OAuth] Onboarding data received');
         clearOAuthState();
         const d = data.data.onboardingData;
         forceFullCacheClear();
@@ -142,7 +137,6 @@ export function SplashPage() {
       }
 
       if (data?.data?.role) {
-        console.log('[OAuth] Login success, role:', data.data.role);
         clearOAuthState();
         sessionStorage.removeItem('teum_logged_out');
         forceFullCacheClear();
@@ -154,10 +148,8 @@ export function SplashPage() {
         return;
       }
 
-      console.log('[OAuth] Unexpected response:', JSON.stringify(data));
       exchangingRef.current = false;
-    } catch (err) {
-      console.log('[OAuth] Token exchange network error:', err);
+    } catch {
       exchangingRef.current = false;
     }
   }, [navigate]);
@@ -260,33 +252,28 @@ export function SplashPage() {
 
         const stateHandle = await App.addListener('appStateChange', (state) => {
           if (!unmounted && state.isActive) {
-            console.log('[OAuth] App resumed (appStateChange), trying exchange');
             exchangingRef.current = false;
             exchangeToken();
           }
         });
         if (unmounted) { stateHandle.remove(); } else { handles.push(stateHandle); }
-      } catch (e) {
-        console.log('[OAuth] Capacitor App plugin not available:', e);
+      } catch {
       }
 
       try {
         const { Browser } = await import('@capacitor/browser');
         if (unmounted) return;
         const browserHandle = await Browser.addListener('browserFinished', () => {
-          console.log('[OAuth] browserFinished event received');
           exchangingRef.current = false;
           exchangeToken();
         });
         if (unmounted) { browserHandle.remove(); } else { handles.push(browserHandle); }
-      } catch (e) {
-        console.log('[OAuth] Capacitor Browser plugin not available:', e);
+      } catch {
       }
     })();
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[OAuth] Page became visible, trying exchange');
         exchangingRef.current = false;
         exchangeToken();
       }
@@ -294,7 +281,6 @@ export function SplashPage() {
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     const onFocus = () => {
-      console.log('[OAuth] Window focused, trying exchange');
       exchangingRef.current = false;
       exchangeToken();
     };
@@ -307,7 +293,6 @@ export function SplashPage() {
       if (!nonce) { pollCount = 0; return; }
       pollCount++;
       if (pollCount > 90) {
-        console.log('[OAuth] Polling timeout (3 min), clearing state');
         clearOAuthState();
         clearInterval(pollInterval);
         return;

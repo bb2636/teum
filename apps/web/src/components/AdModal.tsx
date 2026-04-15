@@ -49,8 +49,8 @@ type AdFlowResult = { status: 'dismissed'; debug: AdDebugInfo } | { status: 'fai
 
 async function runNativeAdFlow(): Promise<AdFlowResult> {
   const debug = createDebugInfo();
-  const L = (msg: string, ...args: any[]) => console.log(`[AdFlow] ${msg}`, ...args);
-  const W = (msg: string, ...args: any[]) => console.warn(`[AdFlow] ${msg}`, ...args);
+  const L = (_msg: string, ..._args: unknown[]) => {};
+  const W = (_msg: string, ..._args: unknown[]) => {};
 
   try {
     const { AdMob, InterstitialAdPluginEvents } = await import('@capacitor-community/admob');

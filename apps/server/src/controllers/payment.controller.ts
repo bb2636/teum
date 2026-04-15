@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { paymentService } from '../services/payment.service';
-import { processPaymentSchema } from '../validations/payment';
+import { processPaymentSchema, initPaymentSchema, initBillingKeySchema, cancelPaymentSchema, cancelSubscriptionSchema, adminCancelSubscriptionSchema } from '../validations/payment';
 import { logger } from '../config/logger';
 import { getExchangeInfo } from '../utils/currency';
 import { refundService } from '../services/payment/refund.service';
@@ -33,28 +33,14 @@ export class PaymentController {
         });
       }
 
-      const { planName, paymentMethod } = req.body;
-      if (!planName || !paymentMethod) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'planName, paymentMethod are required' },
-        });
-      }
-
-      const allowedMethods = ['CARD'];
-      if (!allowedMethods.includes(paymentMethod)) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'Invalid payment method' },
-        });
-      }
+      const input = initPaymentSchema.parse(req.body);
 
       const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
       const returnUrl = `${backendUrl}/api/payments/nicepay/return`;
 
       const result = await paymentService.initPayment(req.user.userId, {
-        planName,
-        paymentMethod,
+        planName: input.planName,
+        paymentMethod: input.paymentMethod,
       });
 
       res.json({
@@ -78,21 +64,15 @@ export class PaymentController {
         });
       }
 
-      const { planName, paymentMethod, identityVerified } = req.body;
-      if (!planName || !paymentMethod) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'planName, paymentMethod are required' },
-        });
-      }
+      const input = initBillingKeySchema.parse(req.body);
 
       const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
       const returnUrl = `${backendUrl}/api/payments/nicepay/billing-return`;
 
       const result = await paymentService.initBillingKeyRegistration(req.user.userId, {
-        planName,
-        paymentMethod,
-        identityVerified: !!identityVerified,
+        planName: input.planName,
+        paymentMethod: input.paymentMethod,
+        identityVerified: input.identityVerified,
       });
 
       res.json({
@@ -347,15 +327,9 @@ export class PaymentController {
         });
       }
 
-      const { tid, amount, reason } = req.body;
-      if (!tid || !amount || !reason) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'tid, amount, reason are required' },
-        });
-      }
+      const input = cancelPaymentSchema.parse(req.body);
 
-      const result = await paymentService.cancelPayment(req.user.userId, tid, amount, reason);
+      const result = await paymentService.cancelPayment(req.user.userId, input.tid, input.amount, input.reason);
       res.json({
         success: true,
         data: result,
@@ -374,15 +348,9 @@ export class PaymentController {
         });
       }
 
-      const { subscriptionId } = req.body;
-      if (!subscriptionId) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'subscriptionId is required' },
-        });
-      }
+      const input = cancelSubscriptionSchema.parse(req.body);
 
-      const result = await paymentService.cancelSubscription(req.user.userId, subscriptionId);
+      const result = await paymentService.cancelSubscription(req.user.userId, input.subscriptionId);
       res.json({
         success: true,
         data: result,
@@ -401,15 +369,9 @@ export class PaymentController {
         });
       }
 
-      const { userId, subscriptionId } = req.body;
-      if (!userId || !subscriptionId) {
-        return res.status(400).json({
-          success: false,
-          error: { code: 'BAD_REQUEST', message: 'userId and subscriptionId are required' },
-        });
-      }
+      const input = adminCancelSubscriptionSchema.parse(req.body);
 
-      const result = await paymentService.cancelSubscription(userId, subscriptionId);
+      const result = await paymentService.cancelSubscription(input.userId, input.subscriptionId);
       res.json({
         success: true,
         data: result,

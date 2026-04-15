@@ -530,10 +530,12 @@ export function AdminPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (user.isWithdrawn) return;
                           setDeleteUser(user);
                           setDeleteStatus('confirm');
                         }}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
+                        disabled={user.isWithdrawn}
+                        className={`p-2 rounded transition-colors ${user.isWithdrawn ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

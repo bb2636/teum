@@ -63,7 +63,6 @@ export function SplashPage() {
   const navigate = useNavigate();
   const googleLogin = useGoogleLogin();
   const t = useT();
-  const gsiInitialized = useRef(false);
   const exchangingRef = useRef(false);
   const { data: user, isLoading: isCheckingAuth } = useMe();
   const [skipAutoRedirect] = useState(() => {
@@ -308,57 +307,6 @@ export function SplashPage() {
     };
   }, [navigate, t, exchangeToken]);
 
-  useEffect(() => {
-    if (gsiInitialized.current) return;
-
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
-
-    const initGsi = () => {
-      if (gsiInitialized.current) return;
-      if (!window.google) return;
-
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response: { credential: string }) => {
-          try {
-            const result = await googleLogin.mutateAsync(response.credential);
-            if (result.isNewUser && result.socialProfile) {
-              navigate('/social-onboarding', { state: { socialProfile: result.socialProfile, onboardingToken: result.onboardingToken } });
-            } else if (result.user) {
-              sessionStorage.removeItem('teum_logged_out');
-              forceFullCacheClear();
-              if (result.user.role === 'admin') {
-                window.location.href = '/admin';
-              } else {
-                window.location.href = '/home';
-              }
-            }
-          } catch {
-          }
-        },
-        auto_select: false,
-      });
-      gsiInitialized.current = true;
-    };
-
-    if (window.google) {
-      initGsi();
-    } else {
-      const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
-      if (existingScript) {
-        existingScript.addEventListener('load', initGsi);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = initGsi;
-      document.head.appendChild(script);
-    }
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -372,8 +320,8 @@ export function SplashPage() {
 
   const handleGoogleLogin = async () => {
     const { isNative } = getCapacitorPlatform();
+    const nonce = crypto.randomUUID();
     if (isNative) {
-      const nonce = crypto.randomUUID();
       const state = `nonce=${nonce}&platform=mobile`;
       try {
         localStorage.setItem(OAUTH_NONCE_KEY, nonce);
@@ -391,10 +339,7 @@ export function SplashPage() {
       } catch {
         window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
       }
-    } else if (window.google && gsiInitialized.current) {
-      window.google.accounts.id.prompt();
     } else {
-      const nonce = crypto.randomUUID();
       const state = `nonce=${nonce}`;
       window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
     }

@@ -334,7 +334,7 @@ export function SplashPage() {
         const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
         await Browser.open({
           url: `${baseUrl}/auth/google/init?state=${encodeURIComponent(state)}`,
-          presentationStyle: 'popover',
+          presentationStyle: 'fullscreen',
         });
       } catch {
         window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
@@ -361,7 +361,7 @@ export function SplashPage() {
         const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
         await Browser.open({
           url: `${baseUrl}/auth/apple/init?state=${encodeURIComponent(state)}`,
-          presentationStyle: 'popover',
+          presentationStyle: 'fullscreen',
         });
       } catch {
         window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;

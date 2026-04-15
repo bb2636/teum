@@ -284,14 +284,16 @@ export function PaymentPage() {
               <div className="border-t border-gray-200"></div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">{t('payment.amount')}</span>
-                <span className="text-base font-bold text-[#4A2C1A]">
-                  {paymentMethod === 'paypal'
-                    ? `$${(planPrice?.usd ?? 3.99).toFixed(2)}`
-                    : isKorean
-                      ? `${displayAmountFormatted}${t('payment.won')}`
-                      : `$${displayAmountFormatted}`
-                  }
-                </span>
+                <div className="text-right">
+                  <span className="text-base font-bold text-[#4A2C1A]">
+                    ${(planPrice?.usd ?? 3.99).toFixed(2)}
+                  </span>
+                  {isKorean && paymentMethod === 'nicepay' && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      ({displayAmountFormatted}{t('payment.won')} - {t('payment.autoExchangeRate')})
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-3">
@@ -386,7 +388,9 @@ export function PaymentPage() {
                 ? t('payment.processing')
                 : paymentMethod === 'paypal'
                   ? t('payment.payWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) })
-                  : t('payment.startMonthly', { amount: displayAmountFormatted })}
+                  : isKorean
+                    ? t('payment.startMonthly', { amount: displayAmountFormatted })
+                    : `Start at $${(planPrice?.usd ?? 3.99).toFixed(2)}/month`}
             </button>
           </div>
         </div>

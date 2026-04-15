@@ -18,7 +18,7 @@ export function PaymentIntroPage() {
   const krwAmount = planPrice?.krw ?? 5800;
   const displayAmount = isKorean ? krwAmount : 399;
   const displayAmountFormatted = isKorean ? krwAmount.toLocaleString() : '3.99';
-  const priceLabel = isKorean ? `${krwAmount.toLocaleString()}${t('payment.won')}` : '$3.99';
+  const usdPrice = `$${(planPrice?.usd ?? 3.99).toFixed(2)}`;
 
   useEffect(() => {
     setHideTabBar(true);
@@ -139,14 +139,21 @@ export function PaymentIntroPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-3xl shadow-lg pb-safe-fixed">
           <div className="max-w-md mx-auto px-4 py-6">
             <div className="mb-4">
-              <div className="text-3xl font-bold text-black mb-1">{priceLabel}</div>
+              <div className="text-3xl font-bold text-black mb-1">{usdPrice}</div>
               <div className="text-sm text-gray-600">{t('payment.intro.monthlyAuto')}</div>
+              {isKorean && (
+                <div className="text-xs text-gray-400 mt-1">
+                  ({krwAmount.toLocaleString()}{t('payment.won')} - {t('payment.autoExchangeRate')})
+                </div>
+              )}
             </div>
             <button
               onClick={handleStartClick}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
             >
-              {t('payment.startMonthly', { amount: displayAmountFormatted })}
+              {isKorean
+                ? t('payment.startMonthly', { amount: displayAmountFormatted })
+                : `Start at ${usdPrice}/month`}
             </button>
           </div>
         </div>

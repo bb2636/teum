@@ -460,6 +460,7 @@ const ko: Record<string, string> = {
   "payment.processing": "결제 처리 중...",
   "payment.startMonthly": "월 {amount}원으로 시작하기",
   "payment.won": "원",
+  "payment.autoExchangeRate": "자동 환율로 변환된 가격입니다",
   "payment.selectPaymentMethod": "결제 수단을 선택해주세요.",
   "payment.selectCardCompany": "카드사를 선택해주세요",
   "payment.nicepayLoadFailed":
@@ -992,6 +993,7 @@ const en: Record<string, string> = {
   "payment.processing": "Processing...",
   "payment.startMonthly": "Start at ${amount}/month",
   "payment.won": "",
+  "payment.autoExchangeRate": "Auto-converted exchange rate",
   "payment.selectPaymentMethod": "Please select a payment method.",
   "payment.selectCardCompany": "Please select a card company",
   "payment.nicepayLoadFailed":

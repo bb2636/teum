@@ -203,7 +203,7 @@ export function getEffectiveSubscription(subscriptions: Subscription[]): Subscri
 export interface InitPayPalResponse {
   approveUrl: string;
   orderId: string;
-  paypalOrderId: string;
+  paypalSubscriptionId: string;
 }
 
 export function useInitPayPal() {

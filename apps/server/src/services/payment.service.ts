@@ -498,6 +498,24 @@ export class PaymentService {
 
     for (const sub of expiredSubs) {
       try {
+        if (sub.paypalSubscriptionId) {
+          try {
+            const ppDetails = await paypalProvider.getSubscriptionDetails(sub.paypalSubscriptionId);
+            if (ppDetails.status === 'ACTIVE') {
+              const newEndDate = new Date();
+              newEndDate.setMonth(newEndDate.getMonth() + 1);
+              await db.update(subscriptions).set({ endDate: newEndDate, updatedAt: new Date() }).where(eq(subscriptions.id, sub.id));
+              logger.info({ subscriptionId: sub.id, paypalSubscriptionId: sub.paypalSubscriptionId }, 'PayPal subscription still active, extended endDate');
+            } else {
+              await db.update(subscriptions).set({ status: 'expired', updatedAt: new Date() }).where(eq(subscriptions.id, sub.id));
+              logger.info({ subscriptionId: sub.id, paypalStatus: ppDetails.status }, 'PayPal subscription no longer active, expired');
+            }
+          } catch (ppError) {
+            logger.error({ error: ppError, subscriptionId: sub.id }, 'Failed to check PayPal subscription status during auto-renewal');
+          }
+          continue;
+        }
+
         const activeBillingKey = await this.getActiveBillingKey(sub.userId);
 
         if (!activeBillingKey) {
@@ -1027,6 +1045,15 @@ export class PaymentService {
 
     await this.deactivateBillingKey(userId);
 
+    if (subscription.paypalSubscriptionId) {
+      const ppCancelled = await this.cancelPayPalSubscription(subscription.paypalSubscriptionId);
+      if (ppCancelled) {
+        logger.info({ paypalSubscriptionId: subscription.paypalSubscriptionId }, 'PayPal subscription also cancelled');
+      } else {
+        logger.error({ paypalSubscriptionId: subscription.paypalSubscriptionId }, 'Failed to cancel PayPal subscription - may still be billing');
+      }
+    }
+
     logger.info('Subscription cancelled successfully', { subscriptionId });
 
     const endDateStr = subscription.endDate
@@ -1046,7 +1073,7 @@ export class PaymentService {
     userId: string,
     planName: string,
     baseUrl: string
-  ): Promise<{ approveUrl: string; orderId: string; paypalOrderId: string }> {
+  ): Promise<{ approveUrl: string; orderId: string; paypalSubscriptionId: string }> {
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
       throw new Error('You already have an active subscription.');
@@ -1054,6 +1081,8 @@ export class PaymentService {
 
     const usdAmount = getBasePriceUSD().toFixed(2);
     const orderId = `PAYPAL_${Date.now()}_${userId.substring(0, 8)}`;
+
+    const { planId } = await paypalProvider.ensureProductAndPlan(usdAmount, 'USD');
 
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
     await db.insert(paymentSessions).values({
@@ -1068,26 +1097,24 @@ export class PaymentService {
     const returnUrl = `${baseUrl}/api/payments/paypal/return?oid=${encodeURIComponent(orderId)}`;
     const cancelUrl = `${baseUrl}/api/payments/paypal/cancel?oid=${encodeURIComponent(orderId)}`;
 
-    const result = await paypalProvider.createOrder(
-      usdAmount,
-      'USD',
-      orderId,
-      planName,
+    const result = await paypalProvider.createSubscription(
+      planId,
       returnUrl,
-      cancelUrl
+      cancelUrl,
+      orderId,
     );
 
-    logger.info({ orderId, paypalOrderId: result.id, userId }, 'PayPal payment initiated');
+    logger.info({ orderId, paypalSubscriptionId: result.subscriptionId, userId }, 'PayPal subscription initiated');
 
     return {
       approveUrl: result.approveUrl,
       orderId,
-      paypalOrderId: result.id,
+      paypalSubscriptionId: result.subscriptionId,
     };
   }
 
-  async capturePayPalPayment(
-    paypalOrderId: string,
+  async activatePayPalSubscription(
+    paypalSubscriptionId: string,
     internalOrderId: string
   ): Promise<{ success: boolean; message: string }> {
     const session = await this.getPendingSession(internalOrderId);
@@ -1096,32 +1123,29 @@ export class PaymentService {
       return { success: false, message: 'Payment session not found.' };
     }
 
-    const captureResult = await paypalProvider.captureOrder(paypalOrderId);
-    if (!captureResult.success) {
-      logger.error({ paypalOrderId, error: captureResult.errorMsg }, 'PayPal capture failed');
-      return { success: false, message: captureResult.errorMsg || 'Payment capture failed.' };
+    let subDetails;
+    try {
+      subDetails = await paypalProvider.getSubscriptionDetails(paypalSubscriptionId);
+    } catch (error) {
+      logger.error({ paypalSubscriptionId, error }, 'Failed to get PayPal subscription details');
+      return { success: false, message: 'Failed to verify PayPal subscription.' };
+    }
+
+    if (subDetails.customId && subDetails.customId !== internalOrderId) {
+      logger.error({
+        paypalSubscriptionId,
+        expectedCustomId: internalOrderId,
+        actualCustomId: subDetails.customId,
+      }, 'PayPal subscription custom_id mismatch');
+      return { success: false, message: 'Subscription verification failed.' };
+    }
+
+    if (subDetails.status !== 'ACTIVE' && subDetails.status !== 'APPROVED') {
+      logger.error({ paypalSubscriptionId, status: subDetails.status }, 'PayPal subscription not active');
+      return { success: false, message: `PayPal subscription status: ${subDetails.status}` };
     }
 
     const serverAmount = Number(session.amount);
-    const capturedAmount = captureResult.amount ? Number(captureResult.amount) : null;
-    if (capturedAmount !== null && Math.abs(capturedAmount - serverAmount) > 0.01) {
-      logger.error({
-        paypalOrderId,
-        expected: serverAmount,
-        captured: capturedAmount,
-      }, 'PayPal captured amount mismatch');
-      return { success: false, message: 'Payment amount mismatch.' };
-    }
-
-    if (captureResult.currency && captureResult.currency !== 'USD') {
-      logger.error({
-        paypalOrderId,
-        expectedCurrency: 'USD',
-        capturedCurrency: captureResult.currency,
-      }, 'PayPal currency mismatch');
-      return { success: false, message: 'Payment currency mismatch.' };
-    }
-
     const serverPlanName = session.planName;
     const startDate = new Date();
     const endDate = new Date();
@@ -1135,7 +1159,9 @@ export class PaymentService {
             userId: session.userId,
             planName: serverPlanName,
             amount: serverAmount.toString(),
+            currency: 'USD',
             status: 'active',
+            paypalSubscriptionId,
             startDate,
             endDate,
           })
@@ -1150,16 +1176,15 @@ export class PaymentService {
             amount: serverAmount.toString(),
             currency: 'USD',
             paymentMethod: 'PAYPAL',
-            transactionId: captureResult.transactionId || paypalOrderId,
+            transactionId: paypalSubscriptionId,
             paidAt: startDate,
           });
 
         logger.info({
           userId: session.userId,
           subscriptionId: newSubscription.id,
-          paypalOrderId,
-          transactionId: captureResult.transactionId,
-        }, 'PayPal subscription created');
+          paypalSubscriptionId,
+        }, 'PayPal recurring subscription created');
       });
 
       await this.deletePendingSession(internalOrderId);
@@ -1178,11 +1203,15 @@ export class PaymentService {
         logger.error({ error: emailError }, 'Failed to send subscription email after PayPal payment');
       }
 
-      return { success: true, message: 'Payment completed successfully.' };
+      return { success: true, message: 'Subscription activated successfully.' };
     } catch (error) {
-      logger.error({ error, internalOrderId, paypalOrderId }, 'Failed to process PayPal payment');
-      return { success: false, message: 'Failed to process payment.' };
+      logger.error({ error, internalOrderId, paypalSubscriptionId }, 'Failed to process PayPal subscription');
+      return { success: false, message: 'Failed to process subscription.' };
     }
+  }
+
+  async cancelPayPalSubscription(paypalSubscriptionId: string): Promise<boolean> {
+    return await paypalProvider.cancelSubscription(paypalSubscriptionId);
   }
 }
 

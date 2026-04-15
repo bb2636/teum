@@ -75,12 +75,14 @@ teum/
 ### 6. Payments (NicePay + PayPal)
 - **듀얼 결제 시스템**: NicePay (한국 카드, KRW) + PayPal (해외, USD)
 - NicePay JS SDK 연동 (신용/체크카드)
-- **PayPal Checkout**: PayPal Orders API v2 (Capture flow)
-  - `POST /api/payments/paypal/init` → PayPal 주문 생성 → approveUrl 반환
-  - `GET /api/payments/paypal/return` → PayPal 결제 캡처 → 구독 생성
+- **PayPal Subscriptions**: PayPal Subscriptions API v1 (자동 반복 결제)
+  - `POST /api/payments/paypal/init` → Product/Plan 자동 생성(캐시) → PayPal 구독 생성 → approveUrl 반환
+  - `GET /api/payments/paypal/return?subscription_id=...&oid=...` → 구독 상태 검증(ACTIVE/APPROVED) → DB 구독 생성
   - `GET /api/payments/paypal/cancel` → 취소 처리
-  - 서버 `services/payment/paypal.provider.ts`: OAuth2 토큰 자동 갱신, 주문 생성/캡처
-  - 캡처 시 금액/통화 검증 (세션 대비)
+  - 서버 `services/payment/paypal.provider.ts`: OAuth2 토큰 자동 갱신, Product/Plan 생성(캐시), 구독 생성/조회/취소
+  - PayPal이 매월 자동 결제 처리 (서버 스케줄러 불필요)
+  - `subscriptions.paypal_subscription_id` 컬럼에 PayPal 구독 ID 저장
+  - 구독 취소 시 PayPal API로도 자동 취소
   - 세션 삭제는 DB 커밋 성공 후에만 수행
 - **동적 환율 기반 가격**: 기준가 $3.99 USD → 실시간 환율 적용 → KRW 100원 단위 반올림
   - `GET /api/payments/plan-price` → `{ usd, krw, rate }` 반환 (인증 불필요)

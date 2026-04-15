@@ -4,6 +4,9 @@ const PAYPAL_BASE_URL = process.env.PAYPAL_MODE === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com';
 
+let cachedProductId: string | null = null;
+let cachedPlanId: string | null = null;
+
 export class PayPalProvider {
   private clientId: string;
   private clientSecret: string;
@@ -47,29 +50,134 @@ export class PayPalProvider {
     return this.accessToken;
   }
 
-  async createOrder(amount: string, currency: string, orderId: string, planName: string, returnUrl: string, cancelUrl: string): Promise<{ id: string; approveUrl: string }> {
+  async ensureProductAndPlan(amount: string, currency: string): Promise<{ productId: string; planId: string }> {
     const token = await this.getAccessToken();
 
-    const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
+    if (cachedProductId && cachedPlanId) {
+      return { productId: cachedProductId, planId: cachedPlanId };
+    }
+
+    const listPlansRes = await fetch(`${PAYPAL_BASE_URL}/v1/billing/plans?page_size=20&page=1&total_required=true`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    if (listPlansRes.ok) {
+      const plansData = await listPlansRes.json() as { plans?: Array<{ id: string; status: string; name: string; billing_cycles: Array<{ pricing_scheme: { fixed_price: { value: string; currency_code: string } } }> }> };
+      const existingPlan = plansData.plans?.find(
+        (p) => p.status === 'ACTIVE' && p.name === 'Teum Music Plan Monthly'
+      );
+      if (existingPlan) {
+        cachedPlanId = existingPlan.id;
+        const listProductsRes = await fetch(`${PAYPAL_BASE_URL}/v1/catalogs/products?page_size=20&page=1&total_required=true`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (listProductsRes.ok) {
+          const productsData = await listProductsRes.json() as { products?: Array<{ id: string; name: string }> };
+          const existingProduct = productsData.products?.find((p) => p.name === 'Teum Premium');
+          if (existingProduct) {
+            cachedProductId = existingProduct.id;
+            logger.info({ productId: cachedProductId, planId: cachedPlanId }, 'Using existing PayPal product and plan');
+            return { productId: cachedProductId, planId: cachedPlanId };
+          }
+        }
+      }
+    }
+
+    let productId = cachedProductId;
+    if (!productId) {
+      const productRes = await fetch(`${PAYPAL_BASE_URL}/v1/catalogs/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: 'Teum Premium',
+          description: 'Teum Music Plan - Monthly Subscription',
+          type: 'SERVICE',
+          category: 'SOFTWARE',
+        }),
+      });
+
+      if (!productRes.ok) {
+        const text = await productRes.text();
+        logger.error({ status: productRes.status, body: text }, 'PayPal create product failed');
+        throw new Error('Failed to create PayPal product');
+      }
+
+      const productData = await productRes.json() as { id: string };
+      productId = productData.id;
+      cachedProductId = productId;
+      logger.info({ productId }, 'PayPal product created');
+    }
+
+    const planRes = await fetch(`${PAYPAL_BASE_URL}/v1/billing/plans`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        intent: 'CAPTURE',
-        purchase_units: [{
-          reference_id: orderId,
-          description: planName,
-          amount: {
-            currency_code: currency,
-            value: amount,
+        product_id: productId,
+        name: 'Teum Music Plan Monthly',
+        description: 'Monthly subscription for Teum Music Plan',
+        billing_cycles: [
+          {
+            frequency: {
+              interval_unit: 'MONTH',
+              interval_count: 1,
+            },
+            tenure_type: 'REGULAR',
+            sequence: 1,
+            total_cycles: 0,
+            pricing_scheme: {
+              fixed_price: {
+                value: amount,
+                currency_code: currency,
+              },
+            },
           },
-        }],
+        ],
+        payment_preferences: {
+          auto_bill_outstanding: true,
+          payment_failure_threshold: 3,
+        },
+      }),
+    });
+
+    if (!planRes.ok) {
+      const text = await planRes.text();
+      logger.error({ status: planRes.status, body: text }, 'PayPal create plan failed');
+      throw new Error('Failed to create PayPal plan');
+    }
+
+    const planData = await planRes.json() as { id: string };
+    cachedPlanId = planData.id;
+    logger.info({ planId: cachedPlanId, productId }, 'PayPal plan created');
+
+    return { productId: productId!, planId: cachedPlanId };
+  }
+
+  async createSubscription(
+    planId: string,
+    returnUrl: string,
+    cancelUrl: string,
+    customId: string,
+  ): Promise<{ subscriptionId: string; approveUrl: string }> {
+    const token = await this.getAccessToken();
+
+    const response = await fetch(`${PAYPAL_BASE_URL}/v1/billing/subscriptions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        plan_id: planId,
+        custom_id: customId,
         application_context: {
           brand_name: 'Teum',
-          landing_page: 'LOGIN',
-          user_action: 'PAY_NOW',
+          locale: 'en-US',
+          user_action: 'SUBSCRIBE_NOW',
           return_url: returnUrl,
           cancel_url: cancelUrl,
         },
@@ -79,73 +187,80 @@ export class PayPalProvider {
     const data = await response.json() as { id: string; links: Array<{ rel: string; href: string }> };
 
     if (!response.ok) {
-      logger.error({ status: response.status, data }, 'PayPal create order failed');
-      throw new Error('Failed to create PayPal order');
+      logger.error({ status: response.status, data }, 'PayPal create subscription failed');
+      throw new Error('Failed to create PayPal subscription');
     }
 
     const approveLink = data.links?.find((l: { rel: string }) => l.rel === 'approve');
     if (!approveLink) {
-      throw new Error('No approval URL in PayPal response');
+      throw new Error('No approval URL in PayPal subscription response');
     }
 
-    logger.info({ paypalOrderId: data.id, orderId }, 'PayPal order created');
+    logger.info({ paypalSubscriptionId: data.id, customId }, 'PayPal subscription created (pending approval)');
 
     return {
-      id: data.id,
+      subscriptionId: data.id,
       approveUrl: approveLink.href,
     };
   }
 
-  async captureOrder(paypalOrderId: string): Promise<{
-    success: boolean;
-    transactionId?: string;
-    payerEmail?: string;
-    amount?: string;
-    currency?: string;
-    errorMsg?: string;
+  async getSubscriptionDetails(subscriptionId: string): Promise<{
+    status: string;
+    planId: string;
+    startTime: string;
+    nextBillingTime?: string;
+    subscriberEmail?: string;
+    customId?: string;
   }> {
     const token = await this.getAccessToken();
 
-    const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`, {
-      method: 'POST',
+    const response = await fetch(`${PAYPAL_BASE_URL}/v1/billing/subscriptions/${subscriptionId}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
     });
 
-    const data = await response.json() as Record<string, unknown>;
-
     if (!response.ok) {
-      logger.error({ status: response.status, data }, 'PayPal capture failed');
-      return { success: false, errorMsg: 'PayPal capture failed' };
+      const text = await response.text();
+      logger.error({ status: response.status, body: text, subscriptionId }, 'PayPal get subscription details failed');
+      throw new Error('Failed to get PayPal subscription details');
     }
 
-    const status = data.status as string;
-    if (status !== 'COMPLETED') {
-      logger.error({ status, data }, 'PayPal order not completed');
-      return { success: false, errorMsg: `PayPal order status: ${status}` };
-    }
-
-    const purchaseUnits = data.purchase_units as Array<Record<string, unknown>>;
-    const captures = (purchaseUnits?.[0]?.payments as Record<string, unknown>)?.captures as Array<Record<string, unknown>>;
-    const capture = captures?.[0];
-    const captureAmount = capture?.amount as Record<string, unknown>;
-    const payer = data.payer as Record<string, unknown>;
-
-    logger.info({
-      paypalOrderId,
-      captureId: capture?.id,
-      status,
-    }, 'PayPal order captured');
+    const data = await response.json() as Record<string, unknown>;
+    const subscriber = data.subscriber as Record<string, unknown> | undefined;
+    const billingInfo = data.billing_info as Record<string, unknown> | undefined;
 
     return {
-      success: true,
-      transactionId: capture?.id as string,
-      payerEmail: payer?.email_address as string,
-      amount: captureAmount?.value as string,
-      currency: captureAmount?.currency_code as string,
+      status: data.status as string,
+      planId: data.plan_id as string,
+      startTime: data.start_time as string,
+      nextBillingTime: (billingInfo?.next_billing_time as string) || undefined,
+      subscriberEmail: (subscriber?.email_address as string) || undefined,
+      customId: data.custom_id as string | undefined,
     };
+  }
+
+  async cancelSubscription(subscriptionId: string, reason: string = 'User requested cancellation'): Promise<boolean> {
+    const token = await this.getAccessToken();
+
+    const response = await fetch(`${PAYPAL_BASE_URL}/v1/billing/subscriptions/${subscriptionId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason }),
+    });
+
+    if (!response.ok && response.status !== 204) {
+      const text = await response.text();
+      logger.error({ status: response.status, body: text, subscriptionId }, 'PayPal cancel subscription failed');
+      return false;
+    }
+
+    logger.info({ subscriptionId }, 'PayPal subscription cancelled');
+    return true;
   }
 
   getClientId(): string {

@@ -448,14 +448,14 @@ export class PaymentController {
   async paypalReturn(req: Request, res: Response, _next: NextFunction) {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     try {
-      const { token: paypalOrderId, oid: internalOrderId } = req.query;
+      const { subscription_id: paypalSubscriptionId, oid: internalOrderId } = req.query;
 
-      if (!paypalOrderId || !internalOrderId) {
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal payment information is missing.')}`);
+      if (!paypalSubscriptionId || !internalOrderId) {
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal subscription information is missing.')}`);
       }
 
-      const result = await paymentService.capturePayPalPayment(
-        paypalOrderId as string,
+      const result = await paymentService.activatePayPalSubscription(
+        paypalSubscriptionId as string,
         internalOrderId as string
       );
 
@@ -466,7 +466,7 @@ export class PaymentController {
       }
     } catch (error) {
       logger.error({ error }, 'PayPal return processing failed');
-      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal payment processing failed.')}`);
+      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal subscription processing failed.')}`);
     }
   }
 

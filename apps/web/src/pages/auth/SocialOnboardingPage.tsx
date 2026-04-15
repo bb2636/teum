@@ -10,7 +10,7 @@ import { useSocialOnboarding, type SocialProfile } from '@/hooks/useSocialAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useEmailCheck } from '@/hooks/useEmailCheck';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
-import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X, HelpCircle } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 import { useT } from '@/hooks/useTranslation';
@@ -91,6 +91,7 @@ export function SocialOnboardingPage() {
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [phoneVerificationError, setPhoneVerificationError] = useState<string | null>(null);
   const [verifyKbHeight, setVerifyKbHeight] = useState(0);
+  const [showEmailTooltip, setShowEmailTooltip] = useState(false);
 
   const isAppleHiddenEmail = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
   const isGoogleProvider = socialProfile?.provider === 'google';
@@ -335,9 +336,30 @@ export function SocialOnboardingPage() {
               <div className="flex items-center gap-1">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 {isAppleHiddenEmail && (
-                  <span className="text-xs text-gray-400">({t('common.optional')})</span>
+                  <>
+                    <span className="text-xs text-gray-400">({t('common.optional')})</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailTooltip(!showEmailTooltip)}
+                      className="text-gray-400 hover:text-gray-600 ml-0.5"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
               </div>
+              {showEmailTooltip && (
+                <div className="relative bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 leading-relaxed">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailTooltip(false)}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <p className="pr-5">{t('auth.emailTooltip')}</p>
+                </div>
+              )}
               <Input
                 id="email"
                 type="email"

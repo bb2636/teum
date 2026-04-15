@@ -70,7 +70,20 @@ export class MusicService {
       songTitleEn: musicJobs.songTitleEn,
     };
 
-    const mapJob = (j: typeof selectFields extends infer T ? { [K in keyof T]: any } : never) => ({
+    const toJobDto = (j: {
+      id: string;
+      status: string;
+      lyricalTheme: string | null;
+      lyrics: string | null;
+      audioUrl: string | null;
+      thumbnailUrl: string | null;
+      sourceDiaryIds: unknown;
+      createdAt: Date;
+      completedAt: Date | null;
+      durationSeconds: number | null;
+      songTitle: string | null;
+      songTitleEn: string | null;
+    }) => ({
       jobId: j.id,
       status: j.status,
       title: (j.songTitle ?? j.lyricalTheme) ?? undefined,
@@ -100,14 +113,14 @@ export class MusicService {
       hasMore = rows.length > limit;
       const items = hasMore ? rows.slice(0, limit) : rows;
       nextOffset = hasMore ? offset + limit : null;
-      allJobs = items.map(mapJob);
+      allJobs = items.map(toJobDto);
     } else {
       const rows = await db
         .select(selectFields)
         .from(musicJobs)
         .where(eq(musicJobs.userId, userId))
         .orderBy(desc(musicJobs.createdAt));
-      allJobs = rows.map(mapJob);
+      allJobs = rows.map(toJobDto);
     }
 
     const monthlyUsed = await this.getMonthlyUsage(userId);

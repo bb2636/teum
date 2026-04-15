@@ -165,8 +165,7 @@ app.get(/^\/api\/storage\/(.+)$/, async (req, res) => {
     res.setHeader('Content-Type', file.mimetype);
     res.setHeader('Cache-Control', 'public, max-age=31536000');
     res.send(file.buffer);
-  } catch (error) {
-    console.error('Storage get error:', error);
+  } catch {
     res.status(404).json({ success: false, error: { message: 'Not found' } });
   }
 });

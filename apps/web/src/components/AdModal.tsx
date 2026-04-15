@@ -102,14 +102,14 @@ async function runNativeAdFlow(): Promise<AdFlowResult> {
       });
       handles.push(h2);
 
-      const h3 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info: any) => {
+      const h3 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info) => {
         const detail = JSON.stringify(info);
         W('EVENT: FailedToLoad', detail);
         settle('failed', `FailedToLoad: ${detail}`);
       });
       handles.push(h3);
 
-      const h4 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, (info: any) => {
+      const h4 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, (info) => {
         const detail = JSON.stringify(info);
         W('EVENT: FailedToShow', detail);
         settle('failed', `FailedToShow: ${detail}`);

@@ -69,11 +69,12 @@ export function useUpdateProfile() {
       return response.data.profile;
     },
     onSuccess: async (updatedProfile) => {
-      queryClient.setQueryData(['user', 'me'], (old: any) => {
+      queryClient.setQueryData(['user', 'me'], (old: Record<string, unknown> | undefined) => {
         if (!old) return old;
+        const oldProfile = (old.profile ?? {}) as Record<string, unknown>;
         return {
           ...old,
-          profile: { ...old.profile, ...updatedProfile },
+          profile: { ...oldProfile, ...updatedProfile },
         };
       });
       await queryClient.invalidateQueries({ queryKey: ['user', 'me'] });

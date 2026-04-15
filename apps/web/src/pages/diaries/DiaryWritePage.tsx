@@ -118,7 +118,7 @@ export function DiaryWritePage() {
     window.history.pushState(null, '', window.location.href);
     window.addEventListener('popstate', handlePopState);
 
-    let backButtonListener: any = null;
+    let backButtonListener: Promise<{ remove: () => void }> | null = null;
     if (Capacitor.isNativePlatform()) {
       import('@capacitor/app').then(({ App }) => {
         backButtonListener = App.addListener('backButton', () => {
@@ -130,7 +130,7 @@ export function DiaryWritePage() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
       if (backButtonListener) {
-        backButtonListener.then?.((l: any) => l.remove?.()) || backButtonListener?.remove?.();
+        backButtonListener.then?.((l) => l.remove?.());
       }
     };
   }, []);
@@ -265,8 +265,8 @@ export function DiaryWritePage() {
           setKeyboardHeight(0);
         });
         cleanups.push(() => {
-          showP.then?.((h: any) => h.remove());
-          hideP.then?.((h: any) => h.remove());
+          showP.then?.((h) => h.remove());
+          hideP.then?.((h) => h.remove());
         });
       }).catch(() => {});
 
@@ -722,8 +722,7 @@ export function DiaryWritePage() {
             return newImages;
           });
         }
-      } catch (error) {
-        console.error('Failed to upload image:', error);
+      } catch {
         setSelectedImages((prev) => prev.filter((url) => url !== previewUrl));
         setSelectedFiles((prev) => prev.filter((f) => f !== file));
         URL.revokeObjectURL(previewUrl);
@@ -1007,9 +1006,7 @@ export function DiaryWritePage() {
           if (!imageUrls.includes(url)) {
             imageUrls.push(url);
           }
-        } catch (error) {
-          console.error('Failed to upload image:', error);
-          // Continue with other images even if one fails
+        } catch {
         }
       }
 

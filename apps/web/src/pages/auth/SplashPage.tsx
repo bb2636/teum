@@ -11,9 +11,9 @@ declare global {
     google?: {
       accounts: {
         id: {
-          initialize: (config: any) => void;
-          prompt: (callback?: (notification: any) => void) => void;
-          renderButton: (element: HTMLElement, config: any) => void;
+          initialize: (config: Record<string, unknown>) => void;
+          prompt: (callback?: (notification: Record<string, unknown>) => void) => void;
+          renderButton: (element: HTMLElement, config: Record<string, unknown>) => void;
           disableAutoSelect: () => void;
           revoke: (hint: string, callback?: () => void) => void;
         };
@@ -55,8 +55,7 @@ function clearOAuthState() {
   try {
     localStorage.removeItem(OAUTH_NONCE_KEY);
     localStorage.removeItem(OAUTH_PENDING_KEY);
-  } catch (e) {
-    console.warn('Failed to clear OAuth storage', e);
+  } catch {
   }
 }
 
@@ -168,8 +167,7 @@ export function SplashPage() {
       try {
         const { Browser } = await import('@capacitor/browser');
         await Browser.close();
-      } catch (e) {
-        console.warn('Failed to close browser', e);
+      } catch {
       }
 
       const params = new URL(url.replace('com.teum.app://', 'https://placeholder/')).searchParams;
@@ -322,7 +320,7 @@ export function SplashPage() {
 
       window.google.accounts.id.initialize({
         client_id: clientId,
-        callback: async (response: any) => {
+        callback: async (response: { credential: string }) => {
           try {
             const result = await googleLogin.mutateAsync(response.credential);
             if (result.isNewUser && result.socialProfile) {
@@ -336,8 +334,7 @@ export function SplashPage() {
                 window.location.href = '/home';
               }
             }
-          } catch (err) {
-            console.error('Google login error:', err);
+          } catch {
           }
         },
         auto_select: false,
@@ -381,8 +378,7 @@ export function SplashPage() {
       try {
         localStorage.setItem(OAUTH_NONCE_KEY, nonce);
         localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
-      } catch (e) {
-        console.warn('Failed to save OAuth state', e);
+      } catch {
       }
       try {
         const { Browser } = await import('@capacitor/browser');
@@ -411,8 +407,7 @@ export function SplashPage() {
     try {
       localStorage.setItem(OAUTH_NONCE_KEY, nonce);
       localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
-    } catch (e) {
-      console.warn('Failed to save OAuth state', e);
+    } catch {
     }
     if (isNative) {
       try {

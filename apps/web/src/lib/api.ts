@@ -168,8 +168,7 @@ export async function apiRequest<T>(
           },
         };
       }
-    } catch (parseError) {
-      console.error('Failed to parse error response:', parseError);
+    } catch {
       error = {
         success: false,
         error: {

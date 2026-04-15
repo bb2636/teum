@@ -142,7 +142,7 @@ export function HomePage() {
 
   const handleAddFolder = () => {
     if (!activeSubscription && folders) {
-      const nonDefaultCount = folders.filter((f: any) => !f.isDefault).length;
+      const nonDefaultCount = folders.filter((f) => !f.isDefault).length;
       if (nonDefaultCount >= 2) {
         setShowFolderLimitModal(true);
         return;

@@ -16,7 +16,7 @@ const prefetchMap: Record<string, () => void> = {
   '/home': () => {
     queryClient.prefetchQuery({
       queryKey: ['diaries', 'recent'],
-      queryFn: () => apiRequest('/diaries?limit=10').then((r: any) => r.data),
+      queryFn: () => apiRequest<{ data: unknown }>('/diaries?limit=10').then((r) => r.data),
       staleTime: 1000 * 60 * 5,
     });
   },
@@ -26,7 +26,7 @@ const prefetchMap: Record<string, () => void> = {
     const month = now.getMonth() + 1;
     queryClient.prefetchQuery({
       queryKey: ['diaries', 'monthly', year, month],
-      queryFn: () => apiRequest(`/diaries?year=${year}&month=${month}`).then((r: any) => r.data),
+      queryFn: () => apiRequest<{ data: unknown }>(`/diaries?year=${year}&month=${month}`).then((r) => r.data),
       staleTime: 1000 * 60 * 5,
     });
   },
@@ -34,9 +34,9 @@ const prefetchMap: Record<string, () => void> = {
     queryClient.prefetchInfiniteQuery({
       queryKey: ['music', 'jobs'],
       queryFn: ({ pageParam }) =>
-        apiRequest(`/music/jobs?limit=20&offset=${pageParam}`).then((r: any) => r.data),
+        apiRequest<{ data: { nextOffset?: number } }>(`/music/jobs?limit=20&offset=${pageParam}`).then((r) => r.data),
       initialPageParam: 0,
-      getNextPageParam: (lastPage: any) => lastPage?.nextOffset ?? undefined,
+      getNextPageParam: (lastPage: { nextOffset?: number }) => lastPage?.nextOffset ?? undefined,
       staleTime: 1000 * 60 * 5,
       pages: 1,
     });

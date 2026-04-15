@@ -124,7 +124,6 @@ export function PaymentPage() {
         window.location.href = result.approveUrl;
       }
     } catch (error: unknown) {
-      console.error('PayPal init error:', error);
       alert(error instanceof Error ? error.message : t('payment.initError'));
       setIsProcessing(false);
     }
@@ -182,7 +181,6 @@ export function PaymentPage() {
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
     } catch (error: unknown) {
-      console.error('Billing key init error:', error);
       alert(error instanceof Error ? error.message : t('payment.initError'));
       setIsProcessing(false);
     }

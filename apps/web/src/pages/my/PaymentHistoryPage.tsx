@@ -9,6 +9,18 @@ import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 
+function formatAmount(amount: number, currency: string): string {
+  const num = Math.round(amount);
+  if (currency === 'USD') return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${num.toLocaleString()}원`;
+}
+
+function formatMonthlyAmount(amount: number, currency: string): string {
+  const num = Math.round(amount);
+  if (currency === 'USD') return `월 $${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `월 ${num.toLocaleString()}원`;
+}
+
 export function PaymentHistoryPage() {
   const navigate = useNavigate();
   const t = useT();
@@ -72,10 +84,13 @@ export function PaymentHistoryPage() {
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-lg font-semibold text-[#4A2C1A]">
-                    {t('payment.monthlyAmount', { amount: parseInt(effectiveSubscription.amount.toString()).toLocaleString() })}
+                    {formatMonthlyAmount(effectiveSubscription.amount, effectiveSubscription.currency)}
                   </p>
                   {!isSubscriptionActive && (
-                    <span className="text-xs text-red-500 font-medium bg-red-50 px-2 py-1 rounded-full">
+                    <span
+                      className="text-xs font-medium px-2 py-1 rounded-full"
+                      style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)' }}
+                    >
                       {t('my.subscriptionCancelled')}
                     </span>
                   )}
@@ -137,7 +152,7 @@ export function PaymentHistoryPage() {
                                 {format(new Date(payment.createdAt), 'yyyy.MM.dd', { locale })}
                               </p>
                               <p className="text-sm font-semibold text-[#4A2C1A]">
-                                {parseInt(payment.amount.toString()).toLocaleString()}{t('payment.won')}
+                                {formatAmount(payment.amount, payment.currency)}
                               </p>
                             </div>
                             {associatedSubscription && (

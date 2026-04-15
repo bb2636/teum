@@ -5,6 +5,12 @@ import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 
+function formatAmount(amount: number, currency: string): string {
+  const num = Math.round(amount);
+  if (currency === 'USD') return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${num.toLocaleString()}원`;
+}
+
 interface PaymentHistoryModalProps {
   subscriptions: Subscription[];
   payments: Payment[];
@@ -79,7 +85,7 @@ export function PaymentHistoryModal({
                         </span>
                       </div>
                       <p className="text-sm font-semibold text-brown-900">
-                        {parseInt(sub.amount.toString()).toLocaleString()}{t('payment.won')}
+                        {formatAmount(sub.amount, sub.currency)}
                       </p>
                     </div>
                   );
@@ -129,7 +135,7 @@ export function PaymentHistoryModal({
                       </span>
                     </div>
                     <p className="text-sm font-semibold text-brown-900">
-                      {parseInt(payment.amount.toString()).toLocaleString()}{t('payment.won')}
+                      {formatAmount(payment.amount, payment.currency)}
                     </p>
                   </div>
                 ))}

@@ -126,8 +126,8 @@ export class PaymentController {
 
       const preloadedSession = await paymentService.getPendingSession(orderId);
       if (!preloadedSession) {
-        logger.error({ orderId }, 'NicePay billing return: session not found at entry');
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('결제 세션을 찾을 수 없습니다. 다시 시도해주세요.')}`);
+        logger.info({ orderId }, 'NicePay billing return: session not found (likely page refresh after success)');
+        return res.redirect(`${frontendUrl}/payment/success`);
       }
 
       logger.info({ orderId, sessionUserId: preloadedSession.userId, sessionAmount: preloadedSession.amount }, 'Session preloaded for billing return');
@@ -486,9 +486,31 @@ export class PaymentController {
     }
 
     const REFUND_EVENTS = ['PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'];
+    const CANCEL_EVENTS = ['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.EXPIRED', 'BILLING.SUBSCRIPTION.SUSPENDED'];
+
+    if (CANCEL_EVENTS.includes(eventType)) {
+      const resource = event.resource as Record<string, unknown> | undefined;
+      const paypalSubscriptionId = resource?.id as string | undefined;
+
+      if (!paypalSubscriptionId) {
+        logger.error({ eventId, eventType }, 'PayPal subscription webhook: missing subscription id');
+        return res.status(400).json({ error: 'Missing subscription id' });
+      }
+
+      const result = await paymentService.handlePayPalSubscriptionCancelled(paypalSubscriptionId, eventType);
+
+      logger.info({
+        eventId,
+        eventType,
+        paypalSubscriptionId,
+        result,
+      }, 'PayPal subscription cancellation webhook handled');
+
+      return res.status(200).json({ status: result });
+    }
 
     if (!REFUND_EVENTS.includes(eventType)) {
-      logger.info({ eventType, eventId }, 'PayPal webhook: non-refund event, acknowledging');
+      logger.info({ eventType, eventId }, 'PayPal webhook: unhandled event, acknowledging');
       return res.status(200).json({ status: 'acknowledged' });
     }
 

@@ -1096,6 +1096,52 @@ export class PaymentService {
     };
   }
 
+  async handlePayPalSubscriptionCancelled(
+    paypalSubscriptionId: string,
+    eventType: string
+  ): Promise<string> {
+    const [sub] = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.paypalSubscriptionId, paypalSubscriptionId),
+          eq(subscriptions.status, 'active')
+        )
+      )
+      .limit(1);
+
+    if (!sub) {
+      logger.info({ paypalSubscriptionId, eventType }, 'PayPal cancellation webhook: no active subscription found (already cancelled/expired)');
+      return 'no_active_subscription';
+    }
+
+    await db
+      .update(subscriptions)
+      .set({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.id, sub.id));
+
+    logger.info({
+      subscriptionId: sub.id,
+      userId: sub.userId,
+      paypalSubscriptionId,
+      eventType,
+    }, 'PayPal subscription cancelled via webhook');
+
+    const endDateStr = sub.endDate
+      ? new Date(sub.endDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '이용 기간 종료 시';
+    this.getUserEmailAndNickname(sub.userId).then(info => {
+      if (info) emailService.sendSubscriptionCancelNotification(info.email, info.nickname, endDateStr, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+    }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+
+    return 'cancelled';
+  }
+
   async cancelSubscription(
     userId: string,
     subscriptionId: string
@@ -1212,12 +1258,40 @@ export class PaymentService {
     };
   }
 
+  private processingPayPalReturns = new Set<string>();
+
   async activatePayPalSubscription(
+    paypalSubscriptionId: string,
+    internalOrderId: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (this.processingPayPalReturns.has(internalOrderId)) {
+      logger.warn({ internalOrderId }, 'Duplicate PayPal activation detected, skipping');
+      return { success: true, message: 'Already processing.' };
+    }
+    this.processingPayPalReturns.add(internalOrderId);
+
+    try {
+      return await this._activatePayPalSubscriptionInner(paypalSubscriptionId, internalOrderId);
+    } finally {
+      this.processingPayPalReturns.delete(internalOrderId);
+    }
+  }
+
+  private async _activatePayPalSubscriptionInner(
     paypalSubscriptionId: string,
     internalOrderId: string
   ): Promise<{ success: boolean; message: string }> {
     const session = await this.getPendingSession(internalOrderId);
     if (!session) {
+      const existingSub = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.paypalSubscriptionId, paypalSubscriptionId))
+        .limit(1);
+      if (existingSub.length > 0) {
+        logger.info({ internalOrderId, paypalSubscriptionId }, 'PayPal session gone but subscription exists (likely page refresh)');
+        return { success: true, message: 'Subscription already activated.' };
+      }
       logger.error({ internalOrderId }, 'PayPal session not found');
       return { success: false, message: 'Payment session not found.' };
     }

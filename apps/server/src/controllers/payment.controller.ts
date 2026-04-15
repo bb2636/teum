@@ -573,7 +573,7 @@ export class PaymentController {
       amount: cancelAmt || body.amount,
       resultCode: resultCode || '0000',
       resultMsg,
-      rawPayload: rawBody,
+      rawPayload: rawBody || JSON.stringify(body),
     });
 
     logger.info({

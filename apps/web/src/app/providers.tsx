@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { BottomTabBar } from '../components/navigation/BottomTabBar';
 import { DiaryTypeModal } from '../components/DiaryTypeModal';
 import { useLocation } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useHideTabBar } from '../contexts/HideTabBarContext';
 
 const AUTH_ROUTES = ['/splash', '/login', '/signup', '/forgot-password', '/social-onboarding', '/mobile-login-complete', '/login-redirect'];
 const HIDE_TAB_BAR_ROUTES = ['/diaries/new', '/folders/new', '/admin', '/my/profile-edit', '/my/payment-history', '/my/support/inquiry', '/payment', '/payment/success', '/music/create', '/music/jobs', '/music/list'];
+const TAB_ROUTES = new Set(['/home', '/calendar', '/music']);
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,12 +15,18 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { hideTabBar } = useHideTabBar();
+  const prevPathRef = useRef(location.pathname);
+
+  const isTabSwitch =
+    TAB_ROUTES.has(location.pathname) && TAB_ROUTES.has(prevPathRef.current);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+    if (!isTabSwitch) {
+      window.scrollTo(0, 0);
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname, isTabSwitch]);
   
-  // Check if current route should hide tab bar
   const isEditRoute = location.pathname.match(/^\/diaries\/[^/]+\/edit$/);
   const isDetailRoute = location.pathname.match(/^\/diaries\/[^/]+$/);
   const shouldHideTabBar =
@@ -33,7 +40,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <main key={location.pathname} className={`${showTabBar ? 'pb-20' : ''} animate-page-in`}>{children}</main>
+      <main className={`${showTabBar ? 'pb-20' : ''} ${isTabSwitch ? '' : 'animate-page-in'}`}>{children}</main>
       {showTabBar && <BottomTabBar />}
       <DiaryTypeModal />
     </div>

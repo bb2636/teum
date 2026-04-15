@@ -52,4 +52,3 @@ build = ["pnpm", "build"]
 [userenv.shared]
 
 [userenv.production]
-FRONTEND_URL = "https://teum.replit.app"

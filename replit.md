@@ -114,7 +114,7 @@ teum/
   - 환불 시: `subscription.status = 'refunded'`, `endDate = now()` → 즉시 접근 차단 (잔여 기간 무시)
   - `getActiveSubscription()`: `status === 'refunded'`는 매칭 불가 → 자동 deny
   - **멱등성**: `webhook_events` 테이블 (eventId UNIQUE) — 중복 웹훅 처리 방지
-  - **시그니처 검증**: PayPal API 서명 검증 (`PAYPAL_WEBHOOK_ID` 필수), NicePay HMAC-SHA256 (`NICEPAY_WEBHOOK_SECRET` 필수)
+  - **시그니처 검증**: PayPal API 서명 검증 (`PAYPAL_WEBHOOK_ID` 필수), NicePay는 DB tid 대조로 검증 (별도 시크릿 없음)
   - `apps/server/src/services/payment/refund.service.ts` — 환불 처리 로직
   - Raw body 보존: `express.json({ verify })` — webhook 경로만 `req.rawBody` 저장
 
@@ -315,7 +315,6 @@ teum/
 - `PAYPAL_CLIENT_SECRET` - PayPal REST API Secret
 - `PAYPAL_MODE` - `live`면 운영 API, 미설정 시 sandbox
 - `PAYPAL_WEBHOOK_ID` - PayPal 웹훅 ID (환불 이벤트 서명 검증용, PayPal Dashboard에서 생성)
-- `NICEPAY_WEBHOOK_SECRET` - NicePay 웹훅 시크릿 (환불 콜백 HMAC 검증용)
 - `BACKEND_URL` - NicePay/PayPal returnUrl 생성용 백엔드 URL
 - `SOLAPI_API_KEY` - 솔라피 API Key (SMS)
 - `SOLAPI_API_SECRET` - 솔라피 API Secret

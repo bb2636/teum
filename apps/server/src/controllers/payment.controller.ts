@@ -5,7 +5,6 @@ import { logger } from '../config/logger';
 import { getExchangeInfo } from '../utils/currency';
 import { refundService } from '../services/payment/refund.service';
 import { paypalProvider } from '../services/payment/paypal.provider';
-import crypto from 'crypto';
 
 export class PaymentController {
   async getPlanPrice(req: Request, res: Response, next: NextFunction) {
@@ -528,8 +527,6 @@ export class PaymentController {
   }
 
   async nicepayWebhook(req: Request, res: Response) {
-    const NICEPAY_WEBHOOK_SECRET = process.env.NICEPAY_WEBHOOK_SECRET;
-    const signatureHeader = req.headers['x-nicepay-signature'] as string | undefined;
     const rawBody = (req as Request & { rawBody?: string }).rawBody;
 
     if (!req.body?.tid) {
@@ -537,36 +534,8 @@ export class PaymentController {
       return res.status(200).send('OK');
     }
 
-    if (!NICEPAY_WEBHOOK_SECRET) {
-      logger.warn('NICEPAY_WEBHOOK_SECRET not configured, accepting but not processing webhook');
-      return res.status(200).send('OK');
-    }
-
-    if (!rawBody) {
-      logger.error('NicePay webhook: missing raw body');
-      return res.status(400).json({ error: 'Missing request body' });
-    }
-
-    if (!signatureHeader) {
-      logger.warn('NicePay webhook: missing x-nicepay-signature header');
-      return res.status(401).json({ error: 'Missing signature' });
-    }
-
-    const expectedSig = crypto
-      .createHmac('sha256', NICEPAY_WEBHOOK_SECRET)
-      .update(rawBody)
-      .digest('hex');
-
-    const sigBuffer = Buffer.from(signatureHeader);
-    const expectedBuffer = Buffer.from(expectedSig);
-
-    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-      logger.warn('NicePay webhook: signature verification failed');
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
     const body = req.body;
-    const { tid, orderId, resultCode, resultMsg, cancelAmt, mallReserved } = body;
+    const { tid, orderId, resultCode, resultMsg, cancelAmt } = body;
 
     if (!tid) {
       logger.error('NicePay webhook: missing tid');

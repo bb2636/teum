@@ -109,7 +109,7 @@ teum/
 - 프론트엔드 결제 방법 선택: 라디오 버튼으로 NicePay/PayPal 전환 (언어 기반 기본값)
 - **환불 안전 구독 로직 (Refund-Safe Subscriptions)**:
   - `subscription_status` enum: `active`, `cancelled`, `expired`, `pending`, `refunded`
-  - PayPal 웹훅: `POST /api/payments/paypal/webhook` — `PAYMENT.SALE.REFUNDED`, `PAYMENT.SALE.REVERSED` 처리
+  - PayPal 웹훅: `POST /api/payments/paypal/webhook` — `PAYMENT.SALE.REFUNDED`, `PAYMENT.SALE.REVERSED`, `CUSTOMER.DISPUTE.CREATED` 처리
   - NicePay 웹훅: `POST /api/payments/nicepay/webhook` — 환불 콜백 처리
   - 환불 시: `subscription.status = 'refunded'`, `endDate = now()` → 즉시 접근 차단 (잔여 기간 무시)
   - `getActiveSubscription()`: `status === 'refunded'`는 매칭 불가 → 자동 deny
@@ -117,6 +117,9 @@ teum/
   - **시그니처 검증**: PayPal API 서명 검증 (`PAYPAL_WEBHOOK_ID` 필수), NicePay는 DB tid 대조로 검증 (별도 시크릿 없음)
   - `apps/server/src/services/payment/refund.service.ts` — 환불 처리 로직
   - Raw body 보존: `express.json({ verify })` — webhook 경로만 `req.rawBody` 저장
+  - **환불 감사 로그**: `refund_logs` 테이블 (userId, paymentId, eventType, rawPayload, createdAt)
+  - **환불 이메일 알림**: 유저에게 환불 완료 안내, 관리자에게 상세 정보 발송 (`ADMIN_EMAIL` 환경변수 필요)
+  - **분쟁(dispute) 처리**: `CUSTOMER.DISPUTE.CREATED` → 로그 기록 + 관리자 이메일 알림 (자동 환불 미적용, 수동 확인 필요)
 
 - **자동 갱신 (Auto-Renewal)**:
   - 1시간 주기 (`setInterval`), 동시 실행 방지 (`isProcessingRenewals` 가드)

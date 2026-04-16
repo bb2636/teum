@@ -86,13 +86,17 @@ async function testMureka() {
       
       process.exit(1);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Record<string, unknown>;
+    const message = error instanceof Error ? error.message : String(error);
+    const code = err.code as string | undefined;
+
     console.error('   ❌ API 호출 실패!');
-    console.error(`   - 에러 메시지: ${error.message}`);
+    console.error(`   - 에러 메시지: ${message}`);
     
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+    if (code === 'ENOTFOUND' || code === 'ECONNREFUSED') {
       console.error('\n❌ 네트워크 연결 문제입니다. 인터넷 연결을 확인하세요.');
-    } else if (error.code === 'ETIMEDOUT') {
+    } else if (code === 'ETIMEDOUT') {
       console.error('\n❌ 요청 시간 초과입니다. 잠시 후 다시 시도하세요.');
     }
     

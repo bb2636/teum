@@ -1,7 +1,8 @@
 import { db } from '../../db';
-import { subscriptions, payments, webhookEvents } from '../../db/schema';
+import { subscriptions, payments, webhookEvents, refundLogs, users, userProfiles } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '../../config/logger';
+import { emailService } from '../email/email.service';
 
 export class RefundService {
   async isDuplicateWebhookEvent(eventId: string): Promise<boolean> {
@@ -37,6 +38,67 @@ export class RefundService {
     }
   }
 
+  private async getUserInfo(userId: string): Promise<{ email: string; nickname: string; language: string } | null> {
+    const [result] = await db
+      .select({ email: users.email, nickname: userProfiles.nickname, language: userProfiles.language })
+      .from(users)
+      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!result?.email) return null;
+    return { email: result.email, nickname: result.nickname || '회원', language: result.language || 'ko' };
+  }
+
+  private async insertRefundLog(
+    userId: string | null,
+    paymentId: string | null,
+    eventType: string,
+    rawPayload: string
+  ): Promise<void> {
+    try {
+      await db.insert(refundLogs).values({
+        userId,
+        paymentId,
+        eventType,
+        rawPayload,
+      });
+    } catch (error) {
+      logger.error({ error, userId, paymentId, eventType }, 'Failed to insert refund log');
+    }
+  }
+
+  private async sendRefundNotifications(
+    userId: string,
+    paymentId: string | undefined,
+    eventType: string,
+    amount?: string,
+    currency?: string
+  ): Promise<void> {
+    try {
+      const userInfo = await this.getUserInfo(userId);
+      if (userInfo) {
+        await emailService.sendRefundNotificationToUser(
+          userInfo.email,
+          userInfo.nickname,
+          amount,
+          currency,
+          userInfo.language
+        );
+      }
+
+      await emailService.sendRefundNotificationToAdmin({
+        userId,
+        paymentId,
+        amount,
+        currency,
+        eventType,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error({ error, userId }, 'Failed to send refund notification emails');
+    }
+  }
+
   async processPayPalRefund(event: {
     eventId: string;
     eventType: string;
@@ -63,6 +125,7 @@ export class RefundService {
       }, 'PayPal refund: no matching subscription found');
 
       await this.recordWebhookEvent(event.eventId, 'paypal', event.eventType, event.rawPayload);
+      await this.insertRefundLog(null, null, event.eventType, event.rawPayload);
       return { processed: false, reason: 'no_matching_subscription' };
     }
 
@@ -78,6 +141,7 @@ export class RefundService {
     }
 
     const now = new Date();
+    let refundedPaymentId: string | undefined;
 
     try {
       await db.transaction(async (tx) => {
@@ -98,18 +162,28 @@ export class RefundService {
           .where(eq(subscriptions.id, sub.id));
 
         if (event.saleId) {
-          await tx
-            .update(payments)
-            .set({
-              status: 'refunded',
-              updatedAt: now,
-            })
+          const [matchingPayment] = await tx
+            .select({ id: payments.id })
+            .from(payments)
             .where(
               and(
                 eq(payments.subscriptionId, sub.id),
                 eq(payments.status, 'completed')
               )
-            );
+            )
+            .orderBy(payments.createdAt)
+            .limit(1);
+
+          if (matchingPayment) {
+            await tx
+              .update(payments)
+              .set({
+                status: 'refunded',
+                updatedAt: now,
+              })
+              .where(eq(payments.id, matchingPayment.id));
+            refundedPaymentId = matchingPayment.id;
+          }
         }
       });
     } catch (error: unknown) {
@@ -120,6 +194,10 @@ export class RefundService {
       }
       throw error;
     }
+
+    await this.insertRefundLog(sub.userId, refundedPaymentId || null, event.eventType, event.rawPayload);
+
+    await this.sendRefundNotifications(sub.userId, refundedPaymentId, event.eventType, event.amount, event.currency);
 
     logger.info({
       eventId: event.eventId,
@@ -132,6 +210,43 @@ export class RefundService {
     }, 'PayPal refund processed: subscription revoked immediately');
 
     return { processed: true, reason: 'refunded' };
+  }
+
+  async processPayPalDispute(event: {
+    eventId: string;
+    eventType: string;
+    disputeId: string;
+    reason?: string;
+    disputedTransactions?: Array<{ seller_transaction_id?: string }>;
+    rawPayload: string;
+  }): Promise<{ processed: boolean; reason: string }> {
+    if (await this.isDuplicateWebhookEvent(event.eventId)) {
+      logger.info({ eventId: event.eventId }, 'Duplicate PayPal dispute webhook, skipping');
+      return { processed: false, reason: 'duplicate' };
+    }
+
+    await this.recordWebhookEvent(event.eventId, 'paypal', event.eventType, event.rawPayload);
+    await this.insertRefundLog(null, null, event.eventType, event.rawPayload);
+
+    logger.warn({
+      eventId: event.eventId,
+      eventType: event.eventType,
+      disputeId: event.disputeId,
+      reason: event.reason,
+    }, 'PayPal dispute received — logged for admin review');
+
+    try {
+      await emailService.sendRefundNotificationToAdmin({
+        userId: `N/A (dispute: ${event.disputeId})`,
+        paymentId: event.disputedTransactions?.[0]?.seller_transaction_id || event.disputeId,
+        eventType: `${event.eventType} - Reason: ${event.reason || 'unknown'}`,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error({ error }, 'Failed to send dispute notification to admin');
+    }
+
+    return { processed: true, reason: 'dispute_logged' };
   }
 
   async processNicePayRefund(event: {
@@ -159,12 +274,14 @@ export class RefundService {
     if (!payment) {
       logger.warn({ tid: event.tid, eventId: idempotencyKey }, 'NicePay refund: no matching payment found');
       await this.recordWebhookEvent(idempotencyKey, 'nicepay', 'REFUND', event.rawPayload);
+      await this.insertRefundLog(null, null, 'NICEPAY_REFUND', event.rawPayload);
       return { processed: false, reason: 'no_matching_payment' };
     }
 
     if (!payment.subscriptionId) {
       logger.warn({ tid: event.tid, paymentId: payment.id }, 'NicePay refund: payment has no linked subscription');
       await this.recordWebhookEvent(idempotencyKey, 'nicepay', 'REFUND', event.rawPayload);
+      await this.insertRefundLog(payment.userId, payment.id, 'NICEPAY_REFUND', event.rawPayload);
       return { processed: false, reason: 'no_linked_subscription' };
     }
 
@@ -177,6 +294,7 @@ export class RefundService {
     if (!sub) {
       logger.warn({ subscriptionId: payment.subscriptionId }, 'NicePay refund: subscription not found');
       await this.recordWebhookEvent(idempotencyKey, 'nicepay', 'REFUND', event.rawPayload);
+      await this.insertRefundLog(payment.userId, payment.id, 'NICEPAY_REFUND', event.rawPayload);
       return { processed: false, reason: 'subscription_not_found' };
     }
 
@@ -222,6 +340,10 @@ export class RefundService {
       }
       throw error;
     }
+
+    await this.insertRefundLog(sub.userId, payment.id, 'NICEPAY_REFUND', event.rawPayload);
+
+    await this.sendRefundNotifications(sub.userId, payment.id, 'NICEPAY_REFUND', event.amount, 'KRW');
 
     logger.info({
       eventId: idempotencyKey,

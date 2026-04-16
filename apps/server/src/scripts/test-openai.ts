@@ -70,21 +70,27 @@ async function testOpenAI() {
     console.log(`   - 사용된 토큰: ${response.usage?.total_tokens || 'N/A'}`);
     console.log('');
     console.log('✅ 모든 테스트 통과! OpenAI API가 정상적으로 작동합니다.');
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Record<string, unknown>;
+    const message = error instanceof Error ? error.message : String(error);
+    const code = err.code as string | undefined;
+    const status = err.status as number | undefined;
+    const response = err.response as { data?: unknown } | undefined;
+
     console.error('   ❌ API 호출 실패!');
-    console.error(`   - 에러 메시지: ${error.message}`);
-    console.error(`   - 에러 코드: ${error.code || 'N/A'}`);
-    console.error(`   - HTTP 상태: ${error.status || 'N/A'}`);
+    console.error(`   - 에러 메시지: ${message}`);
+    console.error(`   - 에러 코드: ${code || 'N/A'}`);
+    console.error(`   - HTTP 상태: ${status || 'N/A'}`);
     
-    if (error.response) {
-      console.error(`   - 응답 데이터: ${JSON.stringify(error.response.data, null, 2)}`);
+    if (response) {
+      console.error(`   - 응답 데이터: ${JSON.stringify(response.data, null, 2)}`);
     }
 
-    if (error.code === 'invalid_api_key') {
+    if (code === 'invalid_api_key') {
       console.error('\n❌ API 키가 유효하지 않습니다. OpenAI 대시보드에서 올바른 키를 확인하세요.');
-    } else if (error.code === 'insufficient_quota') {
+    } else if (code === 'insufficient_quota') {
       console.error('\n❌ API 사용량 한도를 초과했습니다. OpenAI 대시보드에서 결제 정보를 확인하세요.');
-    } else if (error.status === 429) {
+    } else if (status === 429) {
       console.error('\n❌ Rate limit에 도달했습니다. 잠시 후 다시 시도하세요.');
     }
 

@@ -75,6 +75,9 @@ const i18n: Record<Lang, Record<string, string>> = {
     inquiryAnswerBody: '문의하신 내용에 답변이 등록되었습니다.',
     inquiryAnswerButton: '답변 확인하기',
     inquiryAnswerMore: '추가 문의사항이 있으시면 언제든지 문의해주세요.',
+    refundTitle: '환불 처리 완료',
+    refundBody: '환불이 처리되었으며, 프리미엄 이용 권한이 해지되었습니다.',
+    refundNotice: '환불에 대해 궁금한 사항이 있으시면 고객지원으로 문의해주세요.',
     greeting: '안녕하세요,',
     greetingSuffix: '님!',
     greetingPeriod: '님.',
@@ -138,6 +141,9 @@ const i18n: Record<Lang, Record<string, string>> = {
     inquiryAnswerBody: 'A response has been posted to your inquiry.',
     inquiryAnswerButton: 'View Response',
     inquiryAnswerMore: 'If you have additional questions, feel free to reach out anytime.',
+    refundTitle: 'Refund Processed',
+    refundBody: 'Your refund has been processed and your premium access has been revoked.',
+    refundNotice: 'If you have any questions about this refund, please contact our support team.',
     greeting: 'Hello,',
     greetingSuffix: '!',
     greetingPeriod: '.',
@@ -513,6 +519,63 @@ export class EmailService {
       await this.provider.sendEmail({ to: email, subject: emailSubject, html });
     } catch (error) {
       logger.error('Failed to send inquiry answered notification', { email, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  async sendRefundNotificationToUser(email: string, nickname: string, amount?: string, currency?: string, lang?: string): Promise<void> {
+    const l = resolveLang(lang);
+    const safeNickname = escapeHtml(nickname);
+    const amountDisplay = amount && currency
+      ? (currency === 'USD' ? `$${amount}` : `${Number(amount).toLocaleString()}원`)
+      : '';
+    const body = `
+      <p>${tt(l, 'greeting')} <strong>${safeNickname}</strong>${tt(l, 'greetingPeriod')}</p>
+      <p>${tt(l, 'refundBody')}</p>
+      ${amountDisplay ? `
+      <div style="background-color: #f5ede4; border: 1px solid #d4c5b0; padding: 15px; margin: 20px 0; border-radius: 8px;">
+        <p style="margin: 0; color: #4A2C1A; font-size: 14px;">
+          <strong>${l === 'en' ? 'Refund amount:' : '환불 금액:'}</strong> ${amountDisplay}
+        </p>
+      </div>` : ''}
+      <p style="color: #666; font-size: 14px;">${tt(l, 'refundNotice')}</p>
+    `;
+    const html = buildNotificationHtml(l, tt(l, 'refundTitle'), body);
+    const subject = l === 'en' ? '[teum] Your refund has been processed' : '[teum] 환불이 처리되었습니다';
+
+    try {
+      await this.provider.sendEmail({ to: email, subject, html });
+    } catch (error) {
+      logger.error('Failed to send refund notification to user', { email, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  async sendRefundNotificationToAdmin(data: {
+    userId: string;
+    paymentId?: string;
+    amount?: string;
+    currency?: string;
+    eventType: string;
+    timestamp: string;
+  }): Promise<void> {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail) {
+      logger.warn('ADMIN_EMAIL not configured, skipping admin refund notification');
+      return;
+    }
+
+    const html = buildNotificationHtml('en', 'Refund Processed', `
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">User ID</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(data.userId)}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Payment ID</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(data.paymentId || 'N/A')}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Amount</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${data.amount ? `${data.amount} ${data.currency || ''}` : 'N/A'}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Event Type</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(data.eventType)}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold;">Timestamp</td><td style="padding: 8px;">${escapeHtml(data.timestamp)}</td></tr>
+      </table>
+    `);
+
+    try {
+      await this.provider.sendEmail({ to: adminEmail, subject: '[teum Admin] Refund processed', html });
+    } catch (error) {
+      logger.error('Failed to send refund notification to admin', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 }

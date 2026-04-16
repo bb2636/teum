@@ -486,7 +486,33 @@ export class PaymentController {
     }
 
     const REFUND_EVENTS = ['PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'];
+    const DISPUTE_EVENTS = ['CUSTOMER.DISPUTE.CREATED'];
     const CANCEL_EVENTS = ['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.EXPIRED', 'BILLING.SUBSCRIPTION.SUSPENDED'];
+
+    if (DISPUTE_EVENTS.includes(eventType)) {
+      const resource = event.resource as Record<string, unknown> | undefined;
+      const disputeId = (resource?.dispute_id as string) || eventId;
+      const reason = resource?.reason as string | undefined;
+      const disputedTransactions = resource?.disputed_transactions as Array<{ seller_transaction_id?: string }> | undefined;
+
+      const result = await refundService.processPayPalDispute({
+        eventId,
+        eventType,
+        disputeId,
+        reason,
+        disputedTransactions,
+        rawPayload: rawBody,
+      });
+
+      logger.info({
+        eventId,
+        eventType,
+        disputeId,
+        result,
+      }, 'PayPal dispute webhook handled');
+
+      return res.status(200).json({ status: result.reason });
+    }
 
     if (CANCEL_EVENTS.includes(eventType)) {
       const resource = event.resource as Record<string, unknown> | undefined;

@@ -139,6 +139,8 @@ teum/
 
 ### 8. SMS Verification (Solapi)
 - 회원가입/비밀번호 재설정 시 전화번호 인증 문자 발송
+- **국가코드 드롭다운**: 30개국 지원 (`apps/web/src/lib/countryCodes.ts`). SignupPage, ForgotPasswordPage, SocialOnboardingPage, PaymentPage 모두 적용
+- 서버에서 `countryCode + phone.replace(/^0+/, '')` 조합하여 Twilio/Solapi에 전달. 최소 4자리 허용 (해외 번호 지원)
 - HMAC-SHA256 인증, 인증번호 5분 유효, 5회 오류 시 1시간 잠금
 
 ### 9. Email (Resend) — 다국어 지원

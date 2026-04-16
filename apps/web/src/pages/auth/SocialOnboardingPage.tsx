@@ -10,11 +10,12 @@ import { useSocialOnboarding, type SocialProfile } from '@/hooks/useSocialAuth';
 import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useEmailCheck } from '@/hooks/useEmailCheck';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
-import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Calendar, X, HelpCircle, ChevronDown } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 import { useT } from '@/hooks/useTranslation';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { countryCodes } from '@/lib/countryCodes';
 
 const nicknameSchema = z
   .string()
@@ -29,7 +30,7 @@ const createProfileSchema = (isEmailOptional: boolean) => z.object({
     : z.string().email('auth.emailPlaceholder'),
   nickname: nicknameSchema,
   name: z.string().min(1, 'auth.enterName').max(100),
-  phone: z.string().min(10, 'auth.phoneInvalidLength').max(11, 'auth.phoneInvalidLength'),
+  phone: z.string().min(4, 'auth.phoneInvalidLength').max(15, 'auth.phoneInvalidLength'),
   dateOfBirth: z
     .string()
     .refine((val) => {
@@ -92,6 +93,9 @@ export function SocialOnboardingPage() {
   const [phoneVerificationError, setPhoneVerificationError] = useState<string | null>(null);
   const [verifyKbHeight, setVerifyKbHeight] = useState(0);
   const [showEmailTooltip, setShowEmailTooltip] = useState(false);
+  const [selectedCountryCode, setSelectedCountryCode] = useState(countryCodes[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
   const isAppleHiddenEmail = socialProfile?.provider === 'apple' && socialProfile?.isEmailHidden;
   const isGoogleProvider = socialProfile?.provider === 'google';
@@ -230,10 +234,10 @@ export function SocialOnboardingPage() {
 
   const handleRequestPhoneVerification = async () => {
     const phone = profileForm.getValues('phone');
-    if (!phone || phone.length < 10) return;
+    if (!phone || phone.length < 4) return;
     setError(null);
     try {
-      await requestPhoneVerification.mutateAsync(phone);
+      await requestPhoneVerification.mutateAsync({ phone, countryCode: selectedCountryCode.dial });
       setShowPhoneVerificationModal(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('auth.verificationFailed'));
@@ -376,34 +380,46 @@ export function SocialOnboardingPage() {
 
             <div className="space-y-2">
               <Label htmlFor="phone">{t('auth.phone')}</Label>
-              <div className="relative">
-                <Input
-                  id="phone"
-                  type="tel"
-                  {...profileForm.register('phone', {
-                    onChange: (e) => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 11);
-                      profileForm.setValue('phone', val, { shouldValidate: true });
-                      if (phoneVerified) {
-                        setPhoneVerified(false);
-                      }
-                    }
-                  })}
-                  placeholder={t('auth.phonePlaceholder')}
-                  className={`pr-28 bg-gray-100 ${profileErrors.phone ? 'border-red-500' : ''}`}
-                  disabled={phoneVerified}
-                  maxLength={11}
-                  inputMode="numeric"
-                />
-                <Button
+              <div className="flex gap-1.5">
+                <button
                   type="button"
-                  variant="ghost"
-                  onClick={handleRequestPhoneVerification}
-                  disabled={requestPhoneVerification.isPending || phoneVerified || !watchPhone || watchPhone.length < 10}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  onClick={() => { if (!phoneVerified) { setShowCountryPicker(true); setCountrySearch(''); } }}
+                  disabled={phoneVerified}
+                  className="flex items-center gap-1 px-2 h-10 border border-gray-300 rounded-md text-sm whitespace-nowrap shrink-0 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
-                </Button>
+                  <span>{selectedCountryCode.flag}</span>
+                  <span className="text-gray-700">{selectedCountryCode.dial}</span>
+                  <ChevronDown className="w-3 h-3 text-gray-400" />
+                </button>
+                <div className="relative flex-1">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    {...profileForm.register('phone', {
+                      onChange: (e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+                        profileForm.setValue('phone', val, { shouldValidate: true });
+                        if (phoneVerified) {
+                          setPhoneVerified(false);
+                        }
+                      }
+                    })}
+                    placeholder={t('auth.phonePlaceholder')}
+                    className={`pr-24 bg-gray-100 ${profileErrors.phone ? 'border-red-500' : ''}`}
+                    disabled={phoneVerified}
+                    maxLength={15}
+                    inputMode="numeric"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleRequestPhoneVerification}
+                    disabled={requestPhoneVerification.isPending || phoneVerified || !watchPhone || watchPhone.length < 4}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  >
+                    {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
+                  </Button>
+                </div>
               </div>
               {profileErrors.phone && !phoneVerified && (
                 <p className="text-sm text-red-500">{t(profileErrors.phone.message || '')}</p>
@@ -591,6 +607,63 @@ export function SocialOnboardingPage() {
             <Button onClick={handleConfirmPhoneVerification} className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white" disabled={phoneVerificationInput.length !== 6 || confirmPhoneVerification.isPending}>
               {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {showCountryPicker && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center animate-overlay-fade"
+          onClick={() => setShowCountryPicker(false)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-sm animate-modal-pop"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '70vh' }}
+          >
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">{getCurrentLanguage() === 'ko' ? '국가 선택' : 'Select Country'}</h2>
+                <button onClick={() => setShowCountryPicker(false)} className="p-2 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <Input
+                type="text"
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+                placeholder={getCurrentLanguage() === 'ko' ? '국가 검색...' : 'Search country...'}
+                className="text-sm"
+                autoFocus
+              />
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 120px)' }}>
+              {countryCodes
+                .filter((c) => {
+                  if (!countrySearch) return true;
+                  const q = countrySearch.toLowerCase();
+                  return c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q);
+                })
+                .map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCountryCode(c);
+                      setShowCountryPicker(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left ${
+                      selectedCountryCode.code === c.code ? 'bg-[#f6efed]' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{c.flag}</span>
+                    <span className="flex-1 text-sm text-gray-800">
+                      {getCurrentLanguage() === 'ko' ? c.name : c.nameEn}
+                    </span>
+                    <span className="text-sm text-gray-500">{c.dial}</span>
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
       )}

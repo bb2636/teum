@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRequestPasswordResetByPhone, useResetPassword } from '@/hooks/usePasswordReset';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
-import { X, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { X, ArrowLeft, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { Toast } from '@/components/Toast';
 import { useT } from '@/hooks/useTranslation';
+import { countryCodes } from '@/lib/countryCodes';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 function getForgotPasswordSchema(t: (key: string) => string) {
   const passwordSchema = z
@@ -21,7 +23,7 @@ function getForgotPasswordSchema(t: (key: string) => string) {
 
   const forgotPasswordSchema = z.object({
     email: z.string().min(1, t('auth.enterEmail')).email(t('auth.enterValidEmail')),
-    phone: z.string().min(10, t('auth.enterPhone')).max(15),
+    phone: z.string().min(4, t('auth.enterPhone')).max(15),
   });
 
   const resetPasswordSchema = z.object({
@@ -61,6 +63,9 @@ export function ForgotPasswordPage() {
   const [phoneVerificationInput, setPhoneVerificationInput] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [verifyKbHeight, setVerifyKbHeight] = useState(0);
+  const [selectedCountryCode, setSelectedCountryCode] = useState(countryCodes[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
   const infoForm = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -80,7 +85,7 @@ export function ForgotPasswordPage() {
   const passwordFormWatchPassword = passwordForm.watch('password');
   const passwordFormWatchConfirmPassword = passwordForm.watch('confirmPassword');
 
-  const isInfoFormValid = infoFormEmail && infoFormPhone && infoFormPhone.length >= 10 && !infoForm.formState.errors.email && !infoForm.formState.errors.phone;
+  const isInfoFormValid = infoFormEmail && infoFormPhone && infoFormPhone.length >= 4 && !infoForm.formState.errors.email && !infoForm.formState.errors.phone;
 
   const isPasswordFormValid = 
     passwordFormWatchPassword && 
@@ -109,7 +114,7 @@ export function ForgotPasswordPage() {
 
   const handleRequestPhoneVerification = async () => {
     const phone = infoForm.getValues('phone');
-    if (!phone || phone.length < 10) {
+    if (!phone || phone.length < 4) {
       setError(t('auth.enterPhoneCorrectly'));
       return;
     }
@@ -117,7 +122,7 @@ export function ForgotPasswordPage() {
     setError(null);
 
     try {
-      await requestPhoneVerification.mutateAsync(phone);
+      await requestPhoneVerification.mutateAsync({ phone, countryCode: selectedCountryCode.dial });
       setShowPhoneVerificationModal(true);
       setPhoneVerified(false);
       setPhoneVerificationInput('');
@@ -336,13 +341,31 @@ export function ForgotPasswordPage() {
 
           <div className="space-y-2">
             <Label htmlFor="phone">{t('auth.phone')}</Label>
-            <Input
-              id="phone"
-              type="tel"
-              {...infoForm.register('phone')}
-              placeholder={t('auth.phonePlaceholder')}
-              className={infoForm.formState.errors.phone ? 'border-red-500 placeholder:text-red-500' : ''}
-            />
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => { setShowCountryPicker(true); setCountrySearch(''); }}
+                className="flex items-center gap-1 px-2 h-10 border border-gray-300 rounded-md text-sm whitespace-nowrap shrink-0 hover:bg-gray-50"
+              >
+                <span>{selectedCountryCode.flag}</span>
+                <span className="text-gray-700">{selectedCountryCode.dial}</span>
+                <ChevronDown className="w-3 h-3 text-gray-400" />
+              </button>
+              <Input
+                id="phone"
+                type="tel"
+                {...infoForm.register('phone', {
+                  onChange: (e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+                    infoForm.setValue('phone', val, { shouldValidate: true });
+                  }
+                })}
+                placeholder={t('auth.phonePlaceholder')}
+                className={infoForm.formState.errors.phone ? 'border-red-500 placeholder:text-red-500' : ''}
+                maxLength={15}
+                inputMode="numeric"
+              />
+            </div>
             {infoForm.formState.errors.phone && (
               <p className="text-sm text-red-500">
                 {infoForm.formState.errors.phone.message}
@@ -366,6 +389,63 @@ export function ForgotPasswordPage() {
           </Link>
         </div>
       </div>
+
+      {showCountryPicker && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center animate-overlay-fade"
+          onClick={() => setShowCountryPicker(false)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-sm animate-modal-pop"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '70vh' }}
+          >
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">{getCurrentLanguage() === 'ko' ? '국가 선택' : 'Select Country'}</h2>
+                <button onClick={() => setShowCountryPicker(false)} className="p-2 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <Input
+                type="text"
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+                placeholder={getCurrentLanguage() === 'ko' ? '국가 검색...' : 'Search country...'}
+                className="text-sm"
+                autoFocus
+              />
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 120px)' }}>
+              {countryCodes
+                .filter((c) => {
+                  if (!countrySearch) return true;
+                  const q = countrySearch.toLowerCase();
+                  return c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q);
+                })
+                .map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCountryCode(c);
+                      setShowCountryPicker(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left ${
+                      selectedCountryCode.code === c.code ? 'bg-[#f6efed]' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{c.flag}</span>
+                    <span className="flex-1 text-sm text-gray-800">
+                      {getCurrentLanguage() === 'ko' ? c.name : c.nameEn}
+                    </span>
+                    <span className="text-sm text-gray-500">{c.dial}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPhoneVerificationModal && (
         <div

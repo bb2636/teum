@@ -7,6 +7,7 @@ import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useT } from '@/hooks/useTranslation';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
+import { countryCodes } from '@/lib/countryCodes';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,9 @@ export function PaymentPage() {
   const [identityCode, setIdentityCode] = useState('');
   const [identityCodeSent, setIdentityCodeSent] = useState(false);
   const [identityError, setIdentityError] = useState<string | null>(null);
+  const [selectedCountryCode, setSelectedCountryCode] = useState(countryCodes[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
@@ -187,10 +191,10 @@ export function PaymentPage() {
   };
 
   const handleSendIdentityCode = async () => {
-    if (!identityPhone || identityPhone.length < 10) return;
+    if (!identityPhone || identityPhone.length < 4) return;
     setIdentityError(null);
     try {
-      await requestPhoneVerification.mutateAsync(identityPhone);
+      await requestPhoneVerification.mutateAsync({ phone: identityPhone, countryCode: selectedCountryCode.dial });
       setIdentityCodeSent(true);
     } catch (err: unknown) {
       setIdentityError(err instanceof Error ? err.message : t('auth.verificationFailed'));
@@ -423,31 +427,46 @@ export function PaymentPage() {
 
             <div className="space-y-2">
               <Label htmlFor="identityPhone">{t('auth.phone')}</Label>
-              <div className="relative">
-                <Input
-                  id="identityPhone"
-                  type="tel"
-                  value={identityPhone}
-                  onChange={(e) => {
-                    setIdentityPhone(e.target.value);
-                    if (identityCodeSent) {
-                      setIdentityCodeSent(false);
-                      setIdentityCode('');
-                    }
-                  }}
-                  placeholder={t('payment.enterPhone')}
-                  className="pr-28"
-                  disabled={identityCodeSent}
-                />
-                <Button
+              <div className="flex gap-1.5">
+                <button
                   type="button"
-                  variant="ghost"
-                  onClick={handleSendIdentityCode}
-                  disabled={requestPhoneVerification.isPending || identityCodeSent || identityPhone.length < 10}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  onClick={() => { if (!identityCodeSent) { setShowCountryPicker(true); setCountrySearch(''); } }}
+                  disabled={identityCodeSent}
+                  className="flex items-center gap-1 px-2 h-10 border border-gray-300 rounded-md text-sm whitespace-nowrap shrink-0 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {identityCodeSent ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
-                </Button>
+                  <span>{selectedCountryCode.flag}</span>
+                  <span className="text-gray-700">{selectedCountryCode.dial}</span>
+                  <ChevronDown className="w-3 h-3 text-gray-400" />
+                </button>
+                <div className="relative flex-1">
+                  <Input
+                    id="identityPhone"
+                    type="tel"
+                    value={identityPhone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+                      setIdentityPhone(val);
+                      if (identityCodeSent) {
+                        setIdentityCodeSent(false);
+                        setIdentityCode('');
+                      }
+                    }}
+                    placeholder={t('payment.enterPhone')}
+                    className="pr-24"
+                    disabled={identityCodeSent}
+                    maxLength={15}
+                    inputMode="numeric"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleSendIdentityCode}
+                    disabled={requestPhoneVerification.isPending || identityCodeSent || identityPhone.length < 4}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  >
+                    {identityCodeSent ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -475,6 +494,63 @@ export function PaymentPage() {
                 {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
               </Button>
             )}
+          </div>
+        </div>
+      )}
+
+      {showCountryPicker && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center animate-overlay-fade"
+          onClick={() => setShowCountryPicker(false)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-sm animate-modal-pop"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '70vh' }}
+          >
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">{getCurrentLanguage() === 'ko' ? '국가 선택' : 'Select Country'}</h2>
+                <button onClick={() => setShowCountryPicker(false)} className="p-2 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <Input
+                type="text"
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+                placeholder={getCurrentLanguage() === 'ko' ? '국가 검색...' : 'Search country...'}
+                className="text-sm"
+                autoFocus
+              />
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 120px)' }}>
+              {countryCodes
+                .filter((c) => {
+                  if (!countrySearch) return true;
+                  const q = countrySearch.toLowerCase();
+                  return c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q);
+                })
+                .map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCountryCode(c);
+                      setShowCountryPicker(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left ${
+                      selectedCountryCode.code === c.code ? 'bg-[#f6efed]' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{c.flag}</span>
+                    <span className="flex-1 text-sm text-gray-800">
+                      {getCurrentLanguage() === 'ko' ? c.name : c.nameEn}
+                    </span>
+                    <span className="text-sm text-gray-500">{c.dial}</span>
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
       )}

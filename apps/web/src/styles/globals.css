@@ -417,6 +417,15 @@ input[type="checkbox"] {
   color: inherit;
 }
 
+/* Calendar day colors — preserve red/blue for Sun/Sat */
+[data-theme="dark"] .text-red-400 {
+  color: #f87171 !important;
+}
+
+[data-theme="dark"] .text-blue-400 {
+  color: #60a5fa !important;
+}
+
 /* Brown buttons → keep brown bg, white text */
 [data-theme="dark"] .bg-\[\#4A2C1A\] {
   background-color: #4A2C1A !important;

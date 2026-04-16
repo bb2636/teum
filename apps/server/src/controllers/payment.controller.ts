@@ -515,12 +515,23 @@ export class PaymentController {
     }
 
     if (CANCEL_EVENTS.includes(eventType)) {
+      if (await refundService.isDuplicateWebhookEvent(eventId)) {
+        logger.info({ eventId, eventType }, 'Duplicate PayPal cancel webhook, skipping');
+        return res.status(200).json({ status: 'duplicate' });
+      }
+
       const resource = event.resource as Record<string, unknown> | undefined;
       const paypalSubscriptionId = resource?.id as string | undefined;
 
       if (!paypalSubscriptionId) {
         logger.error({ eventId, eventType }, 'PayPal subscription webhook: missing subscription id');
         return res.status(400).json({ error: 'Missing subscription id' });
+      }
+
+      const recorded = await refundService.recordWebhookEvent(eventId, 'paypal', eventType, rawBody);
+      if (!recorded) {
+        logger.info({ eventId, eventType }, 'PayPal cancel webhook: concurrent duplicate, skipping');
+        return res.status(200).json({ status: 'duplicate' });
       }
 
       const result = await paymentService.handlePayPalSubscriptionCancelled(paypalSubscriptionId, eventType);
@@ -590,14 +601,19 @@ export class PaymentController {
       return res.status(400).json({ error: 'Missing tid' });
     }
 
-    const eventId = body.cancelNum || body.tid || `nicepay_${Date.now()}`;
+    if (resultCode !== '0000') {
+      logger.warn({ tid, resultCode, resultMsg }, 'NicePay webhook: non-success resultCode, skipping processing');
+      return res.status(200).send('OK');
+    }
+
+    const eventId = body.cancelNum || `nicepay_${tid}`;
 
     const result = await refundService.processNicePayRefund({
       eventId,
       tid,
       orderId,
       amount: cancelAmt || body.amount,
-      resultCode: resultCode || '0000',
+      resultCode,
       resultMsg,
       rawPayload: rawBody || JSON.stringify(body),
     });
@@ -610,7 +626,7 @@ export class PaymentController {
       reason: result.reason,
     }, 'NicePay refund webhook handled');
 
-    return res.status(200).json({ status: result.reason });
+    return res.status(200).send('OK');
   }
 }
 

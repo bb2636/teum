@@ -113,8 +113,9 @@ teum/
   - NicePay 웹훅: `POST /api/payments/nicepay/webhook` — 환불 콜백 처리
   - 환불 시: `subscription.status = 'refunded'`, `endDate = now()` → 즉시 접근 차단 (잔여 기간 무시)
   - `getActiveSubscription()`: `status === 'refunded'`는 매칭 불가 → 자동 deny
-  - **멱등성**: `webhook_events` 테이블 (eventId UNIQUE) — 중복 웹훅 처리 방지
-  - **시그니처 검증**: PayPal API 서명 검증 (`PAYPAL_WEBHOOK_ID` 필수), NicePay는 DB tid 대조로 검증 (별도 시크릿 없음)
+  - **멱등성**: `webhook_events` 테이블 (eventId UNIQUE) — 모든 이벤트 타입(REFUND/CANCEL/DISPUTE)에 중복 웹훅 처리 방지
+  - **시그니처 검증**: PayPal API 서명 검증 (`PAYPAL_WEBHOOK_ID` 필수), NicePay는 `resultCode === '0000'` 검증 + DB tid 대조
+  - **NicePay 멱등성 키**: `cancelNum || nicepay_{tid}` (Date.now() 폴백 제거로 안정적 키 보장)
   - `apps/server/src/services/payment/refund.service.ts` — 환불 처리 로직
   - Raw body 보존: `express.json({ verify })` — webhook 경로만 `req.rawBody` 저장
   - **환불 감사 로그**: `refund_logs` 테이블 (userId, paymentId, eventType, rawPayload, createdAt)

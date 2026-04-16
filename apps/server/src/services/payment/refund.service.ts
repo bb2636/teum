@@ -225,7 +225,12 @@ export class RefundService {
       return { processed: false, reason: 'duplicate' };
     }
 
-    await this.recordWebhookEvent(event.eventId, 'paypal', event.eventType, event.rawPayload);
+    const recorded = await this.recordWebhookEvent(event.eventId, 'paypal', event.eventType, event.rawPayload);
+    if (!recorded) {
+      logger.info({ eventId: event.eventId }, 'PayPal dispute: concurrent duplicate detected');
+      return { processed: false, reason: 'duplicate' };
+    }
+
     await this.insertRefundLog(null, null, event.eventType, event.rawPayload);
 
     logger.warn({
@@ -258,7 +263,7 @@ export class RefundService {
     resultMsg?: string;
     rawPayload: string;
   }): Promise<{ processed: boolean; reason: string }> {
-    const idempotencyKey = `nicepay_refund_${event.tid}_${event.eventId || Date.now()}`;
+    const idempotencyKey = event.eventId;
 
     if (await this.isDuplicateWebhookEvent(idempotencyKey)) {
       logger.info({ eventId: idempotencyKey, tid: event.tid }, 'Duplicate NicePay refund webhook, skipping');

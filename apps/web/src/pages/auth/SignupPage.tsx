@@ -11,7 +11,8 @@ import { useNicknameCheck } from '@/hooks/useNicknameCheck';
 import { useEmailDuplicateCheck, useRequestEmailVerification, useConfirmEmailVerification } from '@/hooks/useEmailVerification';
 import { useRequestPhoneVerification, useConfirmPhoneVerification } from '@/hooks/usePhoneVerification';
 import { getCurrentLanguage } from '@/lib/i18n';
-import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { countryCodes } from '@/lib/countryCodes';
+import { ChevronLeft, Eye, EyeOff, X, Calendar, ChevronRight, CheckCircle2, ChevronDown } from 'lucide-react';
 import { TermsModal } from '@/pages/my/TermsModal';
 import { ScrollYearMonthPicker } from '@/components/ScrollYearMonthPicker';
 import { useT } from '@/hooks/useTranslation';
@@ -33,7 +34,7 @@ const step1Schema = z.object({
   email: z.string().email('auth.emailPlaceholder'),
   password: passwordSchema,
   confirmPassword: z.string(),
-  phone: z.string().min(10, 'auth.phoneInvalidLength').max(11, 'auth.phoneInvalidLength').optional().or(z.literal('')),
+  phone: z.string().min(4, 'auth.phoneInvalidLength').max(15, 'auth.phoneInvalidLength').optional().or(z.literal('')),
 });
 
 const step2Schema = z.object({
@@ -95,6 +96,9 @@ export function SignupPage() {
   }>({});
 
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [selectedCountryCode, setSelectedCountryCode] = useState(countryCodes[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
   const requestEmailVerification = useRequestEmailVerification();
@@ -247,7 +251,7 @@ export function SignupPage() {
 
   const handleRequestPhoneVerification = async () => {
     const phone = step1Form.getValues('phone');
-    if (!phone || phone.length < 10) {
+    if (!phone || phone.length < 4) {
       setError(t('auth.phoneRequired'));
       return;
     }
@@ -260,7 +264,7 @@ export function SignupPage() {
     }
 
     try {
-      await requestPhoneVerification.mutateAsync(phone);
+      await requestPhoneVerification.mutateAsync({ phone, countryCode: selectedCountryCode.dial });
       setShowPhoneVerificationModal(true);
     } catch (err) {
       const error = err as Error;
@@ -511,31 +515,43 @@ export function SignupPage() {
             {verificationMode === 'phone' ? (
               <div className="space-y-2">
                 <Label htmlFor="phone">{t('auth.phone')}</Label>
-                <div className="relative">
-                  <Input
-                    id="phone"
-                    type="tel"
-                    {...step1Form.register('phone', {
-                      onChange: (e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 11);
-                        step1Form.setValue('phone', val, { shouldValidate: true });
-                      }
-                    })}
-                    placeholder={t('auth.phonePlaceholder')}
-                    className={`pr-32 ${step1Errors.phone ? 'border-red-500' : ''}`}
-                    disabled={phoneVerified}
-                    maxLength={11}
-                    inputMode="numeric"
-                  />
-                  <Button
+                <div className="flex gap-1.5">
+                  <button
                     type="button"
-                    variant="ghost"
-                    onClick={handleRequestPhoneVerification}
-                    disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 10 || !step1Email || !!step1Errors.email}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    onClick={() => { if (!phoneVerified) { setShowCountryPicker(true); setCountrySearch(''); } }}
+                    disabled={phoneVerified}
+                    className="flex items-center gap-1 px-2 h-10 border border-gray-300 rounded-md text-sm whitespace-nowrap shrink-0 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
-                  </Button>
+                    <span>{selectedCountryCode.flag}</span>
+                    <span className="text-gray-700">{selectedCountryCode.dial}</span>
+                    <ChevronDown className="w-3 h-3 text-gray-400" />
+                  </button>
+                  <div className="relative flex-1">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      {...step1Form.register('phone', {
+                        onChange: (e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+                          step1Form.setValue('phone', val, { shouldValidate: true });
+                        }
+                      })}
+                      placeholder={t('auth.phonePlaceholder')}
+                      className={`pr-24 ${step1Errors.phone ? 'border-red-500' : ''}`}
+                      disabled={phoneVerified}
+                      maxLength={15}
+                      inputMode="numeric"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleRequestPhoneVerification}
+                      disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 4 || !step1Email || !!step1Errors.email}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    >
+                      {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}
+                    </Button>
+                  </div>
                 </div>
                 {step1Errors.phone && (
                   <p className="text-sm text-red-500">{t(step1Errors.phone.message || '')}</p>
@@ -895,6 +911,63 @@ export function SignupPage() {
             >
               {confirmEmailVerification.isPending ? t('auth.verifying') : t('common.confirm')}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {showCountryPicker && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center animate-overlay-fade"
+          onClick={() => setShowCountryPicker(false)}
+        >
+          <div
+            className="bg-white rounded-t-2xl w-full max-w-sm animate-modal-pop"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '70vh' }}
+          >
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">{getCurrentLanguage() === 'ko' ? '국가 선택' : 'Select Country'}</h2>
+                <button onClick={() => setShowCountryPicker(false)} className="p-2 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <Input
+                type="text"
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+                placeholder={getCurrentLanguage() === 'ko' ? '국가 검색...' : 'Search country...'}
+                className="text-sm"
+                autoFocus
+              />
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 120px)' }}>
+              {countryCodes
+                .filter((c) => {
+                  if (!countrySearch) return true;
+                  const q = countrySearch.toLowerCase();
+                  return c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q);
+                })
+                .map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCountryCode(c);
+                      setShowCountryPicker(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left ${
+                      selectedCountryCode.code === c.code ? 'bg-[#f6efed]' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{c.flag}</span>
+                    <span className="flex-1 text-sm text-gray-800">
+                      {getCurrentLanguage() === 'ko' ? c.name : c.nameEn}
+                    </span>
+                    <span className="text-sm text-gray-500">{c.dial}</span>
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
       )}

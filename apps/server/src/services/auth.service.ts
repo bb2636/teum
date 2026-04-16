@@ -182,20 +182,26 @@ export class AuthService {
 
     await phoneVerificationRepository.markAsExpired(input.phone);
 
-    // Create new verification
     const verification = await phoneVerificationRepository.create({
       phone: input.phone,
       code,
       expiresAt,
     });
 
+    let fullPhone = input.phone;
+    if (input.countryCode && !input.phone.startsWith('+')) {
+      const digits = input.phone.replace(/^0+/, '');
+      fullPhone = input.countryCode + digits;
+    }
+
     logger.info('Phone verification code generated', {
       phone: input.phone,
+      fullPhone: fullPhone.slice(0, 4) + '****',
       expiresAt: expiresAt.toISOString(),
     });
 
     try {
-      await smsService.sendVerificationCode(input.phone, code);
+      await smsService.sendVerificationCode(fullPhone, code);
     } catch (error) {
       logger.error('Failed to send SMS verification code', {
         phone: input.phone,

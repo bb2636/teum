@@ -396,6 +396,102 @@ ${diaryText.substring(0, 2000)}`;
     }
   }
 
+  async generateTitle(input: {
+    content?: string;
+    type: 'free_form' | 'question_based';
+    answers?: Array<{ question: string; answer: string }>;
+    language?: string;
+  }): Promise<string> {
+    if (!this.enabled || !this.client) {
+      return '';
+    }
+
+    try {
+      const lang = input.language || 'ko';
+      const langName = this.getLanguageName(lang);
+      const isKo = lang === 'ko';
+
+      let diaryText = '';
+      if (input.content) {
+        diaryText += input.content;
+      }
+      if (input.type === 'question_based' && input.answers && input.answers.length > 0) {
+        const validAnswers = input.answers.filter((qa) => qa.answer?.trim());
+        validAnswers.forEach((qa, index) => {
+          if (qa.question?.trim()) {
+            diaryText += isKo
+              ? `\n질문 ${index + 1}: ${qa.question}\n답변: ${qa.answer}\n`
+              : `\nQ${index + 1}: ${qa.question}\nA: ${qa.answer}\n`;
+          } else {
+            diaryText += isKo
+              ? `\n답변 ${index + 1}: ${qa.answer}\n`
+              : `\nAnswer ${index + 1}: ${qa.answer}\n`;
+          }
+        });
+      }
+
+      if (!diaryText.trim()) {
+        return '';
+      }
+
+      const prompt = isKo
+        ? `다음 일기 내용을 보고 짧고 인상적인 제목 한 줄을 만들어줘.
+
+규칙:
+- 한국어로 작성
+- 6~16자 사이의 짧은 제목
+- 따옴표, 마침표, 이모지 사용 금지
+- "제목:" 같은 접두어 사용 금지
+- 핵심 감정이나 장면을 한 줄로 압축
+- 일기처럼 잔잔하고 사적인 톤
+
+일기:
+${diaryText.substring(0, 1500)}`
+        : `Read the following diary and create one short, evocative title.
+
+Rules:
+- Write in ${langName}
+- Keep it short (about 3-7 words)
+- Do NOT use quotes, periods, or emojis
+- Do NOT prefix with "Title:" or similar
+- Capture the core emotion or scene in one line
+- Keep a calm, personal diary-like tone
+
+Diary:
+${diaryText.substring(0, 1500)}`;
+
+      const systemMsg = isKo
+        ? '일기에 어울리는 짧고 시적인 제목 한 줄을 만드는 도우미.'
+        : `A helper that crafts one short, poetic title for a diary entry. Always respond in ${langName}.`;
+
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 40,
+      });
+
+      const raw = response.choices[0]?.message?.content?.trim() || '';
+      const cleaned = raw
+        .replace(/^["'`「『]+|["'`」』]+$/g, '')
+        .replace(/^제목\s*[:：]\s*/i, '')
+        .replace(/^Title\s*[:：]\s*/i, '')
+        .replace(/[.。!！?？]+$/g, '')
+        .split('\n')[0]
+        .trim();
+
+      return cleaned;
+    } catch (error) {
+      logger.error('OpenAI title generation failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return '';
+    }
+  }
+
   async generateSummary(input: {
     title?: string;
     content?: string;

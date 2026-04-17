@@ -7,6 +7,13 @@ export interface AIProvider {
     language?: string;
   }): Promise<string>;
 
+  generateTitle?(input: {
+    content?: string;
+    type: 'free_form' | 'question_based';
+    answers?: Array<{ question: string; answer: string }>;
+    language?: string;
+  }): Promise<string>;
+
   analyzeForMusic(input: {
     diaries: Array<{
       id: string;

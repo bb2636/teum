@@ -7,6 +7,7 @@ import { userRepository } from '../repositories/user.repository';
 import { questionService } from './question.service';
 import { encouragementService } from './ai/encouragement.service';
 import { summaryService } from './ai/summary.service';
+import { titleService } from './ai/title.service';
 import { logger } from '../config/logger';
 
 export class DiaryService {
@@ -140,6 +141,8 @@ export class DiaryService {
       userLanguage,
     });
 
+    const needsTitleSuggestion = !data.title || !data.title.trim();
+
     try {
       await Promise.all([
         encouragementService.generateAndSaveEncouragement(diary.id, userId, {
@@ -156,6 +159,16 @@ export class DiaryService {
           answers: questionAnswers,
           language: userLanguage,
         }),
+        ...(needsTitleSuggestion
+          ? [
+              titleService.generateAndSaveTitle(diary.id, {
+                content: data.content,
+                type: data.type,
+                answers: questionAnswers,
+                language: userLanguage,
+              }),
+            ]
+          : []),
       ]);
     } catch (error) {
       logger.error('Failed to generate AI content (non-blocking)', {

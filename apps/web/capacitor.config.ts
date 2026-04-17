@@ -31,6 +31,12 @@ const config: CapacitorConfig = {
     ],
   },
   plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
+    CapacitorCookies: {
+      enabled: true,
+    },
     Camera: {
       ios: {
         usageDescription: '일기에 사진을 첨부하기 위해 카메라 접근 권한이 필요합니다.',

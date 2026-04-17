@@ -1364,6 +1364,15 @@ export function DiaryWritePage() {
             onAdComplete={handleAdComplete}
           />
 
+          <TitleSuggestionModal
+            open={showTitleSuggestion}
+            loading={titleSuggestionLoading}
+            titles={titleSuggestions}
+            onSelect={handleTitleSuggestionSelect}
+            onClose={handleTitleSuggestionClose}
+            onRetry={fetchTitleSuggestions}
+          />
+
           {showContentRequired && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 mx-8 max-w-sm w-full text-center shadow-xl">

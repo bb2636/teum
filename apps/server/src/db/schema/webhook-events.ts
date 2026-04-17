@@ -1,6 +1,6 @@
 import { pgTable, uuid, varchar, timestamp, text, pgEnum } from 'drizzle-orm/pg-core';
 
-export const webhookSourceEnum = pgEnum('webhook_source', ['paypal', 'nicepay']);
+export const webhookSourceEnum = pgEnum('webhook_source', ['paypal', 'nicepay', 'apple']);
 
 export const webhookEvents = pgTable('webhook_events', {
   id: uuid('id').defaultRandom().primaryKey(),

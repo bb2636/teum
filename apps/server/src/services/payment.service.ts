@@ -5,6 +5,7 @@ import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
 import { paypalProvider } from './payment/paypal.provider';
+import { appleProvider, AppleProvider } from './payment/apple.provider';
 import { emailService } from './email/email.service';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 import { getKRWPrice, getBasePriceUSD } from '../utils/currency';
@@ -1140,6 +1141,264 @@ export class PaymentService {
     }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
 
     return 'cancelled';
+  }
+
+  /**
+   * Verify an Apple StoreKit transaction (transactionId) and create/refresh subscription.
+   * Called from POST /api/payments/apple/verify-receipt after a successful in-app purchase.
+   */
+  async verifyAppleTransaction(
+    userId: string,
+    input: { transactionId?: string; receipt?: string }
+  ): Promise<{ success: boolean; message: string; subscriptionId?: string }> {
+    if (!appleProvider.isEnabled()) {
+      throw new Error('Apple in-app purchase is not configured');
+    }
+
+    if (!input.transactionId && !input.receipt) {
+      throw new Error('transactionId 또는 receipt가 필요합니다.');
+    }
+
+    const verified = input.transactionId
+      ? await appleProvider.verifyTransactionId(input.transactionId)
+      : await appleProvider.verifyReceipt(input.receipt!);
+
+    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription01';
+    if (verified.productId !== expectedProductId) {
+      logger.warn({ verified, expected: expectedProductId }, 'Apple verify: unexpected product id');
+      throw new Error(`예상하지 않은 상품입니다: ${verified.productId}`);
+    }
+
+    // Idempotency: re-using the same originalTransactionId means user already has this subscription
+    const [existing] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.appleOriginalTransactionId, verified.originalTransactionId))
+      .limit(1);
+
+    const planName = '월간 프리미엄';
+    const basePriceUSD = getBasePriceUSD();
+    const startDate = verified.purchaseDate;
+    const endDate = verified.expiresDate || (() => {
+      const d = new Date(startDate);
+      d.setMonth(d.getMonth() + 1);
+      return d;
+    })();
+
+    if (existing) {
+      // Same Apple subscription belongs to a different user — security check
+      if (existing.userId !== userId) {
+        logger.warn({
+          existingUserId: existing.userId,
+          requestUserId: userId,
+          originalTransactionId: verified.originalTransactionId,
+        }, 'Apple verify: originalTransactionId already linked to another user');
+        throw new Error('이 영수증은 다른 계정에 등록되어 있습니다.');
+      }
+
+      await db
+        .update(subscriptions)
+        .set({
+          status: 'active',
+          endDate,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.id, existing.id));
+
+      // Record payment if not already
+      const txKey = `apple_${verified.transactionId}`;
+      const [existingPayment] = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.transactionId, txKey))
+        .limit(1);
+
+      if (!existingPayment) {
+        await db.insert(payments).values({
+          userId,
+          subscriptionId: existing.id,
+          status: 'completed',
+          amount: basePriceUSD.toString(),
+          currency: 'USD',
+          paymentMethod: 'APPLE_IAP',
+          transactionId: txKey,
+          paidAt: startDate,
+        });
+      }
+
+      return { success: true, message: '구독이 갱신되었습니다.', subscriptionId: existing.id };
+    }
+
+    const activeSubscription = await this.getActiveSubscription(userId);
+    if (activeSubscription) {
+      throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+    }
+
+    const txKey = `apple_${verified.transactionId}`;
+    let subscriptionId: string | undefined;
+
+    await db.transaction(async (tx) => {
+      const [newSub] = await tx
+        .insert(subscriptions)
+        .values({
+          userId,
+          status: 'active',
+          planName,
+          amount: basePriceUSD.toString(),
+          currency: 'USD',
+          appleOriginalTransactionId: verified.originalTransactionId,
+          appleProductId: verified.productId,
+          startDate,
+          endDate,
+        })
+        .returning();
+
+      await tx.insert(payments).values({
+        userId,
+        subscriptionId: newSub.id,
+        status: 'completed',
+        amount: basePriceUSD.toString(),
+        currency: 'USD',
+        paymentMethod: 'APPLE_IAP',
+        transactionId: txKey,
+        paidAt: startDate,
+      });
+
+      subscriptionId = newSub.id;
+    });
+
+    logger.info({
+      userId,
+      subscriptionId,
+      originalTransactionId: verified.originalTransactionId,
+      productId: verified.productId,
+      env: verified.environment,
+    }, 'Apple subscription created');
+
+    this.getUserEmailAndNickname(userId).then(info => {
+      if (info) emailService.sendSubscriptionStartNotification(info.email, info.nickname, planName, info.language).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+    }).catch((err: unknown) => logger.error('Email notification failed', { error: err instanceof Error ? err.message : String(err) }));
+
+    return { success: true, message: '구독이 시작되었습니다.', subscriptionId };
+  }
+
+  /**
+   * Handle App Store Server Notifications v2 (renew / cancel / refund / etc).
+   */
+  async handleAppleNotification(
+    notificationType: string,
+    subtype: string | undefined,
+    decodedTransaction: {
+      originalTransactionId?: string;
+      transactionId?: string;
+      productId?: string;
+      expiresDate?: number | Date;
+      purchaseDate?: number | Date;
+      revocationDate?: number | Date;
+    } | undefined,
+  ): Promise<string> {
+    const originalTxId = decodedTransaction?.originalTransactionId;
+    if (!originalTxId) {
+      logger.warn({ notificationType, subtype }, 'Apple notification: missing originalTransactionId');
+      return 'no_original_transaction_id';
+    }
+
+    const [sub] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.appleOriginalTransactionId, originalTxId))
+      .limit(1);
+
+    if (!sub) {
+      logger.info({ notificationType, subtype, originalTxId }, 'Apple notification: subscription not found (likely first purchase still being verified)');
+      return 'subscription_not_found';
+    }
+
+    const expiresDate = decodedTransaction?.expiresDate
+      ? new Date(decodedTransaction.expiresDate as number)
+      : null;
+
+    switch (notificationType) {
+      case AppleProvider.NotificationTypeV2.DID_RENEW:
+      case AppleProvider.NotificationTypeV2.DID_CHANGE_RENEWAL_STATUS: {
+        if (expiresDate) {
+          await db
+            .update(subscriptions)
+            .set({ status: 'active', endDate: expiresDate, renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
+            .where(eq(subscriptions.id, sub.id));
+
+          if (notificationType === AppleProvider.NotificationTypeV2.DID_RENEW && decodedTransaction?.transactionId) {
+            const txKey = `apple_${decodedTransaction.transactionId}`;
+            const [existingPayment] = await db
+              .select()
+              .from(payments)
+              .where(eq(payments.transactionId, txKey))
+              .limit(1);
+            if (!existingPayment) {
+              const basePriceUSD = getBasePriceUSD();
+              await db.insert(payments).values({
+                userId: sub.userId,
+                subscriptionId: sub.id,
+                status: 'completed',
+                amount: basePriceUSD.toString(),
+                currency: 'USD',
+                paymentMethod: 'APPLE_IAP',
+                transactionId: txKey,
+                paidAt: new Date(),
+              });
+            }
+          }
+        }
+        return 'renewed';
+      }
+
+      case AppleProvider.NotificationTypeV2.EXPIRED:
+      case AppleProvider.NotificationTypeV2.GRACE_PERIOD_EXPIRED: {
+        await db
+          .update(subscriptions)
+          .set({ status: 'expired', updatedAt: new Date() })
+          .where(eq(subscriptions.id, sub.id));
+        return 'expired';
+      }
+
+      case AppleProvider.NotificationTypeV2.DID_FAIL_TO_RENEW: {
+        const failCount = (sub.renewalFailCount || 0) + 1;
+        await db
+          .update(subscriptions)
+          .set({ renewalFailCount: failCount, updatedAt: new Date() })
+          .where(eq(subscriptions.id, sub.id));
+        return 'renewal_failed';
+      }
+
+      case AppleProvider.NotificationTypeV2.REFUND:
+      case AppleProvider.NotificationTypeV2.REVOKE: {
+        await db
+          .update(subscriptions)
+          .set({ status: 'refunded', cancelledAt: new Date(), updatedAt: new Date() })
+          .where(eq(subscriptions.id, sub.id));
+        if (decodedTransaction?.transactionId) {
+          const txKey = `apple_${decodedTransaction.transactionId}`;
+          await db
+            .update(payments)
+            .set({ status: 'refunded', updatedAt: new Date() })
+            .where(eq(payments.transactionId, txKey));
+        }
+        return 'refunded';
+      }
+
+      // User cancelled auto-renew but current period still active
+      default: {
+        if (subtype === AppleProvider.Subtype.AUTO_RENEW_DISABLED) {
+          await db
+            .update(subscriptions)
+            .set({ status: 'cancelled', cancelledAt: new Date(), updatedAt: new Date() })
+            .where(eq(subscriptions.id, sub.id));
+          return 'cancelled';
+        }
+        logger.info({ notificationType, subtype }, 'Apple notification: unhandled type');
+        return 'unhandled';
+      }
+    }
   }
 
   async cancelSubscription(

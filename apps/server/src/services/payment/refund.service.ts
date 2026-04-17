@@ -16,7 +16,7 @@ export class RefundService {
 
   async recordWebhookEvent(
     eventId: string,
-    source: 'paypal' | 'nicepay',
+    source: 'paypal' | 'nicepay' | 'apple',
     eventType: string,
     payload: string
   ): Promise<boolean> {

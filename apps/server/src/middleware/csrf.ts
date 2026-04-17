@@ -37,11 +37,13 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     checkPath.startsWith('/api/payments/paypal/return') ||
     checkPath.startsWith('/api/payments/paypal/cancel') ||
     checkPath.startsWith('/api/payments/paypal/webhook') ||
+    checkPath.startsWith('/api/payments/apple/webhook') ||
     checkPath.startsWith('/api/auth/apple/callback') ||
     req.path.startsWith('/payments/nicepay/') ||
     req.path.startsWith('/payments/paypal/return') ||
     req.path.startsWith('/payments/paypal/cancel') ||
     req.path.startsWith('/payments/paypal/webhook') ||
+    req.path.startsWith('/payments/apple/webhook') ||
     req.path.startsWith('/auth/apple/callback')
   ) {
     return next();

@@ -24,6 +24,7 @@
     "test:mureka": "tsx src/scripts/test-mureka.ts"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "^3.0.0",
     "@types/multer": "^2.1.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",

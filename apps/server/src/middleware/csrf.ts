@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://localhost',
   'http://localhost:3000',
   'http://localhost:5000',
-  'https://teum.replit.app',
+  'https://teum--iteraon.replit.app',
 ]);
 
 function isAllowedOrigin(origin: string): boolean {

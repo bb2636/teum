@@ -30,7 +30,7 @@ app.use(cors({
       process.env.FRONTEND_URL,
       'http://localhost:3000',
       'http://localhost:5000',
-      'https://teum.replit.app',
+      'https://teum--iteraon.replit.app',
       'capacitor://localhost',
       'http://localhost',
       'https://localhost',

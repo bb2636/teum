@@ -206,11 +206,34 @@ export class AuthService {
     try {
       await smsService.sendVerification(fullPhone);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const twilioCode = (error as { code?: number | string } | undefined)?.code;
+      const twilioStatus = (error as { status?: number } | undefined)?.status;
       logger.error('Failed to send Twilio Verify code', {
         phone: input.phone,
-        error: error instanceof Error ? error.message : String(error),
+        fullPhone: fullPhone.slice(0, 4) + '****',
+        error: message,
+        twilioCode,
+        twilioStatus,
       });
-      throw new Error('인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+
+      let userMessage = '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      if (twilioCode === 60200 || /Invalid parameter|not a valid phone/i.test(message)) {
+        userMessage = '전화번호 형식이 올바르지 않습니다. 국가번호를 포함해 다시 입력해주세요.';
+      } else if (twilioCode === 21408 || twilioCode === 60410 || /not been enabled|Geo-Permission/i.test(message)) {
+        userMessage = '해당 국가는 현재 SMS 인증이 지원되지 않습니다. 관리자에게 문의해주세요.';
+      } else if (twilioCode === 60605) {
+        userMessage = '인도 SMS는 일시적으로 제한되어 있습니다. 잠시 후 다시 시도해주세요.';
+      } else if (twilioCode === 20429 || /Too Many Requests|rate limit/i.test(message)) {
+        userMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+      } else if (/TWILIO_VERIFY_SERVICE_SID not configured/i.test(message)) {
+        userMessage = '인증 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요.';
+      }
+
+      const businessError = new Error(userMessage) as Error & { statusCode?: number; code?: string };
+      businessError.statusCode = 400;
+      businessError.code = 'PHONE_VERIFICATION_SEND_FAILED';
+      throw businessError;
     }
 
     return {

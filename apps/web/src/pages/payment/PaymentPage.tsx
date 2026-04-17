@@ -205,7 +205,7 @@ export function PaymentPage() {
     if (!identityPhone || !identityCode) return;
     setIdentityError(null);
     try {
-      await confirmPhoneVerification.mutateAsync({ phone: identityPhone, code: identityCode });
+      await confirmPhoneVerification.mutateAsync({ phone: identityPhone, countryCode: selectedCountryCode.dial, code: identityCode });
       setIdentityVerified(true);
       setShowIdentityModal(false);
       setIdentityCode('');

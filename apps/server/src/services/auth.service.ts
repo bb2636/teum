@@ -167,6 +167,15 @@ export class AuthService {
     }
   }
 
+  private buildFullPhone(phone: string, countryCode?: string): string {
+    if (phone.startsWith('+')) return phone;
+    if (countryCode) {
+      const digits = phone.replace(/^0+/, '');
+      return countryCode + digits;
+    }
+    return phone;
+  }
+
   async requestPhoneVerification(input: PhoneVerificationRequestInput) {
     const lockStatus = await phoneVerificationRepository.isPhoneLocked(input.phone);
     if (lockStatus.locked) {
@@ -175,43 +184,38 @@ export class AuthService {
       throw new Error(`인증번호 입력 횟수를 초과했습니다. ${remainingMinutes}분 후에 다시 시도해주세요.`);
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
     await phoneVerificationRepository.markAsExpired(input.phone);
 
-    const verification = await phoneVerificationRepository.create({
+    // Twilio Verify owns the OTP — we keep a placeholder row only for lock/attempt tracking.
+    await phoneVerificationRepository.create({
       phone: input.phone,
-      code,
+      code: 'verify',
       expiresAt,
     });
 
-    let fullPhone = input.phone;
-    if (input.countryCode && !input.phone.startsWith('+')) {
-      const digits = input.phone.replace(/^0+/, '');
-      fullPhone = input.countryCode + digits;
-    }
+    const fullPhone = this.buildFullPhone(input.phone, input.countryCode);
 
-    logger.info('Phone verification code generated', {
+    logger.info('Phone verification requested via Twilio Verify', {
       phone: input.phone,
       fullPhone: fullPhone.slice(0, 4) + '****',
-      expiresAt: expiresAt.toISOString(),
     });
 
     try {
-      await smsService.sendVerificationCode(fullPhone, code);
+      await smsService.sendVerification(fullPhone);
     } catch (error) {
-      logger.error('Failed to send SMS verification code', {
+      logger.error('Failed to send Twilio Verify code', {
         phone: input.phone,
         error: error instanceof Error ? error.message : String(error),
       });
+      throw new Error('인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
 
     return {
       message: 'Verification code sent',
-      expiresIn: 300,
+      expiresIn: 600,
     };
   }
 
@@ -223,26 +227,35 @@ export class AuthService {
       throw new Error(`인증번호 입력 횟수를 초과했습니다. ${remainingMinutes}분 후에 다시 시도해주세요.`);
     }
 
-    const verification = await phoneVerificationRepository.findValidCode(
-      input.phone,
-      input.code
-    );
-
-    if (!verification) {
-      const pending = await phoneVerificationRepository.findPendingByPhone(input.phone);
-      if (pending) {
-        const updated = await phoneVerificationRepository.incrementFailedAttempts(pending.id);
-        if (updated && updated.failedAttempts >= 5) {
-          await phoneVerificationRepository.lockVerification(pending.id);
-          throw new Error('인증번호 입력 횟수를 초과했습니다. 1시간 후에 다시 시도해주세요.');
-        }
-        const remaining = 5 - (updated?.failedAttempts || 0);
-        throw new Error(`인증번호가 올바르지 않습니다. (남은 시도 횟수: ${remaining}회)`);
-      }
-      throw new Error('인증번호가 올바르지 않거나 만료되었습니다.');
+    const pending = await phoneVerificationRepository.findPendingByPhone(input.phone);
+    if (!pending) {
+      throw new Error('인증번호 요청 기록이 없거나 만료되었습니다. 다시 요청해주세요.');
     }
 
-    await phoneVerificationRepository.markAsVerified(verification.id);
+    const fullPhone = this.buildFullPhone(input.phone, input.countryCode);
+
+    let approved = false;
+    try {
+      approved = await smsService.checkVerification(fullPhone, input.code);
+    } catch (error) {
+      logger.error('Twilio Verify check failed', {
+        phone: input.phone,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error('인증번호 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+
+    if (!approved) {
+      const updated = await phoneVerificationRepository.incrementFailedAttempts(pending.id);
+      if (updated && updated.failedAttempts >= 5) {
+        await phoneVerificationRepository.lockVerification(pending.id);
+        throw new Error('인증번호 입력 횟수를 초과했습니다. 1시간 후에 다시 시도해주세요.');
+      }
+      const remaining = 5 - (updated?.failedAttempts || 0);
+      throw new Error(`인증번호가 올바르지 않습니다. (남은 시도 횟수: ${remaining}회)`);
+    }
+
+    await phoneVerificationRepository.markAsVerified(pending.id);
 
     return {
       message: 'Phone number verified',

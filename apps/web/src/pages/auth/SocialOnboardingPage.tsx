@@ -252,7 +252,7 @@ export function SocialOnboardingPage() {
     }
     setPhoneVerificationError(null);
     try {
-      await confirmPhoneVerification.mutateAsync({ phone, code: phoneVerificationInput });
+      await confirmPhoneVerification.mutateAsync({ phone, countryCode: selectedCountryCode.dial, code: phoneVerificationInput });
       setPhoneVerified(true);
       setShowPhoneVerificationModal(false);
       setPhoneVerificationInput('');

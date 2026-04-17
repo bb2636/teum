@@ -23,6 +23,29 @@ export class SmsService {
     }
   }
 
+  async sendVerification(phoneNumber: string): Promise<void> {
+    try {
+      await this.provider.sendVerification(phoneNumber);
+      logger.info('Verify SMS sent', { phoneNumber: phoneNumber.slice(-4) });
+    } catch (error) {
+      logger.error('Failed to send Verify SMS', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  async checkVerification(phoneNumber: string, code: string): Promise<boolean> {
+    try {
+      return await this.provider.checkVerification(phoneNumber, code);
+    } catch (error) {
+      logger.error('Failed to check Verify code', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
   async sendNotification(phoneNumber: string, message: string): Promise<void> {
     const text = `[teum] ${message}`;
 

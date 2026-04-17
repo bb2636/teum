@@ -138,6 +138,7 @@ export function ForgotPasswordPage() {
     try {
       const response = await confirmPhoneVerification.mutateAsync({
         phone,
+        countryCode: selectedCountryCode.dial,
         code: phoneVerificationInput,
       });
 

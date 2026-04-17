@@ -288,6 +288,7 @@ export function SignupPage() {
     try {
       await confirmPhoneVerification.mutateAsync({
         phone,
+        countryCode: selectedCountryCode.dial,
         code: phoneVerificationInput,
       });
       setPhoneVerified(true);

@@ -48,6 +48,7 @@ export const phoneVerificationRequestSchema = z.object({
 // Phone verification confirm
 export const phoneVerificationConfirmSchema = z.object({
   phone: z.string().min(4, 'Invalid phone number'),
+  countryCode: z.string().optional(),
   code: z.string().length(6, 'Verification code must be 6 digits'),
 });
 

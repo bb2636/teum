@@ -18,8 +18,8 @@ export class SupportService {
 
     userRepository.findByIdWithProfile(userId).then(user => {
       if (user?.email) {
-        const nickname = (user as any)?.profile?.nickname || '회원';
-        const lang = (user as any)?.profile?.language || 'ko';
+        const nickname = user.profile?.nickname || '회원';
+        const lang = user.profile?.language || 'ko';
         emailService.sendInquirySubmittedNotification(user.email, nickname, data.subject, lang).catch((err: unknown) => logger.warn('Inquiry submitted email failed', { error: err instanceof Error ? err.message : String(err) }));
       }
     }).catch((err: unknown) => logger.warn('Failed to find user for inquiry notification', { error: err instanceof Error ? err.message : String(err) }));
@@ -61,13 +61,13 @@ export class SupportService {
     }
     const updated = await supportRepository.updateAnswer(id, answer, answeredBy);
 
-    const inquiryUserId = (inquiry as any).userId;
+    const inquiryUserId = inquiry.userId;
     if (inquiryUserId) {
       userRepository.findByIdWithProfile(inquiryUserId).then(user => {
         if (user?.email) {
-          const nickname = (user as any)?.profile?.nickname || '회원';
-          const lang = (user as any)?.profile?.language || 'ko';
-          emailService.sendInquiryAnsweredNotification(user.email, nickname, (inquiry as any).subject || '문의', lang).catch((err: unknown) => logger.warn('Inquiry answered email failed', { error: err instanceof Error ? err.message : String(err) }));
+          const nickname = user.profile?.nickname || '회원';
+          const lang = user.profile?.language || 'ko';
+          emailService.sendInquiryAnsweredNotification(user.email, nickname, inquiry.subject || '문의', lang).catch((err: unknown) => logger.warn('Inquiry answered email failed', { error: err instanceof Error ? err.message : String(err) }));
         }
       }).catch((err: unknown) => logger.warn('Failed to find user for answer notification', { error: err instanceof Error ? err.message : String(err) }));
     }

@@ -34,7 +34,7 @@ async function translateWithAI(texts: string[], targetLang: string): Promise<str
     }),
   });
 
-  const data = await response.json() as any;
+  const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
   const content = data.choices?.[0]?.message?.content?.trim() || '';
 
   const jsonMatch = content.match(/\[[\s\S]*\]/);

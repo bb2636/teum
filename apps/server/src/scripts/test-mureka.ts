@@ -60,12 +60,12 @@ async function testMureka() {
       }),
     });
 
-    const responseData = await testResponse.json();
+    const responseData = await testResponse.json() as { id?: string; status?: string };
 
     if (testResponse.ok) {
       console.log('   ✅ API 호출 성공!');
-      console.log(`   - Task ID: ${(responseData as any).id || 'N/A'}`);
-      console.log(`   - Status: ${(responseData as any).status || 'N/A'}`);
+      console.log(`   - Task ID: ${responseData.id || 'N/A'}`);
+      console.log(`   - Status: ${responseData.status || 'N/A'}`);
       console.log('');
       console.log('✅ Mureka API가 정상적으로 작동합니다.');
       console.log('   ⚠️  참고: 이 테스트로 실제 음악 생성 작업이 시작되었을 수 있습니다.');

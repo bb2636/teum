@@ -22,7 +22,7 @@ export class UserService {
 
     const dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : undefined;
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (data.nickname !== undefined) updateData.nickname = data.nickname;
     if (data.name !== undefined) updateData.name = data.name;
     if (data.phone !== undefined) updateData.phone = data.phone;
@@ -31,7 +31,7 @@ export class UserService {
     if (data.language !== undefined) updateData.language = data.language;
 
     const currentUser = await userRepository.findByIdWithProfile(userId);
-    const currentProfile = (currentUser as any)?.profile;
+    const currentProfile = currentUser?.profile;
 
     const profile = await userRepository.updateProfile(userId, updateData);
 
@@ -44,12 +44,13 @@ export class UserService {
     };
 
     const actuallyChangedFields: string[] = [];
+    const profileRecord = currentProfile as Record<string, unknown> | undefined;
     for (const [key, profileKey] of Object.entries(fieldMap)) {
-      const newVal = (data as any)[key];
+      const newVal = (data as Record<string, unknown>)[key];
       if (newVal === undefined) continue;
-      const oldVal = currentProfile?.[profileKey];
+      const oldVal = profileRecord?.[profileKey];
       const normalizedOld = oldVal instanceof Date ? oldVal.toISOString().split('T')[0] : (oldVal ?? '');
-      const normalizedNew = key === 'dateOfBirth' && newVal ? new Date(newVal).toISOString().split('T')[0] : (newVal ?? '');
+      const normalizedNew = key === 'dateOfBirth' && newVal ? new Date(newVal as string | number | Date).toISOString().split('T')[0] : (newVal ?? '');
       if (String(normalizedOld) !== String(normalizedNew)) {
         actuallyChangedFields.push(key);
       }
@@ -58,7 +59,7 @@ export class UserService {
     const notifiableFields = actuallyChangedFields.filter(f => f !== 'language');
     if (notifiableFields.length > 0 && currentUser?.email) {
       const nickname = currentProfile?.nickname || '회원';
-      const lang = (profile as any)?.language || currentProfile?.language || 'ko';
+      const lang = profile?.language || currentProfile?.language || 'ko';
       emailService.sendProfileUpdateNotification(currentUser.email, nickname, notifiableFields, lang).catch((err: unknown) => logger.warn('Profile update notification email failed', { error: err instanceof Error ? err.message : String(err) }));
     }
 

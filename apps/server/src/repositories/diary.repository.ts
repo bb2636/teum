@@ -65,7 +65,7 @@ export class DiaryRepository {
             const question = questionsMap.get(answer.questionId);
             if (question) {
               // Add question data to answer
-              (answer as any).question = question;
+              (answer as unknown as { question: typeof question }).question = question;
             }
           }
         }
@@ -138,7 +138,7 @@ export class DiaryRepository {
           if (!answer.question && answer.questionId) {
             const question = questionsMap.get(answer.questionId);
             if (question) {
-              (answer as any).question = question;
+              (answer as unknown as { question: typeof question }).question = question;
             }
           }
         }
@@ -207,7 +207,7 @@ export class DiaryRepository {
           if (!answer.question && answer.questionId) {
             const question = questionsMap.get(answer.questionId);
             if (question) {
-              (answer as any).question = question;
+              (answer as unknown as { question: typeof question }).question = question;
             }
           }
         }
@@ -259,7 +259,7 @@ export class DiaryRepository {
           const question = questionsMap.get(answer.questionId);
           if (question) {
             // Add question data to answer
-            (answer as any).question = question;
+            (answer as unknown as { question: typeof question }).question = question;
           }
         }
       }
@@ -313,7 +313,7 @@ export class DiaryRepository {
   async clearFolderIdByFolderId(folderId: string) {
     await db
       .update(diaries)
-      .set({ folderId: null as any, updatedAt: new Date() })
+      .set({ folderId: null, updatedAt: new Date() })
       .where(and(eq(diaries.folderId, folderId), isNull(diaries.deletedAt)));
   }
 

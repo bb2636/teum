@@ -102,7 +102,7 @@ export function useMusicJobs() {
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
     retry: (failureCount, error) => {
-      if ((error as any)?.status === 401) return false;
+      if ((error as { status?: number })?.status === 401) return false;
       return failureCount < 1;
     },
   });

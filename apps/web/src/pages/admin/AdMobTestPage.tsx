@@ -47,8 +47,9 @@ export function AdMobTestPage() {
       return;
     }
 
-    let AdMob: any;
-    let InterstitialAdPluginEvents: any;
+    type AdMobModule = typeof import('@capacitor-community/admob');
+    let AdMob: AdMobModule['AdMob'];
+    let InterstitialAdPluginEvents: AdMobModule['InterstitialAdPluginEvents'];
 
     updateStep(1, { status: 'running' });
     try {
@@ -84,19 +85,19 @@ export function AdMobTestPage() {
     try {
       const loadPromise = new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timeout 15s')), 15000);
-        const handles: any[] = [];
+        const handles: Array<{ remove: () => void }> = [];
 
         AdMob.addListener(InterstitialAdPluginEvents.Loaded, () => {
           clearTimeout(timeout);
-          handles.forEach((h: any) => { try { h.remove(); } catch (_) {} });
+          handles.forEach((h) => { try { h.remove(); } catch (_) {} });
           resolve();
-        }).then((h: any) => handles.push(h));
+        }).then((h: { remove: () => void }) => handles.push(h));
 
-        AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info: any) => {
+        AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info: unknown) => {
           clearTimeout(timeout);
-          handles.forEach((h: any) => { try { h.remove(); } catch (_) {} });
+          handles.forEach((h) => { try { h.remove(); } catch (_) {} });
           reject(new Error(`FailedToLoad: ${JSON.stringify(info)}`));
-        }).then((h: any) => handles.push(h));
+        }).then((h: { remove: () => void }) => handles.push(h));
       });
 
       await AdMob.prepareInterstitial({ adId });

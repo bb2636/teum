@@ -366,7 +366,8 @@ export function DiaryWritePage() {
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
     
-    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const clipboardData = e.clipboardData || (window as unknown as { clipboardData?: DataTransfer }).clipboardData;
+    if (!clipboardData) return;
     const pastedText = clipboardData.getData('text/plain');
     
     // Insert plain text at cursor position

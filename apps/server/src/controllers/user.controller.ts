@@ -165,8 +165,8 @@ export class UserController {
 
       const userWithProfile = await userRepository.findByIdWithProfile(req.user.userId);
       const userEmail = userWithProfile?.email;
-      const userNickname = (userWithProfile as any)?.profile?.nickname || '회원';
-      const userLang = (userWithProfile as any)?.profile?.language || 'ko';
+      const userNickname = userWithProfile?.profile?.nickname || '회원';
+      const userLang = userWithProfile?.profile?.language || 'ko';
 
       await userRepository.softDeleteUser(req.user.userId);
 

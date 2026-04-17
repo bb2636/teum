@@ -7,7 +7,7 @@ export async function downloadMusicFile(
 ): Promise<void> {
   if (!audioUrl) return;
   const filename = `${(title || 'music').replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '_')}.mp3`;
-  const capacitor = (window as any).Capacitor;
+  const capacitor = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
   const isNative = !!capacitor?.isNativePlatform?.();
   const platform = capacitor?.getPlatform?.() || 'web';
   const isIOS = platform === 'ios' || /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -56,7 +56,7 @@ async function getDownloadUrl(jobId: string, filename: string): Promise<string |
     const tokenData = await apiRequest<{ data: { token: string } }>(`/music/jobs/${jobId}/download-token`, {
       method: 'POST',
     });
-    const token = (tokenData as any)?.data?.token || (tokenData as any)?.token;
+    const token = (tokenData as { data?: { token?: string }; token?: string })?.data?.token || (tokenData as { token?: string })?.token;
     if (token) {
       return `${window.location.origin}/api/music/download/${token}/${encodeURIComponent(filename)}`;
     }
@@ -110,8 +110,9 @@ async function handleNativeDownload(url: string, filename: string, platform: str
 
       for (const { path, dir, label } of downloadDirs) {
         try {
-          if (typeof (Filesystem as any).downloadFile === 'function') {
-            await (Filesystem as any).downloadFile({
+          const fsWithDownload = Filesystem as unknown as { downloadFile?: (opts: { url: string; path: string; directory: typeof dir; recursive: boolean }) => Promise<unknown> };
+          if (typeof fsWithDownload.downloadFile === 'function') {
+            await fsWithDownload.downloadFile({
               url,
               path,
               directory: dir,

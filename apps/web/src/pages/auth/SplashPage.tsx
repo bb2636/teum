@@ -23,7 +23,7 @@ declare global {
 }
 
 function getCapacitorPlatform(): { isNative: boolean; platform: string } {
-  const cap = (window as any).Capacitor;
+  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
   if (cap?.isNativePlatform?.()) {
     return { isNative: true, platform: cap.getPlatform?.() || 'android' };
   }

@@ -30,7 +30,7 @@ export class PasswordResetService {
     });
 
     const userWithProfile = await userRepository.findByIdWithProfile(user.id);
-    const userLang = (userWithProfile as any)?.profile?.language || 'ko';
+    const userLang = userWithProfile?.profile?.language || 'ko';
 
     try {
       await emailService.sendPasswordResetEmail(user.email, token, userLang);

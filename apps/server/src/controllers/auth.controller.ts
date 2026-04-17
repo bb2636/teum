@@ -16,7 +16,14 @@ import { logger } from '../config/logger';
 import jwtLib from 'jsonwebtoken';
 import { userRepository } from '../repositories/user.repository';
 
-const mobileAuthTokens = new Map<string, { accessToken: string; refreshToken: string; user: { id: string; role: string }; expiresAt: number }>();
+type MobileAuthTokenEntry = {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; role: string };
+  expiresAt: number;
+  onboardingData?: Record<string, string>;
+};
+const mobileAuthTokens = new Map<string, MobileAuthTokenEntry>();
 
 function sendMobileCloseBrowserPage(res: Response) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -515,7 +522,7 @@ export class AuthController {
             user: { id: '', role: 'user' },
             expiresAt: Date.now() + 5 * 60 * 1000,
             onboardingData: Object.fromEntries(params),
-          } as any);
+          });
           return sendMobileCloseBrowserPage(res);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
@@ -646,7 +653,7 @@ export class AuthController {
             user: { id: '', role: 'user' },
             expiresAt: Date.now() + 5 * 60 * 1000,
             onboardingData: Object.fromEntries(params),
-          } as any);
+          });
           return sendMobileCloseBrowserPage(res);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
@@ -786,14 +793,14 @@ export class AuthController {
       const onboardingKey = token.startsWith('onboarding:') ? token : `onboarding:${token}`;
       const loginKey = token.startsWith('onboarding:') ? token.replace('onboarding:', '') : token;
 
-      const onboardingStored = mobileAuthTokens.get(onboardingKey) as any;
+      const onboardingStored = mobileAuthTokens.get(onboardingKey);
       if (onboardingStored && onboardingStored.expiresAt >= Date.now() && onboardingStored.onboardingData) {
         mobileAuthTokens.delete(onboardingKey);
         logger.info({ token: loginKey.substring(0, 8) }, 'Mobile token exchange: onboarding data returned');
         return res.json({ success: true, data: { onboardingData: onboardingStored.onboardingData } });
       }
 
-      const loginStored = mobileAuthTokens.get(loginKey) as any;
+      const loginStored = mobileAuthTokens.get(loginKey);
       if (!loginStored || loginStored.expiresAt < Date.now()) {
         if (loginStored) mobileAuthTokens.delete(loginKey);
         if (onboardingStored) mobileAuthTokens.delete(onboardingKey);

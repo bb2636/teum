@@ -461,7 +461,7 @@ export class AuthService {
   async appleLogin(idToken: string, userData?: { email?: string; name?: { firstName?: string; lastName?: string } }) {
     logger.info('Apple login attempt');
 
-    const decoded = jwt.decode(idToken, { complete: true }) as any;
+    const decoded = jwt.decode(idToken, { complete: true }) as { payload?: { sub?: string; email?: string } } | null;
     if (!decoded || !decoded.payload || !decoded.payload.sub) {
       throw new Error('Invalid Apple ID token');
     }

@@ -541,7 +541,7 @@ export function SocialOnboardingPage() {
               <div className="divide-y divide-gray-100">
                 {(['service', 'payment', 'refund'] as const).map((type) => {
                   const key = `terms${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof TermsFormData;
-                  const label = t(`auth.terms${type.charAt(0).toUpperCase() + type.slice(1)}` as any);
+                  const label = t(`auth.terms${type.charAt(0).toUpperCase() + type.slice(1)}` as Parameters<typeof t>[0]);
                   const checked = termsForm.watch(key);
 
                   return (

@@ -75,7 +75,7 @@ export function useDiaries(folderId?: string) {
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,
     retry: (failureCount, error) => {
-      if ((error as any)?.status === 401) return false;
+      if ((error as { status?: number })?.status === 401) return false;
       return failureCount < 1;
     },
   });
@@ -105,7 +105,7 @@ export function useAllDiaries() {
     queryKey: ['diaries', 'all'],
     queryFn: async () => {
       const response = await apiRequest<{ data: { diaries: Diary[] } }>('/diaries?limit=9999&offset=0');
-      return response.data.diaries ?? (response.data as any).items ?? [];
+      return response.data.diaries ?? (response.data as { items?: Diary[] }).items ?? [];
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,

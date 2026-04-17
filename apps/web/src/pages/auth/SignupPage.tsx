@@ -754,7 +754,7 @@ export function SignupPage() {
               <div className="divide-y divide-gray-100">
                 {(['service', 'payment', 'refund'] as const).map((type) => {
                   const key = `terms${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof Step3FormData;
-                  const label = t(`auth.terms${type.charAt(0).toUpperCase() + type.slice(1)}` as any);
+                  const label = t(`auth.terms${type.charAt(0).toUpperCase() + type.slice(1)}` as Parameters<typeof t>[0]);
                   const checked = step3Form.watch(key);
 
                   return (

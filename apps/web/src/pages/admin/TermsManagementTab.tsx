@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useTerms';
 import { FileText, Check, Languages, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AdminConfirmModal } from './AdminConfirmModal';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { apiRequest } from '@/lib/api';
@@ -414,62 +415,25 @@ export function TermsManagementTab() {
       </div>
 
       {/* Save Confirmation Modal */}
-      {showSaveModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={handleCloseSaveModal} />
-          <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
-            <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto text-center animate-modal-pop"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-base font-medium text-[#4A2C1A] mb-6">
-                변경사항을 저장하시겠습니까?
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <Button
-                  onClick={handleCloseSaveModal}
-                  variant="outline"
-                  className="border-0 text-gray-700 hover:bg-gray-50 rounded-full"
-                >
-                  취소
-                </Button>
-                <Button
-                  onClick={handleConfirmSave}
-                  disabled={updateMutation.isPending}
-                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2010]"
-                >
-                  {updateMutation.isPending ? '저장 중...' : '저장'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <AdminConfirmModal
+        isOpen={showSaveModal}
+        title="변경사항을 저장하시겠습니까?"
+        confirmText="저장"
+        loadingText="저장 중..."
+        onConfirm={handleConfirmSave}
+        onClose={handleCloseSaveModal}
+        isLoading={updateMutation.isPending}
+      />
 
       {/* Success Modal */}
-      {showSuccessModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50 animate-overlay-fade" onClick={handleCloseSuccessModal} />
-          <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
-            <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 pointer-events-auto animate-modal-pop"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-base font-medium text-[#4A2C1A] mb-6 text-center">
-                {isFirstSave ? '약관이 저장되었습니다' : '약관이 수정되었습니다'}
-              </p>
-              <div className="flex items-center justify-center">
-                <Button
-                  onClick={handleCloseSuccessModal}
-                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2010]"
-                >
-                  완료
-                </Button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <AdminConfirmModal
+        isOpen={showSuccessModal}
+        title={isFirstSave ? '약관이 저장되었습니다' : '약관이 수정되었습니다'}
+        confirmText="완료"
+        variant="alert"
+        onConfirm={handleCloseSuccessModal}
+        onClose={handleCloseSuccessModal}
+      />
     </div>
   );
 }

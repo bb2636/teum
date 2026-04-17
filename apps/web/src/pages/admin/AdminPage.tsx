@@ -12,6 +12,7 @@ import { ko } from 'date-fns/locale';
 import { QuestionsManagementTab } from './QuestionsManagementTab';
 import { SupportManagementTab } from './SupportManagementTab';
 import { TermsManagementTab } from './TermsManagementTab';
+import { AdminConfirmModal } from './AdminConfirmModal';
 import { StorageImage } from '@/components/StorageImage';
 import { useUncheckedInquiryCount } from '@/hooks/useSupport';
 
@@ -180,108 +181,74 @@ export function AdminPage() {
   return (
     <div className="w-full h-screen bg-white overflow-hidden flex flex-col">
       {/* Delete User Modal */}
-      {deleteUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-overlay-fade">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl text-center animate-modal-pop">
-            {deleteStatus === 'confirm' && (
-              <>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">삭제하시겠습니까?</h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  삭제하면 계정과 관련 데이터가 복구되지 않습니다.
-                </p>
-                <div className="flex items-center justify-center gap-2 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                    {deleteUser.profile?.profileImageUrl ? (
-                      <img
-                        src={deleteUser.profile.profileImageUrl}
-                        alt={deleteUser.profile.name || deleteUser.email}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-5 h-5 text-gray-500" />
-                    )}
-                  </div>
-                  <span className="text-gray-900">{deleteUser.email}</span>
-                  {deleteUser.profile?.nickname && (
-                    <>
-                      <span className="text-gray-400">·</span>
-                      <span className="text-gray-900">{deleteUser.profile.nickname}</span>
-                    </>
+      {deleteUser && deleteStatus === 'confirm' && (
+        <AdminConfirmModal
+          isOpen
+          title="삭제하시겠습니까?"
+          description={
+            <>
+              <p className="mb-4">삭제하면 계정과 관련 데이터가 복구되지 않습니다.</p>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                  {deleteUser.profile?.profileImageUrl ? (
+                    <img
+                      src={deleteUser.profile.profileImageUrl}
+                      alt={deleteUser.profile.name || deleteUser.email}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-gray-500" />
                   )}
                 </div>
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={() => {
-                      setDeleteUser(null);
-                      setDeleteStatus('confirm');
-                    }}
-                    className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
-                  >
-                    취소
-                  </button>
-                  <Button
-                    onClick={handleDeleteUser}
-                    className="px-4 py-2 bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
-                  >
-                    나가기
-                  </Button>
-                </div>
-              </>
-            )}
-            {deleteStatus === 'loading' && (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-3 h-3 rounded-full bg-[#4A2C1A] animate-pulse"></div>
+                <span className="text-gray-900">{deleteUser.email}</span>
+                {deleteUser.profile?.nickname && (
+                  <>
+                    <span className="text-gray-400">·</span>
+                    <span className="text-gray-900">{deleteUser.profile.nickname}</span>
+                  </>
+                )}
               </div>
-            )}
-            {deleteStatus === 'completed' && (
-              <div className="text-center py-6">
-                <p className="text-gray-900 mb-6">삭제가 완료되었습니다</p>
-                <Button
-                  onClick={handleDeleteComplete}
-                  className="px-4 py-2 bg-[#4A2C1A] hover:bg-[#3A2010] text-white transition-colors"
-                >
-                  완료
-                </Button>
-              </div>
-            )}
+            </>
+          }
+          confirmText="삭제"
+          onConfirm={handleDeleteUser}
+          onClose={() => {
+            setDeleteUser(null);
+            setDeleteStatus('confirm');
+          }}
+        />
+      )}
+      {deleteUser && deleteStatus === 'loading' && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] animate-overlay-fade">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 animate-modal-pop">
+            <div className="flex items-center justify-center py-12">
+              <div className="w-3 h-3 rounded-full bg-[#4A2C1A] animate-pulse"></div>
+            </div>
           </div>
         </div>
+      )}
+      {deleteUser && deleteStatus === 'completed' && (
+        <AdminConfirmModal
+          isOpen
+          title="삭제가 완료되었습니다"
+          confirmText="완료"
+          variant="alert"
+          onConfirm={handleDeleteComplete}
+          onClose={handleDeleteComplete}
+        />
       )}
 
       {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-overlay-fade">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl animate-modal-pop">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">로그아웃</h3>
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6">정말 로그아웃 하시겠습니까?</p>
-            <div className="flex gap-3 justify-center">
-              <Button
-                variant="outline"
-                onClick={() => setShowLogoutModal(false)}
-                className="px-4 border-0 rounded-full"
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleLogout}
-                disabled={logout.isPending}
-                className="px-4 bg-[#4A2C1A] hover:bg-[#3A2010] text-white"
-              >
-                {logout.isPending ? '로그아웃 중...' : '로그아웃'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <AdminConfirmModal
+        isOpen={showLogoutModal}
+        title="로그아웃"
+        description="정말 로그아웃 하시겠습니까?"
+        confirmText="로그아웃"
+        loadingText="로그아웃 중..."
+        onConfirm={handleLogout}
+        onClose={() => setShowLogoutModal(false)}
+        isLoading={logout.isPending}
+      />
       {/* Top Navigation Bar */}
       <div className="bg-white flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="w-full px-6 py-4">

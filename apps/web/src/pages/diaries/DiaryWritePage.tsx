@@ -12,7 +12,9 @@ import { FolderSelectModal } from './FolderSelectModal';
 import { FormatMenu } from './FormatMenu';
 import { ColorPicker } from './ColorPicker';
 import { ExitConfirmModal } from './ExitConfirmModal';
+import { TitleSuggestionModal } from './TitleSuggestionModal';
 import { AdModal } from '@/components/AdModal';
+import { apiRequest } from '@/lib/api';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { z } from 'zod';
@@ -141,6 +143,7 @@ export function DiaryWritePage() {
     formState: {},
     watch,
     reset,
+    setValue,
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
     defaultValues: {
@@ -897,19 +900,81 @@ export function DiaryWritePage() {
     return true;
   };
 
-  const handleSaveClick = () => {
-    if (type === 'free_form') {
-      const title = (watch('title') || '').trim();
-      if (!title) {
-        setShowContentRequired(t('diary.enterTitleRequired'));
-        return;
-      }
+  const [showTitleSuggestion, setShowTitleSuggestion] = useState(false);
+  const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+  const [titleSuggestionLoading, setTitleSuggestionLoading] = useState(false);
+
+  const buildTitleSuggestionPayload = () => {
+    let contentText = '';
+    if (type === 'free_form' && contentEditableRef.current) {
+      const clone = contentEditableRef.current.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('img').forEach((img) => img.remove());
+      contentText = (clone.textContent || clone.innerText || '').trim();
     }
+
+    const answersPayload =
+      type === 'question_based' && activeQuestions.length > 0
+        ? activeQuestions
+            .filter((q) => answers[q.id] && answers[q.id].replace(/<[^>]*>/g, '').trim())
+            .map((q) => ({
+              question: q.question || '',
+              answer: (answers[q.id] || '').replace(/<[^>]*>/g, '').trim(),
+            }))
+        : undefined;
+
+    return {
+      type,
+      content: contentText,
+      answers: answersPayload,
+      count: 3,
+    };
+  };
+
+  const fetchTitleSuggestions = async () => {
+    setTitleSuggestionLoading(true);
+    try {
+      const payload = buildTitleSuggestionPayload();
+      const res = await apiRequest<{ success: boolean; data?: { titles?: string[] } }>(
+        '/ai/suggest-titles',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+      setTitleSuggestions(res?.data?.titles ?? []);
+    } catch (err) {
+      console.error('Failed to fetch title suggestions:', err);
+      setTitleSuggestions([]);
+    } finally {
+      setTitleSuggestionLoading(false);
+    }
+  };
+
+  const handleSaveClick = () => {
     if (!hasTextContent()) {
       setShowContentRequired(t('diary.enterContentRequired'));
       return;
     }
+
+    const currentTitle = (watch('title') || '').trim();
+    if (type === 'free_form' && !currentTitle) {
+      setTitleSuggestions([]);
+      setShowTitleSuggestion(true);
+      void fetchTitleSuggestions();
+      return;
+    }
+
     setShowFolderModal(true);
+  };
+
+  const handleTitleSuggestionSelect = (title: string) => {
+    setValue('title', title, { shouldDirty: true, shouldValidate: false });
+    setShowTitleSuggestion(false);
+    setShowFolderModal(true);
+  };
+
+  const handleTitleSuggestionClose = () => {
+    setShowTitleSuggestion(false);
   };
 
   const needsAd = !isEditMode && !activeSubscription && diaryCount >= 3;
@@ -1563,6 +1628,15 @@ export function DiaryWritePage() {
           onClose={() => setShowFolderModal(false)}
         />
       )}
+
+      <TitleSuggestionModal
+        open={showTitleSuggestion}
+        loading={titleSuggestionLoading}
+        titles={titleSuggestions}
+        onSelect={handleTitleSuggestionSelect}
+        onClose={handleTitleSuggestionClose}
+        onRetry={fetchTitleSuggestions}
+      />
 
       {showContentRequired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

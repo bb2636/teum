@@ -1,5 +1,7 @@
 import { Router, type RequestHandler, type Response as ExpressResponse } from 'express';
 import { encouragementService } from '../services/ai/encouragement.service';
+import { openAIProvider } from '../services/ai/openai.provider';
+import { userRepository } from '../repositories/user.repository';
 import { db } from '../db';
 import { authenticate } from '../middleware/auth';
 import { z } from 'zod';
@@ -134,6 +136,69 @@ router.get('/feedback/:diaryId', (async (req, res, next): Promise<ExpressRespons
     res.json({
       success: true,
       data: { feedback },
+    });
+  } catch (error) {
+    next(error);
+  }
+}) as RequestHandler);
+
+const suggestTitlesBodySchema = z.object({
+  content: z.string().optional(),
+  type: z.enum(['free_form', 'question_based']).default('free_form'),
+  answers: z
+    .array(
+      z.object({
+        question: z.string().optional().default(''),
+        answer: z.string(),
+      })
+    )
+    .optional(),
+  count: z.number().int().min(1).max(5).optional(),
+});
+
+router.post('/suggest-titles', (async (req, res, next): Promise<ExpressResponse | void> => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+      });
+    }
+
+    const parsed = suggestTitlesBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: parsed.error.errors[0]?.message || 'Invalid request body',
+        },
+      });
+    }
+
+    const { content, type, answers, count } = parsed.data;
+
+    let language = 'ko';
+    try {
+      const userWithProfile = await userRepository.findByIdWithProfile(req.user.userId);
+      if (userWithProfile?.profile?.language) {
+        language = userWithProfile.profile.language;
+      }
+    } catch {
+      // ignore, default to ko
+    }
+
+    const titles = await openAIProvider.generateTitleSuggestions({
+      content,
+      type,
+      answers,
+      language,
+      count: count ?? 3,
+    });
+
+    res.json({
+      success: true,
+      data: { titles },
     });
   } catch (error) {
     next(error);

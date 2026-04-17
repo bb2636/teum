@@ -396,6 +396,107 @@ ${diaryText.substring(0, 2000)}`;
     }
   }
 
+  async generateTitleSuggestions(input: {
+    content?: string;
+    type: 'free_form' | 'question_based';
+    answers?: Array<{ question: string; answer: string }>;
+    language?: string;
+    count?: number;
+  }): Promise<string[]> {
+    if (!this.enabled || !this.client) {
+      return [];
+    }
+
+    try {
+      const lang = input.language || 'ko';
+      const langName = this.getLanguageName(lang);
+      const isKo = lang === 'ko';
+      const count = Math.min(Math.max(input.count ?? 3, 1), 5);
+
+      let diaryText = '';
+      if (input.content) diaryText += input.content;
+      if (input.type === 'question_based' && input.answers && input.answers.length > 0) {
+        const validAnswers = input.answers.filter((qa) => qa.answer?.trim());
+        validAnswers.forEach((qa, index) => {
+          if (qa.question?.trim()) {
+            diaryText += isKo
+              ? `\n질문 ${index + 1}: ${qa.question}\n답변: ${qa.answer}\n`
+              : `\nQ${index + 1}: ${qa.question}\nA: ${qa.answer}\n`;
+          } else {
+            diaryText += isKo
+              ? `\n답변 ${index + 1}: ${qa.answer}\n`
+              : `\nAnswer ${index + 1}: ${qa.answer}\n`;
+          }
+        });
+      }
+
+      if (!diaryText.trim()) return [];
+
+      const prompt = isKo
+        ? `다음 일기 내용을 보고 어울리는 제목 후보 ${count}개를 제안해줘.
+
+규칙:
+- 한국어로 작성
+- 각 제목은 6~16자 사이의 짧은 문구
+- 따옴표, 마침표, 이모지 사용 금지
+- 서로 다른 관점이나 분위기를 담을 것 (감정 중심 / 장면 중심 / 비유 중심 등)
+- 일기처럼 잔잔하고 사적인 톤
+- 번호나 접두어 없이, 한 줄에 하나씩, 총 ${count}줄만 출력
+
+일기:
+${diaryText.substring(0, 1500)}`
+        : `Read the diary below and suggest ${count} possible titles.
+
+Rules:
+- Write in ${langName}
+- Each title is short (about 3-7 words)
+- No quotes, periods, or emojis
+- Each title takes a different angle (emotion / scene / metaphor)
+- Calm, personal diary-like tone
+- Output exactly ${count} lines, one title per line, no numbering or prefixes
+
+Diary:
+${diaryText.substring(0, 1500)}`;
+
+      const systemMsg = isKo
+        ? '일기에 어울리는 짧은 제목 후보들을 제안하는 도우미. 매번 서로 다른 관점의 제목을 만든다.'
+        : `A helper that suggests short title candidates for a diary, each from a different angle. Always respond in ${langName}.`;
+
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.95,
+        max_tokens: 200,
+      });
+
+      const raw = response.choices[0]?.message?.content?.trim() || '';
+      const lines = raw
+        .split('\n')
+        .map((line) =>
+          line
+            .replace(/^\s*[-*•]\s*/, '')
+            .replace(/^\s*\d+[.)]\s*/, '')
+            .replace(/^["'`「『]+|["'`」』]+$/g, '')
+            .replace(/^제목\s*[:：]\s*/i, '')
+            .replace(/^Title\s*[:：]\s*/i, '')
+            .replace(/[.。!！?？]+$/g, '')
+            .trim()
+        )
+        .filter((line) => line.length > 0 && line.length <= 100);
+
+      const unique = Array.from(new Set(lines));
+      return unique.slice(0, count);
+    } catch (error) {
+      logger.error('OpenAI title suggestions failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
+  }
+
   async generateTitle(input: {
     content?: string;
     type: 'free_form' | 'question_based';

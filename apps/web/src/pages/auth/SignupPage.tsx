@@ -259,7 +259,6 @@ export function SignupPage() {
     setError(null);
 
     if (emailError) {
-      setError(t('auth.emailExistsDuplicate'));
       return;
     }
 
@@ -309,7 +308,6 @@ export function SignupPage() {
     }
 
     if (emailError) {
-      setError(t('auth.emailExistsDuplicate'));
       return;
     }
 
@@ -546,7 +544,7 @@ export function SignupPage() {
                       type="button"
                       variant="ghost"
                       onClick={handleRequestPhoneVerification}
-                      disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 4 || !step1Email || !!step1Errors.email}
+                      disabled={requestPhoneVerification.isPending || phoneVerified || !step1Phone || step1Phone.length < 4 || !step1Email || !!step1Errors.email || !!emailError}
                       className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
                     >
                       {phoneVerified ? t('auth.verificationComplete') : requestPhoneVerification.isPending ? t('auth.sending') : t('auth.sendVerificationCode')}

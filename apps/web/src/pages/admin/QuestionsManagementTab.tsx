@@ -253,7 +253,7 @@ export function QuestionsManagementTab() {
                   key={question.id}
                   className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                     draggedIndex === index ? 'opacity-50' : ''
-                  } ${dragOverIndex === index ? 'bg-blue-50' : ''} ${
+                  } ${dragOverIndex === index ? 'bg-[#F5EFEA]' : ''} ${
                     isDragging ? 'cursor-move' : ''
                   }`}
                   onMouseMove={(e) => {

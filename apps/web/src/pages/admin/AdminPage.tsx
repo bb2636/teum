@@ -293,7 +293,7 @@ export function AdminPage() {
                 className="flex-shrink-0 hover:opacity-80 transition-opacity"
               >
                 <img
-                  src="/admin_logo.png"
+                  src="/teum.home.png"
                   alt="Admin Logo"
                   className="h-12 w-auto"
                 />
@@ -303,7 +303,7 @@ export function AdminPage() {
                 onClick={() => setActiveTab('users')}
                 className={`pb-2 px-1 text-sm font-medium transition-colors ${
                   activeTab === 'users'
-                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -313,7 +313,7 @@ export function AdminPage() {
                 onClick={() => setActiveTab('diaries')}
                 className={`pb-2 px-1 text-sm font-medium transition-colors ${
                   activeTab === 'diaries'
-                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -323,7 +323,7 @@ export function AdminPage() {
                 onClick={() => setActiveTab('questions')}
                 className={`pb-2 px-1 text-sm font-medium transition-colors ${
                   activeTab === 'questions'
-                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -333,7 +333,7 @@ export function AdminPage() {
                 onClick={() => setActiveTab('support')}
                 className={`pb-2 px-1 text-sm font-medium transition-colors relative ${
                   activeTab === 'support'
-                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -346,7 +346,7 @@ export function AdminPage() {
                 onClick={() => setActiveTab('terms')}
                 className={`pb-2 px-1 text-sm font-medium transition-colors ${
                   activeTab === 'terms'
-                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -556,7 +556,7 @@ export function AdminPage() {
                   onClick={() => setDiaryFilter('all')}
                   className={`pb-2 px-1 text-sm font-medium transition-colors ${
                     diaryFilter === 'all'
-                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
@@ -566,7 +566,7 @@ export function AdminPage() {
                   onClick={() => setDiaryFilter('free')}
                   className={`pb-2 px-1 text-sm font-medium transition-colors ${
                     diaryFilter === 'free'
-                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
@@ -576,7 +576,7 @@ export function AdminPage() {
                   onClick={() => setDiaryFilter('question')}
                   className={`pb-2 px-1 text-sm font-medium transition-colors ${
                     diaryFilter === 'question'
-                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      ? 'text-[#4A2C1A] border-b-2 border-[#4A2C1A]'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
@@ -618,7 +618,7 @@ export function AdminPage() {
                     </div>
                     {diary.type === 'question_based' && diary.answers && diary.answers.length > 0 && (
                       <div className="mb-2">
-                        <span className="text-xs text-purple-600">
+                        <span className="text-xs text-[#4A2C1A]">
                           {diary.answers.length}개의 문답
                         </span>
                         <p className="text-xs text-gray-600 mt-1">

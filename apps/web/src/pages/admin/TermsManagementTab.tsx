@@ -213,12 +213,12 @@ export function TermsManagementTab() {
             onClick={() => setSelectedType('service')}
             className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'service'
-                ? 'border-purple-500 bg-purple-50'
+                ? 'border-[#4A2C1A] bg-[#F5EFEA]'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className={`${selectedType === 'service' ? 'text-purple-600' : 'text-gray-400'}`}>
+              <div className={`${selectedType === 'service' ? 'text-[#4A2C1A]' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">서비스 이용약관</h3>
@@ -235,12 +235,12 @@ export function TermsManagementTab() {
             onClick={() => setSelectedType('privacy')}
             className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'privacy'
-                ? 'border-purple-500 bg-purple-50'
+                ? 'border-[#4A2C1A] bg-[#F5EFEA]'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className={`${selectedType === 'privacy' ? 'text-purple-600' : 'text-gray-400'}`}>
+              <div className={`${selectedType === 'privacy' ? 'text-[#4A2C1A]' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">개인정보 처리방침</h3>
@@ -257,12 +257,12 @@ export function TermsManagementTab() {
             onClick={() => setSelectedType('payment')}
             className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'payment'
-                ? 'border-purple-500 bg-purple-50'
+                ? 'border-[#4A2C1A] bg-[#F5EFEA]'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className={`${selectedType === 'payment' ? 'text-purple-600' : 'text-gray-400'}`}>
+              <div className={`${selectedType === 'payment' ? 'text-[#4A2C1A]' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">정기결제/자동갱신</h3>
@@ -279,12 +279,12 @@ export function TermsManagementTab() {
             onClick={() => setSelectedType('refund')}
             className={`w-full p-5 rounded-lg border-2 transition-all text-left ${
               selectedType === 'refund'
-                ? 'border-purple-500 bg-purple-50'
+                ? 'border-[#4A2C1A] bg-[#F5EFEA]'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className={`${selectedType === 'refund' ? 'text-purple-600' : 'text-gray-400'}`}>
+              <div className={`${selectedType === 'refund' ? 'text-[#4A2C1A]' : 'text-gray-400'}`}>
                 {getTermsIcon()}
               </div>
               <h3 className="font-semibold text-[#4A2C1A]">환불/취소 정책</h3>
@@ -329,7 +329,7 @@ export function TermsManagementTab() {
                       setTranslatedTitle('');
                     }}
                     variant="outline"
-                    className={`rounded-lg flex items-center gap-1.5 ${showTranslatePanel ? 'border-purple-500 text-purple-600' : ''}`}
+                    className={`rounded-lg flex items-center gap-1.5 ${showTranslatePanel ? 'border-[#4A2C1A] text-[#4A2C1A]' : ''}`}
                     disabled={!content.trim()}
                   >
                     <Languages className="w-4 h-4" />
@@ -350,7 +350,7 @@ export function TermsManagementTab() {
               </div>
 
               {showTranslatePanel && (
-                <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="mb-4 p-4 bg-[#F5EFEA] border border-[#4A2C1A]/30 rounded-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-sm font-medium text-gray-700">번역 언어:</span>
                     <div className="flex gap-2">
@@ -364,7 +364,7 @@ export function TermsManagementTab() {
                           }}
                           className={`px-3 py-1 text-sm rounded-full transition-colors ${
                             translateLang === lang.code
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-[#4A2C1A] text-white'
                               : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
                           }`}
                         >
@@ -375,7 +375,7 @@ export function TermsManagementTab() {
                     <Button
                       onClick={handleTranslate}
                       disabled={isTranslating || !content.trim()}
-                      className="ml-auto bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-sm"
+                      className="ml-auto bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-lg text-sm"
                       size="sm"
                     >
                       {isTranslating ? (
@@ -394,7 +394,7 @@ export function TermsManagementTab() {
                       <textarea
                         value={translatedContent}
                         readOnly
-                        className="w-full h-[300px] px-4 py-3 border border-purple-200 rounded-lg resize-none bg-white font-mono text-sm leading-relaxed text-gray-700"
+                        className="w-full h-[300px] px-4 py-3 border border-[#4A2C1A]/30 rounded-lg resize-none bg-white font-mono text-sm leading-relaxed text-gray-700"
                       />
                     </div>
                   )}
@@ -436,7 +436,7 @@ export function TermsManagementTab() {
                 <Button
                   onClick={handleConfirmSave}
                   disabled={updateMutation.isPending}
-                  className="bg-purple-600 text-white hover:bg-purple-700"
+                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2010]"
                 >
                   {updateMutation.isPending ? '저장 중...' : '저장'}
                 </Button>
@@ -461,7 +461,7 @@ export function TermsManagementTab() {
               <div className="flex items-center justify-center">
                 <Button
                   onClick={handleCloseSuccessModal}
-                  className="bg-purple-600 text-white hover:bg-purple-700"
+                  className="bg-[#4A2C1A] text-white hover:bg-[#3A2010]"
                 >
                   완료
                 </Button>

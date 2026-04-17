@@ -11,7 +11,10 @@ const config: CapacitorConfig = {
     overrideUserAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   },
   server: {
-    url: 'https://teum--iteraon.replit.app',
+    // CAP_REMOTE=1 환경변수가 있으면 원격 라이브 리로드 모드, 아니면 번들 모드
+    ...(process.env.CAP_REMOTE === '1'
+      ? { url: 'https://teum--iteraon.replit.app' }
+      : {}),
     androidScheme: 'https',
     cleartext: false,
     allowNavigation: [

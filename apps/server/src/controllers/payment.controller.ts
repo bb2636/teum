@@ -5,6 +5,19 @@ import { logger } from '../config/logger';
 import { getExchangeInfo } from '../utils/currency';
 import { refundService } from '../services/payment/refund.service';
 import { paypalProvider } from '../services/payment/paypal.provider';
+import { appleProvider } from '../services/payment/apple.provider';
+import { z } from 'zod';
+
+const appleVerifyReceiptSchema = z.object({
+  transactionId: z.string().min(1).optional(),
+  receipt: z.string().min(1).optional(),
+}).refine((d) => !!d.transactionId || !!d.receipt, {
+  message: 'transactionId 또는 receipt가 필요합니다.',
+});
+
+const appleWebhookSchema = z.object({
+  signedPayload: z.string().min(1),
+});
 
 export class PaymentController {
   async getPlanPrice(req: Request, res: Response, next: NextFunction) {
@@ -583,6 +596,106 @@ export class PaymentController {
     }, 'PayPal refund webhook handled');
 
     return res.status(200).json({ status: result.reason });
+  }
+
+  async appleVerifyReceipt(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const input = appleVerifyReceiptSchema.parse(req.body);
+      const result = await paymentService.verifyAppleTransaction(req.user.userId, input);
+
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async appleWebhook(req: Request, res: Response) {
+    try {
+      if (!appleProvider.isEnabled()) {
+        logger.error('Apple webhook received but provider not configured');
+        return res.status(503).json({ error: 'Apple provider not configured' });
+      }
+
+      const parsed = appleWebhookSchema.safeParse(req.body);
+      if (!parsed.success) {
+        logger.error({ issues: parsed.error.issues }, 'Apple webhook: invalid body');
+        return res.status(400).json({ error: 'Invalid signedPayload' });
+      }
+
+      const { signedPayload } = parsed.data;
+
+      let verified;
+      try {
+        verified = await appleProvider.verifyNotification(signedPayload);
+      } catch (error) {
+        logger.warn({
+          error: error instanceof Error ? error.message : String(error),
+        }, 'Apple webhook signature verification failed');
+        return res.status(401).json({ error: 'Invalid signedPayload' });
+      }
+
+      const { payload, transaction } = verified;
+      const eventId = payload.notificationUUID;
+      const notificationType = payload.notificationType as string;
+      const subtype = payload.subtype as string | undefined;
+
+      if (!eventId || !notificationType) {
+        logger.error({ payload }, 'Apple webhook: missing notificationUUID or notificationType');
+        return res.status(400).json({ error: 'Invalid notification' });
+      }
+
+      if (await refundService.isDuplicateWebhookEvent(eventId)) {
+        logger.info({ eventId, notificationType }, 'Duplicate Apple webhook, skipping');
+        return res.status(200).json({ status: 'duplicate' });
+      }
+
+      const recorded = await refundService.recordWebhookEvent(
+        eventId,
+        'apple',
+        notificationType,
+        JSON.stringify({ payload, transaction }),
+      );
+      if (!recorded) {
+        logger.info({ eventId }, 'Apple webhook: concurrent duplicate detected');
+        return res.status(200).json({ status: 'duplicate' });
+      }
+
+      const result = await paymentService.handleAppleNotification(
+        notificationType,
+        subtype,
+        transaction
+          ? {
+              originalTransactionId: transaction.originalTransactionId,
+              transactionId: transaction.transactionId,
+              productId: transaction.productId,
+              expiresDate: transaction.expiresDate,
+              purchaseDate: transaction.purchaseDate,
+              revocationDate: transaction.revocationDate,
+            }
+          : undefined,
+      );
+
+      logger.info({
+        eventId,
+        notificationType,
+        subtype,
+        result,
+      }, 'Apple webhook handled');
+
+      return res.status(200).json({ status: result });
+    } catch (error) {
+      logger.error({
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Apple webhook processing failed');
+      return res.status(500).json({ error: 'Internal error' });
+    }
   }
 
   async nicepayWebhook(req: Request, res: Response) {

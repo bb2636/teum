@@ -22,7 +22,7 @@ export const subscriptions = pgTable('subscriptions', {
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   currency: varchar('currency', { length: 10 }).default('KRW').notNull(),
   paypalSubscriptionId: varchar('paypal_subscription_id', { length: 255 }),
-  appleOriginalTransactionId: varchar('apple_original_transaction_id', { length: 255 }),
+  appleOriginalTransactionId: varchar('apple_original_transaction_id', { length: 255 }).unique(),
   appleProductId: varchar('apple_product_id', { length: 100 }),
   startDate: timestamp('start_date').notNull(),
   endDate: timestamp('end_date'),

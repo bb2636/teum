@@ -12,8 +12,11 @@ router.get('/plan-price', paymentController.getPlanPrice.bind(paymentController)
 router.get('/paypal/return', paymentController.paypalReturn.bind(paymentController));
 router.get('/paypal/cancel', paymentController.paypalCancel.bind(paymentController));
 router.post('/paypal/webhook', paymentController.paypalWebhook.bind(paymentController));
+router.post('/apple/webhook', paymentController.appleWebhook.bind(paymentController));
 
 router.use(authenticate);
+
+router.post('/apple/verify-receipt', paymentController.appleVerifyReceipt.bind(paymentController));
 
 router.post('/init', paymentController.initPayment.bind(paymentController));
 router.post('/billing/init', paymentController.initBillingKey.bind(paymentController));

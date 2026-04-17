@@ -1318,16 +1318,35 @@ export class PaymentService {
       ? new Date(decodedTransaction.expiresDate as number)
       : null;
 
+    // Handle renewal-status changes first (subtype-based cancel/uncancel)
+    if (notificationType === AppleProvider.NotificationTypeV2.DID_CHANGE_RENEWAL_STATUS) {
+      if (subtype === AppleProvider.Subtype.AUTO_RENEW_DISABLED) {
+        await db
+          .update(subscriptions)
+          .set({ status: 'cancelled', cancelledAt: new Date(), updatedAt: new Date() })
+          .where(eq(subscriptions.id, sub.id));
+        return 'cancelled';
+      }
+      if (subtype === AppleProvider.Subtype.AUTO_RENEW_ENABLED) {
+        await db
+          .update(subscriptions)
+          .set({ status: 'active', cancelledAt: null, updatedAt: new Date() })
+          .where(eq(subscriptions.id, sub.id));
+        return 'auto_renew_enabled';
+      }
+      logger.info({ notificationType, subtype }, 'Apple notification: renewal status change with no actionable subtype');
+      return 'unhandled';
+    }
+
     switch (notificationType) {
-      case AppleProvider.NotificationTypeV2.DID_RENEW:
-      case AppleProvider.NotificationTypeV2.DID_CHANGE_RENEWAL_STATUS: {
+      case AppleProvider.NotificationTypeV2.DID_RENEW: {
         if (expiresDate) {
           await db
             .update(subscriptions)
             .set({ status: 'active', endDate: expiresDate, renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
             .where(eq(subscriptions.id, sub.id));
 
-          if (notificationType === AppleProvider.NotificationTypeV2.DID_RENEW && decodedTransaction?.transactionId) {
+          if (decodedTransaction?.transactionId) {
             const txKey = `apple_${decodedTransaction.transactionId}`;
             const [existingPayment] = await db
               .select()
@@ -1386,15 +1405,7 @@ export class PaymentService {
         return 'refunded';
       }
 
-      // User cancelled auto-renew but current period still active
       default: {
-        if (subtype === AppleProvider.Subtype.AUTO_RENEW_DISABLED) {
-          await db
-            .update(subscriptions)
-            .set({ status: 'cancelled', cancelledAt: new Date(), updatedAt: new Date() })
-            .where(eq(subscriptions.id, sub.id));
-          return 'cancelled';
-        }
         logger.info({ notificationType, subtype }, 'Apple notification: unhandled type');
         return 'unhandled';
       }

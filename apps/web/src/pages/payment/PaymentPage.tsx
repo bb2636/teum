@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { useAppleIAP } from '@/hooks/useAppleIAP';
 
 declare global {
   interface Window {
@@ -35,7 +36,7 @@ const NICEPAY_CARD_COMPANIES = [
   { code: '11', name: '씨티카드' },
 ];
 
-type PaymentMethodType = 'nicepay' | 'paypal';
+type PaymentMethodType = 'nicepay' | 'paypal' | 'apple';
 
 export function PaymentPage() {
   const navigate = useNavigate();
@@ -56,7 +57,13 @@ export function PaymentPage() {
     };
   }, [setHideTabBar]);
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>(isKorean ? 'nicepay' : 'paypal');
+  const appleIAP = useAppleIAP();
+  const defaultMethod: PaymentMethodType = appleIAP.available
+    ? 'apple'
+    : isKorean
+      ? 'nicepay'
+      : 'paypal';
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>(defaultMethod);
   const [cardCode, setCardCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
@@ -86,7 +93,10 @@ export function PaymentPage() {
     return `${y}.${m}.${d}`;
   }, []);
 
-  const isButtonEnabled = paymentMethod === 'paypal' || !!cardCode;
+  const isButtonEnabled =
+    paymentMethod === 'paypal' ||
+    (paymentMethod === 'apple' && appleIAP.ready) ||
+    !!cardCode;
 
   const handlePaymentClick = () => {
     if (paymentMethod === 'nicepay' && !cardCode) {
@@ -108,11 +118,27 @@ export function PaymentPage() {
       }
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
+      } else if (paymentMethod === 'apple') {
+        handleStartApple();
       } else {
         handleStartBillingRegistration();
       }
     }
   };
+
+  const handleStartApple = async () => {
+    try {
+      await appleIAP.purchase();
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : t('payment.initError'));
+    }
+  };
+
+  useEffect(() => {
+    if (appleIAP.error) {
+      alert(appleIAP.error);
+    }
+  }, [appleIAP.error]);
 
   const handleStartPayPal = async () => {
     setIsProcessing(true);
@@ -211,6 +237,8 @@ export function PaymentPage() {
       setIdentityCode('');
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
+      } else if (paymentMethod === 'apple') {
+        handleStartApple();
       } else {
         handleStartBillingRegistration();
       }
@@ -319,6 +347,29 @@ export function PaymentPage() {
             <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">{t('payment.method')}</h2>
 
             <div className="space-y-3 mb-4">
+              {appleIAP.available && (
+                <button
+                  onClick={() => setPaymentMethod('apple')}
+                  className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                    paymentMethod === 'apple'
+                      ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    paymentMethod === 'apple' ? 'border-[#4A2C1A]' : 'border-gray-300'
+                  }`}>
+                    {paymentMethod === 'apple' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
+                  </div>
+                  <CreditCard className="w-5 h-5 text-[#4A2C1A]" />
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-[#4A2C1A]">App Store</p>
+                    <p className="text-xs text-gray-500">
+                      {appleIAP.product?.price || (appleIAP.ready ? 'Apple ID' : '불러오는 중...')}
+                    </p>
+                  </div>
+                </button>
+              )}
               <button
                 onClick={() => setPaymentMethod('nicepay')}
                 className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
@@ -395,16 +446,18 @@ export function PaymentPage() {
             </p>
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || !isButtonEnabled}
+              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || !isButtonEnabled}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing || initBillingKey.isPending || initPayPal.isPending
+              {isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing
                 ? t('payment.processing')
-                : paymentMethod === 'paypal'
-                  ? t('payment.payWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) })
-                  : isKorean
-                    ? t('payment.startMonthly', { amount: displayAmountFormatted })
-                    : `Start at $${(planPrice?.usd ?? 3.99).toFixed(2)}/month`}
+                : paymentMethod === 'apple'
+                  ? `App Store ${appleIAP.product?.price || ''}`.trim()
+                  : paymentMethod === 'paypal'
+                    ? t('payment.payWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) })
+                    : isKorean
+                      ? t('payment.startMonthly', { amount: displayAmountFormatted })
+                      : `Start at $${(planPrice?.usd ?? 3.99).toFixed(2)}/month`}
             </button>
           </div>
         </div>

@@ -7,19 +7,24 @@ declare const CdvPurchase: {
   store: unknown;
   Platform: { APPLE_APPSTORE: string };
   ProductType: { PAID_SUBSCRIPTION: string };
+  ErrorCode: { PAYMENT_CANCELLED: number };
 };
 
 const APPLE_PRODUCT_ID = 'subscription01';
 
+type IAPError = { code?: number; message?: string };
+
+type WhenChain = {
+  approved: (cb: (transaction: TransactionLike) => void) => WhenChain;
+  finished: (cb: (transaction: TransactionLike) => void) => WhenChain;
+  verified: (cb: (receipt: unknown) => void) => WhenChain;
+};
+
 type StoreInstance = {
   register: (products: Array<{ id: string; type: string; platform: string }>) => void;
   initialize: (platforms?: string[]) => Promise<unknown>;
-  when: () => {
-    approved: (cb: (transaction: TransactionLike) => void) => unknown;
-    finished: (cb: (transaction: TransactionLike) => void) => unknown;
-    cancelled: (cb: (transaction: TransactionLike) => void) => unknown;
-    failed: (cb: (error: { message?: string }) => void) => unknown;
-  };
+  when: () => WhenChain;
+  error: (cb: (err: IAPError) => void) => void;
   get: (productId: string) => ProductLike | undefined;
   order: (offer: OfferLike) => Promise<{ isError?: boolean; message?: string } | undefined>;
   restorePurchases: () => Promise<unknown>;
@@ -79,46 +84,48 @@ export function useAppleIAP() {
           },
         ]);
 
-        const events = store.when();
-
-        events.approved(async (transaction: TransactionLike) => {
-          if (verifyingRef.current) return;
-          verifyingRef.current = true;
-          try {
-            const transactionId = transaction.transactionId;
-            if (!transactionId) {
-              safeSet(setError, 'Apple 거래 ID를 가져오지 못했습니다.');
-              safeSet(setPurchasing, false);
-              return;
-            }
-            const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
-              '/api/payments/apple/verify-receipt',
-              {
-                method: 'POST',
-                body: JSON.stringify({ transactionId }),
+        store
+          .when()
+          .approved(async (transaction: TransactionLike) => {
+            if (verifyingRef.current) return;
+            verifyingRef.current = true;
+            try {
+              const transactionId = transaction.transactionId;
+              if (!transactionId) {
+                safeSet(setError, 'Apple 거래 ID를 가져오지 못했습니다.');
+                safeSet(setPurchasing, false);
+                return;
               }
-            );
-            if (data?.success) {
-              await transaction.finish?.();
-              window.location.href = '/payment/success';
-            } else {
-              safeSet(setError, '서버 검증에 실패했습니다.');
+              const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
+                '/api/payments/apple/verify-receipt',
+                {
+                  method: 'POST',
+                  body: JSON.stringify({ transactionId }),
+                }
+              );
+              if (data?.success) {
+                await transaction.finish?.();
+                window.location.href = '/payment/success';
+              } else {
+                safeSet(setError, '서버 검증에 실패했습니다.');
+                safeSet(setPurchasing, false);
+              }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : '검증 실패';
+              safeSet(setError, message);
               safeSet(setPurchasing, false);
+            } finally {
+              verifyingRef.current = false;
             }
-          } catch (err) {
-            const message = err instanceof Error ? err.message : '검증 실패';
-            safeSet(setError, message);
-            safeSet(setPurchasing, false);
-          } finally {
-            verifyingRef.current = false;
-          }
-        });
+          });
 
-        events.cancelled(() => {
-          safeSet(setPurchasing, false);
-        });
-        events.failed((err) => {
-          safeSet(setError, err.message || '결제에 실패했습니다.');
+        const cancelledCode = CdvPurchase.ErrorCode?.PAYMENT_CANCELLED ?? 6777006;
+        store.error((err: IAPError) => {
+          if (err?.code === cancelledCode) {
+            safeSet(setPurchasing, false);
+            return;
+          }
+          safeSet(setError, err?.message || '결제에 실패했습니다.');
           safeSet(setPurchasing, false);
         });
 

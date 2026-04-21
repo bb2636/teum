@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.teum.app',
+  appId: 'app.teum.com',
   appName: 'TEUM',
   webDir: 'dist',
   android: {

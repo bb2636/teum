@@ -68,13 +68,16 @@ export function useAppleIAP() {
     let cancelled = false;
     (async () => {
       try {
+        console.log('[IAP] init start, bundleId expected: app.teum.com');
         if (typeof CdvPurchase === 'undefined') {
+          console.error('[IAP] CdvPurchase global is undefined — plugin not loaded');
           setError('Apple IAP plugin not available');
           return;
         }
         const store = CdvPurchase.store as StoreInstance;
         const Platform = CdvPurchase.Platform;
         const ProductType = CdvPurchase.ProductType;
+        console.log('[IAP] CdvPurchase loaded, registering product:', APPLE_PRODUCT_ID);
 
         store.register([
           {
@@ -121,29 +124,45 @@ export function useAppleIAP() {
 
         const cancelledCode = CdvPurchase.ErrorCode?.PAYMENT_CANCELLED ?? 6777006;
         store.error((err: IAPError) => {
+          console.error('[IAP] store.error:', JSON.stringify(err));
           if (err?.code === cancelledCode) {
             safeSet(setPurchasing, false);
             return;
           }
-          safeSet(setError, err?.message || '결제에 실패했습니다.');
+          safeSet(setError, `[${err?.code ?? '?'}] ${err?.message || '결제에 실패했습니다.'}`);
           safeSet(setPurchasing, false);
         });
 
-        await store.initialize([Platform.APPLE_APPSTORE]);
+        console.log('[IAP] calling store.initialize...');
+        const initResult = await store.initialize([Platform.APPLE_APPSTORE]);
+        console.log('[IAP] initialize result:', JSON.stringify(initResult));
 
         if (cancelled) return;
 
+        // Dump the entire products array
+        const allProducts = (store as unknown as { products?: unknown[] }).products;
+        console.log('[IAP] store.products length:', allProducts?.length ?? 'n/a');
+        console.log('[IAP] store.products dump:', JSON.stringify(allProducts, null, 2));
+
         const p = store.get(APPLE_PRODUCT_ID);
+        console.log('[IAP] store.get(' + APPLE_PRODUCT_ID + '):', JSON.stringify(p, null, 2));
+
         if (p) {
+          const offer = p.getOffer?.();
+          console.log('[IAP] product offer:', JSON.stringify(offer, null, 2));
           setProduct({
             id: p.id,
             title: p.title || '월간 프리미엄',
             price: p.pricing?.price || '',
           });
+        } else {
+          console.warn('[IAP] product NOT FOUND in store — App Store Connect did not return it');
+          safeSet(setError, '구독 상품을 App Store에서 가져오지 못했습니다. (계약/번들ID/상품상태 확인)');
         }
         storeRef.current = store;
         setReady(true);
       } catch (err) {
+        console.error('[IAP] init exception:', err);
         const message = err instanceof Error ? err.message : 'Apple IAP 초기화 실패';
         setError(message);
       }

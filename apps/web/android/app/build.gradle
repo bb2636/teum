@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.teum.app"
+    namespace = "com.teum.app1"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.teum.app"
+        applicationId "com.teum.app1"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 2

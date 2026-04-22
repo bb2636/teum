@@ -1,4 +1,4 @@
-package com.teum.app;
+package com.teum.app1;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;

@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,10 +27,33 @@ export function LoginPage() {
   const t = useT();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [skipAutoRedirect] = useState(() => {
     return !!sessionStorage.getItem('teum_logged_out');
   });
   const { data: user, isLoading: isCheckingAuth } = useMe();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const showHandle = Keyboard.addListener('keyboardWillShow', (info) => {
+      setKeyboardHeight(info.keyboardHeight);
+    });
+    const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showHandle.then((h) => h.remove());
+      hideHandle.then((h) => h.remove());
+    };
+  }, []);
+
+  const focusPasswordField = () => {
+    const el = document.getElementById('password') as HTMLInputElement | null;
+    if (el) {
+      el.focus();
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    }
+  };
 
   useEffect(() => {
     if (skipAutoRedirect) return;
@@ -68,7 +93,14 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative overflow-y-auto" style={{ paddingTop: 'max(32px, env(safe-area-inset-top, 32px))', paddingBottom: 'max(60px, env(safe-area-inset-bottom, 60px))' }}>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 relative overflow-y-auto"
+      style={{
+        paddingTop: 'max(32px, env(safe-area-inset-top, 32px))',
+        paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 24}px` : 'max(60px, env(safe-area-inset-bottom, 60px))',
+        transition: 'padding-bottom 0.2s ease-out',
+      }}
+    >
       <button
         onClick={() => navigate('/splash')}
         className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm"
@@ -98,9 +130,20 @@ export function LoginPage() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
               {...register('email')}
               placeholder={t('auth.emailPlaceholder')}
               className={errors.email ? 'border-red-500 placeholder:text-red-500' : ''}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  focusPasswordField();
+                }
+              }}
               onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
             />
             {errors.email && (
@@ -113,6 +156,8 @@ export function LoginPage() {
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                enterKeyHint="go"
                 {...register('password')}
                 placeholder={t('auth.passwordPlaceholder')}
                 className={errors.password ? 'border-red-500 placeholder:text-red-500 pr-10' : 'pr-10'}

@@ -196,8 +196,22 @@ export function PaymentPage() {
       }
 
       if (isNative) {
-        payParams.appScheme = 'com.teum.app';
+        payParams.appScheme = 'com.teum.app1';
       }
+
+      const originalFnError = payParams.fnError;
+      payParams.fnError = (result: { errorMsg?: string; resultCode?: string; resultMsg?: string }) => {
+        console.error('[NicePay] requestPay error', {
+          cardCode,
+          isNative,
+          resultCode: result?.resultCode,
+          resultMsg: result?.resultMsg,
+          errorMsg: result?.errorMsg,
+        });
+        if (typeof originalFnError === 'function') {
+          (originalFnError as (r: typeof result) => void)(result);
+        }
+      };
 
       window.AUTHNICE.requestPay(payParams);
 

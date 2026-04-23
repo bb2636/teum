@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* NicePay SDK overlay - respect iOS safe-area (notch/dynamic island) */
+iframe[id*="nicepay" i],
+iframe[name*="nicepay" i],
+iframe[src*="nicepay" i],
+iframe[src*="kcp" i],
+div[id*="nicepay" i],
+div[id*="modalDIV" i] {
+  top: env(safe-area-inset-top, 0px) !important;
+  max-height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+}
+
 html {
   overflow-y: scroll;
 }

@@ -956,14 +956,6 @@ export function DiaryWritePage() {
       return;
     }
 
-    const currentTitle = (watch('title') || '').trim();
-    if (type === 'free_form' && !currentTitle) {
-      setTitleSuggestions([]);
-      setShowTitleSuggestion(true);
-      void fetchTitleSuggestions();
-      return;
-    }
-
     setShowFolderModal(true);
   };
 

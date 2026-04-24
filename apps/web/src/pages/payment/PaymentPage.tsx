@@ -196,7 +196,7 @@ export function PaymentPage() {
       }
 
       if (isNative) {
-        payParams.appScheme = 'com.teum.app1';
+        payParams.appScheme = 'com.teum.app';
       }
 
       const originalFnError = payParams.fnError;

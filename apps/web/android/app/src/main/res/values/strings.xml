@@ -3,5 +3,5 @@
     <string name="app_name">TEUM</string>
     <string name="title_activity_main">TEUM</string>
     <string name="package_name">com.teum.app1</string>
-    <string name="custom_url_scheme">com.teum.app1</string>
+    <string name="custom_url_scheme">com.teum.app</string>
 </resources>

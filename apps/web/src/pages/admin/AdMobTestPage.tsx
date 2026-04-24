@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
@@ -9,23 +9,58 @@ interface StepResult {
   detail?: string;
 }
 
+const TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
+const LOAD_TIMEOUT_MS = 15000;
+
+type ListenerHandle = { remove: () => void | Promise<void> };
+
 export function AdMobTestPage() {
   const navigate = useNavigate();
   const [steps, setSteps] = useState<StepResult[]>([]);
   const [running, setRunning] = useState(false);
 
+  const handlesRef = useRef<ListenerHandle[]>([]);
+  const initializedRef = useRef(false);
+
+  const cleanupListeners = async () => {
+    const handles = handlesRef.current;
+    handlesRef.current = [];
+    for (const h of handles) {
+      try {
+        await h.remove();
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      void cleanupListeners();
+    };
+  }, []);
+
   const updateStep = (index: number, update: Partial<StepResult>) => {
-    setSteps(prev => prev.map((s, i) => i === index ? { ...s, ...update } : s));
+    setSteps(prev => prev.map((s, i) => (i === index ? { ...s, ...update } : s)));
+  };
+
+  const markRemainingFail = (initialLen: number, fromIndex: number, reason = 'Skipped') => {
+    for (let i = fromIndex; i < initialLen; i++) {
+      updateStep(i, { status: 'fail', detail: reason });
+    }
   };
 
   const runTest = async () => {
     if (running) return;
     setRunning(true);
 
+    await cleanupListeners();
+
     const initial: StepResult[] = [
       { label: 'Platform Check', status: 'pending' },
       { label: 'Import Plugin', status: 'pending' },
       { label: 'AdMob.initialize()', status: 'pending' },
+      { label: 'Register Listeners', status: 'pending' },
       { label: 'prepareInterstitial()', status: 'pending' },
       { label: 'Wait for Loaded event', status: 'pending' },
       { label: 'showInterstitial()', status: 'pending' },
@@ -40,9 +75,7 @@ export function AdMobTestPage() {
     });
 
     if (!isNative) {
-      for (let i = 1; i < initial.length; i++) {
-        updateStep(i, { status: 'fail', detail: 'Skipped (not native)' });
-      }
+      markRemainingFail(initial.length, 1, 'Skipped (not native)');
       setRunning(false);
       return;
     }
@@ -59,79 +92,133 @@ export function AdMobTestPage() {
       updateStep(1, { status: 'ok', detail: 'Plugin imported successfully' });
     } catch (e: unknown) {
       updateStep(1, { status: 'fail', detail: `Import failed: ${e instanceof Error ? e.message : String(e)}` });
-      for (let i = 2; i < initial.length; i++) {
-        updateStep(i, { status: 'fail', detail: 'Skipped' });
-      }
+      markRemainingFail(initial.length, 2);
       setRunning(false);
       return;
     }
 
     updateStep(2, { status: 'running' });
     try {
-      await AdMob.initialize({ initializeForTesting: true });
-      updateStep(2, { status: 'ok', detail: 'MobileAds initialized' });
-    } catch (e: unknown) {
-      updateStep(2, { status: 'fail', detail: `${e instanceof Error ? e.message : String(e)}` });
-      for (let i = 3; i < initial.length; i++) {
-        updateStep(i, { status: 'fail', detail: 'Skipped' });
+      if (!initializedRef.current) {
+        await AdMob.initialize({ initializeForTesting: true });
+        initializedRef.current = true;
+        updateStep(2, { status: 'ok', detail: 'MobileAds initialized' });
+      } else {
+        updateStep(2, { status: 'ok', detail: 'Already initialized (reused)' });
       }
+    } catch (e: unknown) {
+      updateStep(2, { status: 'fail', detail: e instanceof Error ? e.message : String(e) });
+      markRemainingFail(initial.length, 3);
       setRunning(false);
       return;
     }
 
-    const adId = 'ca-app-pub-3940256099942544/1033173712';
-    updateStep(3, { status: 'running', detail: `adId: ${adId}` });
+    updateStep(3, { status: 'running' });
+
+    let resolveLoad: () => void = () => {};
+    let rejectLoad: (err: Error) => void = () => {};
+    const loadPromise = new Promise<void>((resolve, reject) => {
+      resolveLoad = resolve;
+      rejectLoad = reject;
+    });
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    let loadSettled = false;
+    const settleLoad = (fn: () => void) => {
+      if (loadSettled) return;
+      loadSettled = true;
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+      fn();
+    };
+
+    let showSettled = false;
+    let resolveShow: () => void = () => {};
+    let rejectShow: (err: Error) => void = () => {};
+    const showCompletePromise = new Promise<void>((resolve, reject) => {
+      resolveShow = resolve;
+      rejectShow = reject;
+    });
+    const settleShow = (fn: () => void) => {
+      if (showSettled) return;
+      showSettled = true;
+      fn();
+    };
 
     try {
-      const loadPromise = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timeout 15s')), 15000);
-        const handles: Array<{ remove: () => void }> = [];
-
-        AdMob.addListener(InterstitialAdPluginEvents.Loaded, () => {
-          clearTimeout(timeout);
-          handles.forEach((h) => { try { h.remove(); } catch (_) {} });
-          resolve();
-        }).then((h: { remove: () => void }) => handles.push(h));
-
-        AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info: unknown) => {
-          clearTimeout(timeout);
-          handles.forEach((h) => { try { h.remove(); } catch (_) {} });
-          reject(new Error(`FailedToLoad: ${JSON.stringify(info)}`));
-        }).then((h: { remove: () => void }) => handles.push(h));
+      const h1 = await AdMob.addListener(InterstitialAdPluginEvents.Loaded, () => {
+        settleLoad(() => resolveLoad());
       });
+      handlesRef.current.push(h1);
 
-      await AdMob.prepareInterstitial({ adId });
-      updateStep(3, { status: 'ok', detail: `prepareInterstitial resolved, adId: ${adId}` });
+      const h2 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (info: unknown) => {
+        settleLoad(() => rejectLoad(new Error(`FailedToLoad: ${JSON.stringify(info)}`)));
+      });
+      handlesRef.current.push(h2);
 
-      updateStep(4, { status: 'running', detail: 'Waiting for Loaded event...' });
-      await loadPromise;
-      updateStep(4, { status: 'ok', detail: 'Loaded event received' });
+      const h3 = await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, (info: unknown) => {
+        settleShow(() => rejectShow(new Error(`FailedToShow: ${JSON.stringify(info)}`)));
+      });
+      handlesRef.current.push(h3);
 
+      const h4 = await AdMob.addListener(InterstitialAdPluginEvents.Dismissed, () => {
+        settleShow(() => resolveShow());
+      });
+      handlesRef.current.push(h4);
+
+      updateStep(3, { status: 'ok', detail: '4 listeners registered (Loaded/FailedToLoad/FailedToShow/Dismissed)' });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes('FailedToLoad')) {
-        updateStep(3, { status: 'ok', detail: `prepareInterstitial resolved, adId: ${adId}` });
-        updateStep(4, { status: 'fail', detail: msg });
-      } else if (msg.includes('Timeout')) {
-        updateStep(3, { status: 'ok', detail: `prepareInterstitial resolved, adId: ${adId}` });
-        updateStep(4, { status: 'fail', detail: msg });
-      } else {
-        updateStep(3, { status: 'fail', detail: msg });
-        updateStep(4, { status: 'fail', detail: 'Skipped' });
-      }
-      updateStep(5, { status: 'fail', detail: 'Skipped' });
+      updateStep(3, { status: 'fail', detail: e instanceof Error ? e.message : String(e) });
+      await cleanupListeners();
+      markRemainingFail(initial.length, 4);
       setRunning(false);
       return;
     }
 
-    updateStep(5, { status: 'running' });
+    updateStep(4, { status: 'running', detail: `adId: ${TEST_INTERSTITIAL_ID}` });
+    try {
+      await AdMob.prepareInterstitial({ adId: TEST_INTERSTITIAL_ID });
+      updateStep(4, { status: 'ok', detail: 'prepareInterstitial resolved' });
+    } catch (e: unknown) {
+      updateStep(4, { status: 'fail', detail: e instanceof Error ? e.message : String(e) });
+      await cleanupListeners();
+      markRemainingFail(initial.length, 5);
+      setRunning(false);
+      return;
+    }
+
+    updateStep(5, { status: 'running', detail: 'Waiting for Loaded event...' });
+    timeoutHandle = setTimeout(() => {
+      settleLoad(() => rejectLoad(new Error(`Timeout (${LOAD_TIMEOUT_MS / 1000}s)`)));
+    }, LOAD_TIMEOUT_MS);
+
+    try {
+      await loadPromise;
+      updateStep(5, { status: 'ok', detail: 'Loaded event received' });
+    } catch (e: unknown) {
+      updateStep(5, { status: 'fail', detail: e instanceof Error ? e.message : String(e) });
+      await cleanupListeners();
+      markRemainingFail(initial.length, 6);
+      setRunning(false);
+      return;
+    }
+
+    updateStep(6, { status: 'running', detail: 'Calling showInterstitial...' });
     try {
       await AdMob.showInterstitial();
-      updateStep(5, { status: 'ok', detail: 'Ad shown successfully' });
+      try {
+        await showCompletePromise;
+        updateStep(6, { status: 'ok', detail: 'Ad shown and dismissed' });
+      } catch (e: unknown) {
+        updateStep(6, { status: 'fail', detail: e instanceof Error ? e.message : String(e) });
+      }
     } catch (e: unknown) {
-      updateStep(5, { status: 'fail', detail: `${e instanceof Error ? e.message : String(e)}` });
+      updateStep(6, { status: 'fail', detail: `show error: ${e instanceof Error ? e.message : String(e)}` });
     }
 
+    await cleanupListeners();
     setRunning(false);
   };
 
@@ -168,7 +255,7 @@ export function AdMobTestPage() {
           <div className="bg-gray-50 rounded-lg p-3 text-xs font-mono space-y-1">
             <div>platform: <b>{Capacitor.getPlatform()}</b></div>
             <div>isNative: <b>{String(Capacitor.isNativePlatform())}</b></div>
-            <div>testAdId: <b>ca-app-pub-3940256099942544/1033173712</b></div>
+            <div>testAdId: <b>{TEST_INTERSTITIAL_ID}</b></div>
           </div>
 
           <button

@@ -321,8 +321,11 @@ export function SplashPage() {
   const handleGoogleLogin = async () => {
     const { isNative } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
+    const currentLang = (() => {
+      try { return localStorage.getItem('teum_language') || 'ko'; } catch { return 'ko'; }
+    })();
     if (isNative) {
-      const state = `nonce=${nonce}&platform=mobile`;
+      const state = `nonce=${nonce}&platform=mobile&lang=${currentLang}`;
       try {
         localStorage.setItem(OAUTH_NONCE_KEY, nonce);
         localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
@@ -340,7 +343,7 @@ export function SplashPage() {
         window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
       }
     } else {
-      const state = `nonce=${nonce}`;
+      const state = `nonce=${nonce}&lang=${currentLang}`;
       window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
     }
   };
@@ -348,7 +351,12 @@ export function SplashPage() {
   const handleAppleLogin = async () => {
     const { isNative } = getCapacitorPlatform();
     const nonce = crypto.randomUUID();
-    const state = isNative ? `nonce=${nonce}&platform=mobile` : `nonce=${nonce}`;
+    const currentLang = (() => {
+      try { return localStorage.getItem('teum_language') || 'ko'; } catch { return 'ko'; }
+    })();
+    const state = isNative
+      ? `nonce=${nonce}&platform=mobile&lang=${currentLang}`
+      : `nonce=${nonce}&lang=${currentLang}`;
     try {
       localStorage.setItem(OAUTH_NONCE_KEY, nonce);
       localStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));

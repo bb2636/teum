@@ -25,26 +25,76 @@ type MobileAuthTokenEntry = {
 };
 const mobileAuthTokens = new Map<string, MobileAuthTokenEntry>();
 
-function sendMobileCloseBrowserPage(res: Response) {
+type AuthPageLang = 'ko' | 'en';
+
+const AUTH_PAGE_TEXT: Record<AuthPageLang, {
+  htmlLang: string;
+  loginComplete: string;
+  pressBack: string;
+  processing: string;
+  autoReturn: string;
+  returnToApp: string;
+  pressButton: string;
+}> = {
+  ko: {
+    htmlLang: 'ko',
+    loginComplete: '로그인 완료!',
+    pressBack: '뒤로가기(←)를 눌러<br>앱으로 돌아가주세요.',
+    processing: '로그인 처리 중...',
+    autoReturn: '자동으로 앱으로 이동합니다.',
+    returnToApp: '앱으로 돌아가기',
+    pressButton: '아래 버튼을 눌러 앱으로 돌아가세요.',
+  },
+  en: {
+    htmlLang: 'en',
+    loginComplete: 'Login complete!',
+    pressBack: 'Press the back button (←)<br>to return to the app.',
+    processing: 'Signing you in...',
+    autoReturn: 'Returning to the app automatically.',
+    returnToApp: 'Return to app',
+    pressButton: 'Tap the button below to return to the app.',
+  },
+};
+
+function detectAuthPageLang(req: Request): AuthPageLang {
+  const stateParam = typeof req.query.state === 'string' ? req.query.state : '';
+  if (stateParam) {
+    const stateLang = new URLSearchParams(stateParam).get('lang');
+    if (stateLang && stateLang.toLowerCase().startsWith('ko')) return 'ko';
+    if (stateLang && stateLang.toLowerCase().startsWith('en')) return 'en';
+  }
+  const langQuery = typeof req.query.lang === 'string' ? req.query.lang : '';
+  if (langQuery.toLowerCase().startsWith('ko')) return 'ko';
+  if (langQuery.toLowerCase().startsWith('en')) return 'en';
+  const accept = (req.headers['accept-language'] || '').toString().toLowerCase();
+  if (accept.startsWith('ko') || accept.includes(',ko')) return 'ko';
+  if (accept.startsWith('en') || accept.includes(',en')) return 'en';
+  return 'ko';
+}
+
+function sendMobileCloseBrowserPage(res: Response, lang: AuthPageLang = 'ko') {
+  const t = AUTH_PAGE_TEXT[lang];
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
+  res.send(`<!DOCTYPE html><html lang="${t.htmlLang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
 <style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:20px;margin-bottom:16px}p{font-size:14px;opacity:0.8;line-height:1.6}.btn{display:inline-block;margin-top:24px;padding:14px 40px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:15px;font-weight:500;cursor:pointer}</style></head>
-<body><div class="c"><h2>로그인 완료!</h2><p>뒤로가기(←)를 눌러<br>앱으로 돌아가주세요.</p></div>
+<body><div class="c"><h2>${t.loginComplete}</h2><p>${t.pressBack}</p></div>
 <script>try{window.close();}catch(e){}</script></body></html>`);
 }
 
-function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string) {
+function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string, lang: AuthPageLang = 'ko') {
+  const t = AUTH_PAGE_TEXT[lang];
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
+  res.send(`<!DOCTYPE html><html lang="${t.htmlLang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teum</title>
 <style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#665146;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:white;text-align:center}.c{padding:20px}h2{font-size:18px;margin-bottom:12px}p{font-size:14px;opacity:0.8;margin-bottom:20px}.btn{display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.6);border-radius:24px;color:white;text-decoration:none;font-size:14px;cursor:pointer}</style></head>
-<body><div class="c"><h2>로그인 처리 중...</h2><p id="msg">자동으로 앱으로 이동합니다.</p><a id="openBtn" class="btn" href="${deepLinkUrl}">앱으로 돌아가기</a></div>
+<body><div class="c"><h2>${t.processing}</h2><p id="msg">${t.autoReturn}</p><a id="openBtn" class="btn" href="${deepLinkUrl}">${t.returnToApp}</a></div>
 <script>
 (function(){
   var deepLink="${deepLinkUrl}";
+  var fallbackMsg=${JSON.stringify(t.pressButton)};
   var tried=0;
   function tryOpen(){
     tried++;
-    if(tried>3){document.getElementById("msg").textContent="아래 버튼을 눌러 앱으로 돌아가세요.";return;}
+    if(tried>3){document.getElementById("msg").textContent=fallbackMsg;return;}
     window.location.href=deepLink;
     setTimeout(function(){if(!document.hidden){tryOpen();}},1500);
   }
@@ -463,16 +513,17 @@ export class AuthController {
       const { code, state } = req.query;
       const isMobile = typeof state === 'string' && state.includes('platform=mobile');
       const stateNonce = typeof state === 'string' ? new URLSearchParams(state).get('nonce') : null;
+      const lang = detectAuthPageLang(req);
 
       if (!code || typeof code !== 'string') {
-        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code', lang);
         return res.redirect('/splash?error=no_code');
       }
 
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
       if (!clientId || !clientSecret) {
-        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=not_configured');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=not_configured', lang);
         return res.redirect('/splash?error=not_configured');
       }
 
@@ -496,7 +547,7 @@ export class AuthController {
       logger.info({ hasIdToken: !!tokenData.id_token, error: tokenData.error }, 'Google token exchange result');
       if (!tokenData.id_token) {
         logger.error({ tokenError: tokenData.error, tokenErrorDesc: tokenData.error_description, redirectUri }, 'Google token exchange failed');
-        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=token_exchange_failed');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=token_exchange_failed', lang);
         return res.redirect('/splash?error=token_exchange_failed');
       }
 
@@ -523,7 +574,7 @@ export class AuthController {
             expiresAt: Date.now() + 5 * 60 * 1000,
             onboardingData: Object.fromEntries(params),
           });
-          return sendMobileCloseBrowserPage(res);
+          return sendMobileCloseBrowserPage(res, lang);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -539,7 +590,7 @@ export class AuthController {
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        return sendMobileCloseBrowserPage(res);
+        return sendMobileCloseBrowserPage(res, lang);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {
@@ -574,8 +625,9 @@ export class AuthController {
       const isMobile = typeof stateParam === 'string' && stateParam.includes('platform=mobile');
       const appleNonce = typeof stateParam === 'string' ? new URLSearchParams(stateParam).get('nonce') : null;
       const userJson = req.body?.user as string | undefined;
+      const lang = detectAuthPageLang(req);
       if (!code) {
-        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=no_code', lang);
         return res.redirect('/splash?error=no_code');
       }
 
@@ -584,7 +636,7 @@ export class AuthController {
       const privateKey = process.env.APPLE_PRIVATE_KEY;
       const clientId = process.env.APPLE_CLIENT_ID || process.env.VITE_APPLE_CLIENT_ID;
       if (!teamId || !keyId || !privateKey || !clientId) {
-        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_not_configured');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_not_configured', lang);
         return res.redirect('/splash?error=apple_not_configured');
       }
 
@@ -622,7 +674,7 @@ export class AuthController {
       const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string };
       if (!tokenData.id_token) {
         logger.error({ error: tokenData.error, errorDescription: tokenData.error_description, redirectUri, clientId }, 'Apple token exchange failed');
-        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_token_failed');
+        if (isMobile) return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?error=apple_token_failed', lang);
         return res.redirect('/splash?error=apple_token_failed');
       }
 
@@ -654,7 +706,7 @@ export class AuthController {
             expiresAt: Date.now() + 5 * 60 * 1000,
             onboardingData: Object.fromEntries(params),
           });
-          return sendMobileCloseBrowserPage(res);
+          return sendMobileCloseBrowserPage(res, lang);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -670,7 +722,7 @@ export class AuthController {
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        return sendMobileCloseBrowserPage(res);
+        return sendMobileCloseBrowserPage(res, lang);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {

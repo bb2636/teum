@@ -72,8 +72,16 @@ export function TermsModal({ type, onClose }: TermsModalProps) {
   const titleMap = TERMS_TITLE_MAP[lang] || TERMS_TITLE_MAP.ko;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-overlay-fade">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[85vh] overflow-y-auto animate-modal-pop">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-overlay-fade"
+      style={{
+        paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))',
+        paddingLeft: '1rem',
+        paddingRight: '1rem',
+      }}
+    >
+      <div className="bg-white rounded-xl max-w-md w-full max-h-full overflow-y-auto animate-modal-pop">
         <div className="sticky top-0 bg-white border-b border-brown-200 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-brown-900">
             {titleMap[type] || type}

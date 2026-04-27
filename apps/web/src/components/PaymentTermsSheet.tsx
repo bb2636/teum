@@ -66,6 +66,7 @@ export function PaymentTermsSheet({ isOpen, onClose, onAgree }: PaymentTermsShee
       >
         <div
           className="bg-white rounded-t-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto animate-modal-sheet"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">

@@ -3,6 +3,12 @@ package com.teum.app1;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.os.Bundle;
@@ -17,6 +23,10 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(AdMob.class);
         super.onCreate(savedInstanceState);
+
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().addJavascriptInterface(new ImmersiveBridge(this), "AndroidImmersive");
+        }
 
         this.bridge.setWebViewClient(new BridgeWebViewClient(this.bridge) {
             @Override
@@ -117,6 +127,58 @@ public class MainActivity extends BridgeActivity {
         } catch (ActivityNotFoundException e) {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + packageName));
             startActivity(intent);
+        }
+    }
+
+    public static class ImmersiveBridge {
+        private final MainActivity activity;
+
+        ImmersiveBridge(MainActivity activity) {
+            this.activity = activity;
+        }
+
+        @JavascriptInterface
+        public void enter() {
+            activity.runOnUiThread(() -> {
+                Window window = activity.getWindow();
+                if (window == null) return;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    WindowInsetsController controller = window.getInsetsController();
+                    if (controller != null) {
+                        controller.hide(WindowInsets.Type.navigationBars() | WindowInsets.Type.statusBars());
+                        controller.setSystemBarsBehavior(
+                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        );
+                    }
+                } else {
+                    View decor = window.getDecorView();
+                    decor.setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    );
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void exit() {
+            activity.runOnUiThread(() -> {
+                Window window = activity.getWindow();
+                if (window == null) return;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    WindowInsetsController controller = window.getInsetsController();
+                    if (controller != null) {
+                        controller.show(WindowInsets.Type.navigationBars() | WindowInsets.Type.statusBars());
+                    }
+                } else {
+                    View decor = window.getDecorView();
+                    decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+                }
+            });
         }
     }
 }

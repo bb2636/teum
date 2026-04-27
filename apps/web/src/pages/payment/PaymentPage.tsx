@@ -32,6 +32,30 @@ declare global {
     AUTHNICE?: {
       requestPay: (params: Record<string, unknown>) => void;
     };
+    AndroidImmersive?: {
+      enter: () => void;
+      exit: () => void;
+    };
+  }
+}
+
+function enterAndroidImmersive() {
+  try {
+    if (Capacitor.getPlatform() === 'android' && window.AndroidImmersive?.enter) {
+      window.AndroidImmersive.enter();
+    }
+  } catch {
+    // ignore — immersive is best-effort
+  }
+}
+
+function exitAndroidImmersive() {
+  try {
+    if (Capacitor.getPlatform() === 'android' && window.AndroidImmersive?.exit) {
+      window.AndroidImmersive.exit();
+    }
+  } catch {
+    // ignore
   }
 }
 
@@ -235,15 +259,18 @@ export function PaymentPage() {
           resultMsg: result?.resultMsg,
           errorMsg: result?.errorMsg,
         });
+        exitAndroidImmersive();
         if (typeof originalFnError === 'function') {
           (originalFnError as (r: typeof result) => void)(result);
         }
       };
 
+      enterAndroidImmersive();
       window.AUTHNICE.requestPay(payParams);
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
+          exitAndroidImmersive();
           setTimeout(() => {
             setIsProcessing(false);
           }, 3000);
@@ -252,6 +279,7 @@ export function PaymentPage() {
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
     } catch (error: unknown) {
+      exitAndroidImmersive();
       alert(error instanceof Error ? error.message : t('payment.initError'));
       setIsProcessing(false);
     }

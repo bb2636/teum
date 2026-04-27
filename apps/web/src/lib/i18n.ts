@@ -314,6 +314,8 @@ const ko: Record<string, string> = {
   "calendar.noDiariesOnDate": "이 날짜에 작성된 일기가 없습니다",
   "calendar.today": "오늘",
   "calendar.noDiariesDay": "이 날에 작성된 일기가 없습니다.",
+  "calendar.expandList": "목록 펼치기",
+  "calendar.collapseList": "목록 접기",
   "calendar.retryFetch": "일기를 불러오지 못했습니다. 다시 시도",
   "calendar.howToRecord": "오늘은 어떤 방식으로 남기시겠습니까?",
   "calendar.recordDesc":
@@ -859,6 +861,8 @@ const en: Record<string, string> = {
   "calendar.noDiariesOnDate": "No diaries on this date",
   "calendar.today": "Today",
   "calendar.noDiariesDay": "No diaries on this date.",
+  "calendar.expandList": "Expand list",
+  "calendar.collapseList": "Collapse list",
   "calendar.retryFetch": "Failed to load diaries. Retry",
   "calendar.howToRecord": "How would you like to record today?",
   "calendar.recordDesc":

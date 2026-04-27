@@ -92,11 +92,13 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
     if (swipeStartX.current === null || swipeStartY.current === null || isTransitioning) return;
     const diffX = e.touches[0].clientX - swipeStartX.current;
     const diffY = e.touches[0].clientY - swipeStartY.current;
-    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffX) < 10) return;
+    // Vertical movement always wins so the list can scroll freely.
+    if (Math.abs(diffY) >= Math.abs(diffX)) return;
+    // Treat as horizontal date swipe only when clearly horizontal.
     if (Math.abs(diffX) > 10) {
       e.preventDefault();
+      setSwipeOffset(diffX);
     }
-    setSwipeOffset(diffX);
   };
 
   useEffect(() => {
@@ -137,9 +139,9 @@ function DiaryListPanel({ date, diaries, onDateChange, onClose }: DiaryListPanel
   return (
     <div
       ref={panelRef}
-      className="flex-1 overflow-y-auto scrollbar-hide"
+      className="flex-1 min-h-0 overflow-y-auto scrollbar-hide overscroll-contain"
       onTouchEnd={handleTouchEnd}
-      style={{ touchAction: 'pan-y', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      style={{ touchAction: 'pan-y', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
     >
       <div
         className="px-4 pb-24"
@@ -589,7 +591,7 @@ export function CalendarPage() {
 
         {isListOpen && (
           <div
-            className={`bg-white flex flex-col transition-all duration-300 ease-in-out ${
+            className={`bg-white flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-in-out ${
               isListFullScreen
                 ? 'absolute inset-0 z-40'
                 : 'flex-1 z-10'
@@ -597,11 +599,14 @@ export function CalendarPage() {
             style={isListFullScreen ? { paddingTop: 'max(8px, env(safe-area-inset-top, 8px))' } : { flex: '1 1 auto' }}
           >
             <div
-              className="flex justify-center py-2 cursor-grab shrink-0"
+              className="flex flex-col items-center justify-center py-3 -mb-1 cursor-grab shrink-0 select-none active:bg-gray-50 transition-colors"
               onTouchStart={handleGripTouchStart}
               onTouchEnd={handleGripTouchEnd}
+              style={{ touchAction: 'none' }}
+              role="button"
+              aria-label={isListFullScreen ? t('calendar.collapseList') : t('calendar.expandList')}
             >
-              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
             </div>
             <DiaryListPanel
               date={selectedDate!}

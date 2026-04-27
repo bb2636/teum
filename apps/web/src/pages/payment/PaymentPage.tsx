@@ -40,22 +40,33 @@ declare global {
 }
 
 function enterAndroidImmersive() {
+  const platform = Capacitor.getPlatform();
+  const hasBridge = !!window.AndroidImmersive;
+  const hasEnter = typeof window.AndroidImmersive?.enter === 'function';
+  console.log('[Immersive] enter requested', { platform, hasBridge, hasEnter });
   try {
-    if (Capacitor.getPlatform() === 'android' && window.AndroidImmersive?.enter) {
-      window.AndroidImmersive.enter();
+    if (platform === 'android' && hasEnter) {
+      window.AndroidImmersive!.enter();
+      console.log('[Immersive] enter() invoked successfully');
+    } else if (platform === 'android' && !hasBridge) {
+      console.warn('[Immersive] window.AndroidImmersive is undefined — APK may need rebuild or interface not yet injected');
     }
-  } catch {
-    // ignore — immersive is best-effort
+  } catch (e) {
+    console.warn('[Immersive] enter threw', e);
   }
 }
 
 function exitAndroidImmersive() {
+  const platform = Capacitor.getPlatform();
+  const hasExit = typeof window.AndroidImmersive?.exit === 'function';
+  console.log('[Immersive] exit requested', { platform, hasExit });
   try {
-    if (Capacitor.getPlatform() === 'android' && window.AndroidImmersive?.exit) {
-      window.AndroidImmersive.exit();
+    if (platform === 'android' && hasExit) {
+      window.AndroidImmersive!.exit();
+      console.log('[Immersive] exit() invoked successfully');
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    console.warn('[Immersive] exit threw', e);
   }
 }
 

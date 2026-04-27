@@ -9,6 +9,8 @@ import { appleProvider, AppleProvider } from './payment/apple.provider';
 import { emailService } from './email/email.service';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 import { getKRWPrice, getBasePriceUSD } from '../utils/currency';
+import { phoneVerificationRepository } from '../repositories/phone-verification.repository';
+import { AppError } from '../middleware/error-handler';
 
 setInterval(async () => {
   try {
@@ -73,12 +75,23 @@ export class PaymentService {
 
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
-      throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+      throw new AppError('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.', {
+        statusCode: 409,
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+      });
     }
 
     const needsVerification = await this.needsIdentityVerification(userId);
-    if (needsVerification && !input.identityVerified) {
-      throw new Error('재구독 시 본인인증이 필요합니다.');
+    if (needsVerification) {
+      // Server-trusted check: require a recent verified phone tied to this user.
+      // Do NOT trust the client-supplied input.identityVerified boolean.
+      const recentVerification = await phoneVerificationRepository.findRecentVerifiedByUserId(userId, 30);
+      if (!recentVerification) {
+        throw new AppError('재구독 시 본인인증이 필요합니다.', {
+          statusCode: 403,
+          code: 'IDENTITY_VERIFICATION_REQUIRED',
+        });
+      }
     }
 
     const orderId = `BILLING_${Date.now()}_${userId.substring(0, 8)}`;

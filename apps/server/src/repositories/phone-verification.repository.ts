@@ -95,12 +95,13 @@ export class PhoneVerificationRepository {
     return { locked: false };
   }
 
-  async markAsVerified(id: string) {
+  async markAsVerified(id: string, userId?: string) {
     await db
       .update(phoneVerifications)
       .set({
         status: 'verified',
         verifiedAt: new Date(),
+        ...(userId ? { userId } : {}),
       })
       .where(eq(phoneVerifications.id, id));
   }
@@ -114,6 +115,23 @@ export class PhoneVerificationRepository {
       .where(
         and(
           eq(phoneVerifications.phone, phone),
+          eq(phoneVerifications.status, 'verified'),
+          gt(phoneVerifications.verifiedAt, cutoff)
+        )
+      )
+      .limit(1);
+    return verification;
+  }
+
+  async findRecentVerifiedByUserId(userId: string, withinMinutes: number = 30) {
+    const cutoff = new Date();
+    cutoff.setMinutes(cutoff.getMinutes() - withinMinutes);
+    const [verification] = await db
+      .select()
+      .from(phoneVerifications)
+      .where(
+        and(
+          eq(phoneVerifications.userId, userId),
           eq(phoneVerifications.status, 'verified'),
           gt(phoneVerifications.verifiedAt, cutoff)
         )

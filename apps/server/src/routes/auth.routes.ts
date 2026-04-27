@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuth } from '../middleware/auth';
 import { loginLimiter, signupLimiter, verificationLimiter, mobileTokenExchangeLimiter } from '../middleware/rate-limiter';
 
 const router: Router = Router();
@@ -14,7 +14,7 @@ router.post('/email/request', verificationLimiter, authController.requestEmailVe
 router.post('/email/request-for-password-reset', verificationLimiter, authController.requestEmailVerificationForPasswordReset.bind(authController));
 router.post('/email/confirm', authController.confirmEmailVerification.bind(authController));
 router.post('/phone/request', verificationLimiter, authController.requestPhoneVerification.bind(authController));
-router.post('/phone/confirm', authController.confirmPhoneVerification.bind(authController));
+router.post('/phone/confirm', optionalAuth, authController.confirmPhoneVerification.bind(authController));
 
 // Social login routes
 router.get('/apple/init', authController.appleOAuthInit.bind(authController));

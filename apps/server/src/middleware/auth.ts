@@ -120,6 +120,65 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 }
 
+/**
+ * Optional auth middleware: populates req.user if a valid token is present,
+ * but never rejects the request. Intended for routes that must remain public
+ * but want to bind state to the authenticated user when available.
+ * Mirrors authenticate's refresh-token fallback so users with expired access
+ * tokens but valid refresh tokens are still recognized.
+ */
+export async function optionalAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const token = req.cookies?.accessToken;
+    if (token) {
+      try {
+        const payload = verifyAccessToken(token);
+        const currentVersion = await userRepository.getTokenVersion(payload.userId);
+        if (currentVersion !== null && payload.tokenVersion !== undefined && payload.tokenVersion === currentVersion) {
+          req.user = payload;
+          return next();
+        }
+      } catch {
+        // Fall through to refresh attempt
+      }
+    }
+
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      try {
+        const refreshPayload = verifyRefreshToken(refreshToken);
+        const currentVersion = await userRepository.getTokenVersion(refreshPayload.userId);
+        if (currentVersion !== null && refreshPayload.tokenVersion !== undefined && refreshPayload.tokenVersion === currentVersion) {
+          const newAccessToken = generateAccessToken({
+            userId: refreshPayload.userId,
+            email: refreshPayload.email,
+            role: refreshPayload.role,
+            tokenVersion: currentVersion,
+          });
+          res.cookie('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/',
+            maxAge: 15 * 60 * 1000,
+          });
+          req.user = {
+            userId: refreshPayload.userId,
+            email: refreshPayload.email,
+            role: refreshPayload.role,
+            tokenVersion: currentVersion,
+          };
+        }
+      } catch {
+        // Ignore — leave req.user undefined
+      }
+    }
+  } catch {
+    // Defensive: never block the request from optional auth
+  }
+  return next();
+}
+
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction): Response | void => {
     if (!req.user) {

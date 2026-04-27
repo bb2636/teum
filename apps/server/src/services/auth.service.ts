@@ -242,7 +242,7 @@ export class AuthService {
     };
   }
 
-  async confirmPhoneVerification(input: PhoneVerificationConfirmInput) {
+  async confirmPhoneVerification(input: PhoneVerificationConfirmInput, userId?: string) {
     const lockStatus = await phoneVerificationRepository.isPhoneLocked(input.phone);
     if (lockStatus.locked) {
       const lockedUntil = lockStatus.lockedUntil!;
@@ -278,7 +278,7 @@ export class AuthService {
       throw new Error(`인증번호가 올바르지 않습니다. (남은 시도 횟수: ${remaining}회)`);
     }
 
-    await phoneVerificationRepository.markAsVerified(pending.id);
+    await phoneVerificationRepository.markAsVerified(pending.id, userId);
 
     return {
       message: 'Phone number verified',

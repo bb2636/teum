@@ -31,19 +31,29 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AdMob.class);
         super.onCreate(savedInstanceState);
 
-        // Android 15+ (SDK 35+) enforces edge-to-edge. Apply system-bar insets to
-        // the WebView so its content (including third-party modals like NicePay)
-        // is never drawn underneath the status bar or navigation bar.
-        if (this.bridge != null && this.bridge.getWebView() != null) {
-            final WebView webView = this.bridge.getWebView();
-            webView.addJavascriptInterface(new ImmersiveBridge(this), "AndroidImmersive");
-            ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
+        // Android 15+ (SDK 35+) enforces edge-to-edge: the activity window extends
+        // beneath the status bar, navigation bar and display cutout. Without
+        // padding, third-party modals (e.g. NicePay payment UI) get drawn behind
+        // the phone's system bars and become unreachable. Apply system-bar insets
+        // to the activity's root content view so the entire app surface is pushed
+        // inside the safe area instead of trying to hide the system UI.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        final View rootContent = findViewById(android.R.id.content);
+        if (rootContent != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(rootContent, (v, insets) -> {
                 Insets bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
                 );
                 v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
                 return WindowInsetsCompat.CONSUMED;
             });
+            ViewCompat.requestApplyInsets(rootContent);
+        }
+
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            final WebView webView = this.bridge.getWebView();
+            webView.addJavascriptInterface(new ImmersiveBridge(this), "AndroidImmersive");
         }
 
         this.bridge.setWebViewClient(new BridgeWebViewClient(this.bridge) {

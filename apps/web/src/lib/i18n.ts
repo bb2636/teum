@@ -68,7 +68,8 @@ const ko: Record<string, string> = {
   "auth.loginAction": "로그인하기",
   "auth.signupComplete": "회원가입 완료",
   "auth.closeThisWindow": "이 창을 닫아주세요",
-  "auth.emailTooltip": "필수 항목이 아니며, 추가 이메일을 등록하지 않아도 회원가입 및 서비스 이용이 가능합니다. 등록 시 회원가입, 탈퇴, 구독 관련 안내, 문의 등록 및 답변 안내 메일을 받을 수 있습니다.",
+  "auth.emailTooltip":
+    "필수 항목이 아니며, 추가 이메일을 등록하지 않아도 회원가입 및 서비스 이용이 가능합니다. 등록 시 회원가입, 탈퇴, 구독 관련 안내, 문의 등록 및 답변 안내 메일을 받을 수 있습니다.",
   "auth.emailOptionalPlaceholder": "이메일 주소 (선택)",
   "auth.emailPlaceholder": "이메일을 입력해주세요",
   "auth.passwordPlaceholder": "비밀번호를 입력해주세요",
@@ -183,10 +184,10 @@ const ko: Record<string, string> = {
   "my.saveFailed": "프로필 업데이트에 실패했습니다.",
   "my.nicknamePlaceholder": "닉네임을 입력하세요",
   "my.nicknameRule": "닉네임은 2~12자입니다",
-  'my.selectCountry': '국가 선택',
-  'my.selectLanguage': '언어 선택',
-  'my.langKorean': '한국어',
-  'my.langEnglish': 'English',
+  "my.selectCountry": "국가 선택",
+  "my.selectLanguage": "언어 선택",
+  "my.langKorean": "한국어",
+  "my.langEnglish": "English",
   "my.promoTitle": "기록이 곧, 당신만의 트랙이 됩니다.",
   "my.promoDesc":
     "일기의 감정이 그대로 담긴 단 하나의 선율입니다.\n기록하는 순간, 새로운 음악이 태어납니다.",
@@ -609,7 +610,8 @@ const en: Record<string, string> = {
   "auth.loginAction": "Log In",
   "auth.signupComplete": "Sign Up Complete",
   "auth.closeThisWindow": "Please close this window",
-  "auth.emailTooltip": "This is optional. You can sign up and use the service without registering an additional email. If registered, you will receive emails for sign-up, withdrawal, subscription notifications, and inquiry responses.",
+  "auth.emailTooltip":
+    "This is optional. You can sign up and use the service without registering an additional email. If registered, you will receive emails for sign-up, withdrawal, subscription notifications, and inquiry responses.",
   "auth.emailOptionalPlaceholder": "Email address (optional)",
   "auth.emailPlaceholder": "Enter your email",
   "auth.passwordPlaceholder": "Enter your password",
@@ -654,7 +656,8 @@ const en: Record<string, string> = {
   "auth.nicknameInvalidChar": "Contains invalid characters.",
   "auth.nicknameDuplicate": "This nickname is already taken.",
   "auth.emailDuplicate": "This email is already in use.",
-  "auth.emailWithdrawn": "This email belongs to a withdrawn account and cannot be reused for 1 year.",
+  "auth.emailWithdrawn":
+    "This email belongs to a withdrawn account and cannot be reused for 1 year.",
   "auth.enterNickname": "Enter nickname",
   "auth.enterName": "Enter name",
   "auth.enterDateOfBirth": "Please enter a valid date of birth.",
@@ -724,10 +727,10 @@ const en: Record<string, string> = {
   "my.saveFailed": "Failed to update profile.",
   "my.nicknamePlaceholder": "Enter nickname",
   "my.nicknameRule": "Nickname must be 2-12 characters",
-  'my.selectCountry': 'Select Country',
-  'my.selectLanguage': 'Select Language',
-  'my.langKorean': '한국어',
-  'my.langEnglish': 'English',
+  "my.selectCountry": "Select Country",
+  "my.selectLanguage": "Select Language",
+  "my.langKorean": "한국어",
+  "my.langEnglish": "English",
   "my.promoTitle": "Your records become your own track.",
   "my.promoDesc":
     "A unique melody that captures the emotions of your diary.\nThe moment you write, new music is born.",
@@ -736,7 +739,8 @@ const en: Record<string, string> = {
   "my.footer.phone": "Tel. 010-8123-7080",
   "my.footer.bizNumber": "BRN 887-12-02811",
   "my.footer.salesNumber": "ECR No. 2026-Byeollae-0591",
-  "my.footer.address": "5F, 502-A09, 34 Byeollaejungang-ro, Namyangju-si, Gyeonggi-do (Byeollae-dong)",
+  "my.footer.address":
+    "5F, 502-A09, 34 Byeollaejungang-ro, Namyangju-si, Gyeonggi-do (Byeollae-dong)",
   "my.footer.email": "Contact iteraon.teum@gmail.com",
   "my.footer.terms": "Terms of Service",
   "my.footer.privacy": "Privacy Policy",
@@ -756,7 +760,8 @@ const en: Record<string, string> = {
   "diary.suggestTitleHeading": "AI-suggested titles",
   "diary.suggestTitleDesc": "Pick a title you like.",
   "diary.suggestTitleLoading": "Analyzing your diary...",
-  "diary.suggestTitleEmpty": "Couldn't generate suggestions right now. Please type a title.",
+  "diary.suggestTitleEmpty":
+    "Couldn't generate suggestions right now. Please type a title.",
   "diary.suggestTitleRetry": "Try again",
   "diary.suggestTitleWriteMyself": "Write my own",
   "diary.noFolder": "No Folder",
@@ -817,7 +822,7 @@ const en: Record<string, string> = {
   "diary.watchAd": "Watch Ad & Save",
   "diary.adLoadFailed": "Failed to load ad. Please try again later.",
   "home.musicReady": "Enjoy music made just for you.",
-  "home.tagline": "TEUM: Where Daily Life Becomes Music",
+  "home.tagline": "TEUM: Life Becomes Music",
   "home.musicReadyDesc": "You have 7+ diary entries! Create your own music.",
   "diary.folderRenamed": "Folder renamed.",
   "diary.folderRenameFailed": "Failed to rename folder.",
@@ -1027,7 +1032,8 @@ const en: Record<string, string> = {
   "payment.intro.benefit1Desc": "Record without any limits.",
   "payment.intro.benefit2Desc": "Analyze diary content and generate lyrics.",
   "payment.intro.benefit3Desc": "Up to 5 songs per month, max 2 minutes each.",
-  "payment.intro.monthlyAuto": "Monthly subscription · Auto-billed monthly ($3.99/mo)",
+  "payment.intro.monthlyAuto":
+    "Monthly subscription · Auto-billed monthly ($3.99/mo)",
   "payment.fail.title": "Payment Failed",
   "payment.fail.retry": "Try Again",
   "payment.paymentInfoLabel": "Payment Info",
@@ -1095,10 +1101,10 @@ export function getCurrentLanguage(): Language {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
   const saved = localStorage.getItem("teum_language") as Language | null;
   if (saved && translations[saved]) return saved;
-  const browserLang = navigator.language?.split('-')[0];
-  if (browserLang === 'en') {
+  const browserLang = navigator.language?.split("-")[0];
+  if (browserLang === "en") {
     localStorage.setItem("teum_language", "en");
-    return 'en';
+    return "en";
   }
   localStorage.setItem("teum_language", DEFAULT_LANGUAGE);
   return DEFAULT_LANGUAGE;
@@ -1123,4 +1129,3 @@ export function t(
   }
   return text;
 }
-

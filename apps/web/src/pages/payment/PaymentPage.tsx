@@ -15,6 +15,18 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useAppleIAP } from '@/hooks/useAppleIAP';
 
+function applyNicepaySafeArea(el: HTMLElement) {
+  const cs = window.getComputedStyle(el);
+  if (cs.position === 'fixed' && Number(cs.zIndex) > 1000) {
+    el.style.setProperty('padding-top', 'env(safe-area-inset-top, 0px)', 'important');
+    el.style.setProperty('padding-bottom', 'env(safe-area-inset-bottom, 0px)', 'important');
+    el.style.setProperty('box-sizing', 'border-box', 'important');
+    el.querySelectorAll('iframe').forEach((iframe) => {
+      iframe.style.setProperty('height', '100%', 'important');
+    });
+  }
+}
+
 declare global {
   interface Window {
     AUTHNICE?: {
@@ -56,6 +68,21 @@ export function PaymentPage() {
       setHideTabBar(false);
     };
   }, [setHideTabBar]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            applyNicepaySafeArea(node as HTMLElement);
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true });
+    return () => observer.disconnect();
+  }, []);
 
   const appleIAP = useAppleIAP();
   const defaultMethod: PaymentMethodType = appleIAP.available

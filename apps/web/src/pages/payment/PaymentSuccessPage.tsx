@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { X, Sparkles, Music, PenLine, ChevronRight, type LucideIcon } from 'lucide-react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useEffect, useState } from 'react';
@@ -7,6 +7,7 @@ import { useT } from '@/hooks/useTranslation';
 
 export function PaymentSuccessPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setHideTabBar } = useHideTabBar();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
@@ -59,6 +60,18 @@ export function PaymentSuccessPage() {
       setHideTabBar(false);
     };
   }, [setHideTabBar, queryClient]);
+
+  useEffect(() => {
+    if (searchParams.get('n') !== '1') return;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        sessionStorage.setItem('teum_native_payment_pending', 'success');
+        window.location.replace('com.teum.app://payment-result?status=success');
+      } catch {}
+    })();
+  }, [searchParams]);
 
   const isLastPage = currentPage === GUIDE_PAGES.length - 1;
   const page = GUIDE_PAGES[currentPage];

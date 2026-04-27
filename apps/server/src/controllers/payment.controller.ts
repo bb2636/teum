@@ -5,6 +5,7 @@ import { logger } from '../config/logger';
 import { getExchangeInfo } from '../utils/currency';
 import { refundService } from '../services/payment/refund.service';
 import { paypalProvider } from '../services/payment/paypal.provider';
+import { nicePayProvider } from '../services/payment/nicepay.provider';
 import { appleProvider } from '../services/payment/apple.provider';
 import { z } from 'zod';
 
@@ -404,13 +405,15 @@ export class PaymentController {
 
       const userId = req.user.userId;
       const planName = 'Music Plan Monthly';
+      const isNative = req.body?.isNative === true;
 
       const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
 
       const result = await paymentService.initPayPalPayment(
         userId,
         planName,
-        backendUrl
+        backendUrl,
+        isNative
       );
 
       res.json({
@@ -424,11 +427,13 @@ export class PaymentController {
 
   async paypalReturn(req: Request, res: Response, _next: NextFunction) {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+    const isNative = req.query.n === '1';
+    const nativeQp = isNative ? '&n=1' : '';
     try {
       const { subscription_id: paypalSubscriptionId, oid: internalOrderId } = req.query;
 
       if (!paypalSubscriptionId || !internalOrderId) {
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal subscription information is missing.')}`);
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal subscription information is missing.')}${nativeQp}`);
       }
 
       const result = await paymentService.activatePayPalSubscription(
@@ -437,21 +442,23 @@ export class PaymentController {
       );
 
       if (result.success) {
-        return res.redirect(`${frontendUrl}/payment/success`);
+        return res.redirect(`${frontendUrl}/payment/success${isNative ? '?n=1' : ''}`);
       } else {
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}`);
+        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}${nativeQp}`);
       }
     } catch (error) {
       logger.error({ error }, 'PayPal return processing failed');
-      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal subscription processing failed.')}`);
+      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal subscription processing failed.')}${nativeQp}`);
     }
   }
 
   async paypalCancel(req: Request, res: Response, _next: NextFunction) {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+    const isNative = req.query.n === '1';
+    const nativeQp = isNative ? '&n=1' : '';
     const { token: paypalOrderId } = req.query;
     logger.info({ paypalOrderId }, 'PayPal payment cancelled by user');
-    return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('Payment was cancelled.')}`);
+    return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('Payment was cancelled.')}${nativeQp}`);
   }
 
   async paypalWebhook(req: Request, res: Response) {
@@ -712,6 +719,11 @@ export class PaymentController {
     if (!tid) {
       logger.error('NicePay webhook: missing tid');
       return res.status(400).json({ error: 'Missing tid' });
+    }
+
+    if (!nicePayProvider.verifyWebhookSignature(body)) {
+      logger.warn({ tid, orderId }, 'NicePay webhook: signature verification failed, rejecting');
+      return res.status(401).json({ error: 'Invalid signature' });
     }
 
     if (resultCode !== '0000') {

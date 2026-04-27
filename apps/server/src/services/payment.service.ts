@@ -1500,7 +1500,8 @@ export class PaymentService {
   async initPayPalPayment(
     userId: string,
     planName: string,
-    baseUrl: string
+    baseUrl: string,
+    isNative: boolean = false
   ): Promise<{ approveUrl: string; orderId: string; paypalSubscriptionId: string }> {
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
@@ -1522,8 +1523,9 @@ export class PaymentService {
       expiresAt,
     });
 
-    const returnUrl = `${baseUrl}/api/payments/paypal/return?oid=${encodeURIComponent(orderId)}`;
-    const cancelUrl = `${baseUrl}/api/payments/paypal/cancel?oid=${encodeURIComponent(orderId)}`;
+    const nativeFlag = isNative ? '&n=1' : '';
+    const returnUrl = `${baseUrl}/api/payments/paypal/return?oid=${encodeURIComponent(orderId)}${nativeFlag}`;
+    const cancelUrl = `${baseUrl}/api/payments/paypal/cancel?oid=${encodeURIComponent(orderId)}${nativeFlag}`;
 
     const result = await paypalProvider.createSubscription(
       planId,

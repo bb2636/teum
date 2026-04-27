@@ -208,11 +208,12 @@ export interface InitPayPalResponse {
 
 export function useInitPayPal() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params?: { isNative?: boolean }) => {
       const response = await apiRequest<{ data: InitPayPalResponse }>(
         '/payments/paypal/init',
         {
           method: 'POST',
+          body: JSON.stringify({ isNative: params?.isNative === true }),
         }
       );
       return response.data;

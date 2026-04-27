@@ -170,8 +170,9 @@ export function PaymentPage() {
   const handleStartPayPal = async () => {
     setIsProcessing(true);
     try {
-      const result = await initPayPal.mutateAsync();
-      if (Capacitor.isNativePlatform()) {
+      const isNative = Capacitor.isNativePlatform();
+      const result = await initPayPal.mutateAsync({ isNative });
+      if (isNative) {
         await Browser.open({ url: result.approveUrl, windowName: '_self' });
         const listener = await Browser.addListener('browserFinished', () => {
           setIsProcessing(false);

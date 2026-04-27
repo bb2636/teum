@@ -18,6 +18,19 @@ export function PaymentFailPage() {
     };
   }, [setHideTabBar]);
 
+  useEffect(() => {
+    if (searchParams.get('n') !== '1') return;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        sessionStorage.setItem('teum_native_payment_pending', 'fail');
+        sessionStorage.setItem('teum_native_payment_message', message);
+        window.location.replace(`com.teum.app://payment-result?status=fail&message=${encodeURIComponent(message)}`);
+      } catch {}
+    })();
+  }, [searchParams, message]);
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="flex justify-end p-4">

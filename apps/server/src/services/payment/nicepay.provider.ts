@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'crypto';
 import { logger } from '../../config/logger';
 
 export interface NicePayPaymentRequest {
@@ -428,6 +429,64 @@ export class NicePayProvider {
         errorMsg: '결제 취소 중 오류가 발생했습니다.',
       };
     }
+  }
+
+  /**
+   * Verifies a NicePay V2 webhook payload signature.
+   * NicePay sends `signature` (or `signData`) = SHA256(tid + amount + ediDate + SecretKey).
+   * For cancellation/refund webhooks, `cancelAmt` is used in place of `amount`.
+   * Returns true if the signature matches; false otherwise.
+   */
+  verifyWebhookSignature(body: Record<string, unknown>): boolean {
+    const tid = (body.tid as string | undefined) || '';
+    const ediDate = (body.ediDate as string | undefined) || '';
+    const provided = ((body.signature as string | undefined)
+      || (body.signData as string | undefined)
+      || '').toLowerCase();
+
+    if (!provided) {
+      logger.warn({ tid, hasEdiDate: !!ediDate }, 'NicePay webhook: missing signature/signData field');
+      return false;
+    }
+    if (!tid || !ediDate) {
+      logger.warn({ hasTid: !!tid, hasEdiDate: !!ediDate }, 'NicePay webhook: missing tid or ediDate, cannot verify signature');
+      return false;
+    }
+    if (!this.secretKey) {
+      logger.error('NicePay webhook: NICEPAY_API_SECRET not configured, cannot verify');
+      return false;
+    }
+
+    const candidates: string[] = [];
+    const cancelAmt = body.cancelAmt;
+    const amount = body.amount;
+    if (cancelAmt !== undefined && cancelAmt !== null && String(cancelAmt) !== '') {
+      candidates.push(String(cancelAmt));
+    }
+    if (amount !== undefined && amount !== null && String(amount) !== '') {
+      candidates.push(String(amount));
+    }
+    if (candidates.length === 0) {
+      candidates.push('');
+    }
+
+    for (const amtStr of candidates) {
+      const expected = createHash('sha256')
+        .update(`${tid}${amtStr}${ediDate}${this.secretKey}`)
+        .digest('hex');
+      try {
+        const a = Buffer.from(expected, 'hex');
+        const b = Buffer.from(provided, 'hex');
+        if (a.length === b.length && timingSafeEqual(a, b)) {
+          return true;
+        }
+      } catch {
+        if (expected === provided) return true;
+      }
+    }
+
+    logger.warn({ tid, ediDate }, 'NicePay webhook: signature mismatch');
+    return false;
   }
 }
 

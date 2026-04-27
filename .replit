@@ -54,3 +54,4 @@ build = ["pnpm", "build"]
 [userenv.production]
 PROD_DATABASE_URL = "postgresql://neondb_owner:npg_xQrjo5dHReI0@ep-weathered-resonance-aoh7m3yf-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 FRONTEND_URL = "https://teum--iteraon.replit.app"
+BACKEND_URL = "https://teum--iteraon.replit.app"

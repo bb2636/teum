@@ -49,6 +49,7 @@ export function isAppleIAPAvailable(): boolean {
 }
 
 export function useAppleIAP() {
+  const [pluginLoaded, setPluginLoaded] = useState(false);
   const [ready, setReady] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [product, setProduct] = useState<{ id: string; title: string; price: string } | null>(null);
@@ -71,9 +72,9 @@ export function useAppleIAP() {
         console.log('[IAP] init start, bundleId expected: app.teum.com');
         if (typeof CdvPurchase === 'undefined') {
           console.error('[IAP] CdvPurchase global is undefined — plugin not loaded');
-          setError('Apple IAP plugin not available');
           return;
         }
+        safeSet(setPluginLoaded, true);
         const store = CdvPurchase.store as StoreInstance;
         const Platform = CdvPurchase.Platform;
         const ProductType = CdvPurchase.ProductType;
@@ -203,5 +204,5 @@ export function useAppleIAP() {
     await store.restorePurchases();
   }, []);
 
-  return { available: isAppleIAPAvailable(), ready, purchasing, product, error, purchase, restore };
+  return { available: isAppleIAPAvailable() && pluginLoaded, ready, purchasing, product, error, purchase, restore };
 }

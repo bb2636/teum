@@ -90,6 +90,21 @@ export const mobileTokenExchangeLimiter = rateLimit({
   validate: false,
 });
 
+export const nicepayLaunchLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: {
+    success: false,
+    error: {
+      code: 'TOO_MANY_REQUESTS',
+      message: '결제 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+});
+
 export const globalApiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: process.env.NODE_ENV === 'production' ? 100 : 500,

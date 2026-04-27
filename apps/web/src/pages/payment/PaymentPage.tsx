@@ -197,13 +197,42 @@ export function PaymentPage() {
         identityVerified,
       });
 
+      const isNative = Capacitor.isNativePlatform();
+      const isIOS = Capacitor.getPlatform() === 'ios';
+
+      // iOS Capacitor WKWebView는 카드앱 ↔ 결제창 핸드셰이크가 막혀
+      // NicePay 결제창 자체가 응답을 받지 못함. PayPal과 동일하게
+      // Browser 플러그인(SFSafariViewController)에서 결제창을 띄워야 한다.
+      if (isNative && isIOS) {
+        if (!initResult.launchUrl) {
+          alert(t('payment.nicepayLoadFailed'));
+          setIsProcessing(false);
+          return;
+        }
+        const launchUrl = cardCode
+          ? `${initResult.launchUrl}&cardCode=${encodeURIComponent(cardCode)}`
+          : initResult.launchUrl;
+
+        // SFSafariViewController가 너무 빨리 닫히는 경우 이벤트를 놓칠 수 있어
+        // 리스너를 먼저 등록한 후 결제창을 연다.
+        const listener = await Browser.addListener('browserFinished', () => {
+          setIsProcessing(false);
+          listener.remove();
+        });
+        try {
+          await Browser.open({ url: launchUrl, windowName: '_self' });
+        } catch (openErr) {
+          listener.remove();
+          throw openErr;
+        }
+        return;
+      }
+
       if (!window.AUTHNICE) {
         alert(t('payment.nicepayLoadFailed'));
         setIsProcessing(false);
         return;
       }
-
-      const isNative = Capacitor.isNativePlatform();
 
       const payParams: Record<string, unknown> = {
         clientId: initResult.clientId,

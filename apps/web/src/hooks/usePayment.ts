@@ -90,6 +90,7 @@ export interface InitBillingKeyResponse {
   amount: number;
   method: string;
   returnUrl: string;
+  launchUrl?: string;
   isTestMode: boolean;
 }
 

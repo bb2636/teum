@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { paymentService } from '../services/payment.service';
 import { processPaymentSchema, initPaymentSchema, initBillingKeySchema, cancelPaymentSchema, cancelSubscriptionSchema, adminCancelSubscriptionSchema } from '../validations/payment';
 import { logger } from '../config/logger';
@@ -8,6 +9,45 @@ import { paypalProvider } from '../services/payment/paypal.provider';
 import { nicePayProvider } from '../services/payment/nicepay.provider';
 import { appleProvider } from '../services/payment/apple.provider';
 import { z } from 'zod';
+
+const NICEPAY_LAUNCH_TTL_MS = 30 * 60 * 1000;
+
+function getLaunchSigningKey(): string {
+  const key = process.env.JWT_SECRET;
+  if (!key) {
+    throw new Error('JWT_SECRET is required for NicePay launch token signing');
+  }
+  return key;
+}
+
+function signLaunchToken(orderId: string, expiresAt: number): string {
+  const payload = `${orderId}.${expiresAt}`;
+  const sig = crypto
+    .createHmac('sha256', getLaunchSigningKey())
+    .update(payload)
+    .digest('base64url');
+  return `${expiresAt}.${sig}`;
+}
+
+function verifyLaunchToken(orderId: unknown, token: unknown): boolean {
+  if (typeof orderId !== 'string' || !orderId) return false;
+  if (typeof token !== 'string' || !token) return false;
+  const [expStr, sig] = token.split('.');
+  if (!expStr || !sig) return false;
+  const expiresAt = Number(expStr);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return false;
+  const expected = signLaunchToken(orderId, expiresAt).split('.')[1];
+  if (!expected || expected.length !== sig.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+  } catch {
+    return false;
+  }
+}
+
+function getStringQuery(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
 
 const appleVerifyReceiptSchema = z.object({
   transactionId: z.string().min(1).optional(),
@@ -88,15 +128,139 @@ export class PaymentController {
         identityVerified: input.identityVerified,
       });
 
+      const launchExpiresAt = Date.now() + NICEPAY_LAUNCH_TTL_MS;
+      const launchToken = signLaunchToken(result.orderId, launchExpiresAt);
+      const launchUrl = `${backendUrl}/api/payments/nicepay/launch?orderId=${encodeURIComponent(result.orderId)}&native=1&token=${encodeURIComponent(launchToken)}`;
+
       res.json({
         success: true,
         data: {
           ...result,
           returnUrl,
+          launchUrl,
         },
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  async nicepayLaunch(req: Request, res: Response) {
+    const orderId = getStringQuery(req.query.orderId);
+    const cardCode = getStringQuery(req.query.cardCode);
+    const token = getStringQuery(req.query.token);
+    const isNative = getStringQuery(req.query.native) === '1';
+
+    const errorPage = (msg: string, status = 400) => {
+      const safe = String(msg).replace(/[<>&"']/g, (c) => ({
+        '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;',
+      }[c] as string));
+      return res.status(status).type('text/html; charset=utf-8').send(
+        `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>결제 오류</title></head><body style="margin:0;padding:32px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;color:#333;"><p>${safe}</p></body></html>`
+      );
+    };
+
+    if (!orderId) {
+      return errorPage('주문 정보가 누락되었습니다.');
+    }
+
+    if (!verifyLaunchToken(orderId, token)) {
+      logger.warn({ orderId, ip: req.ip }, 'NicePay launch: invalid or expired token');
+      return errorPage('유효하지 않거나 만료된 결제 링크입니다.', 403);
+    }
+
+    try {
+      const session = await paymentService.getPendingSession(orderId);
+      if (!session) {
+        return errorPage('결제 세션을 찾을 수 없거나 만료되었습니다.', 404);
+      }
+
+      const clientId = nicePayProvider.getClientId();
+      if (!clientId) {
+        logger.error('NicePay launch: clientId not configured');
+        return errorPage('결제 설정이 올바르지 않습니다.', 500);
+      }
+
+      const amount = Math.round(Number(session.amount) || 0);
+      const goodsName = session.planName || '구독';
+      const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+      const returnUrl = `${backendUrl}/api/payments/nicepay/billing-return${isNative ? '?native=1' : ''}`;
+
+      const jsEsc = (s: string) => String(s).replace(/[\\'"<>&\r\n\u2028\u2029]/g, (c) => {
+        const map: Record<string, string> = {
+          '\\': '\\\\', "'": "\\'", '"': '\\"',
+          '<': '\\u003c', '>': '\\u003e', '&': '\\u0026',
+          '\r': '\\r', '\n': '\\n', '\u2028': '\\u2028', '\u2029': '\\u2029',
+        };
+        return map[c];
+      });
+
+      const cardCodeLine = cardCode
+        ? `\n          cardCode: '${jsEsc(cardCode)}',`
+        : '';
+
+      const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>결제 진행</title>
+<script src="https://pay.nicepay.co.kr/v1/js/"></script>
+<style>
+  body { margin: 0; padding: 32px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: center; color: #333; background: #fff; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #eee; border-top-color: #4A2C1A; border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #status { margin: 0; font-size: 14px; line-height: 1.5; color: #666; }
+</style>
+</head>
+<body>
+<div class="spinner" id="spinner"></div>
+<p id="status">결제창으로 이동 중입니다...</p>
+<script>
+(function () {
+  var statusEl = document.getElementById('status');
+  var spinnerEl = document.getElementById('spinner');
+  function showError(msg) {
+    if (spinnerEl) spinnerEl.style.display = 'none';
+    statusEl.style.color = '#c00';
+    statusEl.textContent = '결제 실패: ' + (msg || '알 수 없는 오류');
+  }
+  function start() {
+    if (typeof AUTHNICE === 'undefined' || !AUTHNICE.requestPay) {
+      showError('결제 모듈을 불러오지 못했습니다.');
+      return;
+    }
+    try {
+      AUTHNICE.requestPay({
+        clientId: '${jsEsc(clientId)}',
+        method: 'card',
+        orderId: '${jsEsc(orderId)}',
+        amount: ${amount},
+        goodsName: '${jsEsc(goodsName)}',
+        returnUrl: '${jsEsc(returnUrl)}',
+        subscYn: 'Y',${cardCodeLine}
+        fnError: function (result) {
+          showError((result && (result.errorMsg || result.resultMsg)) || '');
+        }
+      });
+    } catch (e) {
+      showError(e && e.message ? e.message : String(e));
+    }
+  }
+  if (document.readyState === 'complete') {
+    start();
+  } else {
+    window.addEventListener('load', start);
+  }
+})();
+</script>
+</body>
+</html>`;
+
+      res.type('text/html; charset=utf-8').send(html);
+    } catch (error) {
+      logger.error('NicePay launch handler error', { error, orderId });
+      return errorPage('결제 페이지를 불러오지 못했습니다.', 500);
     }
   }
 
@@ -123,6 +287,14 @@ export class PaymentController {
       const authToken = body.authToken || body.encData;
       let bid = body.bid;
 
+      const isNative = req.query.native === '1';
+      const successUrl = isNative
+        ? 'com.teum.app://payment-result?status=success'
+        : `${frontendUrl}/payment/success`;
+      const failUrl = (msg: string) => isNative
+        ? `com.teum.app://payment-result?status=fail&message=${encodeURIComponent(msg)}`
+        : `${frontendUrl}/payment/fail?message=${encodeURIComponent(msg)}`;
+
       logger.info({
         resultCode,
         resultMsg,
@@ -131,17 +303,18 @@ export class PaymentController {
         hasAuthToken: !!authToken,
         orderId,
         amount,
+        isNative,
       }, 'NicePay billing return parsed');
 
       if (!orderId) {
         logger.error('NicePay billing return missing orderId');
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('주문 정보가 누락되었습니다.')}`);
+        return res.redirect(failUrl('주문 정보가 누락되었습니다.'));
       }
 
       const preloadedSession = await paymentService.getPendingSession(orderId);
       if (!preloadedSession) {
         logger.info({ orderId }, 'NicePay billing return: session not found (likely page refresh after success)');
-        return res.redirect(`${frontendUrl}/payment/success`);
+        return res.redirect(successUrl);
       }
 
       logger.info({ orderId, sessionUserId: preloadedSession.userId, sessionAmount: preloadedSession.amount }, 'Session preloaded for billing return');
@@ -149,7 +322,7 @@ export class PaymentController {
       if (resultCode !== '0000') {
         await paymentService.deletePendingSession(orderId);
         logger.error(`NicePay billing auth failed - code=${resultCode} msg=${resultMsg}`);
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(resultMsg || '빌링키 등록에 실패했습니다.')}`);
+        return res.redirect(failUrl(resultMsg || '빌링키 등록에 실패했습니다.'));
       }
 
       if (!bid && authToken && tid) {
@@ -168,21 +341,21 @@ export class PaymentController {
             { userId: preloadedSession.userId, amount: preloadedSession.amount, planName: preloadedSession.planName }
           );
           if (directResult.success) {
-            return res.redirect(`${frontendUrl}/payment/success`);
+            return res.redirect(successUrl);
           } else {
-            return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(directResult.message)}`);
+            return res.redirect(failUrl(directResult.message));
           }
         } else {
           await paymentService.deletePendingSession(orderId);
           logger.error({ orderId, errorMsg: issueResult.message }, 'NicePay billing key issue failed');
-          return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(issueResult.message || '빌링키 발급에 실패했습니다.')}`);
+          return res.redirect(failUrl(issueResult.message || '빌링키 발급에 실패했습니다.'));
         }
       }
 
       if (!bid) {
         await paymentService.deletePendingSession(orderId);
         logger.error('NicePay billing return missing bid and authToken', { orderId });
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 정보가 누락되었습니다.')}`);
+        return res.redirect(failUrl('빌링키 정보가 누락되었습니다.'));
       }
 
       const result = await paymentService.processBillingKeyReturn(
@@ -191,13 +364,17 @@ export class PaymentController {
       );
 
       if (result.success) {
-        return res.redirect(`${frontendUrl}/payment/success`);
+        return res.redirect(successUrl);
       } else {
-        return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}`);
+        return res.redirect(failUrl(result.message));
       }
     } catch (error) {
       logger.error('NicePay billing return handler error', { error });
-      return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 등록 처리 중 오류가 발생했습니다.')}`);
+      const isNative = req.query.native === '1';
+      const failUrl = isNative
+        ? `com.teum.app://payment-result?status=fail&message=${encodeURIComponent('빌링키 등록 처리 중 오류가 발생했습니다.')}`
+        : `${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 등록 처리 중 오류가 발생했습니다.')}`;
+      return res.redirect(failUrl);
     }
   }
 

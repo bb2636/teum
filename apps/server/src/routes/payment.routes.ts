@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { paymentController } from '../controllers/payment.controller';
 import { authenticate, requireRole } from '../middleware/auth';
+import { nicepayLaunchLimiter } from '../middleware/rate-limiter';
 
 const router: Router = Router();
 
 router.post('/nicepay/return', paymentController.nicepayReturn.bind(paymentController));
 router.post('/nicepay/billing-return', paymentController.nicepayBillingReturn.bind(paymentController));
+router.get('/nicepay/launch', nicepayLaunchLimiter, paymentController.nicepayLaunch.bind(paymentController));
 router.post('/nicepay/webhook', paymentController.nicepayWebhook.bind(paymentController));
 router.get('/nicepay/webhook', (_req, res) => res.status(200).send('OK'));
 router.get('/plan-price', paymentController.getPlanPrice.bind(paymentController));

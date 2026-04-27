@@ -317,7 +317,7 @@ export function DiaryDetailPage() {
           <button
             onClick={() => setShowComingSoon(true)}
             className="diary-ai-chat-btn w-full mt-4 mb-8 py-3.5 px-4 rounded-full bg-[#F5F0EB] text-[#4A2C1A] font-medium transition-colors hover:bg-[#EDE5DC] flex items-center justify-center gap-2"
-            style={{ marginBottom: 'max(2rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))' }}
+            style={{ marginBottom: 'max(2rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))', display: 'none' }}
           >
             <MessageCircle className="w-4 h-4" />
             {t('diary.chatWithAi')}

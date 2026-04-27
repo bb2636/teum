@@ -32,41 +32,6 @@ declare global {
     AUTHNICE?: {
       requestPay: (params: Record<string, unknown>) => void;
     };
-    AndroidImmersive?: {
-      enter: () => void;
-      exit: () => void;
-    };
-  }
-}
-
-function enterAndroidImmersive() {
-  const platform = Capacitor.getPlatform();
-  const hasBridge = !!window.AndroidImmersive;
-  const hasEnter = typeof window.AndroidImmersive?.enter === 'function';
-  console.log('[Immersive] enter requested', { platform, hasBridge, hasEnter });
-  try {
-    if (platform === 'android' && hasEnter) {
-      window.AndroidImmersive!.enter();
-      console.log('[Immersive] enter() invoked successfully');
-    } else if (platform === 'android' && !hasBridge) {
-      console.warn('[Immersive] window.AndroidImmersive is undefined — APK may need rebuild or interface not yet injected');
-    }
-  } catch (e) {
-    console.warn('[Immersive] enter threw', e);
-  }
-}
-
-function exitAndroidImmersive() {
-  const platform = Capacitor.getPlatform();
-  const hasExit = typeof window.AndroidImmersive?.exit === 'function';
-  console.log('[Immersive] exit requested', { platform, hasExit });
-  try {
-    if (platform === 'android' && hasExit) {
-      window.AndroidImmersive!.exit();
-      console.log('[Immersive] exit() invoked successfully');
-    }
-  } catch (e) {
-    console.warn('[Immersive] exit threw', e);
   }
 }
 
@@ -270,18 +235,15 @@ export function PaymentPage() {
           resultMsg: result?.resultMsg,
           errorMsg: result?.errorMsg,
         });
-        exitAndroidImmersive();
         if (typeof originalFnError === 'function') {
           (originalFnError as (r: typeof result) => void)(result);
         }
       };
 
-      enterAndroidImmersive();
       window.AUTHNICE.requestPay(payParams);
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
-          exitAndroidImmersive();
           setTimeout(() => {
             setIsProcessing(false);
           }, 3000);
@@ -290,7 +252,6 @@ export function PaymentPage() {
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
     } catch (error: unknown) {
-      exitAndroidImmersive();
       alert(error instanceof Error ? error.message : t('payment.initError'));
       setIsProcessing(false);
     }

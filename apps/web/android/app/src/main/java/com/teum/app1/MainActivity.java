@@ -15,7 +15,10 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.os.Bundle;
 
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
@@ -28,8 +31,19 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AdMob.class);
         super.onCreate(savedInstanceState);
 
+        // Android 15+ (SDK 35+) enforces edge-to-edge. Apply system-bar insets to
+        // the WebView so its content (including third-party modals like NicePay)
+        // is never drawn underneath the status bar or navigation bar.
         if (this.bridge != null && this.bridge.getWebView() != null) {
-            this.bridge.getWebView().addJavascriptInterface(new ImmersiveBridge(this), "AndroidImmersive");
+            final WebView webView = this.bridge.getWebView();
+            webView.addJavascriptInterface(new ImmersiveBridge(this), "AndroidImmersive");
+            ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
+                Insets bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
+                );
+                v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                return WindowInsetsCompat.CONSUMED;
+            });
         }
 
         this.bridge.setWebViewClient(new BridgeWebViewClient(this.bridge) {

@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NicePay SDK overlay - respect iOS safe-area (notch / dynamic island / home indicator) */
-/* Target wrapper containers NicePay injects into <body> */
+/* NicePay SDK overlay - iOS safe-area (notch / dynamic island / home indicator).
+ * On Android, MainActivity applies system-bar insets to the WebView itself, so
+ * env(safe-area-inset-*) returns 0 there and this rule only affects iOS. */
 div[id="payIframe"],
 div[id*="AUTHNICE" i],
 div[id*="nicepay" i],
@@ -14,7 +15,6 @@ div[class*="AUTHNICE" i] {
   padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   box-sizing: border-box !important;
 }
-/* Iframes inside NicePay containers fill the padded space */
 div[id="payIframe"] > iframe,
 div[id*="AUTHNICE" i] > iframe,
 div[id*="nicepay" i] > iframe,

@@ -1176,7 +1176,7 @@ export class PaymentService {
       ? await appleProvider.verifyTransactionId(input.transactionId)
       : await appleProvider.verifyReceipt(input.receipt!);
 
-    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription01';
+    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription02';
     if (verified.productId !== expectedProductId) {
       logger.warn({ verified, expected: expectedProductId }, 'Apple verify: unexpected product id');
       throw new Error(`예상하지 않은 상품입니다: ${verified.productId}`);

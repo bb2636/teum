@@ -49,6 +49,89 @@ function getStringQuery(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
+function htmlEscape(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderNativeReturnHtml(deepLink: string, isSuccess: boolean, message?: string): string {
+  const title = isSuccess ? '결제 완료' : '결제 실패';
+  const headline = isSuccess ? '결제가 완료되었습니다' : '결제 처리에 실패했습니다';
+  const subtitle = isSuccess
+    ? '잠시 후 앱으로 자동 이동합니다.'
+    : (message ? message : '잠시 후 앱으로 자동 이동합니다.');
+  const iconColor = isSuccess ? '#34c759' : '#ff3b30';
+  const iconChar = isSuccess ? '✓' : '!';
+  const safeHref = htmlEscape(deepLink);
+  const safeTitle = htmlEscape(title);
+  const safeHeadline = htmlEscape(headline);
+  const safeSubtitle = htmlEscape(subtitle);
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeTitle}</title>
+<style>
+  html,body{margin:0;padding:0;background:#f5f5f7;color:#1d1d1f;-webkit-font-smoothing:antialiased;}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Helvetica Neue',sans-serif;}
+  .card{max-width:420px;margin:24px;padding:32px 24px;background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.06);text-align:center;}
+  .icon{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;background:${iconColor};font-weight:700;}
+  h1{font-size:20px;margin:0 0 8px;font-weight:600;}
+  p{font-size:15px;color:#6e6e73;margin:0 0 24px;line-height:1.5;}
+  a.btn{display:inline-block;padding:14px 32px;background:#007aff;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:16px;}
+  a.btn:active{background:#0062cc;}
+  small{display:block;margin-top:16px;color:#86868b;font-size:13px;line-height:1.5;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">${iconChar}</div>
+    <h1>${safeHeadline}</h1>
+    <p>${safeSubtitle}</p>
+    <a class="btn" href="${safeHref}" id="returnBtn">앱으로 돌아가기</a>
+    <small>이 화면이 자동으로 닫히지 않으면<br>좌측 상단의 ✕ 또는 위 버튼을 눌러주세요.</small>
+  </div>
+  <script>
+  (function(){
+    var url = ${JSON.stringify(deepLink)};
+    function go(){ try { window.location.href = url; } catch(e) {} }
+    go();
+    setTimeout(go, 300);
+    setTimeout(function(){
+      try { var b = document.getElementById('returnBtn'); if (b && b.click) b.click(); } catch(e) {}
+    }, 600);
+  })();
+  </script>
+</body>
+</html>`;
+}
+
+function sendPaymentReturn(
+  res: Response,
+  isNative: boolean,
+  isSuccess: boolean,
+  frontendUrl: string,
+  message?: string
+) {
+  if (isNative) {
+    const deepLink = isSuccess
+      ? 'com.teum.app://payment-result?status=success'
+      : `com.teum.app://payment-result?status=fail&message=${encodeURIComponent(message || '')}`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(renderNativeReturnHtml(deepLink, isSuccess, message));
+  }
+  const url = isSuccess
+    ? `${frontendUrl}/payment/success`
+    : `${frontendUrl}/payment/fail?message=${encodeURIComponent(message || '')}`;
+  return res.redirect(url);
+}
+
 const appleVerifyReceiptSchema = z.object({
   transactionId: z.string().min(1).optional(),
   receipt: z.string().min(1).optional(),
@@ -288,12 +371,8 @@ export class PaymentController {
       let bid = body.bid;
 
       const isNative = req.query.native === '1';
-      const successUrl = isNative
-        ? 'com.teum.app://payment-result?status=success'
-        : `${frontendUrl}/payment/success`;
-      const failUrl = (msg: string) => isNative
-        ? `com.teum.app://payment-result?status=fail&message=${encodeURIComponent(msg)}`
-        : `${frontendUrl}/payment/fail?message=${encodeURIComponent(msg)}`;
+      const sendSuccess = () => sendPaymentReturn(res, isNative, true, frontendUrl);
+      const sendFail = (msg: string) => sendPaymentReturn(res, isNative, false, frontendUrl, msg);
 
       logger.info({
         resultCode,
@@ -308,13 +387,13 @@ export class PaymentController {
 
       if (!orderId) {
         logger.error('NicePay billing return missing orderId');
-        return res.redirect(failUrl('주문 정보가 누락되었습니다.'));
+        return sendFail('주문 정보가 누락되었습니다.');
       }
 
       const preloadedSession = await paymentService.getPendingSession(orderId);
       if (!preloadedSession) {
         logger.info({ orderId }, 'NicePay billing return: session not found (likely page refresh after success)');
-        return res.redirect(successUrl);
+        return sendSuccess();
       }
 
       logger.info({ orderId, sessionUserId: preloadedSession.userId, sessionAmount: preloadedSession.amount }, 'Session preloaded for billing return');
@@ -322,7 +401,7 @@ export class PaymentController {
       if (resultCode !== '0000') {
         await paymentService.deletePendingSession(orderId);
         logger.error(`NicePay billing auth failed - code=${resultCode} msg=${resultMsg}`);
-        return res.redirect(failUrl(resultMsg || '빌링키 등록에 실패했습니다.'));
+        return sendFail(resultMsg || '빌링키 등록에 실패했습니다.');
       }
 
       if (!bid && authToken && tid) {
@@ -341,21 +420,21 @@ export class PaymentController {
             { userId: preloadedSession.userId, amount: preloadedSession.amount, planName: preloadedSession.planName }
           );
           if (directResult.success) {
-            return res.redirect(successUrl);
+            return sendSuccess();
           } else {
-            return res.redirect(failUrl(directResult.message));
+            return sendFail(directResult.message);
           }
         } else {
           await paymentService.deletePendingSession(orderId);
           logger.error({ orderId, errorMsg: issueResult.message }, 'NicePay billing key issue failed');
-          return res.redirect(failUrl(issueResult.message || '빌링키 발급에 실패했습니다.'));
+          return sendFail(issueResult.message || '빌링키 발급에 실패했습니다.');
         }
       }
 
       if (!bid) {
         await paymentService.deletePendingSession(orderId);
         logger.error('NicePay billing return missing bid and authToken', { orderId });
-        return res.redirect(failUrl('빌링키 정보가 누락되었습니다.'));
+        return sendFail('빌링키 정보가 누락되었습니다.');
       }
 
       const result = await paymentService.processBillingKeyReturn(
@@ -364,17 +443,14 @@ export class PaymentController {
       );
 
       if (result.success) {
-        return res.redirect(successUrl);
+        return sendSuccess();
       } else {
-        return res.redirect(failUrl(result.message));
+        return sendFail(result.message);
       }
     } catch (error) {
       logger.error('NicePay billing return handler error', { error });
       const isNative = req.query.native === '1';
-      const failUrl = isNative
-        ? `com.teum.app://payment-result?status=fail&message=${encodeURIComponent('빌링키 등록 처리 중 오류가 발생했습니다.')}`
-        : `${frontendUrl}/payment/fail?message=${encodeURIComponent('빌링키 등록 처리 중 오류가 발생했습니다.')}`;
-      return res.redirect(failUrl);
+      return sendPaymentReturn(res, isNative, false, frontendUrl, '빌링키 등록 처리 중 오류가 발생했습니다.');
     }
   }
 

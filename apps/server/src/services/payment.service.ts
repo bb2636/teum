@@ -733,6 +733,60 @@ export class PaymentService {
     return { success: true, message: '빌링키가 해지되었습니다.' };
   }
 
+  async getBillingKeyStatusForUser(userId: string): Promise<{
+    hasActiveBillingKey: boolean;
+    cardName?: string;
+    cardNo?: string;
+    cardCode?: string;
+  }> {
+    const key = await this.getActiveBillingKey(userId);
+    if (!key) return { hasActiveBillingKey: false };
+    return {
+      hasActiveBillingKey: true,
+      cardName: key.cardName ?? undefined,
+      cardNo: key.cardNo ?? undefined,
+      cardCode: key.cardCode ?? undefined,
+    };
+  }
+
+  private restoreInProgress = new Set<string>();
+
+  async restoreSubscriptionWithBillingKey(
+    userId: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (this.restoreInProgress.has(userId)) {
+      return {
+        success: false,
+        message: '이전 재결제 요청을 처리하고 있습니다. 잠시 후 다시 시도해주세요.',
+      };
+    }
+    this.restoreInProgress.add(userId);
+    try {
+      const activeBillingKey = await this.getActiveBillingKey(userId);
+      if (!activeBillingKey) {
+        return { success: false, message: '저장된 결제 수단이 없습니다. 새로 결제를 진행해주세요.' };
+      }
+
+      const activeSubscription = await this.getActiveSubscription(userId);
+      if (activeSubscription) {
+        return { success: false, message: '이미 활성 구독이 있습니다.' };
+      }
+
+      const amount = await this.getServerPlanAmount();
+      const planName = 'monthly';
+
+      logger.info('Restoring subscription with saved billing key', {
+        userId,
+        bidSuffix: `***${activeBillingKey.bid.slice(-4)}`,
+        amount,
+      });
+
+      return await this.chargeWithBillingKey(userId, activeBillingKey.bid, amount, planName);
+    } finally {
+      this.restoreInProgress.delete(userId);
+    }
+  }
+
   async initPayment(
     userId: string,
     input: { planName: string; paymentMethod: string }

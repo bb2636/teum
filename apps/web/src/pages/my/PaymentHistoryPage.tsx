@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSubscriptions, usePayments, useCancelSubscription, getEffectiveSubscription } from '@/hooks/usePayment';
+import { useSubscriptions, usePayments, useCancelSubscription, useBillingKeyStatus, useRestoreBilling, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useMe } from '@/hooks/useProfile';
 import { SubscriptionCancelModal } from '@/components/SubscriptionCancelModal';
 import { format } from 'date-fns';
@@ -27,12 +27,18 @@ export function PaymentHistoryPage() {
   const locale = getDateLocale();
   const { data: subscriptions = [], isLoading: subscriptionsLoading } = useSubscriptions();
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
+  const { data: billingKeyStatus } = useBillingKeyStatus();
   useMe();
   const cancelSubscription = useCancelSubscription();
+  const restoreBilling = useRestoreBilling();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCancelSuccess, setShowCancelSuccess] = useState(false);
   const [showCancelError, setShowCancelError] = useState(false);
   const [cancelErrorMessage, setCancelErrorMessage] = useState('');
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [showRestoreSuccess, setShowRestoreSuccess] = useState(false);
+  const [showRestoreError, setShowRestoreError] = useState(false);
+  const [restoreErrorMessage, setRestoreErrorMessage] = useState('');
 
   if (subscriptionsLoading || paymentsLoading) {
     return (
@@ -44,6 +50,12 @@ export function PaymentHistoryPage() {
 
   const effectiveSubscription = getEffectiveSubscription(subscriptions);
   const isSubscriptionActive = effectiveSubscription?.status === 'active';
+  const nowMs = Date.now();
+  const hasUnexpiredSubscription = subscriptions.some((s) => {
+    const endValid = !s.endDate || new Date(s.endDate).getTime() >= nowMs;
+    return (s.status === 'active' || s.status === 'cancelled') && endValid;
+  });
+  const canRestore = !!billingKeyStatus?.hasActiveBillingKey && !hasUnexpiredSubscription;
 
   const NICEPAY_CARD_NAMES: Record<string, string> = {
     '01': 'BC카드', '02': 'KB국민카드', '03': '하나카드', '04': '삼성카드',
@@ -114,6 +126,33 @@ export function PaymentHistoryPage() {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {canRestore && (
+            <div>
+              <h2 className="text-sm font-medium text-gray-500 mb-2">{t('payment.savedPaymentMethod')}</h2>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-[#4A2C1A]">
+                    {billingKeyStatus?.cardName
+                      ? `${billingKeyStatus.cardName}${billingKeyStatus.cardNo ? ` ${billingKeyStatus.cardNo}` : ''}`
+                      : (billingKeyStatus?.cardCode ? (NICEPAY_CARD_NAMES[billingKeyStatus.cardCode] || t('payment.cardPayment')) : t('payment.cardPayment'))}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                  {t('payment.restoreSubscriptionDesc')}
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => setShowRestoreConfirm(true)}
+                  disabled={restoreBilling.isPending}
+                  className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-full"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {t('payment.restoreSubscription')}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -223,6 +262,74 @@ export function PaymentHistoryPage() {
             <p className="text-[#4A2C1A] mb-6">{cancelErrorMessage}</p>
             <button
               onClick={() => setShowCancelError(false)}
+              className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
+            >
+              {t('common.confirm')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showRestoreConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade" onClick={() => !restoreBilling.isPending && setShowRestoreConfirm(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-modal-pop" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-[#4A2C1A] mb-2 text-center">
+              {t('payment.restoreConfirmTitle')}
+            </h3>
+            <p className="text-sm text-gray-600 mb-6 text-center leading-relaxed">
+              {t('payment.restoreConfirmDesc')}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowRestoreConfirm(false)}
+                disabled={restoreBilling.isPending}
+                className="flex-1 py-3 px-4 rounded-full bg-gray-100 hover:bg-gray-200 text-[#4A2C1A] font-medium transition-colors disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await restoreBilling.mutateAsync();
+                    setShowRestoreConfirm(false);
+                    setShowRestoreSuccess(true);
+                  } catch (error: unknown) {
+                    setShowRestoreConfirm(false);
+                    const msg = error instanceof Error ? error.message : '';
+                    setRestoreErrorMessage(msg || t('payment.restoreFailed'));
+                    setShowRestoreError(true);
+                  }
+                }}
+                disabled={restoreBilling.isPending}
+                className="flex-1 py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50"
+              >
+                {restoreBilling.isPending ? t('payment.processing') : t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRestoreSuccess && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
+            <p className="text-[#4A2C1A] mb-6">{t('payment.restoreSuccess')}</p>
+            <button
+              onClick={() => setShowRestoreSuccess(false)}
+              className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
+            >
+              {t('common.confirm')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showRestoreError && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
+            <p className="text-[#4A2C1A] mb-6 leading-relaxed">{restoreErrorMessage}</p>
+            <button
+              onClick={() => setShowRestoreError(false)}
               className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
             >
               {t('common.confirm')}

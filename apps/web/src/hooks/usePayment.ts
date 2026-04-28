@@ -222,6 +222,49 @@ export function useInitPayPal() {
   });
 }
 
+export interface BillingKeyStatus {
+  hasActiveBillingKey: boolean;
+  cardName?: string;
+  cardNo?: string;
+  cardCode?: string;
+}
+
+export function useBillingKeyStatus() {
+  return useQuery<BillingKeyStatus>({
+    queryKey: ['billing-key-status'],
+    queryFn: async () => {
+      const response = await apiRequest<{ data: BillingKeyStatus }>(
+        '/payments/billing-key/status'
+      );
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 60,
+  });
+}
+
+export function useRestoreBilling() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest<{ data: { success: boolean; message: string } }>(
+        '/payments/billing/restore',
+        { method: 'POST' }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['music', 'jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['billing-key-status'] });
+      queryClient.refetchQueries({ queryKey: ['subscriptions'] });
+      queryClient.refetchQueries({ queryKey: ['payments'] });
+    },
+  });
+}
+
 export function useCancelSubscription() {
   const queryClient = useQueryClient();
 

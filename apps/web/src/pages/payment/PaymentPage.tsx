@@ -512,12 +512,15 @@ export function PaymentPage() {
 
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 pb-safe-fixed">
           <div className="max-w-md mx-auto">
-            <p className="text-xs text-gray-600 text-center mb-3">
+            <p className="text-xs text-gray-600 text-center mb-2">
               {paymentMethod === 'paypal'
                 ? t('payment.paypalNote')
                 : paymentMethod === 'apple'
                   ? t('payment.appStoreNote')
                   : t('payment.paymentNote')}
+            </p>
+            <p className="text-[11px] leading-relaxed text-gray-500 text-center mb-3 px-2">
+              {t('payment.cancelNotice')}
             </p>
             <button
               onClick={handlePaymentClick}

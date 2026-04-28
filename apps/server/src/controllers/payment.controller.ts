@@ -626,6 +626,42 @@ export class PaymentController {
     }
   }
 
+  async getBillingKeyStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+      const result = await paymentService.getBillingKeyStatusForUser(req.user.userId);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restoreBilling(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+      const result = await paymentService.restoreSubscriptionWithBillingKey(req.user.userId);
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'BILLING_RESTORE_FAILED', message: result.message },
+        });
+      }
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async adminCancelSubscription(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) {

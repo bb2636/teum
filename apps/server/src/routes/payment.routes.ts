@@ -26,6 +26,8 @@ router.post('/paypal/init', paymentController.initPayPal.bind(paymentController)
 router.post('/process', paymentController.processPayment.bind(paymentController));
 router.post('/cancel', paymentController.cancelPayment.bind(paymentController));
 router.post('/subscriptions/cancel', paymentController.cancelSubscription.bind(paymentController));
+router.get('/billing-key/status', paymentController.getBillingKeyStatus.bind(paymentController));
+router.post('/billing/restore', paymentController.restoreBilling.bind(paymentController));
 router.post('/admin/subscriptions/cancel', requireRole(['admin']), paymentController.adminCancelSubscription.bind(paymentController));
 router.get('/', paymentController.getPayments.bind(paymentController));
 router.get('/subscriptions', paymentController.getSubscriptions.bind(paymentController));

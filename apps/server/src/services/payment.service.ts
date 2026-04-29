@@ -1571,9 +1571,7 @@ export class PaymentService {
       throw new Error('You already have an active subscription.');
     }
 
-    // 정책: 모든 결제 전 본인인증 필수 (NicePay와 동일)
-    await this.assertIdentityVerified(userId);
-
+    // PayPal은 해외 사용자 결제 수단이므로 본인인증 불필요
     const usdAmount = getBasePriceUSD().toFixed(2);
     const orderId = `PAYPAL_${Date.now()}_${userId.substring(0, 8)}`;
 

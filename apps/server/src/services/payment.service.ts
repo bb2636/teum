@@ -62,6 +62,23 @@ export class PaymentService {
     return true;
   }
 
+  /**
+   * 결제 시작 직전 서버측에서 본인인증 여부를 검증한다.
+   * - 클라이언트 게이트가 우회되더라도 결제가 진행되지 않도록 보호한다.
+   * - 최근 30일 이내 검증된 휴대폰 인증 기록이 있어야 통과.
+   */
+  private async assertIdentityVerified(userId: string): Promise<void> {
+    const needs = await this.needsIdentityVerification(userId);
+    if (!needs) return;
+    const recent = await phoneVerificationRepository.findRecentVerifiedByUserId(userId, 30);
+    if (!recent) {
+      throw new AppError('결제 진행을 위해 본인인증이 필요합니다.', {
+        statusCode: 403,
+        code: 'IDENTITY_VERIFICATION_REQUIRED',
+      });
+    }
+  }
+
   async initBillingKeyRegistration(
     userId: string,
     input: { planName: string; paymentMethod: string; identityVerified?: boolean }
@@ -76,18 +93,9 @@ export class PaymentService {
       });
     }
 
-    const needsVerification = await this.needsIdentityVerification(userId);
-    if (needsVerification) {
-      // Server-trusted check: require a recent verified phone tied to this user.
-      // Do NOT trust the client-supplied input.identityVerified boolean.
-      const recentVerification = await phoneVerificationRepository.findRecentVerifiedByUserId(userId, 30);
-      if (!recentVerification) {
-        throw new AppError('결제 진행을 위해 본인인증이 필요합니다.', {
-          statusCode: 403,
-          code: 'IDENTITY_VERIFICATION_REQUIRED',
-        });
-      }
-    }
+    // Server-trusted identity verification check.
+    // Do NOT trust the client-supplied input.identityVerified boolean.
+    await this.assertIdentityVerified(userId);
 
     const orderId = `BILLING_${Date.now()}_${userId.substring(0, 8)}`;
 
@@ -1221,6 +1229,12 @@ export class PaymentService {
       throw new Error('transactionId 또는 receipt가 필요합니다.');
     }
 
+    // 정책: 모든 결제 전 본인인증 필수 (NicePay/PayPal과 동일)
+    // Apple IAP는 이미 결제가 일어난 뒤 영수증을 검증하는 단계이므로,
+    // 여기서 차단되면 사용자는 Apple에 결제했지만 구독이 등록되지 않는다.
+    // 클라이언트 게이트가 우회된 경우의 마지막 방어선.
+    await this.assertIdentityVerified(userId);
+
     const verified = input.transactionId
       ? await appleProvider.verifyTransactionId(input.transactionId)
       : await appleProvider.verifyReceipt(input.receipt!);
@@ -1556,6 +1570,9 @@ export class PaymentService {
     if (activeSubscription) {
       throw new Error('You already have an active subscription.');
     }
+
+    // 정책: 모든 결제 전 본인인증 필수 (NicePay와 동일)
+    await this.assertIdentityVerified(userId);
 
     const usdAmount = getBasePriceUSD().toFixed(2);
     const orderId = `PAYPAL_${Date.now()}_${userId.substring(0, 8)}`;

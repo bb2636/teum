@@ -17,7 +17,13 @@ function startMusicPolling() {
     try {
       await musicPollingService.pollAllPendingJobs();
     } catch (err) {
-      logger.error('Music polling error', { error: err instanceof Error ? err.message : String(err) });
+      logger.error(
+        {
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        },
+        'Music polling error'
+      );
     }
   }, MUSIC_POLL_INTERVAL);
   logger.info('Music polling worker started', { intervalMs: MUSIC_POLL_INTERVAL });
@@ -32,7 +38,13 @@ function startAutoRenewal() {
     try {
       await paymentService.processAutoRenewals();
     } catch (err) {
-      logger.error('Auto-renewal scheduler error', { error: err instanceof Error ? err.message : String(err) });
+      logger.error(
+        {
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        },
+        'Auto-renewal scheduler error'
+      );
     }
   }, AUTO_RENEWAL_INTERVAL);
   logger.info('Auto-renewal scheduler started (every 1 hour)');

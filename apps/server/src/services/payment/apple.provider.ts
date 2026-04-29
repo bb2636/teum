@@ -13,7 +13,11 @@ import {
 } from '@apple/app-store-server-library';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { logger } from '../../config/logger';
+
+// ESM 환경(`"type": "module"`)에서는 __dirname이 없으므로 직접 계산
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || 'com.teum.app';
 const APPLE_ISSUER_ID = process.env.APPLE_ISSUER_ID || '';
@@ -96,9 +100,13 @@ export class AppleProvider {
         rootCertsLoaded: rootCAs.length,
       });
     } catch (error) {
-      logger.error('Apple provider initialization failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        'Apple provider initialization failed'
+      );
     }
   }
 

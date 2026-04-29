@@ -57,13 +57,8 @@ export class PaymentService {
     return null;
   }
 
-  async needsIdentityVerification(userId: string): Promise<boolean> {
-    const subs = await this.getSubscriptions(userId);
-    if (subs.length === 0) return false;
-    const hasActiveSub = subs.some(
-      (s) => s.status === 'active' && (!s.endDate || new Date(s.endDate) >= new Date())
-    );
-    if (hasActiveSub) return false;
+  async needsIdentityVerification(_userId: string): Promise<boolean> {
+    // 정책: 모든 결제(첫 결제·재구독 모두) 전에 본인인증을 요구한다.
     return true;
   }
 
@@ -87,7 +82,7 @@ export class PaymentService {
       // Do NOT trust the client-supplied input.identityVerified boolean.
       const recentVerification = await phoneVerificationRepository.findRecentVerifiedByUserId(userId, 30);
       if (!recentVerification) {
-        throw new AppError('재구독 시 본인인증이 필요합니다.', {
+        throw new AppError('결제 진행을 위해 본인인증이 필요합니다.', {
           statusCode: 403,
           code: 'IDENTITY_VERIFICATION_REQUIRED',
         });

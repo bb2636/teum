@@ -17,8 +17,11 @@ import { logger } from '../../config/logger';
 
 const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || 'com.teum.app';
 const APPLE_ISSUER_ID = process.env.APPLE_ISSUER_ID || '';
-const APPLE_KEY_ID = process.env.APPLE_KEY_ID || '';
-const APPLE_PRIVATE_KEY = process.env.APPLE_PRIVATE_KEY || '';
+// IAP/App Store Server API 전용 키.
+// 우선 APPLE_IAP_KEY_ID/APPLE_IAP_PRIVATE_KEY를 사용하고,
+// 미설정 시 Apple Sign In과 동일한 키를 공유하던 기존 동작으로 폴백.
+const APPLE_KEY_ID = process.env.APPLE_IAP_KEY_ID || process.env.APPLE_KEY_ID || '';
+const APPLE_PRIVATE_KEY = process.env.APPLE_IAP_PRIVATE_KEY || process.env.APPLE_PRIVATE_KEY || '';
 const APPLE_APP_ID_NUMERIC = Number(process.env.APPLE_APP_ID_NUMERIC || '6762346897');
 const APPLE_ENVIRONMENT: Environment =
   process.env.APPLE_ENV === 'production' ? Environment.PRODUCTION : Environment.SANDBOX;
@@ -59,7 +62,9 @@ export class AppleProvider {
 
   constructor() {
     if (!APPLE_KEY_ID || !APPLE_PRIVATE_KEY || !APPLE_ISSUER_ID) {
-      logger.warn('Apple provider: missing credentials (APPLE_KEY_ID/APPLE_PRIVATE_KEY/APPLE_ISSUER_ID)');
+      logger.warn(
+        'Apple provider: missing credentials (APPLE_IAP_KEY_ID/APPLE_IAP_PRIVATE_KEY/APPLE_ISSUER_ID — APPLE_KEY_ID/APPLE_PRIVATE_KEY 폴백 가능)'
+      );
       return;
     }
     try {

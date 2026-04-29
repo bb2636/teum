@@ -811,6 +811,45 @@ export class PaymentController {
     const REFUND_EVENTS = ['PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'];
     const DISPUTE_EVENTS = ['CUSTOMER.DISPUTE.CREATED'];
     const CANCEL_EVENTS = ['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.EXPIRED', 'BILLING.SUBSCRIPTION.SUSPENDED'];
+    const ACTIVATE_EVENTS = ['BILLING.SUBSCRIPTION.ACTIVATED'];
+
+    if (ACTIVATE_EVENTS.includes(eventType)) {
+      if (await refundService.isDuplicateWebhookEvent(eventId)) {
+        logger.info({ eventId, eventType }, 'Duplicate PayPal activate webhook, skipping');
+        return res.status(200).json({ status: 'duplicate' });
+      }
+
+      const resource = event.resource as Record<string, unknown> | undefined;
+      const paypalSubscriptionId = resource?.id as string | undefined;
+
+      if (!paypalSubscriptionId) {
+        logger.error({ eventId, eventType }, 'PayPal activate webhook: missing subscription id');
+        return res.status(200).json({ status: 'acknowledged' });
+      }
+
+      try {
+        const subDetails = await paypalProvider.getSubscriptionDetails(paypalSubscriptionId);
+        const internalOrderId = subDetails.customId;
+
+        if (!internalOrderId) {
+          logger.warn({ eventId, paypalSubscriptionId }, 'PayPal activate webhook: missing custom_id, cannot activate');
+          return res.status(200).json({ status: 'acknowledged' });
+        }
+
+        const recorded = await refundService.recordWebhookEvent(eventId, 'paypal', eventType, rawBody);
+        if (!recorded) {
+          logger.info({ eventId, eventType }, 'PayPal activate webhook: concurrent duplicate, skipping');
+          return res.status(200).json({ status: 'duplicate' });
+        }
+
+        const result = await paymentService.activatePayPalSubscription(paypalSubscriptionId, internalOrderId);
+        logger.info({ eventId, paypalSubscriptionId, internalOrderId, result }, 'PayPal subscription activate webhook handled');
+      } catch (err) {
+        logger.error({ eventId, paypalSubscriptionId, err }, 'PayPal activate webhook processing error');
+      }
+
+      return res.status(200).json({ status: 'processed' });
+    }
 
     if (DISPUTE_EVENTS.includes(eventType)) {
       const resource = event.resource as Record<string, unknown> | undefined;

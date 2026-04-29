@@ -6,10 +6,13 @@ export class ResendProvider implements EmailProvider {
   private client: Resend | null = null;
   private enabled: boolean;
   private fromEmail: string;
+  private replyTo: string | undefined;
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
     this.fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const explicitReplyTo = process.env.RESEND_REPLY_TO?.trim();
+    this.replyTo = explicitReplyTo || this.deriveNoReplyAddress(this.fromEmail);
     this.enabled = !!apiKey;
 
     if (!this.enabled) {
@@ -18,7 +21,23 @@ export class ResendProvider implements EmailProvider {
     }
 
     this.client = new Resend(apiKey);
-    logger.info('Resend email provider initialized', { from: this.fromEmail });
+    if (!this.replyTo) {
+      logger.warn('Resend reply_to could not be derived from RESEND_FROM_EMAIL; replies will go to from address. Set RESEND_REPLY_TO to enforce no-reply.', { from: this.fromEmail });
+    }
+    logger.info('Resend email provider initialized', { from: this.fromEmail, replyTo: this.replyTo });
+  }
+
+  // "Display Name <user@domain>" 또는 "user@domain" 모두 지원.
+  // 도메인 추출 실패 시 undefined 반환 → 발송은 정상 진행, reply_to만 미적용.
+  private deriveNoReplyAddress(fromAddress: string): string | undefined {
+    const trimmed = fromAddress.trim();
+    const bracketMatch = trimmed.match(/<([^>]+)>/);
+    const email = (bracketMatch ? bracketMatch[1] : trimmed).trim();
+    const atIdx = email.lastIndexOf('@');
+    if (atIdx <= 0 || atIdx === email.length - 1) return undefined;
+    const domain = email.slice(atIdx + 1).trim();
+    if (!domain.includes('.')) return undefined;
+    return `noreply@${domain}`;
   }
 
   async sendEmail(options: {
@@ -36,9 +55,15 @@ export class ResendProvider implements EmailProvider {
       const { data, error } = await this.client.emails.send({
         from: this.fromEmail,
         to: options.to,
+        replyTo: this.replyTo,
         subject: options.subject,
         html: options.html,
         text: options.text,
+        headers: {
+          'Auto-Submitted': 'auto-generated',
+          'X-Auto-Response-Suppress': 'All',
+          'Precedence': 'bulk',
+        },
       });
 
       if (error) {

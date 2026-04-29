@@ -170,13 +170,13 @@ function buildNotificationHtml(lang: Lang, title: string, body: string): string 
         <title>${title}</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 28px;">teum</h1>
+        <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="teum" style="height: 48px; width: auto; display: inline-block; border: 0;">
           <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(lang, 'slogan')}</p>
         </div>
         
         <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
-          <h2 style="color: #8B4513; margin-top: 0;">${title}</h2>
+          <h2 style="color: #4A2C1A; margin-top: 0;">${title}</h2>
           ${body}
         </div>
         
@@ -212,13 +212,13 @@ export class EmailService {
           <title>${tt(l, 'resetTitle')}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="margin: 0; font-size: 28px;">teum</h1>
+          <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="teum" style="height: 48px; width: auto; display: inline-block; border: 0;">
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
           
           <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #8B4513; margin-top: 0;">${tt(l, 'resetTitle')}</h2>
+            <h2 style="color: #4A2C1A; margin-top: 0;">${tt(l, 'resetTitle')}</h2>
             
             <p>${tt(l, 'resetGreeting')}</p>
             
@@ -226,14 +226,14 @@ export class EmailService {
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetLink}" 
-                 style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                 style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
                 ${tt(l, 'resetButton')}
               </a>
             </div>
             
             <p style="color: #666; font-size: 14px; margin-top: 30px;">
               ${tt(l, 'resetAlt')}<br>
-              <a href="${resetLink}" style="color: #8B4513; word-break: break-all;">${resetLink}</a>
+              <a href="${resetLink}" style="color: #4A2C1A; word-break: break-all;">${resetLink}</a>
             </p>
             
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 30px 0; border-radius: 4px;">
@@ -247,7 +247,7 @@ export class EmailService {
             
             <p style="color: #666; font-size: 14px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
               ${tt(l, 'resetContact')}<br>
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my" style="color: #8B4513;">${tt(l, 'resetContactLink')}</a>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my" style="color: #4A2C1A;">${tt(l, 'resetContactLink')}</a>
             </p>
           </div>
           
@@ -282,19 +282,19 @@ export class EmailService {
           <title>${tt(l, 'verifyTitle')}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #8B4513; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="margin: 0; font-size: 28px;">teum</h1>
+          <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="teum" style="height: 48px; width: auto; display: inline-block; border: 0;">
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
           
           <div style="background-color: #f9f9f9; padding: 40px; border-radius: 0 0 8px 8px;">
-            <h2 style="color: #8B4513; margin-top: 0;">${tt(l, 'verifyTitle')}</h2>
+            <h2 style="color: #4A2C1A; margin-top: 0;">${tt(l, 'verifyTitle')}</h2>
             
             <p>${tt(l, 'verifyGreeting')}</p>
             <p>${tt(l, 'verifyBody')}</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <div style="display: inline-block; background-color: #f5ede4; border: 2px solid #8B4513; padding: 16px 40px; border-radius: 8px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4A2C1A;">
+              <div style="display: inline-block; background-color: #f5ede4; border: 2px solid #4A2C1A; padding: 16px 40px; border-radius: 8px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4A2C1A;">
                 ${code}
               </div>
             </div>
@@ -336,7 +336,7 @@ export class EmailService {
       <p>${tt(l, 'signupCta')}</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-           style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+           style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
           ${tt(l, 'signupButton')}
         </a>
       </div>
@@ -387,7 +387,7 @@ export class EmailService {
       <p>${tt(l, 'subStartFeatures')}</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-           style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+           style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
           ${tt(l, 'subStartButton')}
         </a>
       </div>
@@ -506,7 +506,7 @@ export class EmailService {
       </div>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my/support" 
-           style="display: inline-block; background-color: #8B4513; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+           style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
           ${tt(l, 'inquiryAnswerButton')}
         </a>
       </div>

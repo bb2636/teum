@@ -187,7 +187,8 @@ export class PayPalProvider {
         custom_id: customId,
         application_context: {
           brand_name: 'Teum',
-          locale: 'en-US',
+          locale: 'en_US',
+          landing_page: 'LOGIN',
           user_action: 'SUBSCRIBE_NOW',
           return_url: returnUrl,
           cancel_url: cancelUrl,

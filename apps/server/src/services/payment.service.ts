@@ -1583,10 +1583,16 @@ export class PaymentService {
       orderId,
     );
 
+    // PayPal 결제 페이지를 영어(US) UI로 강제. 한국 IP/쿠키 영향으로
+    // 한국어 페이지가 표시되어 결제가 실패하는 문제를 방지한다.
+    const approveUrlWithLocale = result.approveUrl.includes('locale.x=')
+      ? result.approveUrl
+      : `${result.approveUrl}${result.approveUrl.includes('?') ? '&' : '?'}locale.x=en_US`;
+
     logger.info({ orderId, paypalSubscriptionId: result.subscriptionId, userId }, 'PayPal subscription initiated');
 
     return {
-      approveUrl: result.approveUrl,
+      approveUrl: approveUrlWithLocale,
       orderId,
       paypalSubscriptionId: result.subscriptionId,
     };

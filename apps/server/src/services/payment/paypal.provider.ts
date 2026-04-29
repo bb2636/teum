@@ -195,12 +195,13 @@ export class PayPalProvider {
       }),
     });
 
-    const data = await response.json() as { id: string; links: Array<{ rel: string; href: string }> };
-
     if (!response.ok) {
-      logger.error({ status: response.status, data }, 'PayPal create subscription failed');
+      const text = await response.text().catch(() => '(unreadable)');
+      logger.error({ status: response.status, body: text }, 'PayPal create subscription failed');
       throw new Error('Failed to create PayPal subscription');
     }
+
+    const data = await response.json() as { id: string; links: Array<{ rel: string; href: string }> };
 
     const approveLink = data.links?.find((l: { rel: string }) => l.rel === 'approve');
     if (!approveLink) {

@@ -745,8 +745,18 @@ export class PaymentController {
     const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
     const isNative = req.query.n === '1';
     const nativeQp = isNative ? '&n=1' : '';
-    const { token: paypalOrderId } = req.query;
-    logger.info({ paypalOrderId }, 'PayPal payment cancelled by user');
+    const { token: paypalOrderId, oid: internalOrderId, ba_token } = req.query;
+    // 취소 추적용 명시적 allowlist만 기록 (token/oid/ba_token).
+    // 민감 정보 누출 방지를 위해 raw query/referer/UA는 로그에 남기지 않는다.
+    logger.info(
+      {
+        paypalOrderId,
+        internalOrderId,
+        ba_token,
+        isNative,
+      },
+      'PayPal payment cancelled by user',
+    );
     return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('Payment was cancelled.')}${nativeQp}`);
   }
 

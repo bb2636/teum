@@ -1560,6 +1560,36 @@ export class PaymentService {
     };
   }
 
+  // 앱 언어를 PayPal locale 코드로 매핑. 미지정/미지원 언어는 en_US fallback.
+  private mapPayPalLocale(appLanguage?: string | null): string {
+    if (!appLanguage) return 'en_US';
+    const lang = appLanguage.toLowerCase();
+    if (lang.startsWith('ko')) return 'ko_KR';
+    if (lang.startsWith('en')) return 'en_US';
+    if (lang.startsWith('ja')) return 'ja_JP';
+    return 'en_US';
+  }
+
+  // PayPal locale 매핑 전용: user_profiles.language를 raw nullable로 조회.
+  // (getUserEmailAndNickname 은 'ko' 기본값을 강제하므로 PayPal locale 결정에는 부적합)
+  // DB 조회 실패해도 결제 흐름이 끊기지 않도록 항상 안전한 fallback 반환.
+  private async resolvePayPalLocale(userId: string): Promise<string> {
+    try {
+      const [row] = await db
+        .select({ language: userProfiles.language })
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, userId))
+        .limit(1);
+      return this.mapPayPalLocale(row?.language ?? null);
+    } catch (err) {
+      logger.warn(
+        { userId, error: err instanceof Error ? err.message : String(err) },
+        'Failed to resolve PayPal locale, falling back to en_US',
+      );
+      return 'en_US';
+    }
+  }
+
   async initPayPalPayment(
     userId: string,
     planName: string,
@@ -1598,13 +1628,18 @@ export class PaymentService {
       orderId,
     );
 
-    // PayPal 결제 페이지를 영어(US) UI로 강제. 한국 IP/쿠키 영향으로
-    // 한국어 페이지가 표시되어 결제가 실패하는 문제를 방지한다.
+    // 사용자 앱 언어에 맞춰 PayPal 결제 페이지 UI 언어를 동적으로 지정.
+    // 과거 en_US 강제로 인해 한국 사용자가 영어 페이지에 당황해 취소하는 문제를 해결.
+    // locale 조회 실패는 결제 흐름을 막지 않고 en_US fallback.
+    const locale = await this.resolvePayPalLocale(userId);
     const approveUrlWithLocale = result.approveUrl.includes('locale.x=')
       ? result.approveUrl
-      : `${result.approveUrl}${result.approveUrl.includes('?') ? '&' : '?'}locale.x=en_US`;
+      : `${result.approveUrl}${result.approveUrl.includes('?') ? '&' : '?'}locale.x=${locale}`;
 
-    logger.info({ orderId, paypalSubscriptionId: result.subscriptionId, userId }, 'PayPal subscription initiated');
+    logger.info(
+      { orderId, paypalSubscriptionId: result.subscriptionId, userId, locale },
+      'PayPal subscription initiated',
+    );
 
     return {
       approveUrl: approveUrlWithLocale,

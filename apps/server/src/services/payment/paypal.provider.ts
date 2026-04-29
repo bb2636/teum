@@ -186,8 +186,12 @@ export class PayPalProvider {
         plan_id: planId,
         custom_id: customId,
         application_context: {
-          brand_name: 'Teum',
-          landing_page: 'LOGIN',
+          brand_name: 'TEUM',
+          // BILLING: 게스트 친화적 결제 페이지를 우선 노출 (가입 강제 마찰 감소).
+          landing_page: 'BILLING',
+          // 디지털 구독: 배송지 입력 화면 비활성화 (필수).
+          shipping_preference: 'NO_SHIPPING',
+          // CTA 버튼을 "Continue" → "Subscribe"로 변경하여 전환율 개선.
           user_action: 'SUBSCRIBE_NOW',
           return_url: returnUrl,
           cancel_url: cancelUrl,

@@ -41,20 +41,20 @@ const i18n: Record<Lang, Record<string, string>> = {
     verifyExpiry: '이 인증번호는 5분 동안 유효합니다.',
     verifyIgnore: '본인이 요청하지 않았다면 이 이메일을 무시하세요.',
     signupTitle: '회원가입 완료',
-    signupBody: 'teum 회원가입이 완료되었습니다.',
+    signupBody: 'TEUM 회원가입이 완료되었습니다.',
     signupCta: '이제 일기를 작성하고, 감정을 기록하며, 나만의 음악을 만들어보세요.',
-    signupButton: 'teum 시작하기',
-    signupFooter: 'teum과 함께 매일의 기록을 음악으로 만들어보세요.',
+    signupButton: 'TEUM 시작하기',
+    signupFooter: 'TEUM과 함께 매일의 기록을 음악으로 만들어보세요.',
     withdrawTitle: '회원 탈퇴 완료',
     withdrawBody: '회원 탈퇴가 정상적으로 처리되었습니다.',
-    withdrawThanks: '그동안 teum을 이용해주셔서 감사합니다.',
+    withdrawThanks: '그동안 TEUM을 이용해주셔서 감사합니다.',
     withdrawNotice: '탈퇴 후 1년간 동일 이메일로 재가입이 제한됩니다.',
     withdrawPrivacy: '개인정보는 관련 법령에 따라 일정 기간 보관 후 파기됩니다.',
     withdrawSeeYou: '다시 만날 날을 기다리겠습니다.',
     subStartTitle: '구독 시작',
     subStartBody: '구독이 시작되었습니다.',
     subStartFeatures: '이제 무제한으로 일기 작성, AI 가사 생성, 음악 생성을 이용하실 수 있습니다.',
-    subStartButton: 'teum으로 이동',
+    subStartButton: 'TEUM으로 이동',
     subStartContact: '구독 관련 문의사항은 고객지원을 통해 연락해주세요.',
     subCancelTitle: '구독 해지 완료',
     subCancelBody: '구독 해지가 정상적으로 처리되었습니다.',
@@ -107,20 +107,20 @@ const i18n: Record<Lang, Record<string, string>> = {
     verifyExpiry: 'This code is valid for 5 minutes.',
     verifyIgnore: 'If you did not request this, please ignore this email.',
     signupTitle: 'Sign Up Complete',
-    signupBody: 'Your teum registration is complete.',
+    signupBody: 'Your TEUM registration is complete.',
     signupCta: 'Start writing your diary, tracking your emotions, and creating your own music.',
     signupButton: 'Get Started',
-    signupFooter: 'Turn your daily records into music with teum.',
+    signupFooter: 'Turn your daily records into music with TEUM.',
     withdrawTitle: 'Account Deleted',
     withdrawBody: 'Your account has been successfully deleted.',
-    withdrawThanks: 'Thank you for using teum.',
+    withdrawThanks: 'Thank you for using TEUM.',
     withdrawNotice: 'You cannot re-register with the same email for 1 year after deletion.',
     withdrawPrivacy: 'Personal data will be retained and then destroyed in accordance with applicable laws.',
     withdrawSeeYou: 'We hope to see you again.',
     subStartTitle: 'Subscription Started',
     subStartBody: 'Your subscription has started.',
     subStartFeatures: 'You now have unlimited access to diary writing, AI lyrics generation, and music creation.',
-    subStartButton: 'Go to teum',
+    subStartButton: 'Go to TEUM',
     subStartContact: 'For subscription inquiries, please contact our support.',
     subCancelTitle: 'Subscription Cancelled',
     subCancelBody: 'Your subscription has been successfully cancelled.',
@@ -171,7 +171,7 @@ function buildNotificationHtml(lang: Lang, title: string, body: string): string 
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="teum" style="height: 48px; width: auto; display: inline-block; border: 0;">
+          <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="TEUM" style="height: 48px; width: auto; display: inline-block; border: 0;">
           <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(lang, 'slogan')}</p>
         </div>
         
@@ -181,7 +181,7 @@ function buildNotificationHtml(lang: Lang, title: string, body: string): string 
         </div>
         
         <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-          <p>&copy; ${new Date().getFullYear()} teum. All rights reserved.</p>
+          <p>&copy; ${new Date().getFullYear()} TEUM. All rights reserved.</p>
         </div>
       </body>
     </html>
@@ -213,7 +213,7 @@ export class EmailService {
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="teum" style="height: 48px; width: auto; display: inline-block; border: 0;">
+            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="TEUM" style="height: 48px; width: auto; display: inline-block; border: 0;">
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
           
@@ -252,13 +252,13 @@ export class EmailService {
           </div>
           
           <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-            <p>© ${new Date().getFullYear()} teum. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} TEUM. All rights reserved.</p>
           </div>
         </body>
       </html>
     `;
 
-    const subject = l === 'en' ? '[teum] Password Reset Request' : '[teum] 비밀번호 재설정 요청';
+    const subject = l === 'en' ? '[TEUM] Password Reset Request' : '[TEUM] 비밀번호 재설정 요청';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -283,7 +283,7 @@ export class EmailService {
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="teum" style="height: 48px; width: auto; display: inline-block; border: 0;">
+            <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="TEUM" style="height: 48px; width: auto; display: inline-block; border: 0;">
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
           
@@ -308,13 +308,13 @@ export class EmailService {
           </div>
           
           <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-            <p>&copy; ${new Date().getFullYear()} teum. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} TEUM. All rights reserved.</p>
           </div>
         </body>
       </html>
     `;
 
-    const subject = l === 'en' ? '[teum] Email Verification Code' : '[teum] 이메일 인증번호';
+    const subject = l === 'en' ? '[TEUM] Email Verification Code' : '[TEUM] 이메일 인증번호';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -343,7 +343,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'signupFooter')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'signupTitle'), body);
-    const subject = l === 'en' ? '[teum] Welcome! Your registration is complete' : '[teum] 회원가입이 완료되었습니다';
+    const subject = l === 'en' ? '[TEUM] Welcome! Your registration is complete' : '[TEUM] 회원가입이 완료되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -368,7 +368,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'withdrawSeeYou')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'withdrawTitle'), body);
-    const subject = l === 'en' ? '[teum] Your account has been deleted' : '[teum] 회원 탈퇴가 완료되었습니다';
+    const subject = l === 'en' ? '[TEUM] Your account has been deleted' : '[TEUM] 회원 탈퇴가 완료되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -394,7 +394,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'subStartContact')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'subStartTitle'), body);
-    const subject = l === 'en' ? '[teum] Your subscription has started' : '[teum] 구독이 시작되었습니다';
+    const subject = l === 'en' ? '[TEUM] Your subscription has started' : '[TEUM] 구독이 시작되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -423,7 +423,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'subCancelThanks')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'subCancelTitle'), body);
-    const subject = l === 'en' ? '[teum] Your subscription has been cancelled' : '[teum] 구독이 해지되었습니다';
+    const subject = l === 'en' ? '[TEUM] Your subscription has been cancelled' : '[TEUM] 구독이 해지되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -458,7 +458,7 @@ export class EmailService {
       </div>
     `;
     const html = buildNotificationHtml(l, tt(l, 'profileTitle'), body);
-    const subject = l === 'en' ? '[teum] Your profile has been updated' : '[teum] 회원 정보가 변경되었습니다';
+    const subject = l === 'en' ? '[TEUM] Your profile has been updated' : '[TEUM] 회원 정보가 변경되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -483,7 +483,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'inquirySubmitNotice')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'inquirySubmitTitle'), body);
-    const emailSubject = l === 'en' ? '[teum] Your inquiry has been received' : '[teum] 문의가 접수되었습니다';
+    const emailSubject = l === 'en' ? '[TEUM] Your inquiry has been received' : '[TEUM] 문의가 접수되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject: emailSubject, html });
@@ -513,7 +513,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'inquiryAnswerMore')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'inquiryAnswerTitle'), body);
-    const emailSubject = l === 'en' ? '[teum] A response has been posted to your inquiry' : '[teum] 문의하신 내용에 답변이 등록되었습니다';
+    const emailSubject = l === 'en' ? '[TEUM] A response has been posted to your inquiry' : '[TEUM] 문의하신 내용에 답변이 등록되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject: emailSubject, html });
@@ -539,7 +539,7 @@ export class EmailService {
       <p style="color: #666; font-size: 14px;">${tt(l, 'refundNotice')}</p>
     `;
     const html = buildNotificationHtml(l, tt(l, 'refundTitle'), body);
-    const subject = l === 'en' ? '[teum] Your refund has been processed' : '[teum] 환불이 처리되었습니다';
+    const subject = l === 'en' ? '[TEUM] Your refund has been processed' : '[TEUM] 환불이 처리되었습니다';
 
     try {
       await this.provider.sendEmail({ to: email, subject, html });
@@ -573,7 +573,7 @@ export class EmailService {
     `);
 
     try {
-      await this.provider.sendEmail({ to: adminEmail, subject: '[teum Admin] Refund processed', html });
+      await this.provider.sendEmail({ to: adminEmail, subject: '[TEUM Admin] Refund processed', html });
     } catch (error) {
       logger.error('Failed to send refund notification to admin', { error: error instanceof Error ? error.message : String(error) });
     }

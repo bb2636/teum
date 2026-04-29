@@ -40,6 +40,45 @@ export class ResendProvider implements EmailProvider {
     return `noreply@${domain}`;
   }
 
+  // 본문 끝에 자동 삽입되는 발신 전용 안내문(한/영). 어떤 메일 템플릿에서도 동일하게 노출.
+  // 주석 마커(__NO_REPLY_NOTICE__)로 중복 삽입 방지.
+  private static readonly NO_REPLY_NOTICE_HTML = `
+<!-- __NO_REPLY_NOTICE__ -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:32px;border-top:1px solid #e5e7eb;">
+  <tr>
+    <td style="padding:16px 0;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b7280;">
+      이 메일은 발신 전용입니다. 답장은 처리되지 않습니다.<br/>
+      This is an automated email. Replies to this address are not monitored.
+    </td>
+  </tr>
+</table>`;
+
+  private static readonly NO_REPLY_NOTICE_TEXT =
+    '\n\n----\n이 메일은 발신 전용입니다. 답장은 처리되지 않습니다.\nThis is an automated email. Replies to this address are not monitored.\n';
+
+  // </body> 직전에 안내문을 끼워 넣는다. </body>가 없으면 끝에 그냥 붙임.
+  // 마커(__NO_REPLY_NOTICE__) 또는 동일 본문 텍스트가 이미 있으면 중복 삽입하지 않음.
+  private appendHtmlNotice(html: string): string {
+    if (!html) return ResendProvider.NO_REPLY_NOTICE_HTML;
+    if (
+      html.includes('__NO_REPLY_NOTICE__') ||
+      html.includes('이 메일은 발신 전용입니다')
+    ) {
+      return html;
+    }
+    const closingBody = /<\/body\s*>/i;
+    if (closingBody.test(html)) {
+      return html.replace(closingBody, `${ResendProvider.NO_REPLY_NOTICE_HTML}</body>`);
+    }
+    return `${html}${ResendProvider.NO_REPLY_NOTICE_HTML}`;
+  }
+
+  private appendTextNotice(text: string | undefined): string | undefined {
+    if (text === undefined) return undefined;
+    if (text.includes('이 메일은 발신 전용입니다')) return text;
+    return `${text}${ResendProvider.NO_REPLY_NOTICE_TEXT}`;
+  }
+
   async sendEmail(options: {
     to: string;
     subject: string;
@@ -51,14 +90,17 @@ export class ResendProvider implements EmailProvider {
       return;
     }
 
+    const htmlWithNotice = this.appendHtmlNotice(options.html);
+    const textWithNotice = this.appendTextNotice(options.text);
+
     try {
       const { data, error } = await this.client.emails.send({
         from: this.fromEmail,
         to: options.to,
         replyTo: this.replyTo,
         subject: options.subject,
-        html: options.html,
-        text: options.text,
+        html: htmlWithNotice,
+        text: textWithNotice,
         headers: {
           'Auto-Submitted': 'auto-generated',
           'X-Auto-Response-Suppress': 'All',

@@ -555,6 +555,9 @@ const ko: Record<string, string> = {
   "tab.my": "MY",
   "error.imageUploadFailed":
     "이미지 업로드에 실패했습니다. 문제가 계속되면 고객센터로 문의해주세요.",
+  "auth.sessionExpiredOtherDevice":
+    "다른 기기에서 로그인되어 현재 세션이 만료되었습니다.",
+  "auth.sessionExpiredReLogin": "세션이 만료되었습니다. 다시 로그인해주세요.",
 };
 
 const en: Record<string, string> = {
@@ -1115,6 +1118,10 @@ const en: Record<string, string> = {
   "tab.my": "MY",
   "error.imageUploadFailed":
     "Image upload failed. If the issue persists, please contact support.",
+  "auth.sessionExpiredOtherDevice":
+    "Your session has expired because you signed in on another device.",
+  "auth.sessionExpiredReLogin":
+    "Your session has expired. Please sign in again.",
 };
 
 const translations: Record<Language, Record<string, string>> = { ko, en };

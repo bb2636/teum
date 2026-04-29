@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /** 업로드 이미지 URL을 API 서빙 경로로 변환 (/storage/... → /api/storage/...) */
@@ -76,10 +78,11 @@ export async function apiRequest<T>(
     if (errorBody?.error?.code === 'SESSION_EXPIRED') {
       sessionStorage.setItem('teum_logged_out', '1');
       if (typeof window !== 'undefined') {
-        alert(errorBody.error.message || '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.');
+        // 백엔드 메시지(한국어 고정)는 무시하고 클라이언트 언어로 표시
+        alert(t('auth.sessionExpiredOtherDevice'));
         window.location.href = '/splash';
       }
-      const err = new Error(errorBody.error.message) as Error & { status?: number; code?: string };
+      const err = new Error(t('auth.sessionExpiredOtherDevice')) as Error & { status?: number; code?: string };
       err.status = 401;
       err.code = 'SESSION_EXPIRED';
       throw err;
@@ -105,10 +108,10 @@ export async function apiRequest<T>(
         if (retryError?.error?.code === 'SESSION_EXPIRED') {
           sessionStorage.setItem('teum_logged_out', '1');
           if (typeof window !== 'undefined') {
-            alert(retryError.error.message || '다른 기기에서 로그인되어 현재 세션이 만료되었습니다.');
+            alert(t('auth.sessionExpiredOtherDevice'));
             window.location.href = '/splash';
           }
-          throw new Error(retryError.error.message);
+          throw new Error(t('auth.sessionExpiredOtherDevice'));
         }
         if (endpoint === '/users/me') {
           const err = new Error('Unauthorized') as Error & { status?: number };
@@ -118,7 +121,7 @@ export async function apiRequest<T>(
         if (typeof window !== 'undefined') {
           window.location.href = '/splash';
         }
-        throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
+        throw new Error(t('auth.sessionExpiredReLogin'));
       }
 
       if (!retryResponse.ok) {

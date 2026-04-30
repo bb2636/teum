@@ -114,6 +114,9 @@ export function PaymentPage() {
 
   const [identityVerified, setIdentityVerified] = useState(false);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
+  // 모바일 키보드가 올라오면 visualViewport.height 가 줄어든다.
+  // 본인인증 모달이 키보드에 가려지지 않도록 키보드 높이만큼 모달 컨테이너 하단 패딩을 동적으로 추가한다.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [identityPhone, setIdentityPhone] = useState('');
   const [identityCode, setIdentityCode] = useState('');
   const [identityCodeSent, setIdentityCodeSent] = useState(false);
@@ -189,6 +192,27 @@ export function PaymentPage() {
       alert(appleIAP.error);
     }
   }, [appleIAP.error]);
+
+  // 본인인증 모달 표시 중 키보드 높이 추적 (iOS WKWebView 대응)
+  useEffect(() => {
+    if (!showIdentityModal) {
+      setKeyboardOffset(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardOffset(offset);
+    };
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, [showIdentityModal]);
 
   const handleStartPayPal = async () => {
     // ⚠️ iOS 가드 (App Store 가이드라인 3.1.1) — 어떤 경로로도 호출되지 않도록 한 번 더 차단
@@ -357,7 +381,10 @@ export function PaymentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-32">
+    <div
+      className="min-h-screen bg-white"
+      style={{ paddingBottom: 'calc(200px + env(safe-area-inset-bottom, 0px))' }}
+    >
       <div className="max-w-md mx-auto">
         <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between" style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <button
@@ -600,8 +627,18 @@ export function PaymentPage() {
       </div>
 
       {showIdentityModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4" onClick={() => setShowIdentityModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center animate-overlay-fade px-4 py-4 overflow-y-auto"
+          style={{
+            paddingBottom: `calc(${keyboardOffset}px + max(16px, env(safe-area-inset-bottom, 16px)))`,
+            transition: 'padding-bottom 0.2s ease-out',
+          }}
+          onClick={() => setShowIdentityModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('payment.identityVerification')}</h2>
               <button onClick={() => setShowIdentityModal(false)} className="p-2 rounded-full hover:bg-gray-100">

@@ -18,6 +18,7 @@ router.post('/apple/webhook', paymentController.appleWebhook.bind(paymentControl
 
 router.use(authenticate);
 
+router.post('/apple/precheck', paymentController.applePrecheck.bind(paymentController));
 router.post('/apple/verify-receipt', paymentController.appleVerifyReceipt.bind(paymentController));
 
 router.post('/init', paymentController.initPayment.bind(paymentController));

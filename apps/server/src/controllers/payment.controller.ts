@@ -139,6 +139,10 @@ const appleVerifyReceiptSchema = z.object({
   message: 'transactionId 또는 receipt가 필요합니다.',
 });
 
+const applePrecheckSchema = z.object({
+  productId: z.string().min(1),
+});
+
 const appleWebhookSchema = z.object({
   signedPayload: z.string().min(1),
 });
@@ -915,6 +919,28 @@ export class PaymentController {
 
       const input = appleVerifyReceiptSchema.parse(req.body);
       const result = await paymentService.verifyAppleTransaction(req.user.userId, input);
+
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 클라이언트가 Apple StoreKit 결제창을 띄우기 직전에 호출하는 PRE-CHECK.
+   * 본인인증 / 활성 구독 / productId 를 서버에서 검증해 결제 자체를 막는다.
+   */
+  async applePrecheck(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+      }
+
+      const input = applePrecheckSchema.parse(req.body);
+      const result = await paymentService.precheckApplePurchase(req.user.userId, input);
 
       return res.json({ success: true, data: result });
     } catch (error) {

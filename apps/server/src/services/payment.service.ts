@@ -1284,6 +1284,55 @@ export class PaymentService {
   }
 
   /**
+   * Apple IAP 결제 PRE-CHECK.
+   *
+   * 클라이언트가 Apple StoreKit 결제창(`store.order(offer)`)을 띄우기 *직전*에 호출한다.
+   * Apple IAP 는 우리가 임의로 환불/취소할 수 없으므로, "결제가 일어나기 전" 단계에서
+   * 막아야 한다 (verifyAppleTransaction 의 throw 는 이미 결제 완료 후라 늦음).
+   *
+   * 검증:
+   *  1) 본인인증 (최근 30일 내 휴대폰 인증)
+   *  2) productId 가 우리가 판매 중인 상품인지
+   *  3) 활성 구독이 이미 있는지
+   *
+   * verifyAppleTransaction 의 동일 가드는 클라이언트 우회 방어용으로 그대로 유지한다.
+   * (precheck 와 결제 완료 사이의 race 는 어쩔 수 없으므로 마지막 방어선이 필요)
+   */
+  async precheckApplePurchase(
+    userId: string,
+    input: { productId: string }
+  ): Promise<{ ok: true; productId: string }> {
+    if (!appleProvider.isEnabled()) {
+      throw new AppError('Apple in-app purchase is not configured', {
+        statusCode: 503,
+        code: 'APPLE_NOT_CONFIGURED',
+      });
+    }
+
+    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription02';
+    if (input.productId !== expectedProductId) {
+      logger.warn({ userId, requested: input.productId, expected: expectedProductId },
+        'Apple precheck: invalid productId');
+      throw new AppError('현재 판매 중인 상품이 아닙니다.', {
+        statusCode: 400,
+        code: 'INVALID_PRODUCT',
+      });
+    }
+
+    await this.assertIdentityVerified(userId);
+
+    const activeSubscription = await this.getActiveSubscription(userId);
+    if (activeSubscription) {
+      throw new AppError('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.', {
+        statusCode: 409,
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+      });
+    }
+
+    return { ok: true, productId: expectedProductId };
+  }
+
+  /**
    * Verify an Apple StoreKit transaction (transactionId) and create/refresh subscription.
    * Called from POST /api/payments/apple/verify-receipt after a successful in-app purchase.
    */

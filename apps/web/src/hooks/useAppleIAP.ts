@@ -101,7 +101,7 @@ export function useAppleIAP() {
                 return;
               }
               const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
-                '/api/payments/apple/verify-receipt',
+                '/payments/apple/verify-receipt',
                 {
                   method: 'POST',
                   body: JSON.stringify({ transactionId }),
@@ -189,10 +189,45 @@ export function useAppleIAP() {
       setError('구독 상품을 불러오지 못했습니다.');
       return;
     }
+
+    // ⚠️ Apple IAP 는 결제 후 우리가 환불/취소할 수 없다.
+    // 따라서 Apple StoreKit 결제창을 띄우기 *전*에 서버에서 본인인증 / 활성구독 / productId
+    // 를 미리 검증해 결제 자체를 막는다. (precheck 통과 시에만 store.order 호출)
     setPurchasing(true);
-    const result = await store.order(offer);
-    if (result && result.isError) {
-      setError(result.message || '결제에 실패했습니다.');
+    try {
+      await apiRequest('/payments/apple/precheck', {
+        method: 'POST',
+        body: JSON.stringify({ productId: APPLE_PRODUCT_ID }),
+      });
+    } catch (err) {
+      const anyErr = err as { code?: string; message?: string; status?: number };
+      const code = anyErr?.code;
+      let message = anyErr?.message || '결제를 시작할 수 없습니다.';
+      if (code === 'IDENTITY_VERIFICATION_REQUIRED') {
+        message = '결제 진행을 위해 본인인증이 필요합니다. 마이페이지에서 인증 후 다시 시도해주세요.';
+      } else if (code === 'ACTIVE_SUBSCRIPTION_EXISTS') {
+        message = '이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.';
+      } else if (code === 'INVALID_PRODUCT') {
+        message = '현재 판매 중인 상품이 아닙니다. 앱을 최신 버전으로 업데이트해주세요.';
+      } else if (code === 'APPLE_NOT_CONFIGURED') {
+        message = '앱 내 결제가 일시적으로 사용 불가능합니다.';
+      }
+      setError(message);
+      setPurchasing(false);
+      return;
+    }
+
+    // store.order 가 unhandled rejection 을 던질 수 있으므로 try/catch 로 보호
+    // (그렇지 않으면 purchasing 이 true 상태로 남아 버튼이 영구 잠김)
+    try {
+      const result = await store.order(offer);
+      if (result && result.isError) {
+        setError(result.message || '결제에 실패했습니다.');
+        setPurchasing(false);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '결제 요청에 실패했습니다.';
+      setError(message);
       setPurchasing(false);
     }
   }, [purchasing]);

@@ -50,6 +50,30 @@ function startAutoRenewal() {
   logger.info('Auto-renewal scheduler started (every 1 hour)');
 }
 
+// PayPal orphan sweep: 결제 콜백이 누락된 PayPal 구독(우리 DB 미등록 + PayPal ACTIVE)을
+// 보정한다. 1시간마다 실행하며, 5분 단위로 도는 paymentSessions cleanup 보다 충분히 한 박자
+// 늦게 잡혀 있어 정상 흐름에는 영향이 없고, 만료된 세션만 sweep 대상으로 본다.
+const PAYPAL_SWEEP_INTERVAL = 60 * 60 * 1000;
+let paypalSweepTimer: NodeJS.Timeout | null = null;
+
+function startPayPalSweep() {
+  if (paypalSweepTimer) return;
+  paypalSweepTimer = setInterval(async () => {
+    try {
+      await paymentService.sweepOrphanPayPalSubscriptions();
+    } catch (err) {
+      logger.error(
+        {
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        },
+        'PayPal orphan sweep error'
+      );
+    }
+  }, PAYPAL_SWEEP_INTERVAL);
+  logger.info('PayPal orphan sweep scheduler started (every 1 hour)');
+}
+
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled promise rejection', {
     error: reason instanceof Error ? reason.message : String(reason),
@@ -70,6 +94,7 @@ const server = app.listen(PORT, () => {
   startCleanupJob();
   startMusicPolling();
   startAutoRenewal();
+  startPayPalSweep();
 });
 
 let isShuttingDown = false;
@@ -87,6 +112,11 @@ async function gracefulShutdown(signal: string) {
   if (autoRenewalTimer) {
     clearInterval(autoRenewalTimer);
     autoRenewalTimer = null;
+  }
+
+  if (paypalSweepTimer) {
+    clearInterval(paypalSweepTimer);
+    paypalSweepTimer = null;
   }
 
   server.close(async () => {

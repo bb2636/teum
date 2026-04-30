@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { payments, subscriptions, paymentSessions, billingKeys, users, userProfiles } from '../db/schema';
-import { eq, desc, lt, and, lte, or, isNotNull } from 'drizzle-orm';
+import { eq, desc, lt, and, lte, or, isNotNull, isNull, ne } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { ProcessPaymentInput } from '../validations/payment';
 import { nicePayProvider } from './payment/nicepay.provider';
@@ -14,7 +14,17 @@ import { AppError } from '../middleware/error-handler';
 
 setInterval(async () => {
   try {
-    await db.delete(paymentSessions).where(lt(paymentSessions.expiresAt, new Date()));
+    // PayPal sweep job (1시간 주기) 가 처리할 때까지 PAYPAL + externalSubscriptionId row 는 보존한다.
+    // 이렇게 하지 않으면 5분 주기의 이 cleanup 이 sweep 보다 먼저 row 를 지워 sweep 이 무력화된다.
+    await db.delete(paymentSessions).where(
+      and(
+        lt(paymentSessions.expiresAt, new Date()),
+        or(
+          ne(paymentSessions.paymentMethod, 'PAYPAL'),
+          isNull(paymentSessions.externalSubscriptionId),
+        ),
+      ),
+    );
   } catch (e) {
     logger.error('Failed to cleanup expired payment sessions', { error: e });
   }
@@ -345,7 +355,32 @@ export class PaymentService {
 
       return { success: true, message: '결제가 완료되었습니다.' };
     } catch (error) {
-      logger.error({ error, orderId, tid }, 'Failed to process direct payment');
+      // 보상 처리: NicePay 카드 승인은 끝났는데 우리 DB 가 깨졌으므로 즉시 결제 취소한다.
+      // chargeWithBillingKey 와 동일한 비대칭 위험을 메운다.
+      // 단, idempotency guard: 동시 콜백/재시도/부분 unique 인덱스 충돌로 다른 요청이 이미 동일 tid 로
+      // 결제를 성공 기록한 경우엔 정상 결제를 취소하면 안 된다.
+      logger.error({ error, orderId, tid }, 'Failed to process direct payment, checking idempotency before compensation cancel');
+      try {
+        const [alreadyRecorded] = await db
+          .select({ id: payments.id, status: payments.status })
+          .from(payments)
+          .where(eq(payments.transactionId, tid))
+          .limit(1);
+        if (alreadyRecorded && alreadyRecorded.status === 'completed') {
+          logger.info(
+            { tid, orderId, paymentId: alreadyRecorded.id },
+            'NicePay direct payment already recorded as completed - skipping compensation cancel',
+          );
+          return { success: true, message: '결제가 완료되었습니다.' };
+        }
+        await nicePayProvider.cancelPayment(tid, serverAmount, '시스템 오류로 인한 자동 취소(direct payment activation)');
+        logger.warn({ tid, orderId, serverAmount }, 'NicePay direct payment compensation cancel succeeded');
+      } catch (cancelErr) {
+        logger.error(
+          { tid, orderId, error: cancelErr instanceof Error ? cancelErr.message : String(cancelErr) },
+          'NicePay direct payment compensation cancel failed - manual reconciliation required',
+        );
+      }
       return { success: false, message: '결제 처리 중 오류가 발생했습니다.' };
     }
   }
@@ -354,7 +389,13 @@ export class PaymentService {
     userId: string,
     bid: string,
     amount: number,
-    planName: string
+    planName: string,
+    /**
+     * 자동 갱신 호출 시 기존 active subscription 의 id 를 넘긴다.
+     * 트랜잭션 안에서 이 row 를 먼저 'expired' 로 UPDATE 한 뒤 새 active row 를 INSERT 하므로,
+     * `uniq_active_sub_per_user` 부분 unique 인덱스와 충돌하지 않는다.
+     */
+    previousSubscriptionId?: string
   ): Promise<{ success: boolean; message: string }> {
     const chargeOrderId = `ORDER_${Date.now()}_${userId.substring(0, 8)}`;
 
@@ -364,6 +405,14 @@ export class PaymentService {
       endDate.setMonth(endDate.getMonth() + 1);
 
       await db.transaction(async (tx) => {
+        // 자동 갱신: 기존 active 를 먼저 expired 처리하여 부분 unique 인덱스 충돌 방지.
+        if (previousSubscriptionId) {
+          await tx
+            .update(subscriptions)
+            .set({ status: 'expired', renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
+            .where(eq(subscriptions.id, previousSubscriptionId));
+        }
+
         const [payment] = await tx
           .insert(payments)
           .values({
@@ -442,6 +491,14 @@ export class PaymentService {
       endDate.setMonth(endDate.getMonth() + 1);
 
       await db.transaction(async (tx) => {
+        // 자동 갱신: 기존 active 를 먼저 expired 처리하여 부분 unique 인덱스 충돌 방지.
+        if (previousSubscriptionId) {
+          await tx
+            .update(subscriptions)
+            .set({ status: 'expired', renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
+            .where(eq(subscriptions.id, previousSubscriptionId));
+        }
+
         const [payment] = await tx
           .insert(payments)
           .values({
@@ -561,11 +618,15 @@ export class PaymentService {
 
         let result: { success: boolean; message: string } = { success: false, message: '' };
         for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
+          // sub.id 를 넘겨, chargeWithBillingKey 가 트랜잭션 안에서 기존 active 를 먼저
+          // expired 로 처리한 뒤 새 active 를 INSERT 하도록 한다.
+          // (uniq_active_sub_per_user 부분 unique 인덱스 충돌 방지)
           result = await this.chargeWithBillingKey(
             sub.userId,
             activeBillingKey.bid,
             currentAmount,
-            sub.planName
+            sub.planName,
+            sub.id,
           );
 
           if (result.success) break;
@@ -584,11 +645,9 @@ export class PaymentService {
         }
 
         if (result.success) {
-          await db
-            .update(subscriptions)
-            .set({ status: 'expired', renewalFailCount: 0, nextRetryAt: null, updatedAt: new Date() })
-            .where(eq(subscriptions.id, sub.id));
-
+          // 기존 sub 의 'expired' 처리는 이제 chargeWithBillingKey 의 트랜잭션 안에서 원자적으로 일어난다.
+          // 여기서 또 한 번 UPDATE 하면 이미 expired 인 row 를 다시 expired 로 쓰는 것이라 문제는 없지만,
+          // 의도와 흐름을 분명히 하기 위해 후처리는 남기지 않는다.
           logger.info({
             userId: sub.userId,
             oldSubscriptionId: sub.id,
@@ -1628,6 +1687,14 @@ export class PaymentService {
       orderId,
     );
 
+    // Sweep 보정용: 발급된 PayPal subscription id 를 세션에 기록.
+    // 사용자가 콜백 직전 브라우저를 닫는 등으로 활성화가 누락된 경우, sweep job 이
+    // 이 컬럼을 단서로 PayPal 측 상태를 조회하여 활성/취소를 보정한다.
+    await db
+      .update(paymentSessions)
+      .set({ externalSubscriptionId: result.subscriptionId })
+      .where(eq(paymentSessions.orderId, orderId));
+
     // 사용자 앱 언어에 맞춰 PayPal 결제 페이지 UI 언어를 동적으로 지정.
     // 과거 en_US 강제로 인해 한국 사용자가 영어 페이지에 당황해 취소하는 문제를 해결.
     // locale 조회 실패는 결제 흐름을 막지 않고 en_US fallback.
@@ -1768,13 +1835,166 @@ export class PaymentService {
 
       return { success: true, message: 'Subscription activated successfully.' };
     } catch (error) {
-      logger.error({ error, internalOrderId, paypalSubscriptionId }, 'Failed to process PayPal subscription');
+      // 보상 처리: DB 활성화에 실패했으므로 PayPal 쪽 구독을 즉시 취소한다.
+      // 이렇게 하지 않으면 사용자 카드는 매월 빠지는데 우리 DB 에는 구독이 없는 "돈 먹튀" 상태가 된다.
+      // 단, idempotency guard: 동시 콜백/재시도/부분 unique 인덱스 충돌로 다른 요청이 이미 동일
+      // paypalSubscriptionId 로 구독을 활성화한 경우엔 정상 구독을 취소하면 안 된다.
+      logger.error({ error, internalOrderId, paypalSubscriptionId }, 'Failed to process PayPal subscription, checking idempotency before compensation cancel');
+      try {
+        const [alreadyActive] = await db
+          .select({ id: subscriptions.id, status: subscriptions.status })
+          .from(subscriptions)
+          .where(eq(subscriptions.paypalSubscriptionId, paypalSubscriptionId))
+          .limit(1);
+        if (alreadyActive && alreadyActive.status === 'active') {
+          logger.info(
+            { paypalSubscriptionId, internalOrderId, subscriptionId: alreadyActive.id },
+            'PayPal subscription already activated by concurrent request - skipping compensation cancel',
+          );
+          return { success: true, message: 'Subscription already activated.' };
+        }
+        const cancelled = await paypalProvider.cancelSubscription(
+          paypalSubscriptionId,
+          'Compensation: server-side activation failed',
+        );
+        logger.warn(
+          { paypalSubscriptionId, internalOrderId, cancelled },
+          'PayPal subscription compensation cancel result',
+        );
+      } catch (cancelErr) {
+        logger.error(
+          { paypalSubscriptionId, internalOrderId, error: cancelErr instanceof Error ? cancelErr.message : String(cancelErr) },
+          'PayPal compensation cancel failed - manual reconciliation required',
+        );
+      }
       return { success: false, message: 'Failed to process subscription.' };
     }
   }
 
   async cancelPayPalSubscription(paypalSubscriptionId: string): Promise<boolean> {
     return await paypalProvider.cancelSubscription(paypalSubscriptionId);
+  }
+
+  /**
+   * Daily sweep: 결제 콜백(paypalReturn)이 누락된 PayPal 구독을 보정한다.
+   *
+   * 동기:
+   *  - 사용자가 PayPal 결제 후 브라우저를 닫거나 네트워크가 끊어지면, PayPal 쪽에는 ACTIVE 구독이
+   *    생성되지만 우리 DB 의 subscriptions 테이블에는 아무 레코드도 만들어지지 않는다.
+   *  - 다음 결제 시도 시 PayPal 에 같은 사용자에 대해 또 다른 구독이 만들어져 매월 이중 청구가 된다.
+   *
+   * 동작:
+   *  - paymentSessions 중 paymentMethod = 'PAYPAL' 이고 externalSubscriptionId 가 기록된 row 를 순회한다.
+   *  - 이미 subscriptions 테이블에 같은 paypalSubscriptionId 로 active 구독이 있으면 session 만 정리한다.
+   *  - PayPal API 로 상태를 조회하여:
+   *      - ACTIVE/APPROVED → 보수적으로 자동 cancel + session 정리 (운영 알림용 로그 남김)
+   *        (자동 활성화는 사용자 의도/금액 검증이 어렵고, 미활성 → 단순 환불이 안전한 경로)
+   *      - 그 외 (CANCELLED/EXPIRED/SUSPENDED 등) → session 만 정리
+   *  - PayPal 호출 실패 시 다음 sweep 에서 재시도하도록 그대로 둔다.
+   */
+  async sweepOrphanPayPalSubscriptions(): Promise<{ scanned: number; cancelled: number; cleaned: number; errors: number }> {
+    const stats = { scanned: 0, cancelled: 0, cleaned: 0, errors: 0 };
+
+    // 만료된 세션만 sweep 대상으로 본다 (정상 흐름은 30분 안에 처리되므로,
+    // 만료 후에도 남아있다는 것은 콜백이 안 도달했음을 의미).
+    const orphanSessions = await db
+      .select()
+      .from(paymentSessions)
+      .where(
+        and(
+          eq(paymentSessions.paymentMethod, 'PAYPAL'),
+          isNotNull(paymentSessions.externalSubscriptionId),
+          lt(paymentSessions.expiresAt, new Date()),
+        ),
+      );
+
+    stats.scanned = orphanSessions.length;
+    if (orphanSessions.length === 0) return stats;
+
+    logger.info({ count: orphanSessions.length }, 'PayPal orphan sweep: scanning expired sessions with external id');
+
+    for (const session of orphanSessions) {
+      const paypalSubscriptionId = session.externalSubscriptionId!;
+      try {
+        // 이미 활성화에 성공해 subscriptions 에 기록된 경우 → 세션만 정리
+        const [existing] = await db
+          .select({ id: subscriptions.id })
+          .from(subscriptions)
+          .where(eq(subscriptions.paypalSubscriptionId, paypalSubscriptionId))
+          .limit(1);
+
+        if (existing) {
+          await this.deletePendingSession(session.orderId);
+          stats.cleaned += 1;
+          continue;
+        }
+
+        // PayPal 측 실제 상태 확인
+        let details;
+        try {
+          details = await paypalProvider.getSubscriptionDetails(paypalSubscriptionId);
+        } catch (apiErr) {
+          stats.errors += 1;
+          logger.warn(
+            {
+              orderId: session.orderId,
+              paypalSubscriptionId,
+              error: apiErr instanceof Error ? apiErr.message : String(apiErr),
+            },
+            'PayPal sweep: status check failed, will retry next run',
+          );
+          continue;
+        }
+
+        // ACTIVE / APPROVED 면 우리 시스템에는 없는 "유령" 구독 → 보상 cancel
+        if (details.status === 'ACTIVE' || details.status === 'APPROVED') {
+          const cancelled = await paypalProvider.cancelSubscription(
+            paypalSubscriptionId,
+            'Compensation: callback missing, no matching subscription in our system',
+          );
+          if (cancelled) {
+            await this.deletePendingSession(session.orderId);
+            stats.cancelled += 1;
+            logger.warn(
+              {
+                orderId: session.orderId,
+                userId: session.userId,
+                paypalSubscriptionId,
+                paypalStatus: details.status,
+              },
+              'PayPal sweep: orphan subscription auto-cancelled (callback missing)',
+            );
+          } else {
+            stats.errors += 1;
+            logger.error(
+              { orderId: session.orderId, paypalSubscriptionId },
+              'PayPal sweep: orphan cancel failed, manual reconciliation required',
+            );
+          }
+        } else {
+          // 이미 PayPal 측에서도 종결된 상태 → 세션만 정리
+          await this.deletePendingSession(session.orderId);
+          stats.cleaned += 1;
+          logger.info(
+            { orderId: session.orderId, paypalSubscriptionId, paypalStatus: details.status },
+            'PayPal sweep: session cleaned (PayPal side already terminal)',
+          );
+        }
+      } catch (err) {
+        stats.errors += 1;
+        logger.error(
+          {
+            orderId: session.orderId,
+            paypalSubscriptionId,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          'PayPal sweep: unexpected error processing orphan session',
+        );
+      }
+    }
+
+    logger.info(stats, 'PayPal orphan sweep finished');
+    return stats;
   }
 }
 

@@ -269,14 +269,38 @@ export class PayPalProvider {
       body: JSON.stringify({ reason }),
     });
 
-    if (!response.ok && response.status !== 204) {
-      const text = await response.text();
-      logger.error({ status: response.status, body: text, subscriptionId }, 'PayPal cancel subscription failed');
-      return false;
+    if (response.ok || response.status === 204) {
+      logger.info({ subscriptionId }, 'PayPal subscription cancelled');
+      return true;
     }
 
-    logger.info({ subscriptionId }, 'PayPal subscription cancelled');
-    return true;
+    // Idempotency: 이미 CANCELLED/EXPIRED 등 terminal 상태이면 PayPal 은 422 + SUBSCRIPTION_STATUS_INVALID
+    // 류 응답을 준다. 보상 cancel 입장에서는 이미 종결된 상태도 "성공"으로 봐야 안전하다.
+    const text = await response.text();
+    if (response.status === 422) {
+      try {
+        const details = await this.getSubscriptionDetails(subscriptionId);
+        if (
+          details.status === 'CANCELLED' ||
+          details.status === 'EXPIRED' ||
+          details.status === 'SUSPENDED'
+        ) {
+          logger.info(
+            { subscriptionId, paypalStatus: details.status },
+            'PayPal subscription already in terminal state, treating cancel as idempotent success',
+          );
+          return true;
+        }
+      } catch (verifyErr) {
+        logger.warn(
+          { subscriptionId, error: verifyErr instanceof Error ? verifyErr.message : String(verifyErr) },
+          'PayPal cancel 422 + status verification failed',
+        );
+      }
+    }
+
+    logger.error({ status: response.status, body: text, subscriptionId }, 'PayPal cancel subscription failed');
+    return false;
   }
 
   async verifyWebhookSignature(

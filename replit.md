@@ -69,7 +69,8 @@ teum/
 - **App ID**: `ca-app-pub-3503508648798732~4006393534`
 - **Interstitial Ad Unit**: `ca-app-pub-3503508648798732/4090154015`
 - **Config locations**: `AndroidManifest.xml` (meta-data), `capacitor.config.ts` (AdMob plugin), `AdModal.tsx` (ad unit ID)
-- **Behavior**: Native (Android) → real AdMob interstitial; Web → 5초 countdown fallback UI
+- **Behavior**: Native (Android) → real AdMob interstitial; iOS → 테스트 광고 (자체 ID 미발급); Web → 5초 countdown fallback UI
+- **Testing flag**: `AdMob.initialize({ initializeForTesting })` 는 platform 분기 — Android `false`(실광고), iOS `true`(테스트)
 - **Trigger**: Free users see interstitial ad from 4th diary onwards before save
 
 ### 6. Payments (NicePay + PayPal)

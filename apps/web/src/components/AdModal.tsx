@@ -11,12 +11,16 @@ interface AdModalProps {
 
 const AD_DURATION_SECONDS = 5;
 const AD_LOAD_TIMEOUT_MS = 15000;
-const ADMOB_ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
+const ADMOB_ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3503508648798732/4090154015';
 const ADMOB_IOS_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/4411468910';
 
 function getInterstitialAdId(): string {
   const platform = Capacitor.getPlatform();
   return platform === 'ios' ? ADMOB_IOS_INTERSTITIAL_ID : ADMOB_ANDROID_INTERSTITIAL_ID;
+}
+
+function shouldInitializeForTesting(): boolean {
+  return Capacitor.getPlatform() === 'ios';
 }
 
 interface AdDebugInfo {
@@ -57,7 +61,7 @@ async function runNativeAdFlow(): Promise<AdFlowResult> {
 
     L('Step 1: AdMob.initialize START');
     try {
-      await AdMob.initialize({ initializeForTesting: true });
+      await AdMob.initialize({ initializeForTesting: shouldInitializeForTesting() });
       debug.initialized = true;
       L('Step 1: AdMob.initialize DONE');
     } catch (e) {

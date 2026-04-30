@@ -467,6 +467,8 @@ const ko: Record<string, string> = {
   "payment.mobilePayment": "휴대폰 결제",
   "payment.paymentNote": "결제 버튼을 누르면 나이스페이 결제창이 열립니다.",
   "payment.appStoreNote": "결제 버튼을 누르면 App Store 결제창이 열립니다.",
+  "payment.iosOnlyAppStore": "iOS 앱에서는 App Store 결제만 사용할 수 있습니다.",
+  "payment.loadingAppStore": "App Store 결제 정보를 불러오는 중...",
   "payment.processing": "결제 처리 중...",
   "payment.startMonthly": "월 {amount}원으로 시작하기",
   "payment.won": "원",
@@ -1026,6 +1028,8 @@ const en: Record<string, string> = {
     "Pressing the payment button will open the NicePay window.",
   "payment.appStoreNote":
     "Pressing the payment button will open the App Store payment sheet.",
+  "payment.iosOnlyAppStore": "Only App Store payment is available in the iOS app.",
+  "payment.loadingAppStore": "Loading App Store payment info...",
   "payment.processing": "Processing...",
   "payment.startMonthly": "Start at ${amount}/month",
   "payment.won": "",

@@ -85,12 +85,29 @@ export function PaymentPage() {
   }, []);
 
   const appleIAP = useAppleIAP();
-  const defaultMethod: PaymentMethodType = appleIAP.available
+
+  // ⚠️ Apple App Store 가이드라인 3.1.1:
+  // iOS 앱에서는 앱 내 결제(IAP) 외 결제 수단(PayPal/NicePay 등)을 절대 노출/사용하면 안 됨.
+  // → iOS 빌드에서는 'apple' 만 허용. PayPal/NicePay UI 와 호출 모두 차단.
+  const isIOS = Capacitor.getPlatform() === 'ios';
+
+  const defaultMethod: PaymentMethodType = isIOS
     ? 'apple'
-    : isKorean
-      ? 'nicepay'
-      : 'paypal';
+    : appleIAP.available
+      ? 'apple'
+      : isKorean
+        ? 'nicepay'
+        : 'paypal';
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>(defaultMethod);
+
+  // ⚠️ iOS 안전벨트: 어떤 코드 경로로든 paymentMethod 가 'apple' 외 값이 되면 즉시 복원
+  // (현재 UI 상 드리프트 경로는 없으나, 향후 회귀 방어용)
+  useEffect(() => {
+    if (isIOS && paymentMethod !== 'apple') {
+      setPaymentMethod('apple');
+    }
+  }, [isIOS, paymentMethod]);
+
   const [cardCode, setCardCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTermsSheet, setShowTermsSheet] = useState(false);
@@ -120,10 +137,11 @@ export function PaymentPage() {
     return `${y}.${m}.${d}`;
   }, []);
 
-  const isButtonEnabled =
-    paymentMethod === 'paypal' ||
-    (paymentMethod === 'apple' && appleIAP.ready) ||
-    !!cardCode;
+  const isButtonEnabled = isIOS
+    ? paymentMethod === 'apple' && appleIAP.ready
+    : paymentMethod === 'paypal' ||
+      (paymentMethod === 'apple' && appleIAP.ready) ||
+      !!cardCode;
 
   const handlePaymentClick = () => {
     if (paymentMethod === 'nicepay' && !cardCode) {
@@ -141,6 +159,11 @@ export function PaymentPage() {
       }
       if (needsVerificationData && !identityVerified) {
         setShowIdentityModal(true);
+        return;
+      }
+      // ⚠️ iOS 는 Apple IAP 만 허용 (App Store 가이드라인 3.1.1)
+      if (isIOS) {
+        handleStartApple();
         return;
       }
       if (paymentMethod === 'paypal') {
@@ -168,6 +191,11 @@ export function PaymentPage() {
   }, [appleIAP.error]);
 
   const handleStartPayPal = async () => {
+    // ⚠️ iOS 가드 (App Store 가이드라인 3.1.1) — 어떤 경로로도 호출되지 않도록 한 번 더 차단
+    if (isIOS) {
+      alert(t('payment.iosOnlyAppStore'));
+      return;
+    }
     setIsProcessing(true);
     try {
       const isNative = Capacitor.isNativePlatform();
@@ -188,6 +216,11 @@ export function PaymentPage() {
   };
 
   const handleStartBillingRegistration = async () => {
+    // ⚠️ iOS 가드 (App Store 가이드라인 3.1.1) — 어떤 경로로도 호출되지 않도록 한 번 더 차단
+    if (isIOS) {
+      alert(t('payment.iosOnlyAppStore'));
+      return;
+    }
     setIsProcessing(true);
 
     try {
@@ -306,6 +339,11 @@ export function PaymentPage() {
       setIdentityVerified(true);
       setShowIdentityModal(false);
       setIdentityCode('');
+      // ⚠️ iOS 는 Apple IAP 만 허용 (App Store 가이드라인 3.1.1)
+      if (isIOS) {
+        handleStartApple();
+        return;
+      }
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
       } else if (paymentMethod === 'apple') {
@@ -418,71 +456,91 @@ export function PaymentPage() {
             <h2 className="text-base font-semibold text-[#4A2C1A] mb-4">{t('payment.method')}</h2>
 
             <div className="space-y-3 mb-4">
-              {appleIAP.available && (
-                <button
-                  onClick={() => setPaymentMethod('apple')}
-                  className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === 'apple'
-                      ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
+              {/* ⚠️ iOS 빌드: Apple IAP 만 노출 (App Store 가이드라인 3.1.1) */}
+              {isIOS ? (
+                <div
+                  className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-[#4A2C1A] bg-[#4A2C1A]/5"
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    paymentMethod === 'apple' ? 'border-[#4A2C1A]' : 'border-gray-300'
-                  }`}>
-                    {paymentMethod === 'apple' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
+                  <div className="w-5 h-5 rounded-full border-2 border-[#4A2C1A] flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />
                   </div>
                   <CreditCard className="w-5 h-5 text-[#4A2C1A]" />
                   <div className="flex-1 text-left">
                     <p className="font-medium text-[#4A2C1A]">App Store</p>
                     <p className="text-xs text-gray-500">
-                      {appleIAP.product?.price || (appleIAP.ready ? 'Apple ID' : '불러오는 중...')}
+                      {appleIAP.product?.price || (appleIAP.ready ? 'Apple ID' : t('payment.loadingAppStore'))}
                     </p>
                   </div>
-                </button>
-              )}
-              <button
-                onClick={() => setPaymentMethod('nicepay')}
-                className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'nicepay'
-                    ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  paymentMethod === 'nicepay' ? 'border-[#4A2C1A]' : 'border-gray-300'
-                }`}>
-                  {paymentMethod === 'nicepay' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
                 </div>
-                <CreditCard className="w-5 h-5 text-[#4A2C1A]" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</p>
-                  <p className="text-xs text-gray-500">{t('payment.koreanCards')}</p>
-                </div>
-              </button>
+              ) : (
+                <>
+                  {appleIAP.available && (
+                    <button
+                      onClick={() => setPaymentMethod('apple')}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                        paymentMethod === 'apple'
+                          ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        paymentMethod === 'apple' ? 'border-[#4A2C1A]' : 'border-gray-300'
+                      }`}>
+                        {paymentMethod === 'apple' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
+                      </div>
+                      <CreditCard className="w-5 h-5 text-[#4A2C1A]" />
+                      <div className="flex-1 text-left">
+                        <p className="font-medium text-[#4A2C1A]">App Store</p>
+                        <p className="text-xs text-gray-500">
+                          {appleIAP.product?.price || (appleIAP.ready ? 'Apple ID' : t('payment.loadingAppStore'))}
+                        </p>
+                      </div>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setPaymentMethod('nicepay')}
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === 'nicepay'
+                        ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      paymentMethod === 'nicepay' ? 'border-[#4A2C1A]' : 'border-gray-300'
+                    }`}>
+                      {paymentMethod === 'nicepay' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
+                    </div>
+                    <CreditCard className="w-5 h-5 text-[#4A2C1A]" />
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-[#4A2C1A]">{t('payment.creditDebitCard')}</p>
+                      <p className="text-xs text-gray-500">{t('payment.koreanCards')}</p>
+                    </div>
+                  </button>
 
-              <button
-                onClick={() => setPaymentMethod('paypal')}
-                className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'paypal'
-                    ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  paymentMethod === 'paypal' ? 'border-[#4A2C1A]' : 'border-gray-300'
-                }`}>
-                  {paymentMethod === 'paypal' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
-                </div>
-                <Globe className="w-5 h-5 text-[#003087]" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-[#4A2C1A]">PayPal</p>
-                  <p className="text-xs text-gray-500">USD ${ (planPrice?.usd ?? 3.99).toFixed(2) }</p>
-                </div>
-              </button>
+                  <button
+                    onClick={() => setPaymentMethod('paypal')}
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === 'paypal'
+                        ? 'border-[#4A2C1A] bg-[#4A2C1A]/5'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      paymentMethod === 'paypal' ? 'border-[#4A2C1A]' : 'border-gray-300'
+                    }`}>
+                      {paymentMethod === 'paypal' && <div className="w-2.5 h-2.5 rounded-full bg-[#4A2C1A]" />}
+                    </div>
+                    <Globe className="w-5 h-5 text-[#003087]" />
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-[#4A2C1A]">PayPal</p>
+                      <p className="text-xs text-gray-500">USD ${ (planPrice?.usd ?? 3.99).toFixed(2) }</p>
+                    </div>
+                  </button>
+                </>
+              )}
             </div>
 
-            {paymentMethod === 'nicepay' && (
+            {!isIOS && paymentMethod === 'nicepay' && (
               <div className="space-y-3">
                 <div className="relative">
                   <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between pointer-events-none">

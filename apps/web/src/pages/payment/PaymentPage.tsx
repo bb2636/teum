@@ -628,8 +628,10 @@ export function PaymentPage() {
 
       {showIdentityModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center animate-overlay-fade px-4 py-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4 py-4 overflow-y-auto"
           style={{
+            // 키보드가 올라오면 paddingBottom 으로 가용 영역을 위쪽으로 줄여,
+            // items-center 가 모달을 자동으로 키보드 위쪽 중앙에 재배치하도록 한다.
             paddingBottom: `calc(${keyboardOffset}px + max(16px, env(safe-area-inset-bottom, 16px)))`,
             transition: 'padding-bottom 0.2s ease-out',
           }}

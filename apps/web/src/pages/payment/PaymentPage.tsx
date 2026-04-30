@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, BookOpen, FileText, Headphones, X, CreditCard, Globe } from 'lucide-react';
 import { useInitBillingKey, useInitPayPal, usePlanPrice, useNeedsVerification } from '@/hooks/usePayment';
@@ -115,8 +115,10 @@ export function PaymentPage() {
   const [identityVerified, setIdentityVerified] = useState(false);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   // 모바일 키보드가 올라오면 visualViewport.height 가 줄어든다.
-  // 본인인증 모달이 키보드에 가려지지 않도록 키보드 높이만큼 모달 컨테이너 하단 패딩을 동적으로 추가한다.
+  // 본인인증 모달이 키보드에 가려지지 않도록 키보드 높이만큼 모달 컨테이너 하단 패딩을 동적으로 추가하고,
+  // 모달 카드의 max-height 도 가용 영역에 맞춰 줄여 모달 안의 인증번호 input 이 키보드 뒤로 들어가지 않게 한다.
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const codeInputRef = useRef<HTMLInputElement>(null);
   const [identityPhone, setIdentityPhone] = useState('');
   const [identityCode, setIdentityCode] = useState('');
   const [identityCodeSent, setIdentityCodeSent] = useState(false);
@@ -213,6 +215,22 @@ export function PaymentPage() {
       vv.removeEventListener('scroll', onResize);
     };
   }, [showIdentityModal]);
+
+  // 인증번호 입력란이 등장하면 자동으로 focus + 모달 내부에서 보이는 위치로 스크롤한다.
+  useEffect(() => {
+    if (!identityCodeSent) return;
+    const t = setTimeout(() => {
+      const el = codeInputRef.current;
+      if (!el) return;
+      try {
+        el.focus({ preventScroll: true });
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch {
+        // ignore
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [identityCodeSent]);
 
   const handleStartPayPal = async () => {
     // ⚠️ iOS 가드 (App Store 가이드라인 3.1.1) — 어떤 경로로도 호출되지 않도록 한 번 더 차단
@@ -638,7 +656,15 @@ export function PaymentPage() {
           onClick={() => setShowIdentityModal(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop max-h-[85vh] overflow-y-auto"
+            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop overflow-y-auto"
+            style={{
+              // 키보드가 올라오면 가용 viewport 영역 안쪽으로 모달 카드 자체를 축소시켜
+              // 모달이 키보드 영역을 절대 침범하지 않도록 한다. (overflow-y-auto 로 내부 스크롤)
+              maxHeight: keyboardOffset > 0
+                ? `calc(100vh - ${keyboardOffset}px - 64px)`
+                : '85vh',
+              transition: 'max-height 0.2s ease-out',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -702,10 +728,17 @@ export function PaymentPage() {
               <div className="space-y-2">
                 <Label htmlFor="identityCode">{t('auth.verificationCode')}</Label>
                 <Input
+                  ref={codeInputRef}
                   id="identityCode"
                   type="text"
                   value={identityCode}
                   onChange={(e) => setIdentityCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onFocus={() => {
+                    // 키보드가 input 을 가리지 않도록 모달 내부에서 input 위치를 화면 중앙으로 스크롤
+                    setTimeout(() => {
+                      codeInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                  }}
                   placeholder={t('auth.enterVerificationCode')}
                   maxLength={6}
                   className="text-center text-lg tracking-widest focus:placeholder-transparent"

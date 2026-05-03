@@ -1291,12 +1291,13 @@ export class PaymentService {
    * 막아야 한다 (verifyAppleTransaction 의 throw 는 이미 결제 완료 후라 늦음).
    *
    * 검증:
-   *  1) 본인인증 (최근 30일 내 휴대폰 인증)
-   *  2) productId 가 우리가 판매 중인 상품인지
-   *  3) 활성 구독이 이미 있는지
+   *  1) productId 가 우리가 판매 중인 상품인지
+   *  2) 활성 구독이 이미 있는지
    *
-   * verifyAppleTransaction 의 동일 가드는 클라이언트 우회 방어용으로 그대로 유지한다.
-   * (precheck 와 결제 완료 사이의 race 는 어쩔 수 없으므로 마지막 방어선이 필요)
+   * ⚠️ 본인인증은 요구하지 않는다.
+   *   - Apple IAP 는 Apple ID 인증(Face ID/Touch ID/암호) 으로 이미 본인 확인이 완료된 결제다.
+   *   - Apple 리뷰팀 거절 사유: 본인인증 단계에서 오류가 나면 결제 자체가 막힘.
+   *   - PayPal 과 동일 정책 (해외/글로벌 결제수단은 휴대폰 본인인증 면제).
    */
   async precheckApplePurchase(
     userId: string,
@@ -1318,8 +1319,6 @@ export class PaymentService {
         code: 'INVALID_PRODUCT',
       });
     }
-
-    await this.assertIdentityVerified(userId);
 
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
@@ -1348,11 +1347,11 @@ export class PaymentService {
       throw new Error('transactionId 또는 receipt가 필요합니다.');
     }
 
-    // 정책: 모든 결제 전 본인인증 필수 (NicePay/PayPal과 동일)
-    // Apple IAP는 이미 결제가 일어난 뒤 영수증을 검증하는 단계이므로,
-    // 여기서 차단되면 사용자는 Apple에 결제했지만 구독이 등록되지 않는다.
-    // 클라이언트 게이트가 우회된 경우의 마지막 방어선.
-    await this.assertIdentityVerified(userId);
+    // ⚠️ Apple IAP 는 본인인증을 요구하지 않는다.
+    //   - Apple ID 인증으로 이미 본인 확인이 완료된 결제이며,
+    //   - 이 시점은 이미 Apple 에 결제가 완료된 상태이므로 여기서 차단하면
+    //     사용자가 결제는 했는데 구독이 등록되지 않는 사고가 발생한다.
+    //   - precheckApplePurchase 와 동일 정책 (PayPal 과 동일).
 
     const verified = input.transactionId
       ? await appleProvider.verifyTransactionId(input.transactionId)

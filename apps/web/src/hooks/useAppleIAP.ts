@@ -204,7 +204,9 @@ export function useAppleIAP() {
       const code = anyErr?.code;
       let message = anyErr?.message || '결제를 시작할 수 없습니다.';
       if (code === 'IDENTITY_VERIFICATION_REQUIRED') {
-        message = '결제 진행을 위해 본인인증이 필요합니다. 마이페이지에서 인증 후 다시 시도해주세요.';
+        // Apple IAP 는 본인인증 면제 정책으로 변경됨. 이 분기는 더 이상 도달하지 않지만
+        // 혹시 모를 캐시된 클라이언트/구버전 서버 호환을 위한 안내 문구만 정리.
+        message = '결제를 진행할 수 없습니다. 잠시 후 다시 시도해주세요.';
       } else if (code === 'ACTIVE_SUBSCRIPTION_EXISTS') {
         message = '이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.';
       } else if (code === 'INVALID_PRODUCT') {

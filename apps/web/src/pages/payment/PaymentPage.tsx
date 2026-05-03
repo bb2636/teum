@@ -162,13 +162,16 @@ export function PaymentPage() {
       if (isVerificationLoading) {
         return;
       }
-      if (needsVerificationData && !identityVerified) {
-        setShowIdentityModal(true);
-        return;
-      }
       // ⚠️ iOS 는 Apple IAP 만 허용 (App Store 가이드라인 3.1.1)
+      // Apple IAP 결제는 이미 Apple ID 인증(Face ID/암호)으로 본인 확인이 완료된 결제이므로,
+      // iOS 에서는 별도의 전화번호 본인인증을 요구하지 않는다.
+      // (Apple 리뷰팀 거절 사유 회피: 본인인증 단계에서 오류가 발생하여 결제 진입 불가)
       if (isIOS) {
         handleStartApple();
+        return;
+      }
+      if (needsVerificationData && !identityVerified) {
+        setShowIdentityModal(true);
         return;
       }
       if (paymentMethod === 'paypal') {

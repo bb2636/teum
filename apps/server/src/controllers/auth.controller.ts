@@ -680,7 +680,18 @@ export class AuthController {
 
       let userData: { email?: string; name?: { firstName?: string; lastName?: string } } | undefined;
       if (userJson) {
-        try { userData = JSON.parse(userJson); } catch (e) { logger.warn('Failed to parse Apple user JSON', { error: e instanceof Error ? e.message : String(e) }); }
+        try {
+          userData = JSON.parse(userJson);
+          logger.info({
+            hasEmail: !!userData?.email,
+            hasFirstName: !!userData?.name?.firstName,
+            hasLastName: !!userData?.name?.lastName,
+          }, 'Apple OAuth callback: user JSON received from Apple (first authorization)');
+        } catch (e) {
+          logger.warn('Failed to parse Apple user JSON', { error: e instanceof Error ? e.message : String(e) });
+        }
+      } else {
+        logger.info('Apple OAuth callback: no user JSON in form_post body (subsequent authorization OR Apple omitted user — name will not be prefilled)');
       }
 
       res.clearCookie('accessToken', { path: '/' });

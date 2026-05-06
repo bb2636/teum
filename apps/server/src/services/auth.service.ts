@@ -545,10 +545,11 @@ export class AuthService {
       }
     }
 
-    const isEmailHidden = !email || email.includes('privaterelay.appleid.com');
+    // Apple Human Interface Guidelines: 사용자에게 다시 받지 말고 Apple 이 제공한 값(hidden relay 포함)을 그대로 사용한다.
+    const isEmailHidden = !!email && email.includes('privaterelay.appleid.com');
 
     const onboardingToken = jwt.sign(
-      { provider: 'apple', providerAccountId: appleId, email: isEmailHidden ? '' : email, name, isEmailHidden },
+      { provider: 'apple', providerAccountId: appleId, email, name, isEmailHidden },
       process.env.JWT_SECRET!,
       { expiresIn: '30m' }
     );
@@ -559,7 +560,7 @@ export class AuthService {
       socialProfile: {
         provider: 'apple' as const,
         providerAccountId: appleId,
-        email: isEmailHidden ? '' : email,
+        email,
         name,
         isEmailHidden,
       },
@@ -579,7 +580,11 @@ export class AuthService {
     const tokenEmail = tokenPayload.email as string;
     const isEmailHidden = tokenPayload.isEmailHidden === true;
 
-    const email = input.email ? input.email : tokenEmail;
+    // Apple Human Interface Guidelines: Apple 이 이미 제공한 email 은 client 입력으로 덮어쓰지 않는다.
+    // 단 Apple 이 email 을 주지 않은 경우(빈 값) 에만 client 가 보낸 값을 fallback 으로 사용한다.
+    const email = provider === 'apple'
+      ? (tokenEmail || input.email || '')
+      : (input.email ? input.email : tokenEmail);
 
     logger.info('Social onboarding', { provider, email });
 

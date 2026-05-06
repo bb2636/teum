@@ -578,11 +578,17 @@ export class AuthService {
     const provider = tokenPayload.provider as 'google' | 'apple';
     const providerAccountId = tokenPayload.providerAccountId as string;
     const tokenEmail = tokenPayload.email as string;
+    const tokenName = (tokenPayload.name as string) || '';
     const isEmailHidden = tokenPayload.isEmailHidden === true;
 
-    // Apple 의 경우 사용자가 prefilled email 을 수정할 수 있으므로 client 입력값을 우선 적용한다.
-    // (Apple 이 email 을 제공하지 않았고 사용자도 비운 경우엔 빈 문자열로 진행)
-    const email = input.email ? input.email : (tokenEmail || '');
+    // Apple HIG: Authentication Services 가 제공한 email/name 은 client 가 덮어쓰지 못하게 한다.
+    // (Apple 이 값을 주지 않은 경우에만 client 가 보낸 fallback 사용)
+    const email = provider === 'apple'
+      ? (tokenEmail || input.email || '')
+      : (input.email ? input.email : tokenEmail);
+    const name = provider === 'apple'
+      ? (tokenName || input.name || '')
+      : input.name;
 
     logger.info('Social onboarding', { provider, email });
 
@@ -612,7 +618,7 @@ export class AuthService {
     await userRepository.createProfile({
       userId: user.id,
       nickname: input.nickname,
-      name: input.name,
+      name,
       phone: input.phone,
       dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
       language: input.language || 'ko',

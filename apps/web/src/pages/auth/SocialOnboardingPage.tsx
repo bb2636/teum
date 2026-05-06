@@ -98,16 +98,11 @@ export function SocialOnboardingPage() {
   const [countrySearch, setCountrySearch] = useState('');
 
   const isAppleProvider = socialProfile?.provider === 'apple';
-  const isAppleHiddenEmail = isAppleProvider && socialProfile?.isEmailHidden;
   const isGoogleProvider = socialProfile?.provider === 'google';
-  // Apple Human Interface Guidelines: Apple 이 이미 제공한 정보는 다시 받지 않는다.
-  // - email: hidden relay(@privaterelay.appleid.com) 포함, 값이 있으면 그대로 사용 → 입력란 숨김
-  // - name: 사용자가 첫 가입 시 이름 공유를 선택했으면 받음 → 입력란 숨김
-  // 사용자가 이름을 공유하지 않은 경우(Apple 이 빈 값 반환)에만 name 입력란을 노출한다.
-  const appleEmailProvided = isAppleProvider && !!socialProfile?.email;
-  const appleNameProvided = isAppleProvider && !!socialProfile?.name;
-  const hideEmailField = appleEmailProvided;
-  const hideNameField = appleNameProvided;
+  // Apple 정책: 이미 제공한 정보를 강제로 다시 입력받지 않되, 사용자가 수정할 수 있도록 prefilled 로 보여준다.
+  // - email: Apple provider 인 경우 선택값(비워도 가입 가능). hidden relay 도 default 로 채우되 사용자가 수정 가능.
+  // - name: Apple 이 제공한 경우 default 로 채우되 수정 가능.
+  const isEmailOptional = isAppleProvider;
 
   const requestPhoneVerification = useRequestPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
@@ -131,7 +126,7 @@ export function SocialOnboardingPage() {
   }, [showPhoneVerificationModal]);
 
   const profileForm = useForm<ProfileFormData>({
-    resolver: zodResolver(createProfileSchema(!!isAppleHiddenEmail || hideEmailField)),
+    resolver: zodResolver(createProfileSchema(isEmailOptional)),
     mode: 'onTouched',
     defaultValues: {
       email: socialProfile?.email || '',
@@ -156,7 +151,10 @@ export function SocialOnboardingPage() {
   const nicknameCheck = useNicknameCheck(watchNickname || '', shouldCheckNickname || false);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const shouldCheckEmail = isAppleHiddenEmail && !!watchEmail && emailRegex.test(watchEmail);
+  // Apple provider 의 email 은 선택값. 사용자가 입력/수정한 경우에만 중복 체크.
+  // 단, Apple 이 처음 내려준 값(socialProfile.email) 그대로면 중복 체크 스킵 (이미 그 값으로 가입 진행 중).
+  const isEmailModified = isAppleProvider && !!watchEmail && watchEmail !== (socialProfile?.email || '');
+  const shouldCheckEmail = isEmailModified && emailRegex.test(watchEmail!);
   const emailCheck = useEmailCheck(watchEmail || '', shouldCheckEmail);
   const [emailError, setEmailError] = useState<string[]>([]);
 
@@ -183,7 +181,7 @@ export function SocialOnboardingPage() {
   }, [watchNickname, nicknameCheck.data, shouldCheckNickname]);
 
   useEffect(() => {
-    if (isAppleHiddenEmail && watchEmail && watchEmail.length > 0) {
+    if (isAppleProvider && watchEmail && watchEmail.length > 0) {
       const errors: string[] = [];
       if (!emailRegex.test(watchEmail)) {
         errors.push(t('auth.emailPlaceholder'));
@@ -195,7 +193,7 @@ export function SocialOnboardingPage() {
     } else {
       setEmailError([]);
     }
-  }, [watchEmail, emailCheck.data, shouldCheckEmail, isAppleHiddenEmail]);
+  }, [watchEmail, emailCheck.data, shouldCheckEmail, isAppleProvider]);
 
   const isValidDateOfBirth = (dateStr: string | undefined): boolean => {
     if (!dateStr) return false;
@@ -213,16 +211,12 @@ export function SocialOnboardingPage() {
   };
 
   const profileErrors = profileForm.formState.errors;
-  // Apple 이 email 을 제공한 경우(hideEmailField): 검증 통과로 간주
-  // Apple hidden relay 인 경우(isAppleHiddenEmail): 사용자가 추가 입력 시 검증, 빈 값도 허용
-  // 그 외: email 필수
-  const isEmailOk = hideEmailField
-    ? true
-    : isAppleHiddenEmail
-      ? (!watchEmail || (!profileErrors.email && emailError.length === 0 && (!shouldCheckEmail || (emailCheck.data?.available === true))))
-      : (!!watchEmail && !profileErrors.email);
-  // Apple 이 name 을 제공한 경우(hideNameField): 검증 통과로 간주
-  const isNameOk = hideNameField ? true : (!!watchName && !profileErrors.name);
+  // Apple provider: email 은 선택값. 비워도 OK, 입력하면 형식+중복 검증 통과해야 함.
+  // 그 외: email 필수.
+  const isEmailOk = isEmailOptional
+    ? (!watchEmail || (!profileErrors.email && emailError.length === 0 && (!shouldCheckEmail || (emailCheck.data?.available === true))))
+    : (!!watchEmail && !profileErrors.email);
+  const isNameOk = !!watchName && !profileErrors.name;
   const isProfileValid =
     isEmailOk &&
     watchNickname &&
@@ -353,11 +347,10 @@ export function SocialOnboardingPage() {
 
         {step === 1 && (
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-            {!hideEmailField && (
             <div className="space-y-2">
               <div className="flex items-center gap-1">
                 <Label htmlFor="email">{t('auth.email')}</Label>
-                {isAppleHiddenEmail && (
+                {isAppleProvider && (
                   <>
                     <span className="text-xs text-gray-400">({t('common.optional')})</span>
                     <button
@@ -386,16 +379,15 @@ export function SocialOnboardingPage() {
                 id="email"
                 type="email"
                 {...profileForm.register('email')}
-                placeholder={isAppleHiddenEmail ? t('auth.emailOptionalPlaceholder') : t('auth.emailPlaceholder')}
+                placeholder={isEmailOptional ? t('auth.emailOptionalPlaceholder') : t('auth.emailPlaceholder')}
                 className={`bg-gray-100 ${profileErrors.email || emailError.length > 0 ? 'border-red-500' : ''}`}
                 disabled={isGoogleProvider}
               />
-              {profileErrors.email && watchEmail && !isAppleHiddenEmail && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
+              {profileErrors.email && watchEmail && !isEmailOptional && <p className="text-sm text-red-500">{t('auth.emailPlaceholder')}</p>}
               {emailError.length > 0 && emailError.map((err, i) => (
                 <p key={i} className="text-sm text-red-500">{err}</p>
               ))}
             </div>
-            )}
 
             <div className="space-y-2">
               <Label htmlFor="phone">{t('auth.phone')}</Label>
@@ -457,18 +449,7 @@ export function SocialOnboardingPage() {
                   {...profileForm.register('nickname')}
                   placeholder={t('auth.enterNickname')}
                   className={`pr-10 bg-gray-100 ${nicknameError.length > 0 ? 'border-red-500' : ''}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const nextEl = document.getElementById('name');
-                      if (nextEl) {
-                        nextEl.focus();
-                      } else {
-                        (e.target as HTMLInputElement).blur();
-                        setShowCalendar(true);
-                      }
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('name')?.focus(); } }}
                 />
                 {watchNickname && nicknameError.length === 0 && !profileErrors.nickname && nicknameCheck.data?.available && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -485,7 +466,6 @@ export function SocialOnboardingPage() {
               )}
             </div>
 
-            {!hideNameField && (
             <div className="space-y-2">
               <Label htmlFor="name">{t('auth.name')}</Label>
               <Input
@@ -504,7 +484,6 @@ export function SocialOnboardingPage() {
               />
               {profileErrors.name && <p className="text-sm text-red-500">{t(profileErrors.name.message || '')}</p>}
             </div>
-            )}
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">

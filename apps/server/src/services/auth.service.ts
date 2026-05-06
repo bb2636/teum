@@ -580,11 +580,9 @@ export class AuthService {
     const tokenEmail = tokenPayload.email as string;
     const isEmailHidden = tokenPayload.isEmailHidden === true;
 
-    // Apple Human Interface Guidelines: Apple 이 이미 제공한 email 은 client 입력으로 덮어쓰지 않는다.
-    // 단 Apple 이 email 을 주지 않은 경우(빈 값) 에만 client 가 보낸 값을 fallback 으로 사용한다.
-    const email = provider === 'apple'
-      ? (tokenEmail || input.email || '')
-      : (input.email ? input.email : tokenEmail);
+    // Apple 의 경우 사용자가 prefilled email 을 수정할 수 있으므로 client 입력값을 우선 적용한다.
+    // (Apple 이 email 을 제공하지 않았고 사용자도 비운 경우엔 빈 문자열로 진행)
+    const email = input.email ? input.email : (tokenEmail || '');
 
     logger.info('Social onboarding', { provider, email });
 

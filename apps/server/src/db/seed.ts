@@ -265,9 +265,74 @@ OpenAI | AI 감정 분석 및 음악 생성
       console.log('Privacy policy terms already exists');
     }
 
+    // Check if test1 user exists, if not create it
+    let test1User = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, 'test1@test.com'),
+    });
+
+    if (!test1User) {
+      [test1User] = await db
+        .insert(schema.users)
+        .values({
+          email: 'test1@test.com',
+          passwordHash: await bcrypt.hash('test1234', 10),
+          role: 'user',
+        })
+        .returning();
+      console.log('Test1 user created');
+    } else {
+      await db
+        .update(schema.users)
+        .set({
+          passwordHash: await bcrypt.hash('test1234', 10),
+        })
+        .where(eq(schema.users.id, test1User.id));
+      console.log('Test1 user password updated');
+    }
+
+    const test1Profile = await db.query.userProfiles.findFirst({
+      where: (profiles, { eq }) => eq(profiles.userId, test1User.id),
+    });
+
+    if (!test1Profile) {
+      await db.insert(schema.userProfiles).values({
+        userId: test1User.id,
+        nickname: 'Test User 1',
+        name: 'Test User 1',
+      });
+      console.log('Test1 user profile created');
+    } else {
+      await db
+        .update(schema.userProfiles)
+        .set({
+          nickname: 'Test User 1',
+          name: 'Test User 1',
+        })
+        .where(eq(schema.userProfiles.userId, test1User.id));
+      console.log('Test1 user profile updated');
+    }
+
+    const existingTest1Folder = await db.query.folders.findFirst({
+      where: (folders, { eq, and }) => and(
+        eq(folders.userId, test1User.id),
+        eq(folders.isDefault, true)
+      ),
+    });
+
+    if (!existingTest1Folder) {
+      await db.insert(schema.folders).values({
+        userId: test1User.id,
+        name: 'All',
+        isDefault: true,
+        color: '#F5F5DC',
+      });
+      console.log('Default folder created for test1 user');
+    }
+
     console.log('\nSeed completed successfully!');
     console.log('Admin credentials: admin@teum.com / admin1234');
     console.log('Test user credentials: test@test.com / test1234');
+    console.log('Test1 user credentials: test1@test.com / test1234');
     process.exit(0);
   } catch (error) {
     console.error('Seed failed:', error);

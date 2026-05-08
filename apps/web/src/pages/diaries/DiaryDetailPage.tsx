@@ -2,7 +2,6 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiary, useDeleteDiary, useCalendarDiaries } from '@/hooks/useDiaries';
-import { StorageImage } from '@/components/StorageImage';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
@@ -258,19 +257,7 @@ export function DiaryDetailPage() {
             <h1 className="text-2xl font-bold text-[#4A2C1A]">{diary.title}</h1>
           )}
 
-          {/* 자유형식(free_form)은 본문(content)에 이미지가 이미 포함되므로 제목 아래 썸네일 그리드는 표시하지 않는다.
-              질문형식(question_based)은 본문에 이미지가 없으므로 썸네일 그리드를 유지한다. */}
-          {diary.type !== 'free_form' && diary.images && diary.images.length > 0 && (
-            <div className="grid grid-cols-2 gap-2">
-              {diary.images.map((img) => (
-                <StorageImage
-                  key={img.id}
-                  url={img.imageUrl}
-                  className="w-full h-48 rounded-lg object-cover"
-                />
-              ))}
-            </div>
-          )}
+          {/* 제목 아래 썸네일 그리드 제거 — 이미지는 본문(content) 또는 질문 답변 영역에서 렌더링된다. */}
 
           {diary.content && (
             <div className="prose prose-sm max-w-none">

@@ -170,10 +170,11 @@ export function PaymentPage() {
         handleStartApple();
         return;
       }
-      if (needsVerificationData && !identityVerified) {
-        setShowIdentityModal(true);
-        return;
-      }
+      // ⚠️ 임시 비활성화: 결제 전 본인인증(전화번호) 단계 숨김 처리
+      // if (needsVerificationData && !identityVerified) {
+      //   setShowIdentityModal(true);
+      //   return;
+      // }
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
       } else if (paymentMethod === 'apple') {

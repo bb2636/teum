@@ -10,7 +10,7 @@ declare const CdvPurchase: {
   ErrorCode: { PAYMENT_CANCELLED: number };
 };
 
-const APPLE_PRODUCT_ID = 'subscription02';
+const APPLE_PRODUCT_ID = 'subscription03';
 
 type IAPError = { code?: number; message?: string };
 

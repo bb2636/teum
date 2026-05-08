@@ -20,15 +20,16 @@ export function PaymentFailPage() {
 
   useEffect(() => {
     if (searchParams.get('n') !== '1') return;
-    (async () => {
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (!Capacitor.isNativePlatform()) return;
-        sessionStorage.setItem('teum_native_payment_pending', 'fail');
-        sessionStorage.setItem('teum_native_payment_message', message);
-        window.location.replace(`com.teum.app://payment-result?status=fail&message=${encodeURIComponent(message)}`);
-      } catch {}
-    })();
+    // ⚠️ 이 페이지는 PayPal/NicePay 콜백 후 외부 브라우저(Custom Tab) 안에서
+    // 로드된다. Custom Tab 안에서는 Capacitor 가 주입되지 않아
+    // `Capacitor.isNativePlatform()` 가 false 를 반환하므로 가드해서는 안 된다.
+    // ?n=1 은 "외부 브라우저에서 호출됐으니 deep-link 로 앱에 복귀시켜라" 라는
+    // 명시적 플래그이므로, 이 시점에는 무조건 com.teum.app:// 를 트리거한다.
+    try {
+      sessionStorage.setItem('teum_native_payment_pending', 'fail');
+      sessionStorage.setItem('teum_native_payment_message', message);
+    } catch {}
+    window.location.replace(`com.teum.app://payment-result?status=fail&message=${encodeURIComponent(message)}`);
   }, [searchParams, message]);
 
   return (

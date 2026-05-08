@@ -39,6 +39,14 @@ public class MainActivity extends BridgeActivity {
         // inside the safe area instead of trying to hide the system UI.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
+        // Apply system-bar insets directly to BOTH the activity root AND the
+        // Capacitor WebView. Android 15 (SDK 35+) enforces edge-to-edge so the
+        // window extends beneath status / navigation bars and display cutouts.
+        // Padding the activity's root view alone is not enough on Capacitor —
+        // the WebView is hosted inside an intermediate container that does not
+        // always propagate the parent's padding to the WebView's CSS viewport,
+        // which leaves third-party SDK overlays (e.g. NicePay terms agreement
+        // and installment selector) drawn behind the navigation bar.
         final View rootContent = findViewById(android.R.id.content);
         if (rootContent != null) {
             ViewCompat.setOnApplyWindowInsetsListener(rootContent, (v, insets) -> {
@@ -46,7 +54,7 @@ public class MainActivity extends BridgeActivity {
                     WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
                 );
                 v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-                return WindowInsetsCompat.CONSUMED;
+                return insets;
             });
             ViewCompat.requestApplyInsets(rootContent);
         }
@@ -54,6 +62,19 @@ public class MainActivity extends BridgeActivity {
         if (this.bridge != null && this.bridge.getWebView() != null) {
             final WebView webView = this.bridge.getWebView();
             webView.addJavascriptInterface(new ImmersiveBridge(this), "AndroidImmersive");
+
+            // Listener on the WebView itself guarantees that the WebView's CSS
+            // viewport is shrunk to the safe area so any DOM that uses 100vh
+            // (incl. NicePay's payment iframe and its bottom action buttons)
+            // never extends behind the system bars.
+            ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
+                Insets bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
+                );
+                v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                return WindowInsetsCompat.CONSUMED;
+            });
+            ViewCompat.requestApplyInsets(webView);
         }
 
         this.bridge.setWebViewClient(new BridgeWebViewClient(this.bridge) {

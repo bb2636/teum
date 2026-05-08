@@ -76,9 +76,7 @@ export class PaymentService {
   }
 
   async needsIdentityVerification(_userId: string): Promise<boolean> {
-    // ⚠️ 임시 비활성화: 결제 전 본인인증(전화번호) 면제
-    // 원복 시 `return true;` 로 변경.
-    return false;
+    return true;
   }
 
   /**
@@ -87,19 +85,15 @@ export class PaymentService {
    * - 최근 30일 이내 검증된 휴대폰 인증 기록이 있어야 통과.
    */
   private async assertIdentityVerified(userId: string): Promise<void> {
-    // ⚠️ 임시 비활성화: 결제 전 본인인증 검증 무시 (모든 결제 통과)
-    // 원복 시 아래 주석 해제.
-    void userId;
-    return;
-    // const needs = await this.needsIdentityVerification(userId);
-    // if (!needs) return;
-    // const recent = await phoneVerificationRepository.findRecentVerifiedByUserId(userId, 30);
-    // if (!recent) {
-    //   throw new AppError('결제 진행을 위해 본인인증이 필요합니다.', {
-    //     statusCode: 403,
-    //     code: 'IDENTITY_VERIFICATION_REQUIRED',
-    //   });
-    // }
+    const needs = await this.needsIdentityVerification(userId);
+    if (!needs) return;
+    const recent = await phoneVerificationRepository.findRecentVerifiedByUserId(userId, 30);
+    if (!recent) {
+      throw new AppError('결제 진행을 위해 본인인증이 필요합니다.', {
+        statusCode: 403,
+        code: 'IDENTITY_VERIFICATION_REQUIRED',
+      });
+    }
   }
 
   async initBillingKeyRegistration(

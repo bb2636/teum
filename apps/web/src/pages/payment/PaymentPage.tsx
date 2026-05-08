@@ -68,7 +68,7 @@ export function PaymentPage() {
   const t = useT();
   const planName = searchParams.get('plan') || t('payment.plan');
   const { data: planPrice } = usePlanPrice();
-  const { isLoading: isVerificationLoading } = useNeedsVerification();
+  const { data: needsVerificationData, isLoading: isVerificationLoading } = useNeedsVerification();
   const isKorean = getCurrentLanguage() === 'ko';
   const displayAmount = isKorean ? (planPrice?.krw ?? 5800) : planPrice?.usd ?? 3.99;
   const displayAmountFormatted = isKorean ? displayAmount.toLocaleString() : (displayAmount as number).toFixed(2);
@@ -200,11 +200,10 @@ export function PaymentPage() {
         handleStartApple();
         return;
       }
-      // ⚠️ 임시 비활성화: 결제 전 본인인증(전화번호) 단계 숨김 처리
-      // if (needsVerificationData && !identityVerified) {
-      //   setShowIdentityModal(true);
-      //   return;
-      // }
+      if (needsVerificationData && !identityVerified) {
+        setShowIdentityModal(true);
+        return;
+      }
       if (paymentMethod === 'paypal') {
         handleStartPayPal();
       } else if (paymentMethod === 'apple') {

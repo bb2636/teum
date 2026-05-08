@@ -572,18 +572,28 @@ export function DiaryWritePage() {
   };
 
   const restoreSelection = () => {
+    // execCommand 는 contentEditable 이 포커스 상태여야 동작한다.
+    // Android WebView 에서는 toolbar 버튼 탭 시 포커스가 떠나므로 항상 명시적으로 focus 한다.
+    contentEditableRef.current?.focus({ preventScroll: true });
+
+    const range = savedSelectionRef.current;
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
+    if (!sel) return;
+
+    // 저장된 selection 이 있으면 항상 그것을 우선 복원한다.
+    // (이전: 현재 selection 이 에디터 안에 있으면 early return 했으나,
+    //  Android 에서는 collapsed 된 잘못된 range 가 남아있어 execCommand 가 무효가 됨)
+    if (range && contentEditableRef.current?.contains(range.startContainer)) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+
+    // 저장된 selection 이 없으면 현재 에디터 안 selection 을 그대로 사용
+    if (sel.rangeCount > 0) {
       const currentRange = sel.getRangeAt(0);
       if (contentEditableRef.current?.contains(currentRange.startContainer)) {
         return;
-      }
-    }
-    const range = savedSelectionRef.current;
-    if (range) {
-      if (sel) {
-        sel.removeAllRanges();
-        sel.addRange(range);
       }
     }
   };

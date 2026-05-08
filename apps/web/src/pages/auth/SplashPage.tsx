@@ -69,6 +69,14 @@ export function SplashPage() {
     const params = new URLSearchParams(window.location.search);
     return params.has('error') || sessionStorage.getItem('teum_logged_out') === '1';
   });
+  // 진행 중인 OAuth (소셜 로그인 후 토큰 교환 대기) 표시용
+  const [isExchanging, setIsExchanging] = useState(() => {
+    try {
+      const ts = localStorage.getItem(OAUTH_PENDING_KEY);
+      if (!ts) return false;
+      return Date.now() - parseInt(ts, 10) < 5 * 60 * 1000;
+    } catch { return false; }
+  });
 
   useEffect(() => {
     if (isCheckingAuth || skipAutoRedirect) return;
@@ -85,13 +93,18 @@ export function SplashPage() {
     if (exchangingRef.current) return;
 
     const { nonce, pendingTs } = getOAuthState();
-    if (!nonce || !pendingTs) return;
+    if (!nonce || !pendingTs) {
+      setIsExchanging(false);
+      return;
+    }
     if (Date.now() - pendingTs > 5 * 60 * 1000) {
       clearOAuthState();
+      setIsExchanging(false);
       return;
     }
 
     exchangingRef.current = true;
+    setIsExchanging(true);
 
     try {
       const apiBase = import.meta.env.VITE_API_URL || '/api';
@@ -151,6 +164,23 @@ export function SplashPage() {
       exchangingRef.current = false;
     }
   }, [navigate]);
+
+  // OAuth 진행 중 상태가 5분 넘게 지속되면 자동으로 로딩 표시 해제
+  useEffect(() => {
+    if (!isExchanging) return;
+    const timer = setInterval(() => {
+      const { nonce, pendingTs } = getOAuthState();
+      if (!nonce || !pendingTs) {
+        setIsExchanging(false);
+        return;
+      }
+      if (Date.now() - pendingTs > 5 * 60 * 1000) {
+        clearOAuthState();
+        setIsExchanging(false);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isExchanging]);
 
   useEffect(() => {
     const { isNative } = getCapacitorPlatform();
@@ -284,19 +314,22 @@ export function SplashPage() {
     window.addEventListener('focus', onFocus);
 
     let pollCount = 0;
+    // 폴링 주기를 2초 → 500ms 로 단축하여 사용자 대기 시간 최소화
     const pollInterval = setInterval(() => {
       if (unmounted) { clearInterval(pollInterval); return; }
       const { nonce } = getOAuthState();
       if (!nonce) { pollCount = 0; return; }
       pollCount++;
-      if (pollCount > 90) {
+      // 5분 = 600회 (500ms * 600)
+      if (pollCount > 600) {
         clearOAuthState();
+        setIsExchanging(false);
         clearInterval(pollInterval);
         return;
       }
       exchangingRef.current = false;
       exchangeToken();
-    }, 2000);
+    }, 500);
 
     return () => {
       unmounted = true;
@@ -450,6 +483,21 @@ export function SplashPage() {
         </div>
 
       </div>
+
+      {isExchanging && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="bg-white rounded-2xl px-6 py-5 flex items-center gap-3 shadow-lg">
+            <div className="w-5 h-5 border-2 border-[#4A2C1A] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm font-medium text-[#4A2C1A]">
+              {t('auth.loggingIn')}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -574,7 +574,8 @@ export class AuthController {
             expiresAt: Date.now() + 5 * 60 * 1000,
             onboardingData: Object.fromEntries(params),
           });
-          return sendMobileCloseBrowserPage(res, lang);
+          // 딥링크 자동 호출 → 즉시 앱으로 복귀 (사용자가 직접 뒤로가기 누를 필요 없음)
+          return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?success=true', lang);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -590,7 +591,8 @@ export class AuthController {
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        return sendMobileCloseBrowserPage(res, lang);
+        // 딥링크 자동 호출 → 즉시 앱으로 복귀
+        return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?success=true', lang);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {
@@ -717,7 +719,8 @@ export class AuthController {
             expiresAt: Date.now() + 5 * 60 * 1000,
             onboardingData: Object.fromEntries(params),
           });
-          return sendMobileCloseBrowserPage(res, lang);
+          // 딥링크 자동 호출 → 즉시 앱으로 복귀
+          return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?success=true', lang);
         }
         return res.redirect(`/social-onboarding?${params.toString()}`);
       }
@@ -733,7 +736,8 @@ export class AuthController {
           user: { id: loginResult.user.id, role: loginResult.user.role },
           expiresAt: Date.now() + 5 * 60 * 1000,
         });
-        return sendMobileCloseBrowserPage(res, lang);
+        // 딥링크 자동 호출 → 즉시 앱으로 복귀
+        return sendMobileDeepLinkPage(res, 'com.teum.app://auth-callback?success=true', lang);
       }
 
       res.cookie('accessToken', loginResult.accessToken, {

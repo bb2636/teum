@@ -258,7 +258,9 @@ export function DiaryDetailPage() {
             <h1 className="text-2xl font-bold text-[#4A2C1A]">{diary.title}</h1>
           )}
 
-          {diary.images && diary.images.length > 0 && (
+          {/* 자유형식(free_form)은 본문(content)에 이미지가 이미 포함되므로 제목 아래 썸네일 그리드는 표시하지 않는다.
+              질문형식(question_based)은 본문에 이미지가 없으므로 썸네일 그리드를 유지한다. */}
+          {diary.type !== 'free_form' && diary.images && diary.images.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {diary.images.map((img) => (
                 <StorageImage

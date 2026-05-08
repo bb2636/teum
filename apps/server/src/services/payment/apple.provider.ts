@@ -15,11 +15,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from '../../config/logger';
+import { AppError } from '../../middleware/error-handler';
 
 // ESM 환경(`"type": "module"`)에서는 __dirname이 없으므로 직접 계산
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || 'com.teum.app';
+const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || 'app.teum.com';
 const APPLE_ISSUER_ID = process.env.APPLE_ISSUER_ID || '';
 // IAP/App Store Server API 전용 키.
 // 우선 APPLE_IAP_KEY_ID/APPLE_IAP_PRIVATE_KEY를 사용하고,
@@ -120,7 +121,7 @@ export class AppleProvider {
    */
   async verifyTransactionId(transactionId: string): Promise<AppleVerifiedTransaction> {
     if (!this.client || !this.verifier) {
-      throw new Error('Apple provider not configured');
+      throw new AppError('Apple provider not configured', { statusCode: 503, code: 'APPLE_NOT_CONFIGURED' });
     }
 
     let history;
@@ -133,17 +134,29 @@ export class AppleProvider {
       logger.error('Apple getTransactionHistory failed', {
         transactionId,
         error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      throw new Error('Apple 영수증 조회에 실패했습니다.');
+      throw new AppError('Apple 영수증 조회에 실패했습니다.', { statusCode: 502, code: 'APPLE_HISTORY_FAILED' });
     }
 
     const signedTx = history.signedTransactions?.[0];
     if (!signedTx) {
-      throw new Error('Apple 거래 내역을 찾을 수 없습니다.');
+      throw new AppError('Apple 거래 내역을 찾을 수 없습니다.', { statusCode: 404, code: 'APPLE_TX_NOT_FOUND' });
     }
 
-    const decoded = await this.verifier.verifyAndDecodeTransaction(signedTx);
-    return this.toVerified(decoded);
+    try {
+      const decoded = await this.verifier.verifyAndDecodeTransaction(signedTx);
+      return this.toVerified(decoded);
+    } catch (error) {
+      logger.error('Apple verifyAndDecodeTransaction failed', {
+        transactionId,
+        bundleId: APPLE_BUNDLE_ID,
+        env: APPLE_ENVIRONMENT,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new AppError('Apple 영수증 검증에 실패했습니다.', { statusCode: 400, code: 'APPLE_VERIFY_FAILED' });
+    }
   }
 
   /**
@@ -154,7 +167,7 @@ export class AppleProvider {
     const receiptUtil = new ReceiptUtility();
     const txId = receiptUtil.extractTransactionIdFromAppReceipt(receiptBase64);
     if (!txId) {
-      throw new Error('영수증에서 거래 ID를 추출할 수 없습니다.');
+      throw new AppError('영수증에서 거래 ID를 추출할 수 없습니다.', { statusCode: 400, code: 'APPLE_RECEIPT_INVALID' });
     }
     return this.verifyTransactionId(txId);
   }

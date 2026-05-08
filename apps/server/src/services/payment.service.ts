@@ -1339,11 +1339,17 @@ export class PaymentService {
     input: { transactionId?: string; receipt?: string }
   ): Promise<{ success: boolean; message: string; subscriptionId?: string }> {
     if (!appleProvider.isEnabled()) {
-      throw new Error('Apple in-app purchase is not configured');
+      throw new AppError('Apple in-app purchase is not configured', {
+        statusCode: 503,
+        code: 'APPLE_NOT_CONFIGURED',
+      });
     }
 
     if (!input.transactionId && !input.receipt) {
-      throw new Error('transactionId 또는 receipt가 필요합니다.');
+      throw new AppError('transactionId 또는 receipt가 필요합니다.', {
+        statusCode: 400,
+        code: 'INVALID_INPUT',
+      });
     }
 
     // ⚠️ Apple IAP 는 본인인증을 요구하지 않는다.
@@ -1359,7 +1365,10 @@ export class PaymentService {
     const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription03';
     if (verified.productId !== expectedProductId) {
       logger.warn({ verified, expected: expectedProductId }, 'Apple verify: unexpected product id');
-      throw new Error(`예상하지 않은 상품입니다: ${verified.productId}`);
+      throw new AppError(`예상하지 않은 상품입니다: ${verified.productId}`, {
+        statusCode: 400,
+        code: 'INVALID_PRODUCT',
+      });
     }
 
     // Idempotency: re-using the same originalTransactionId means user already has this subscription
@@ -1386,7 +1395,10 @@ export class PaymentService {
           requestUserId: userId,
           originalTransactionId: verified.originalTransactionId,
         }, 'Apple verify: originalTransactionId already linked to another user');
-        throw new Error('이 영수증은 다른 계정에 등록되어 있습니다.');
+        throw new AppError('이 영수증은 다른 계정에 등록되어 있습니다.', {
+          statusCode: 409,
+          code: 'RECEIPT_OWNED_BY_OTHER_USER',
+        });
       }
 
       await db
@@ -1424,7 +1436,10 @@ export class PaymentService {
 
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
-      throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+      throw new AppError('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.', {
+        statusCode: 409,
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+      });
     }
 
     const txKey = `apple_${verified.transactionId}`;

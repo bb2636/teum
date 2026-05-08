@@ -907,7 +907,7 @@ Example: "warm reflective piano pop, soft female vocal feel, nostalgic yet hopef
           },
         ],
         temperature: 0.2,
-        max_tokens: 4000,
+        max_tokens: 16000,
         response_format: { type: 'json_object' },
       });
 

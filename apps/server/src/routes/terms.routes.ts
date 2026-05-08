@@ -14,7 +14,7 @@ function hashContent(text: string): string {
   return crypto.createHash('sha256').update(text).digest('hex').slice(0, 16);
 }
 
-router.post('/translate', authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+router.post('/translate', authenticate, async (req: Request, res: Response) => {
   try {
     const { title, content, lang, type } = req.body;
     if (!content || !lang || lang === 'ko') {

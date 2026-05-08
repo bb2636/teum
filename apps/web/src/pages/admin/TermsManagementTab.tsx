@@ -10,21 +10,13 @@ import {
   useUpdatePaymentTerms,
   useUpdateRefundTerms,
 } from '@/hooks/useTerms';
-import { FileText, Check, Languages, Loader2 } from 'lucide-react';
+import { FileText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AdminConfirmModal } from './AdminConfirmModal';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { apiRequest } from '@/lib/api';
 
 type TermsType = 'service' | 'privacy' | 'payment' | 'refund';
-type TranslateLang = 'en' | 'ja' | 'zh';
-
-const TRANSLATE_LANGS: { code: TranslateLang; label: string }[] = [
-  { code: 'en', label: 'English' },
-  { code: 'ja', label: '日本語' },
-  { code: 'zh', label: '中文' },
-];
 
 export function TermsManagementTab() {
   const [selectedType, setSelectedType] = useState<TermsType>('service');
@@ -36,11 +28,6 @@ export function TermsManagementTab() {
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastContentRef = useRef('');
-  const [showTranslatePanel, setShowTranslatePanel] = useState(false);
-  const [translateLang, setTranslateLang] = useState<TranslateLang>('en');
-  const [translatedContent, setTranslatedContent] = useState('');
-  const [translatedTitle, setTranslatedTitle] = useState('');
-  const [isTranslating, setIsTranslating] = useState(false);
 
   const serviceTerms = useServiceTerms();
   const privacyTerms = usePrivacyPolicy();
@@ -171,31 +158,6 @@ export function TermsManagementTab() {
     return <FileText className="w-5 h-5" />;
   };
 
-  const handleTranslate = async () => {
-    if (!content.trim()) return;
-    setIsTranslating(true);
-    setTranslatedContent('');
-    setTranslatedTitle('');
-    try {
-      const result = await apiRequest<{ data: { title?: string; content: string } }>('/terms/translate', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: getTermsTitle(selectedType),
-          content,
-          lang: translateLang,
-          type: selectedType,
-        }),
-      });
-      setTranslatedTitle(result.data.title || '');
-      setTranslatedContent(result.data.content || '');
-    } catch (error) {
-      console.error('Translation failed:', error);
-      alert('번역에 실패했습니다.');
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
   return (
     <div className="p-6">
       {/* Header */}
@@ -324,19 +286,6 @@ export function TermsManagementTab() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    onClick={() => {
-                      setShowTranslatePanel(!showTranslatePanel);
-                      setTranslatedContent('');
-                      setTranslatedTitle('');
-                    }}
-                    variant="outline"
-                    className={`rounded-lg flex items-center gap-1.5 ${showTranslatePanel ? 'border-[#4A2C1A] text-[#4A2C1A]' : ''}`}
-                    disabled={!content.trim()}
-                  >
-                    <Languages className="w-4 h-4" />
-                    번역
-                  </Button>
-                  <Button
                     onClick={handleSave}
                     disabled={!content.trim() || !hasChanges || updateMutation.isPending}
                     className={`rounded-lg ${
@@ -350,64 +299,12 @@ export function TermsManagementTab() {
                 </div>
               </div>
 
-              {showTranslatePanel && (
-                <div className="mb-4 p-4 bg-[#F5EFEA] border border-[#4A2C1A]/30 rounded-lg">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-sm font-medium text-gray-700">번역 언어:</span>
-                    <div className="flex gap-2">
-                      {TRANSLATE_LANGS.map((lang) => (
-                        <button
-                          key={lang.code}
-                          onClick={() => {
-                            setTranslateLang(lang.code);
-                            setTranslatedContent('');
-                            setTranslatedTitle('');
-                          }}
-                          className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                            translateLang === lang.code
-                              ? 'bg-[#4A2C1A] text-white'
-                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-                          }`}
-                        >
-                          {lang.label}
-                        </button>
-                      ))}
-                    </div>
-                    <Button
-                      onClick={handleTranslate}
-                      disabled={isTranslating || !content.trim()}
-                      className="ml-auto bg-[#4A2C1A] text-white hover:bg-[#3A2010] rounded-lg text-sm"
-                      size="sm"
-                    >
-                      {isTranslating ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                          번역 중...
-                        </>
-                      ) : '번역하기'}
-                    </Button>
-                  </div>
-                  {translatedContent && (
-                    <div className="mt-3">
-                      {translatedTitle && (
-                        <h4 className="text-sm font-semibold text-gray-800 mb-2">{translatedTitle}</h4>
-                      )}
-                      <textarea
-                        value={translatedContent}
-                        readOnly
-                        className="w-full h-[300px] px-4 py-3 border border-[#4A2C1A]/30 rounded-lg resize-none bg-white font-mono text-sm leading-relaxed text-gray-700"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Content Editor */}
               <textarea
                 value={content}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="약관 내용을 입력하세요"
-                className={`w-full ${showTranslatePanel ? 'h-[350px]' : 'h-[600px]'} px-5 py-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] focus:border-transparent font-mono text-sm leading-relaxed`}
+                className="w-full h-[600px] px-5 py-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#4A2C1A] focus:border-transparent font-mono text-sm leading-relaxed"
               />
             </>
           )}

@@ -93,7 +93,7 @@ export function AdminConfirmModal({
             )}
           </div>
 
-          <div className="flex justify-end gap-3 px-6 pb-6">
+          <div className="flex justify-center gap-3 px-6 pb-6">
             {variant === 'confirm' && (
               <Button
                 onClick={onClose}

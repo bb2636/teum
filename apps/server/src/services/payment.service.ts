@@ -1310,7 +1310,7 @@ export class PaymentService {
       });
     }
 
-    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription02';
+    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription03';
     if (input.productId !== expectedProductId) {
       logger.warn({ userId, requested: input.productId, expected: expectedProductId },
         'Apple precheck: invalid productId');
@@ -1357,7 +1357,7 @@ export class PaymentService {
       ? await appleProvider.verifyTransactionId(input.transactionId)
       : await appleProvider.verifyReceipt(input.receipt!);
 
-    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription02';
+    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription03';
     if (verified.productId !== expectedProductId) {
       logger.warn({ verified, expected: expectedProductId }, 'Apple verify: unexpected product id');
       throw new Error(`예상하지 않은 상품입니다: ${verified.productId}`);

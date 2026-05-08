@@ -16,15 +16,26 @@ import { Browser } from '@capacitor/browser';
 import { useAppleIAP } from '@/hooks/useAppleIAP';
 
 function applyNicepaySafeArea(el: HTMLElement) {
+  if (!(el instanceof HTMLElement)) return;
+  if (el.dataset.nicepaySafeAreaApplied === 'true') return;
   const cs = window.getComputedStyle(el);
-  if (cs.position === 'fixed' && Number(cs.zIndex) > 1000) {
-    el.style.setProperty('padding-top', 'env(safe-area-inset-top, 0px)', 'important');
-    el.style.setProperty('padding-bottom', 'env(safe-area-inset-bottom, 0px)', 'important');
-    el.style.setProperty('box-sizing', 'border-box', 'important');
-    el.querySelectorAll('iframe').forEach((iframe) => {
-      iframe.style.setProperty('height', '100%', 'important');
-    });
-  }
+  if (cs.position !== 'fixed') return;
+  // 화면을 거의 전체 덮는 fixed 컨테이너만 NicePay 결제창으로 간주
+  const rect = el.getBoundingClientRect();
+  if (rect.width < window.innerWidth * 0.6) return;
+  if (rect.height < window.innerHeight * 0.4) return;
+  el.style.setProperty('padding-top', 'env(safe-area-inset-top, 0px)', 'important');
+  el.style.setProperty('padding-bottom', 'env(safe-area-inset-bottom, 0px)', 'important');
+  el.style.setProperty('box-sizing', 'border-box', 'important');
+  el.querySelectorAll('iframe').forEach((iframe) => {
+    iframe.style.setProperty('height', '100%', 'important');
+  });
+  el.dataset.nicepaySafeAreaApplied = 'true';
+}
+
+function scanAndApplyNicepaySafeArea(root: HTMLElement) {
+  applyNicepaySafeArea(root);
+  root.querySelectorAll<HTMLElement>('*').forEach((child) => applyNicepaySafeArea(child));
 }
 
 declare global {
@@ -71,16 +82,35 @@ export function PaymentPage() {
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+    // 초기 스캔: 페이지 진입 시점에 이미 존재하는 모든 fixed 컨테이너에 적용
+    Array.from(document.body.children).forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        scanAndApplyNicepaySafeArea(node as HTMLElement);
+      }
+    });
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            applyNicepaySafeArea(node as HTMLElement);
-          }
-        });
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              scanAndApplyNicepaySafeArea(node as HTMLElement);
+            }
+          });
+        } else if (
+          mutation.type === 'attributes' &&
+          mutation.target.nodeType === Node.ELEMENT_NODE
+        ) {
+          // NicePay SDK 가 생성 후 style/class 를 늦게 토글하는 케이스 대응
+          applyNicepaySafeArea(mutation.target as HTMLElement);
+        }
       });
     });
-    observer.observe(document.body, { childList: true });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+    });
     return () => observer.disconnect();
   }, []);
 

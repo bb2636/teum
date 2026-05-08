@@ -57,7 +57,7 @@ export function PaymentPage() {
   const t = useT();
   const planName = searchParams.get('plan') || t('payment.plan');
   const { data: planPrice } = usePlanPrice();
-  const { data: needsVerificationData, isLoading: isVerificationLoading } = useNeedsVerification();
+  const { isLoading: isVerificationLoading } = useNeedsVerification();
   const isKorean = getCurrentLanguage() === 'ko';
   const displayAmount = isKorean ? (planPrice?.krw ?? 5800) : planPrice?.usd ?? 3.99;
   const displayAmountFormatted = isKorean ? displayAmount.toLocaleString() : (displayAmount as number).toFixed(2);

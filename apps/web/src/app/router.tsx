@@ -165,7 +165,9 @@ export default function App() {
         element={<AdMobTestPage />}
       />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<EulaPage />} />
       <Route path="/legal/eula" element={<EulaPage />} />
+      <Route path="/legal/terms" element={<EulaPage />} />
       <Route path="/legal/privacy" element={<PrivacyPolicyPage />} />
 
       {/* Other routes - with Layout wrapper */}

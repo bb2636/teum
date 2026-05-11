@@ -61,7 +61,9 @@ async function runNativeAdFlow(): Promise<AdFlowResult> {
 
     L('Step 1: AdMob.initialize START');
     try {
-      await AdMob.initialize({ initializeForTesting: shouldInitializeForTesting() });
+      await AdMob.initialize({
+        initializeForTesting: shouldInitializeForTesting(),
+      });
       debug.initialized = true;
       L('Step 1: AdMob.initialize DONE');
     } catch (e) {
@@ -126,7 +128,7 @@ async function runNativeAdFlow(): Promise<AdFlowResult> {
       L('Step 3: prepareInterstitial START, adId =', debug.adUnitId);
       debug.prepareCalled = true;
       try {
-        await AdMob.prepareInterstitial({ adId: debug.adUnitId });
+        await AdMob.prepareInterstitial({ adId: debug.adUnitId, npa: true });
         L('Step 3: prepareInterstitial resolved (waiting for Loaded event)');
       } catch (e) {
         W('Step 3: prepareInterstitial threw:', e);

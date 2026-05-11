@@ -179,7 +179,7 @@ export function AdMobTestPage() {
 
     updateStep(4, { status: 'running', detail: `adId: ${TEST_INTERSTITIAL_ID}` });
     try {
-      await AdMob.prepareInterstitial({ adId: TEST_INTERSTITIAL_ID });
+      await AdMob.prepareInterstitial({ adId: TEST_INTERSTITIAL_ID, npa: true });
       updateStep(4, { status: 'ok', detail: 'prepareInterstitial resolved' });
     } catch (e: unknown) {
       updateStep(4, { status: 'fail', detail: e instanceof Error ? e.message : String(e) });

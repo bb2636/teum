@@ -15,10 +15,8 @@ export function usePlanPrice() {
   return useQuery<PlanPrice>({
     queryKey: ['plan-price'],
     queryFn: async () => {
-      const res = await fetch('/api/payments/plan-price');
-      const data = await res.json();
-      if (!data.success) throw new Error('Failed to fetch plan price');
-      return data.data;
+      const response = await apiRequest<{ data: PlanPrice }>('/payments/plan-price');
+      return response.data;
     },
     staleTime: 6 * 60 * 60 * 1000,
   });

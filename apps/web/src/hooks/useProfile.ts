@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, NETWORK_ERROR_CODE } from '@/lib/api';
 import { onUserChanged } from '@/lib/queryClient';
 
 export interface UserProfile {
@@ -37,17 +37,31 @@ export function useMe() {
     queryKey: ['user', 'me'],
     queryFn: async () => {
       try {
-        const response = await apiRequest<{ data: { user: User } }>('/users/me');
+        // 8초 타임아웃 — 네트워크/서버 지연 시 무한 로딩 방지
+        const response = await apiRequest<{ data: { user: User } }>('/users/me', {
+          timeoutMs: 8000,
+        });
         const user = response.data.user;
         if (user) {
           onUserChanged(user.id);
         }
         return user;
-      } catch {
+      } catch (err) {
+        // 네트워크 에러는 throw 하여 UI 에서 재시도 화면 표시
+        if (err && typeof err === 'object' && 'code' in err && err.code === NETWORK_ERROR_CODE) {
+          throw err;
+        }
+        // 인증 실패(401 등)는 비로그인 상태로 간주
         return null;
       }
     },
-    retry: false,
+    // 네트워크 에러 한 번 더 자동 재시도 후 사용자에게 노출
+    retry: (failureCount, error) => {
+      const isNetwork =
+        error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === NETWORK_ERROR_CODE;
+      return isNetwork && failureCount < 1;
+    },
+    retryDelay: 1500,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     refetchOnMount: false,

@@ -4,6 +4,7 @@ import { X, BookOpen, FileText, Headphones } from 'lucide-react';
 import { useHideTabBar } from '@/contexts/HideTabBarContext';
 import { useEffect } from 'react';
 import { SubscriptionStartModal } from '@/components/SubscriptionStartModal';
+import { TermsModal } from '@/pages/my/TermsModal';
 import { useT } from '@/hooks/useTranslation';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { usePlanPrice } from '@/hooks/usePayment';
@@ -12,6 +13,7 @@ export function PaymentIntroPage() {
   const navigate = useNavigate();
   const { setHideTabBar } = useHideTabBar();
   const [showStartModal, setShowStartModal] = useState(false);
+  const [termsType, setTermsType] = useState<string | null>(null);
   const t = useT();
   const isKorean = getCurrentLanguage() === 'ko';
   const { data: planPrice } = usePlanPrice();
@@ -136,6 +138,44 @@ export function PaymentIntroPage() {
           </div>
         </div>
 
+        {/* Apple 3.1.2 자동 갱신 구독 고지 + EULA / Privacy / Refund 링크 */}
+        <div className="px-4 mb-40">
+          <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 leading-relaxed space-y-2">
+            <div className="font-semibold text-[#4A2C1A] text-sm">
+              {t('subscription.disclaimerTitle')}
+            </div>
+            <div>• {t('subscription.disclaimerLength')}</div>
+            <div>• {usdPrice}{isKorean ? ` (${krwAmount.toLocaleString()}${t('payment.won')})` : ''} / {isKorean ? '월' : 'month'}</div>
+            <div>• {t('subscription.disclaimerAutoRenew')}</div>
+            <div>• {t('subscription.disclaimerManage')}</div>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 mt-2 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setTermsType('service')}
+                className="text-[#4A2C1A] underline underline-offset-2 hover:text-[#3A2010]"
+              >
+                {t('subscription.termsOfUse')}
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                type="button"
+                onClick={() => setTermsType('privacy')}
+                className="text-[#4A2C1A] underline underline-offset-2 hover:text-[#3A2010]"
+              >
+                {t('subscription.privacyPolicy')}
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                type="button"
+                onClick={() => setTermsType('refund')}
+                className="text-[#4A2C1A] underline underline-offset-2 hover:text-[#3A2010]"
+              >
+                {t('subscription.refundPolicy')}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 rounded-t-3xl shadow-lg pb-safe-fixed">
           <div className="max-w-md mx-auto px-4 py-6">
             <div className="mb-4">
@@ -155,6 +195,24 @@ export function PaymentIntroPage() {
                 ? t('payment.startMonthly', { amount: displayAmountFormatted })
                 : `Start at ${usdPrice}/month`}
             </button>
+            {/* 버튼 바로 아래에도 약관/개인정보 링크 — Apple 가이드라인 강조 */}
+            <div className="flex items-center justify-center gap-2 mt-3 text-[11px] text-gray-500">
+              <button
+                type="button"
+                onClick={() => setTermsType('service')}
+                className="underline underline-offset-2 hover:text-[#4A2C1A]"
+              >
+                {t('subscription.termsOfUse')}
+              </button>
+              <span className="text-gray-300">·</span>
+              <button
+                type="button"
+                onClick={() => setTermsType('privacy')}
+                className="underline underline-offset-2 hover:text-[#4A2C1A]"
+              >
+                {t('subscription.privacyPolicy')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -165,6 +223,10 @@ export function PaymentIntroPage() {
         onConfirm={handleConfirmStart}
         amount={displayAmount}
       />
+
+      {termsType && (
+        <TermsModal type={termsType} onClose={() => setTermsType(null)} />
+      )}
     </div>
   );
 }

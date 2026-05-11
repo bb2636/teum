@@ -37,15 +37,55 @@ const AdminPage = lazy(() => import('../pages/admin/AdminPage').then(m => ({ def
 const AdMobTestPage = lazy(() => import('../pages/admin/AdMobTestPage').then(m => ({ default: m.AdMobTestPage })));
 const PrivacyPolicyPage = lazy(() => import('../pages/legal/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 
+function BootstrapErrorScreen({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      className="min-h-screen flex flex-col items-center justify-center bg-white px-6 text-center"
+      style={{
+        paddingTop: 'max(24px, env(safe-area-inset-top, 24px))',
+        paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+      }}
+    >
+      <div className="w-16 h-16 mb-6 rounded-full bg-[#F5EDE7] flex items-center justify-center">
+        <span className="text-3xl">⚠️</span>
+      </div>
+      <h2 className="text-lg font-semibold text-[#4A2C1A] mb-2">
+        {t('bootstrap.connectFailed')}
+      </h2>
+      <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+        {t('bootstrap.checkNetwork')}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="px-8 py-3 rounded-full bg-[#4A2C1A] text-white text-sm font-medium hover:bg-[#3A2010] transition-colors"
+      >
+        {t('common.retry')}
+      </button>
+    </div>
+  );
+}
+
+function BootstrapLoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-[#4A2C1A] border-t-transparent rounded-full animate-spin" />
+        <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
+      </div>
+    </div>
+  );
+}
+
 function RootRedirect() {
-  const { data: user, isLoading } = useMe();
+  const { data: user, isLoading, isError, refetch } = useMe();
+
+  if (isError) {
+    return <BootstrapErrorScreen onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-muted-foreground"></div>
-      </div>
-    );
+    return <BootstrapLoadingScreen />;
   }
 
   if (user) {
@@ -56,14 +96,14 @@ function RootRedirect() {
 }
 
 function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
-  const { data: user, isLoading } = useMe();
+  const { data: user, isLoading, isError, refetch } = useMe();
+
+  if (isError) {
+    return <BootstrapErrorScreen onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">{t('common.loading')}</div>
-      </div>
-    );
+    return <BootstrapLoadingScreen />;
   }
 
   if (!user) {
@@ -79,14 +119,14 @@ function ProtectedRoute({ children, requireAdmin = false }: { children: React.Re
 
 // Admin Route Component - 관리자가 아니면 로그인 페이지로
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = useMe();
+  const { data: user, isLoading, isError, refetch } = useMe();
+
+  if (isError) {
+    return <BootstrapErrorScreen onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">{t('common.loading')}</div>
-      </div>
-    );
+    return <BootstrapLoadingScreen />;
   }
 
   if (!user || user.role !== 'admin') {

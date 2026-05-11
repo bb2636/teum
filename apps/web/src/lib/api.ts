@@ -49,9 +49,33 @@ async function refreshToken(): Promise<void> {
   return refreshPromise;
 }
 
+export interface ApiRequestOptions extends RequestInit {
+  /** 요청 타임아웃(ms). 지정 시 AbortController 로 강제 중단. 0/미지정이면 무제한. */
+  timeoutMs?: number;
+}
+
+/** 네트워크 타임아웃 또는 연결 실패 식별용 에러 코드 */
+export const NETWORK_ERROR_CODE = 'NETWORK_ERROR';
+
+function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs?: number
+): Promise<Response> {
+  if (!timeoutMs || timeoutMs <= 0) return fetch(url, init);
+  const controller = new AbortController();
+  const externalSignal = init.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) controller.abort();
+    else externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: ApiRequestOptions
 ): Promise<T> {
   // Don't set Content-Type for FormData, let browser set it with boundary
   const isFormData = options?.body instanceof FormData;
@@ -62,11 +86,25 @@ export async function apiRequest<T>(
         ...options?.headers,
       };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  const { timeoutMs, ...fetchInit } = options || {};
+
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      `${API_BASE_URL}${endpoint}`,
+      { ...fetchInit, headers, credentials: 'include' },
+      timeoutMs
+    );
+  } catch (err) {
+    // 네트워크 단절 / 타임아웃 / abort → 식별 가능한 에러로 변환
+    const networkErr = new Error(
+      err instanceof Error && err.name === 'AbortError'
+        ? 'Network request timed out'
+        : 'Network request failed'
+    ) as Error & { code?: string };
+    networkErr.code = NETWORK_ERROR_CODE;
+    throw networkErr;
+  }
 
   if (response.status === 401 && endpoint === '/auth/login') {
     const errorBody = await response.json().catch(() => null);

@@ -117,11 +117,15 @@ export function SplashPage() {
 
       if (res.status === 404) {
         exchangingRef.current = false;
+        setIsExchanging(false);
+        clearOAuthState();
         return;
       }
 
       if (!res.ok) {
         exchangingRef.current = false;
+        setIsExchanging(false);
+        clearOAuthState();
         return;
       }
 
@@ -160,8 +164,10 @@ export function SplashPage() {
       }
 
       exchangingRef.current = false;
+      setIsExchanging(false);
     } catch {
       exchangingRef.current = false;
+      setIsExchanging(false);
     }
   }, [navigate]);
 

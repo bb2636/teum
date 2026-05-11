@@ -36,6 +36,7 @@ const SupportInquiryPage = lazy(() => import('../pages/my/SupportInquiryPage').t
 const AdminPage = lazy(() => import('../pages/admin/AdminPage').then(m => ({ default: m.AdminPage })));
 const AdMobTestPage = lazy(() => import('../pages/admin/AdMobTestPage').then(m => ({ default: m.AdMobTestPage })));
 const PrivacyPolicyPage = lazy(() => import('../pages/legal/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
+const EulaPage = lazy(() => import('../pages/legal/EulaPage').then(m => ({ default: m.EulaPage })));
 
 function BootstrapErrorScreen({ onRetry }: { onRetry: () => void }) {
   return (
@@ -164,6 +165,8 @@ export default function App() {
         element={<AdMobTestPage />}
       />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/legal/eula" element={<EulaPage />} />
+      <Route path="/legal/privacy" element={<PrivacyPolicyPage />} />
 
       {/* Other routes - with Layout wrapper */}
       <Route

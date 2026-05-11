@@ -12,6 +12,18 @@ const config: CapacitorConfig = {
   },
   server: {
     androidScheme: 'https',
+    allowNavigation: [
+      'appleid.apple.com',
+      'accounts.google.com',
+      '*.apple.com',
+      '*.google.com',
+      '*.gstatic.com',
+      'teum--iteraon.replit.app',
+      'pay.nicepay.co.kr',
+      '*.nicepay.co.kr',
+      '*.paypal.com',
+      '*.paypalobjects.com',
+    ],
   },
   plugins: {
     CapacitorHttp: {

@@ -342,6 +342,143 @@ export class PayPalProvider {
     }
   }
 
+  /**
+   * PayPal Orders v2 — 일회성 결제(자동 갱신 없음).
+   * 인도 RBI e-mandate 규제 등으로 정기 구독이 불가한 사용자에게 사용한다.
+   */
+  async createOneTimeOrder(
+    amount: string,
+    currency: string,
+    returnUrl: string,
+    cancelUrl: string,
+    customId: string,
+    description: string = 'Teum Music Plan - 1 Month',
+  ): Promise<{ orderId: string; approveUrl: string }> {
+    const token = await this.getAccessToken();
+    const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'PayPal-Request-Id': customId,
+      },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [
+          {
+            reference_id: customId,
+            custom_id: customId,
+            description,
+            amount: {
+              currency_code: currency,
+              value: amount,
+            },
+          },
+        ],
+        application_context: {
+          brand_name: 'TEUM',
+          landing_page: 'BILLING',
+          shipping_preference: 'NO_SHIPPING',
+          user_action: 'PAY_NOW',
+          return_url: returnUrl,
+          cancel_url: cancelUrl,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '(unreadable)');
+      logger.error({ status: response.status, body: text }, 'PayPal create one-time order failed');
+      throw new Error('Failed to create PayPal order');
+    }
+
+    const data = (await response.json()) as { id: string; links: Array<{ rel: string; href: string }> };
+    const approveLink = data.links?.find((l) => l.rel === 'approve' || l.rel === 'payer-action');
+    if (!approveLink) {
+      throw new Error('No approval URL in PayPal order response');
+    }
+
+    logger.info({ paypalOrderId: data.id, customId }, 'PayPal one-time order created');
+    return { orderId: data.id, approveUrl: approveLink.href };
+  }
+
+  /**
+   * 사용자가 PayPal 결제 페이지에서 승인한 주문을 실제로 캡쳐(과금)한다.
+   * 인도 카드 등 카드사가 거절하면 여기서 실패가 떨어진다.
+   */
+  async captureOrder(orderId: string): Promise<{
+    status: string;
+    captureId?: string;
+    customId?: string;
+    payerEmail?: string;
+    amountValue?: string;
+    amountCurrency?: string;
+  }> {
+    const token = await this.getAccessToken();
+    const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}/capture`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!response.ok) {
+      logger.error(
+        { status: response.status, body: data, orderId },
+        'PayPal capture order failed',
+      );
+      const status = (data.name as string) || 'CAPTURE_FAILED';
+      return { status };
+    }
+
+    const purchaseUnits = (data.purchase_units as Array<Record<string, unknown>>) || [];
+    const firstUnit = purchaseUnits[0] || {};
+    const payments = (firstUnit.payments as Record<string, unknown>) || {};
+    const captures = (payments.captures as Array<Record<string, unknown>>) || [];
+    const capture = captures[0];
+    const amount = capture?.amount as Record<string, unknown> | undefined;
+    const payer = data.payer as Record<string, unknown> | undefined;
+
+    return {
+      status: (data.status as string) || 'UNKNOWN',
+      captureId: (capture?.id as string) || undefined,
+      customId: (firstUnit.custom_id as string) || (firstUnit.reference_id as string) || undefined,
+      payerEmail: (payer?.email_address as string) || undefined,
+      amountValue: (amount?.value as string) || undefined,
+      amountCurrency: (amount?.currency_code as string) || undefined,
+    };
+  }
+
+  /**
+   * 일회성(Orders v2) 캡쳐를 환불한다. 보상 트랜잭션용.
+   * (정기 구독은 별도 sale refund API 사용 — 여기는 capture 환불 전용)
+   */
+  async refundCapture(captureId: string, reason?: string): Promise<{ ok: boolean; refundId?: string }> {
+    try {
+      const token = await this.getAccessToken();
+      const res = await fetch(`${PAYPAL_BASE_URL}/v2/payments/captures/${captureId}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'PayPal-Request-Id': `refund_${captureId}`,
+        },
+        body: JSON.stringify(reason ? { note_to_payer: reason } : {}),
+      });
+      const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!res.ok) {
+        logger.error({ status: res.status, body, captureId }, 'PayPal refund capture failed');
+        return { ok: false };
+      }
+      return { ok: true, refundId: body.id as string | undefined };
+    } catch (err) {
+      logger.error({ err, captureId }, 'PayPal refund capture exception');
+      return { ok: false };
+    }
+  }
+
   getClientId(): string {
     return this.clientId;
   }

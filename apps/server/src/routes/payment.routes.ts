@@ -12,6 +12,7 @@ router.post('/nicepay/webhook', paymentController.nicepayWebhook.bind(paymentCon
 router.get('/nicepay/webhook', (_req, res) => res.status(200).send('OK'));
 router.get('/plan-price', paymentController.getPlanPrice.bind(paymentController));
 router.get('/paypal/return', paymentController.paypalReturn.bind(paymentController));
+router.get('/paypal/return-onetime', paymentController.paypalReturnOneTime.bind(paymentController));
 router.get('/paypal/cancel', paymentController.paypalCancel.bind(paymentController));
 router.post('/paypal/webhook', paymentController.paypalWebhook.bind(paymentController));
 router.post('/apple/webhook', paymentController.appleWebhook.bind(paymentController));

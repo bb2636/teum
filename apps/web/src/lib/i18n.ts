@@ -45,6 +45,16 @@ const ko: Record<string, string> = {
   "subscription.termsOfUse": "이용약관(EULA)",
   "subscription.privacyPolicy": "개인정보 처리방침",
   "subscription.refundPolicy": "환불/해지 정책",
+  "subscription.oneTimeNoticeTitle": "이 지역에서는 자동 갱신이 지원되지 않습니다",
+  "subscription.oneTimeNoticeBody":
+    "현지 카드사 정책으로 인해 1개월 단위 단건 결제로 진행됩니다. 다음 달 이용을 원하시면 만료 후 다시 결제해주세요.",
+  "subscription.oneTimeDisclaimerTitle": "1개월 단건 결제 안내",
+  "subscription.oneTimeNoAutoRenew":
+    "자동 갱신 없음 — 결제 시점부터 1개월 동안 이용 가능하며, 만료 후 자동으로 청구되지 않습니다.",
+  "payment.oneTimeAccessUntil": "{date} 까지 이용 가능",
+  "payment.oneTimeNote":
+    "1회 결제로 1개월간 이용 가능합니다. 만료 후 자동 갱신되지 않으며, 계속 이용하시려면 다시 결제해주세요.",
+  "payment.payOnceWithPayPal": "PayPal 로 ${amount} 1회 결제",
   "common.select": "선택",
   "common.deselect": "해제",
   "common.all": "전체",
@@ -616,6 +626,16 @@ const en: Record<string, string> = {
   "subscription.termsOfUse": "Terms of Use (EULA)",
   "subscription.privacyPolicy": "Privacy Policy",
   "subscription.refundPolicy": "Refund / Cancellation Policy",
+  "subscription.oneTimeNoticeTitle": "Auto-renewal is not available in your region",
+  "subscription.oneTimeNoticeBody":
+    "Due to local card issuer policies, this purchase is a one-month, single payment. To continue next month, please make a new payment after expiration.",
+  "subscription.oneTimeDisclaimerTitle": "One-Month Single Payment",
+  "subscription.oneTimeNoAutoRenew":
+    "No auto-renewal — your access lasts 1 month from purchase and will not be charged again automatically.",
+  "payment.oneTimeAccessUntil": "Access until {date}",
+  "payment.oneTimeNote":
+    "One-time payment for 1 month of access. No auto-renewal — make a new payment to continue after expiration.",
+  "payment.payOnceWithPayPal": "Pay ${amount} once with PayPal",
   "common.select": "Select",
   "common.deselect": "Deselect",
   "common.all": "All",

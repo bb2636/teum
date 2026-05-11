@@ -21,6 +21,7 @@ export function PaymentIntroPage() {
   const displayAmount = isKorean ? krwAmount : 399;
   const displayAmountFormatted = isKorean ? krwAmount.toLocaleString() : '3.99';
   const usdPrice = `$${(planPrice?.usd ?? 3.99).toFixed(2)}`;
+  const isOneTimeMode = planPrice?.paypalMode === 'oneTime';
 
   useEffect(() => {
     setHideTabBar(true);
@@ -138,16 +139,36 @@ export function PaymentIntroPage() {
           </div>
         </div>
 
+        {/* 인도 등 PayPal 정기 구독 미지원 국가 안내 */}
+        {isOneTimeMode && (
+          <div className="px-4 mb-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 leading-relaxed">
+              <div className="font-semibold mb-1">
+                {t('subscription.oneTimeNoticeTitle')}
+              </div>
+              <div>{t('subscription.oneTimeNoticeBody')}</div>
+            </div>
+          </div>
+        )}
+
         {/* Apple 3.1.2 자동 갱신 구독 고지 + EULA / Privacy / Refund 링크 */}
         <div className="px-4 mb-40">
           <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 leading-relaxed space-y-2">
             <div className="font-semibold text-[#4A2C1A] text-sm">
-              {t('subscription.disclaimerTitle')}
+              {isOneTimeMode
+                ? t('subscription.oneTimeDisclaimerTitle')
+                : t('subscription.disclaimerTitle')}
             </div>
             <div>• {t('subscription.disclaimerLength')}</div>
             <div>• {usdPrice}{isKorean ? ` (${krwAmount.toLocaleString()}${t('payment.won')})` : ''} / {isKorean ? '월' : 'month'}</div>
-            <div>• {t('subscription.disclaimerAutoRenew')}</div>
-            <div>• {t('subscription.disclaimerManage')}</div>
+            {isOneTimeMode ? (
+              <div>• {t('subscription.oneTimeNoAutoRenew')}</div>
+            ) : (
+              <>
+                <div>• {t('subscription.disclaimerAutoRenew')}</div>
+                <div>• {t('subscription.disclaimerManage')}</div>
+              </>
+            )}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 mt-2 border-t border-gray-200">
               <button
                 type="button"

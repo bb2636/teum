@@ -4,6 +4,7 @@ import { paymentService } from '../services/payment.service';
 import { processPaymentSchema, initPaymentSchema, initBillingKeySchema, cancelPaymentSchema, cancelSubscriptionSchema, adminCancelSubscriptionSchema } from '../validations/payment';
 import { logger } from '../config/logger';
 import { getExchangeInfo } from '../utils/currency';
+import { detectCountry, isPayPalRecurringBlocked } from '../utils/geo';
 import { refundService } from '../services/payment/refund.service';
 import { paypalProvider } from '../services/payment/paypal.provider';
 import { nicePayProvider } from '../services/payment/nicepay.provider';
@@ -150,13 +151,19 @@ const appleWebhookSchema = z.object({
 export class PaymentController {
   async getPlanPrice(req: Request, res: Response, next: NextFunction) {
     try {
-      const exchangeInfo = await getExchangeInfo();
+      const [exchangeInfo, country] = await Promise.all([
+        getExchangeInfo(),
+        detectCountry(req).catch(() => null),
+      ]);
+      const paypalOneTime = isPayPalRecurringBlocked(country);
       res.json({
         success: true,
         data: {
           usd: exchangeInfo.usd,
           krw: exchangeInfo.krw,
           rate: exchangeInfo.rate,
+          country,
+          paypalMode: paypalOneTime ? 'oneTime' : 'recurring',
         },
       });
     } catch (error) {
@@ -702,6 +709,34 @@ export class PaymentController {
 
       const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
 
+      // 인도 등 PayPal 정기 구독이 카드사 단계에서 거절되는 국가는
+      // Orders v2 (일회성 결제) 로 분기. 다른 국가는 기존 정기 구독 유지.
+      const country = await detectCountry(req).catch(() => null);
+      const useOneTime = isPayPalRecurringBlocked(country);
+
+      if (useOneTime) {
+        const result = await paymentService.initPayPalOneTimePayment(
+          userId,
+          planName,
+          backendUrl,
+          isNative,
+        );
+        logger.info(
+          { userId, country, mode: 'oneTime' },
+          'PayPal init: routed to one-time order (recurring blocked country)',
+        );
+        return res.json({
+          success: true,
+          data: {
+            approveUrl: result.approveUrl,
+            orderId: result.orderId,
+            paypalSubscriptionId: result.paypalOrderId,
+            mode: 'oneTime',
+            country,
+          },
+        });
+      }
+
       const result = await paymentService.initPayPalPayment(
         userId,
         planName,
@@ -711,10 +746,41 @@ export class PaymentController {
 
       res.json({
         success: true,
-        data: result,
+        data: { ...result, mode: 'recurring', country },
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  async paypalReturnOneTime(req: Request, res: Response, _next: NextFunction) {
+    const frontendUrl = process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
+    const isNative = req.query.n === '1';
+    const nativeQp = isNative ? '&n=1' : '';
+    try {
+      const { token: paypalOrderId, oid: internalOrderId } = req.query;
+      if (!paypalOrderId || !internalOrderId) {
+        return res.redirect(
+          `${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal order information is missing.')}${nativeQp}`,
+        );
+      }
+
+      const result = await paymentService.activatePayPalOneTimeOrder(
+        paypalOrderId as string,
+        internalOrderId as string,
+      );
+
+      if (result.success) {
+        return res.redirect(`${frontendUrl}/payment/success${isNative ? '?n=1' : ''}`);
+      }
+      return res.redirect(
+        `${frontendUrl}/payment/fail?message=${encodeURIComponent(result.message)}${nativeQp}`,
+      );
+    } catch (error) {
+      logger.error({ error }, 'PayPal one-time return processing failed');
+      return res.redirect(
+        `${frontendUrl}/payment/fail?message=${encodeURIComponent('PayPal payment processing failed.')}${nativeQp}`,
+      );
     }
   }
 

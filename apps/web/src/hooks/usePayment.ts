@@ -5,6 +5,10 @@ export interface PlanPrice {
   usd: number;
   krw: number;
   rate: number;
+  /** ISO-3166-1 alpha-2 (예: 'IN'). 미식별 시 null. */
+  country?: string | null;
+  /** 'oneTime' = 인도 등 PayPal 정기 구독 차단 국가. 'recurring' = 그 외. */
+  paypalMode?: 'oneTime' | 'recurring';
 }
 
 export function usePlanPrice() {
@@ -205,6 +209,8 @@ export interface InitPayPalResponse {
   approveUrl: string;
   orderId: string;
   paypalSubscriptionId: string;
+  mode?: 'oneTime' | 'recurring';
+  country?: string | null;
 }
 
 export function useInitPayPal() {

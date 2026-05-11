@@ -162,6 +162,7 @@ export function PaymentPage() {
 
   const initBillingKey = useInitBillingKey();
   const initPayPal = useInitPayPal();
+  const isOneTimeMode = planPrice?.paypalMode === 'oneTime';
 
   const nextPaymentDate = useMemo(() => {
     const date = new Date();
@@ -503,7 +504,11 @@ export function PaymentPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold text-[#4A2C1A]">{t('payment.paymentInfo')}</h2>
-              <span className="text-sm text-gray-600">{t('payment.nextPaymentDateLabel', { date: nextPaymentDate })}</span>
+              <span className="text-sm text-gray-600">
+                {isOneTimeMode
+                  ? t('payment.oneTimeAccessUntil', { date: nextPaymentDate })
+                  : t('payment.nextPaymentDateLabel', { date: nextPaymentDate })}
+              </span>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -526,7 +531,7 @@ export function PaymentPage() {
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-3">
-              {t('payment.autoRenewalNote')}
+              {isOneTimeMode ? t('payment.oneTimeNote') : t('payment.autoRenewalNote')}
             </p>
           </div>
 
@@ -668,7 +673,9 @@ export function PaymentPage() {
                 : paymentMethod === 'apple'
                   ? `App Store ${appleIAP.product?.price || ''}`.trim()
                   : paymentMethod === 'paypal'
-                    ? t('payment.payWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) })
+                    ? (isOneTimeMode
+                        ? t('payment.payOnceWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) })
+                        : t('payment.payWithPayPal', { amount: (planPrice?.usd ?? 3.99).toFixed(2) }))
                     : isKorean
                       ? t('payment.startMonthly', { amount: displayAmountFormatted })
                       : `Start at $${(planPrice?.usd ?? 3.99).toFixed(2)}/month`}

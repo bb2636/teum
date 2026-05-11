@@ -1788,6 +1788,272 @@ export class PaymentService {
     };
   }
 
+  /**
+   * 인도 등 PayPal 정기 구독이 카드사 거절되는 국가용 일회성 결제.
+   * Subscriptions API 대신 Orders v2 (intent=CAPTURE) 사용.
+   * 활성화 시 paypalSubscriptionId=null 로 둬서 자동갱신 잡이 처리하지 않게 한다.
+   * 30일 후 endDate 도래 시 빌링키 없음 → 자동 expired 처리됨.
+   */
+  async initPayPalOneTimePayment(
+    userId: string,
+    planName: string,
+    baseUrl: string,
+    isNative: boolean = false,
+  ): Promise<{ approveUrl: string; orderId: string; paypalOrderId: string }> {
+    const activeSubscription = await this.getActiveSubscription(userId);
+    if (activeSubscription) {
+      throw new Error('You already have an active subscription.');
+    }
+
+    const usdAmount = getBasePriceUSD().toFixed(2);
+    const orderId = `PAYPAL1T_${Date.now()}_${userId.substring(0, 8)}`;
+
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await db.insert(paymentSessions).values({
+      orderId,
+      userId,
+      amount: usdAmount,
+      planName,
+      paymentMethod: 'PAYPAL',
+      expiresAt,
+    });
+
+    const nativeFlag = isNative ? '&n=1' : '';
+    const returnUrl = `${baseUrl}/api/payments/paypal/return-onetime?oid=${encodeURIComponent(orderId)}${nativeFlag}`;
+    const cancelUrl = `${baseUrl}/api/payments/paypal/cancel?oid=${encodeURIComponent(orderId)}${nativeFlag}`;
+
+    const result = await paypalProvider.createOneTimeOrder(
+      usdAmount,
+      'USD',
+      returnUrl,
+      cancelUrl,
+      orderId,
+    );
+
+    await db
+      .update(paymentSessions)
+      .set({ externalSubscriptionId: result.orderId })
+      .where(eq(paymentSessions.orderId, orderId));
+
+    const locale = await this.resolvePayPalLocale(userId);
+    const approveUrlWithLocale = result.approveUrl.includes('locale.x=')
+      ? result.approveUrl
+      : `${result.approveUrl}${result.approveUrl.includes('?') ? '&' : '?'}locale.x=${locale}`;
+
+    logger.info(
+      { orderId, paypalOrderId: result.orderId, userId, locale },
+      'PayPal one-time order initiated (India / non-recurring)',
+    );
+
+    return {
+      approveUrl: approveUrlWithLocale,
+      orderId,
+      paypalOrderId: result.orderId,
+    };
+  }
+
+  private processingPayPalOneTime = new Set<string>();
+
+  /**
+   * 사용자가 PayPal 에서 일회성 결제를 승인하고 돌아왔을 때 호출.
+   * captureOrder() 로 실제 과금 → DB 에 1개월짜리 active 구독 생성.
+   * paypalSubscriptionId=null 이라 자동갱신 잡은 이 row 를 PayPal 로 갱신 시도하지 않고,
+   * 빌링키도 없으니 endDate 도래 시 즉시 expired 처리된다 (= 인도 사용자는 매월 수동 재결제).
+   */
+  async activatePayPalOneTimeOrder(
+    paypalOrderId: string,
+    internalOrderId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    if (this.processingPayPalOneTime.has(internalOrderId)) {
+      logger.warn({ internalOrderId }, 'Duplicate PayPal one-time activation, skipping');
+      return { success: true, message: 'Already processing.' };
+    }
+    this.processingPayPalOneTime.add(internalOrderId);
+
+    try {
+      const session = await this.getPendingSession(internalOrderId);
+      if (!session) {
+        logger.error({ internalOrderId }, 'PayPal one-time session not found');
+        return { success: false, message: 'Payment session not found.' };
+      }
+
+      const captureResult = await paypalProvider.captureOrder(paypalOrderId);
+      if (captureResult.status !== 'COMPLETED') {
+        logger.error(
+          { paypalOrderId, internalOrderId, captureStatus: captureResult.status },
+          'PayPal one-time capture not completed (likely card issuer decline)',
+        );
+        // 실패한 결제 흔적을 남기고 세션 정리
+        try {
+          await db.insert(payments).values({
+            userId: session.userId,
+            status: 'failed',
+            amount: session.amount,
+            currency: 'USD',
+            paymentMethod: 'PAYPAL',
+            transactionId: `paypal_onetime_failed_${paypalOrderId}`,
+            paidAt: null,
+          });
+        } catch (logErr) {
+          logger.error({ logErr, paypalOrderId }, 'Failed to insert failed-payment record');
+        }
+        await this.deletePendingSession(internalOrderId).catch(() => undefined);
+        return {
+          success: false,
+          message: `Payment not completed: ${captureResult.status}`,
+        };
+      }
+
+      // custom_id 는 주문-세션 바인딩의 핵심. 누락도 불일치도 모두 거절.
+      if (!captureResult.customId || captureResult.customId !== internalOrderId) {
+        logger.error(
+          {
+            paypalOrderId,
+            captureId: captureResult.captureId,
+            expectedCustomId: internalOrderId,
+            actualCustomId: captureResult.customId,
+          },
+          'PayPal one-time order custom_id missing or mismatch — refunding',
+        );
+        if (captureResult.captureId) {
+          await paypalProvider.refundCapture(captureResult.captureId, 'order_id_mismatch');
+        }
+        return { success: false, message: 'Order verification failed.' };
+      }
+
+      // 금액/통화 검증 — 서버 세션과 일치해야 한다.
+      const expectedAmount = Number(session.amount).toFixed(2);
+      const actualAmount = captureResult.amountValue
+        ? Number(captureResult.amountValue).toFixed(2)
+        : null;
+      if (
+        actualAmount !== expectedAmount ||
+        (captureResult.amountCurrency && captureResult.amountCurrency !== 'USD')
+      ) {
+        logger.error(
+          {
+            paypalOrderId,
+            captureId: captureResult.captureId,
+            expectedAmount,
+            actualAmount,
+            actualCurrency: captureResult.amountCurrency,
+          },
+          'PayPal one-time amount/currency mismatch — refunding',
+        );
+        if (captureResult.captureId) {
+          await paypalProvider.refundCapture(captureResult.captureId, 'amount_mismatch');
+        }
+        return { success: false, message: 'Amount verification failed.' };
+      }
+
+      const serverAmount = Number(session.amount);
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      try {
+        await db.transaction(async (tx) => {
+          const [newSubscription] = await tx
+            .insert(subscriptions)
+            .values({
+              userId: session.userId,
+              planName: session.planName,
+              amount: serverAmount.toString(),
+              currency: 'USD',
+              status: 'active',
+              // 자동갱신 잡이 PayPal 로 재청구를 시도하지 않도록 의도적으로 null
+              paypalSubscriptionId: null,
+              startDate,
+              endDate,
+            })
+            .returning();
+
+          await tx.insert(payments).values({
+            userId: session.userId,
+            subscriptionId: newSubscription.id,
+            status: 'completed',
+            amount: serverAmount.toString(),
+            currency: 'USD',
+            paymentMethod: 'PAYPAL',
+            transactionId: captureResult.captureId || `paypal_onetime_${paypalOrderId}`,
+            paidAt: startDate,
+          });
+
+          logger.info(
+            {
+              userId: session.userId,
+              subscriptionId: newSubscription.id,
+              paypalOrderId,
+              captureId: captureResult.captureId,
+            },
+            'PayPal one-time subscription created (India / non-recurring)',
+          );
+        });
+
+        await this.deletePendingSession(internalOrderId);
+
+        try {
+          const userInfo = await this.getUserEmailAndNickname(session.userId);
+          if (userInfo) {
+            await emailService
+              .sendSubscriptionStartNotification(
+                userInfo.email,
+                userInfo.nickname,
+                session.planName,
+                userInfo.language,
+              )
+              .catch((err) =>
+                logger.error({ err }, 'Failed to send one-time subscription email'),
+              );
+          }
+        } catch (emailError) {
+          logger.error({ error: emailError }, 'Failed to load user info for one-time email');
+        }
+
+        return { success: true, message: 'One-time subscription activated.' };
+      } catch (error) {
+        // DB 활성화 실패 (예: uniq_active_sub_per_user 충돌 — 동시 결제/멀티탭). 보상 환불 시도.
+        logger.error(
+          { error, paypalOrderId, internalOrderId, captureId: captureResult.captureId },
+          'PayPal one-time DB activation failed — attempting compensating refund',
+        );
+        if (captureResult.captureId) {
+          const refund = await paypalProvider.refundCapture(
+            captureResult.captureId,
+            'subscription_activation_failed',
+          );
+          logger.warn(
+            {
+              paypalOrderId,
+              captureId: captureResult.captureId,
+              refundOk: refund.ok,
+              refundId: refund.refundId,
+            },
+            'PayPal one-time compensating refund result',
+          );
+          // 실패한 결제 + 환불 흔적
+          try {
+            await db.insert(payments).values({
+              userId: session.userId,
+              status: refund.ok ? 'refunded' : 'failed',
+              amount: session.amount,
+              currency: 'USD',
+              paymentMethod: 'PAYPAL',
+              transactionId: `paypal_onetime_compensated_${paypalOrderId}`,
+              paidAt: null,
+            });
+          } catch (logErr) {
+            logger.error({ logErr }, 'Failed to insert compensated-payment record');
+          }
+        }
+        await this.deletePendingSession(internalOrderId).catch(() => undefined);
+        return { success: false, message: 'Failed to activate subscription after payment.' };
+      }
+    } finally {
+      this.processingPayPalOneTime.delete(internalOrderId);
+    }
+  }
+
   private processingPayPalReturns = new Set<string>();
 
   async activatePayPalSubscription(

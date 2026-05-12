@@ -15,6 +15,9 @@ import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 import { logger } from '../config/logger';
 import jwtLib from 'jsonwebtoken';
 import { userRepository } from '../repositories/user.repository';
+import { db } from '../db';
+import { mobileAuthTokens as mobileAuthTokensTable } from '../db/schema/mobile-auth-tokens';
+import { eq, lt } from 'drizzle-orm';
 
 type MobileAuthTokenEntry = {
   accessToken: string;
@@ -23,7 +26,55 @@ type MobileAuthTokenEntry = {
   expiresAt: number;
   onboardingData?: Record<string, string>;
 };
-const mobileAuthTokens = new Map<string, MobileAuthTokenEntry>();
+
+const mobileAuthTokens = {
+  async set(key: string, value: MobileAuthTokenEntry): Promise<void> {
+    await db
+      .insert(mobileAuthTokensTable)
+      .values({
+        tokenKey: key,
+        accessToken: value.accessToken || '',
+        refreshToken: value.refreshToken || '',
+        userId: value.user?.id || '',
+        userRole: value.user?.role || 'user',
+        onboardingData: value.onboardingData ?? null,
+        expiresAt: new Date(value.expiresAt),
+      })
+      .onConflictDoUpdate({
+        target: mobileAuthTokensTable.tokenKey,
+        set: {
+          accessToken: value.accessToken || '',
+          refreshToken: value.refreshToken || '',
+          userId: value.user?.id || '',
+          userRole: value.user?.role || 'user',
+          onboardingData: value.onboardingData ?? null,
+          expiresAt: new Date(value.expiresAt),
+        },
+      });
+  },
+  async get(key: string): Promise<MobileAuthTokenEntry | undefined> {
+    const rows = await db
+      .select()
+      .from(mobileAuthTokensTable)
+      .where(eq(mobileAuthTokensTable.tokenKey, key))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return undefined;
+    return {
+      accessToken: row.accessToken,
+      refreshToken: row.refreshToken,
+      user: { id: row.userId, role: row.userRole },
+      expiresAt: row.expiresAt.getTime(),
+      onboardingData: (row.onboardingData as Record<string, string> | null) ?? undefined,
+    };
+  },
+  async delete(key: string): Promise<void> {
+    await db.delete(mobileAuthTokensTable).where(eq(mobileAuthTokensTable.tokenKey, key));
+  },
+  async cleanupExpired(): Promise<void> {
+    await db.delete(mobileAuthTokensTable).where(lt(mobileAuthTokensTable.expiresAt, new Date()));
+  },
+};
 
 type AuthPageLang = 'ko' | 'en';
 
@@ -106,10 +157,9 @@ function sendMobileDeepLinkPage(res: Response, deepLinkUrl: string, lang: AuthPa
 }
 
 setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of mobileAuthTokens) {
-    if (val.expiresAt < now) mobileAuthTokens.delete(key);
-  }
+  mobileAuthTokens.cleanupExpired().catch((err) => {
+    logger.error({ err }, 'Failed to cleanup expired mobile auth tokens');
+  });
 }, 60_000);
 
 export class AuthController {
@@ -567,7 +617,7 @@ export class AuthController {
           providerAccountId: result.socialProfile?.providerAccountId || '',
         });
         if (isMobile && stateNonce) {
-          mobileAuthTokens.set(`onboarding:${stateNonce}`, {
+          await mobileAuthTokens.set(`onboarding:${stateNonce}`, {
             accessToken: '',
             refreshToken: '',
             user: { id: '', role: 'user' },
@@ -585,7 +635,7 @@ export class AuthController {
       if (isMobile) {
         const tokenKey = stateNonce || randomUUID();
         logger.info({ tokenKey: tokenKey.substring(0, 8), userId: loginResult.user.id }, 'Google OAuth: storing mobile token for exchange');
-        mobileAuthTokens.set(tokenKey, {
+        await mobileAuthTokens.set(tokenKey, {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
           user: { id: loginResult.user.id, role: loginResult.user.role },
@@ -712,7 +762,7 @@ export class AuthController {
           isEmailHidden: result.socialProfile?.isEmailHidden ? 'true' : 'false',
         });
         if (isMobile && appleNonce) {
-          mobileAuthTokens.set(`onboarding:${appleNonce}`, {
+          await mobileAuthTokens.set(`onboarding:${appleNonce}`, {
             accessToken: '',
             refreshToken: '',
             user: { id: '', role: 'user' },
@@ -730,7 +780,7 @@ export class AuthController {
       if (isMobile) {
         const tokenKey = appleNonce || randomUUID();
         logger.info({ tokenKey: tokenKey.substring(0, 8), userId: loginResult.user.id }, 'Apple OAuth: storing mobile token for exchange');
-        mobileAuthTokens.set(tokenKey, {
+        await mobileAuthTokens.set(tokenKey, {
           accessToken: loginResult.accessToken,
           refreshToken: loginResult.refreshToken,
           user: { id: loginResult.user.id, role: loginResult.user.role },
@@ -860,22 +910,22 @@ export class AuthController {
       const onboardingKey = token.startsWith('onboarding:') ? token : `onboarding:${token}`;
       const loginKey = token.startsWith('onboarding:') ? token.replace('onboarding:', '') : token;
 
-      const onboardingStored = mobileAuthTokens.get(onboardingKey);
+      const onboardingStored = await mobileAuthTokens.get(onboardingKey);
       if (onboardingStored && onboardingStored.expiresAt >= Date.now() && onboardingStored.onboardingData) {
-        mobileAuthTokens.delete(onboardingKey);
+        await mobileAuthTokens.delete(onboardingKey);
         logger.info({ token: loginKey.substring(0, 8) }, 'Mobile token exchange: onboarding data returned');
         return res.json({ success: true, data: { onboardingData: onboardingStored.onboardingData } });
       }
 
-      const loginStored = mobileAuthTokens.get(loginKey);
+      const loginStored = await mobileAuthTokens.get(loginKey);
       if (!loginStored || loginStored.expiresAt < Date.now()) {
-        if (loginStored) mobileAuthTokens.delete(loginKey);
-        if (onboardingStored) mobileAuthTokens.delete(onboardingKey);
+        if (loginStored) await mobileAuthTokens.delete(loginKey);
+        if (onboardingStored) await mobileAuthTokens.delete(onboardingKey);
         logger.info({ token: loginKey.substring(0, 8) }, 'Mobile token exchange: not found or expired');
         return res.status(404).json({ success: false, error: { code: 'TOKEN_NOT_FOUND', message: 'Token not ready or expired' } });
       }
 
-      mobileAuthTokens.delete(loginKey);
+      await mobileAuthTokens.delete(loginKey);
       logger.info({ token: loginKey.substring(0, 8), role: loginStored.user?.role }, 'Mobile token exchange: login success');
 
       res.cookie('accessToken', loginStored.accessToken, {

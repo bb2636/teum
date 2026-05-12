@@ -17,3 +17,4 @@ export * from './payment-sessions';
 export * from './billing-keys';
 export * from './webhook-events';
 export * from './refund-logs';
+export * from './mobile-auth-tokens';

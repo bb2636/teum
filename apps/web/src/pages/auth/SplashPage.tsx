@@ -116,9 +116,9 @@ export function SplashPage() {
       });
 
       if (res.status === 404) {
+        // 404 = OAuth 서버가 아직 토큰을 저장하지 않은 것 (정상 race condition).
+        // nonce를 지우지 말고 폴링이 계속 재시도하도록 guard만 해제.
         exchangingRef.current = false;
-        setIsExchanging(false);
-        clearOAuthState();
         return;
       }
 
@@ -320,22 +320,21 @@ export function SplashPage() {
     window.addEventListener('focus', onFocus);
 
     let pollCount = 0;
-    // 폴링 주기를 2초 → 500ms 로 단축하여 사용자 대기 시간 최소화
     const pollInterval = setInterval(() => {
       if (unmounted) { clearInterval(pollInterval); return; }
       const { nonce } = getOAuthState();
       if (!nonce) { pollCount = 0; return; }
       pollCount++;
-      // 5분 = 600회 (500ms * 600)
-      if (pollCount > 600) {
+      // 5분 = 300회 (1000ms * 300)
+      if (pollCount > 300) {
         clearOAuthState();
         setIsExchanging(false);
         clearInterval(pollInterval);
         return;
       }
-      exchangingRef.current = false;
+      // exchangingRef를 강제 초기화하지 않음 — 진행 중인 요청이 있으면 guard가 막아줌
       exchangeToken();
-    }, 500);
+    }, 1000);
 
     return () => {
       unmounted = true;

@@ -4,7 +4,7 @@ import { useGoogleLogin } from '@/hooks/useSocialAuth';
 import { useMe } from '@/hooks/useProfile';
 import { useT } from '@/hooks/useTranslation';
 import { forceFullCacheClear } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, getApiBaseUrl } from '@/lib/api';
 
 declare global {
   interface Window {
@@ -107,7 +107,7 @@ export function SplashPage() {
     setIsExchanging(true);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const apiBase = getApiBaseUrl();
       const res = await fetch(`${apiBase}/auth/exchange-mobile-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -372,14 +372,13 @@ export function SplashPage() {
       }
       try {
         const { Browser } = await import('@capacitor/browser');
-        const apiBase = import.meta.env.VITE_API_URL || '/api';
-        const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
+        const baseUrl = getApiBaseUrl();
         await Browser.open({
           url: `${baseUrl}/auth/google/init?state=${encodeURIComponent(state)}`,
           presentationStyle: 'fullscreen',
         });
       } catch {
-        window.location.href = `/api/auth/google/init?state=${encodeURIComponent(state)}`;
+        window.location.href = `${getApiBaseUrl()}/auth/google/init?state=${encodeURIComponent(state)}`;
       }
     } else {
       const state = `nonce=${nonce}&lang=${currentLang}`;
@@ -404,14 +403,13 @@ export function SplashPage() {
     if (isNative) {
       try {
         const { Browser } = await import('@capacitor/browser');
-        const apiBase = import.meta.env.VITE_API_URL || '/api';
-        const baseUrl = apiBase.startsWith('http') ? apiBase : `${window.location.origin}${apiBase}`;
+        const baseUrl = getApiBaseUrl();
         await Browser.open({
           url: `${baseUrl}/auth/apple/init?state=${encodeURIComponent(state)}`,
           presentationStyle: 'fullscreen',
         });
       } catch {
-        window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;
+        window.location.href = `${getApiBaseUrl()}/auth/apple/init?state=${encodeURIComponent(state)}`;
       }
     } else {
       window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;

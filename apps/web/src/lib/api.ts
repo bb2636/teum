@@ -1,12 +1,30 @@
 import { t } from './i18n';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const PROD_API_URL = 'https://teum--iteraon.replit.app/api';
+
+/**
+ * Native(Capacitor) 환경에서는 절대로 capacitor://localhost 같은 비-http 스킴이
+ * SafariViewController 등에 전달되어선 안 되므로, 반드시 https 절대 URL 을 사용한다.
+ * 빌드 시점 VITE_API_URL 이 비어있거나 상대경로(/api)인 경우 prod URL 로 강제 보정.
+ */
+export function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL;
+  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  const isNative = !!cap?.isNativePlatform?.();
+  if (isNative) {
+    if (envUrl && envUrl.startsWith('http')) return envUrl;
+    return PROD_API_URL;
+  }
+  return envUrl || '/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 /** 업로드 이미지 URL을 API 서빙 경로로 변환 (/storage/... → /api/storage/...) */
 export function getStorageImageSrc(url: string): string {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  const base = import.meta.env.VITE_API_URL || '/api';
+  const base = getApiBaseUrl();
   return `${base}/storage/${url.replace(/^\/storage\/?/, '')}`;
 }
 

@@ -13,7 +13,7 @@ router.get('/check-email', authController.checkEmailExists.bind(authController))
 router.post('/email/request', verificationLimiter, authController.requestEmailVerification.bind(authController));
 router.post('/email/request-for-password-reset', verificationLimiter, authController.requestEmailVerificationForPasswordReset.bind(authController));
 router.post('/email/confirm', authController.confirmEmailVerification.bind(authController));
-router.post('/phone/request', verificationLimiter, authController.requestPhoneVerification.bind(authController));
+router.post('/phone/request', verificationLimiter, optionalAuth, authController.requestPhoneVerification.bind(authController));
 router.post('/phone/confirm', optionalAuth, authController.confirmPhoneVerification.bind(authController));
 
 // Social login routes

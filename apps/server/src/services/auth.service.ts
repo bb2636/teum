@@ -224,11 +224,15 @@ export class AuthService {
     return phone;
   }
 
-  async requestPhoneVerification(input: PhoneVerificationRequestInput) {
-    // Apple 심사용 데모 전화번호: Twilio 호출 없이 즉시 성공 처리.
-    if (isBypassPhone(input.phone)) {
-      logger.info('Phone verification BYPASSED (Apple review demo phone)', {
+  async requestPhoneVerification(input: PhoneVerificationRequestInput, requesterEmail?: string) {
+    // Apple 심사용 데모 계정: 로그인된 사용자가 bypass 이메일이거나 전화번호가 bypass 목록이면 우회.
+    // (심사관이 본인 핸드폰 번호로 결제 본인인증을 진행할 수 있도록 이메일 기반 우회를 허용한다.)
+    const bypass =
+      (requesterEmail && isBypassEmail(requesterEmail)) || isBypassPhone(input.phone);
+    if (bypass) {
+      logger.info('Phone verification BYPASSED (Apple review demo account)', {
         phone: input.phone,
+        requesterEmail,
       });
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
@@ -309,9 +313,11 @@ export class AuthService {
     };
   }
 
-  async confirmPhoneVerification(input: PhoneVerificationConfirmInput, userId?: string) {
-    // Apple 심사용 데모 전화번호: 고정코드 123456 만 검증.
-    if (isBypassPhone(input.phone)) {
+  async confirmPhoneVerification(input: PhoneVerificationConfirmInput, userId?: string, requesterEmail?: string) {
+    // Apple 심사용 데모 계정: 로그인 이메일이 bypass 또는 phone 이 bypass 면 고정코드 123456 검증.
+    const bypass =
+      (requesterEmail && isBypassEmail(requesterEmail)) || isBypassPhone(input.phone);
+    if (bypass) {
       const pending = await phoneVerificationRepository.findPendingByPhone(input.phone);
       if (!pending) {
         throw new Error('인증번호 요청 기록이 없거나 만료되었습니다. 다시 요청해주세요.');
@@ -320,8 +326,9 @@ export class AuthService {
         throw new Error('인증번호가 올바르지 않습니다.');
       }
       await phoneVerificationRepository.markAsVerified(pending.id, userId);
-      logger.info('Phone verification BYPASSED CONFIRM (Apple review demo phone)', {
+      logger.info('Phone verification BYPASSED CONFIRM (Apple review demo account)', {
         phone: input.phone,
+        requesterEmail,
       });
       return { message: 'Phone number verified', verified: true };
     }

@@ -367,8 +367,8 @@ export class AuthController {
   async requestPhoneVerification(req: Request, res: Response, next: NextFunction) {
     try {
       const input = phoneVerificationRequestSchema.parse(req.body);
-      const result = await authService.requestPhoneVerification(input);
-      
+      const result = await authService.requestPhoneVerification(input, req.user?.email);
+
       res.json({
         success: true,
         data: result,
@@ -381,7 +381,7 @@ export class AuthController {
   async confirmPhoneVerification(req: Request, res: Response, next: NextFunction) {
     try {
       const input = phoneVerificationConfirmSchema.parse(req.body);
-      const result = await authService.confirmPhoneVerification(input, req.user?.userId);
+      const result = await authService.confirmPhoneVerification(input, req.user?.userId, req.user?.email);
       res.json({
         success: true,
         data: result,

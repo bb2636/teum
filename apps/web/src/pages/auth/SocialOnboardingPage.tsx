@@ -31,10 +31,12 @@ const createProfileSchema = (isEmailOptional: boolean) => z.object({
   nickname: nicknameSchema,
   name: z.string().min(1, 'auth.enterName').max(100),
   phone: z.string().min(4, 'auth.phoneInvalidLength').max(15, 'auth.phoneInvalidLength'),
+  // Apple Guideline 5.1.1(v): 핵심 기능과 무관한 개인정보(생년월일)는 선택값.
   dateOfBirth: z
     .string()
+    .optional()
     .refine((val) => {
-      if (!val) return false;
+      if (!val) return true;
       const parts = val.split('-');
       if (parts.length !== 3) return false;
       const year = parseInt(parts[0], 10);
@@ -46,8 +48,7 @@ const createProfileSchema = (isEmailOptional: boolean) => z.object({
       if (isNaN(day) || day < 1 || day > 31) return false;
       const date = new Date(year, month - 1, day);
       return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-    }, 'auth.enterDateOfBirth')
-    .optional(),
+    }, 'auth.enterDateOfBirth'),
 });
 
 const termsSchema = z.object({
@@ -227,16 +228,17 @@ export function SocialOnboardingPage() {
       : (!!watchEmail && !profileErrors.email);
   // Apple 이 name 을 제공한 경우(hideNameField): 검증 통과로 간주
   const isNameOk = hideNameField ? true : (!!watchName && !profileErrors.name);
+  // 생년월일은 선택값(Apple Guideline 5.1.1). 입력했다면 형식만 검증.
+  const isDobOk = !watchDateOfBirth || isValidDateOfBirth(watchDateOfBirth);
   const isProfileValid =
     isEmailOk &&
     watchNickname &&
     isNameOk &&
     watchPhone &&
-    watchDateOfBirth &&
     !profileErrors.nickname &&
     !profileErrors.phone &&
     nicknameError.length === 0 &&
-    isValidDateOfBirth(watchDateOfBirth) &&
+    isDobOk &&
     phoneVerified;
 
   const watchTermsService = termsForm.watch('termsService');
@@ -513,6 +515,7 @@ export function SocialOnboardingPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="dateOfBirth">{t('auth.dateOfBirth')}</Label>
+                <span className="text-xs text-gray-400">({t('common.optional')})</span>
                 <button type="button" onClick={() => setShowCalendar(!showCalendar)} className="text-gray-500 hover:text-gray-700">
                   <Calendar className="w-4 h-4" />
                 </button>

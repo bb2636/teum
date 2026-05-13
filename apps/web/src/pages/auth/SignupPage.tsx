@@ -40,10 +40,13 @@ const step1Schema = z.object({
 const step2Schema = z.object({
   nickname: nicknameSchema,
   name: z.string().min(1, 'auth.enterName').max(100),
+  // Apple Guideline 5.1.1(v): 핵심 기능과 무관한 개인정보(생년월일)를 필수로 받지 않는다.
+  // 비워두면 통과, 입력한 경우에만 형식 검증.
   dateOfBirth: z
     .string()
+    .optional()
     .refine((val) => {
-      if (!val) return false;
+      if (!val) return true;
       const parts = val.split('-');
       if (parts.length !== 3) return false;
       const year = parseInt(parts[0], 10);
@@ -56,8 +59,7 @@ const step2Schema = z.object({
       const date = new Date(year, month - 1, day);
       if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return false;
       return true;
-    }, 'auth.enterDateOfBirth')
-    .optional(),
+    }, 'auth.enterDateOfBirth'),
 });
 
 const step3Schema = z.object({
@@ -216,12 +218,12 @@ export function SignupPage() {
     return true;
   };
 
+  // 생년월일 선택값(Apple Guideline 5.1.1): 비워두면 통과, 입력 시 형식 검증.
   const isStep2Valid =
     step2Nickname &&
     step2Name &&
-    step2DateOfBirth &&
     nicknameError.length === 0 &&
-    isValidDateOfBirth(step2DateOfBirth);
+    (!step2DateOfBirth || isValidDateOfBirth(step2DateOfBirth));
 
   const isStep3Valid = step3TermsService === true && step3TermsPayment === true && step3TermsRefund === true;
 
@@ -675,6 +677,7 @@ export function SignupPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="dateOfBirth">{t('auth.dateOfBirth')}</Label>
+                <span className="text-xs text-gray-400">({t('common.optional')})</span>
                 <button
                   ref={calendarButtonRef}
                   type="button"

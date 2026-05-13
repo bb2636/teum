@@ -20,6 +20,54 @@ import {
   SocialOnboardingInput,
 } from '../validations/auth';
 
+// ─────────────────────────────────────────────────────────────────
+// Apple 심사용 데모 계정 SMS/이메일 인증 우회.
+//
+// ⚠️ 보안: 기본값은 "비활성". 활성화하려면 운영 환경변수에
+//   ENABLE_REVIEW_BYPASS=true 와 함께 (선택) TEST_BYPASS_EMAILS / TEST_BYPASS_PHONES
+//   를 설정해야 한다. 둘 다 미설정이면 fallback 데모값으로 동작하지만,
+//   ENABLE_REVIEW_BYPASS 가 없으면 어떠한 우회도 일어나지 않는다.
+//
+// App Store Connect "심사 노트" 에 아래 값을 명시한다.
+//   - 데모 이메일: test1@test.com
+//   - 데모 전화번호: +10000000000
+//   - 인증코드(SMS/이메일 모두): 123456
+// ─────────────────────────────────────────────────────────────────
+const TEST_BYPASS_CODE = '123456';
+const REVIEW_BYPASS_ENABLED = process.env.ENABLE_REVIEW_BYPASS === 'true';
+const TEST_BYPASS_EMAILS = new Set(
+  (process.env.TEST_BYPASS_EMAILS || 'test1@test.com')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+);
+const TEST_BYPASS_PHONES = new Set(
+  (process.env.TEST_BYPASS_PHONES || '01000000000,+10000000000')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
+if (REVIEW_BYPASS_ENABLED) {
+  logger.warn(
+    {
+      emails: Array.from(TEST_BYPASS_EMAILS),
+      phones: Array.from(TEST_BYPASS_PHONES),
+    },
+    '⚠️ REVIEW BYPASS ENABLED — SMS/email verification bypassed for listed test accounts',
+  );
+}
+
+function isBypassEmail(email: string): boolean {
+  if (!REVIEW_BYPASS_ENABLED) return false;
+  return TEST_BYPASS_EMAILS.has(email.trim().toLowerCase());
+}
+function isBypassPhone(phone: string): boolean {
+  if (!REVIEW_BYPASS_ENABLED) return false;
+  const normalized = phone.replace(/[^0-9+]/g, '');
+  return TEST_BYPASS_PHONES.has(normalized) || TEST_BYPASS_PHONES.has(phone);
+}
+
 export class AuthService {
   private async generateTokensForUser(user: { id: string; email: string; role: string }) {
     const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
@@ -177,6 +225,25 @@ export class AuthService {
   }
 
   async requestPhoneVerification(input: PhoneVerificationRequestInput) {
+    // Apple 심사용 데모 전화번호: Twilio 호출 없이 즉시 성공 처리.
+    if (isBypassPhone(input.phone)) {
+      logger.info('Phone verification BYPASSED (Apple review demo phone)', {
+        phone: input.phone,
+      });
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+      await phoneVerificationRepository.markAsExpired(input.phone);
+      await phoneVerificationRepository.create({
+        phone: input.phone,
+        code: TEST_BYPASS_CODE,
+        expiresAt,
+      });
+      return {
+        message: 'Verification code sent (test mode)',
+        expiresIn: 600,
+      };
+    }
+
     const lockStatus = await phoneVerificationRepository.isPhoneLocked(input.phone);
     if (lockStatus.locked) {
       const lockedUntil = lockStatus.lockedUntil!;
@@ -243,6 +310,22 @@ export class AuthService {
   }
 
   async confirmPhoneVerification(input: PhoneVerificationConfirmInput, userId?: string) {
+    // Apple 심사용 데모 전화번호: 고정코드 123456 만 검증.
+    if (isBypassPhone(input.phone)) {
+      const pending = await phoneVerificationRepository.findPendingByPhone(input.phone);
+      if (!pending) {
+        throw new Error('인증번호 요청 기록이 없거나 만료되었습니다. 다시 요청해주세요.');
+      }
+      if (input.code !== TEST_BYPASS_CODE) {
+        throw new Error('인증번호가 올바르지 않습니다.');
+      }
+      await phoneVerificationRepository.markAsVerified(pending.id, userId);
+      logger.info('Phone verification BYPASSED CONFIRM (Apple review demo phone)', {
+        phone: input.phone,
+      });
+      return { message: 'Phone number verified', verified: true };
+    }
+
     const lockStatus = await phoneVerificationRepository.isPhoneLocked(input.phone);
     if (lockStatus.locked) {
       const lockedUntil = lockStatus.lockedUntil!;
@@ -318,9 +401,12 @@ export class AuthService {
       }
     }
 
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
+    // Apple 심사용 데모 이메일: 고정코드 123456 사용. Resend 호출 스킵.
+    const isBypass = isBypassEmail(input.email);
+    const code = isBypass
+      ? TEST_BYPASS_CODE
+      : Math.floor(100000 + Math.random() * 900000).toString();
+
     // Set expiration (5 minutes)
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 5);
@@ -338,15 +424,18 @@ export class AuthService {
     logger.info('Email verification code generated', {
       email: input.email,
       expiresAt: expiresAt.toISOString(),
+      bypass: isBypass,
     });
 
-    try {
-      await emailService.sendVerificationCodeEmail(input.email, code);
-    } catch (error) {
-      logger.error('Failed to send email verification code', {
-        email: input.email,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    if (!isBypass) {
+      try {
+        await emailService.sendVerificationCodeEmail(input.email, code);
+      } catch (error) {
+        logger.error('Failed to send email verification code', {
+          email: input.email,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     return {

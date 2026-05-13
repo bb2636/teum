@@ -1302,12 +1302,10 @@ export class PaymentService {
     userId: string,
     input: { productId: string }
   ): Promise<{ ok: true; productId: string }> {
-    if (!appleProvider.isEnabled()) {
-      throw new AppError('Apple in-app purchase is not configured', {
-        statusCode: 503,
-        code: 'APPLE_NOT_CONFIGURED',
-      });
-    }
+    // ⚠️ precheck 는 Apple App Store Server API 를 호출하지 않는다.
+    // 단순히 productId 가 우리가 판매중인 상품인지, 활성 구독이 이미 없는지 확인할 뿐.
+    // 따라서 APPLE_ISSUER_ID 등 서버 키 미설정과 무관하게 통과해야 한다.
+    // (만약 여기서 503 을 던지면 결제 버튼 자체가 막혀 Apple 심사가 결제 흐름을 검증할 수 없다.)
 
     const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription03';
     if (input.productId !== expectedProductId) {

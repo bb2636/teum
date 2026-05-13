@@ -6,9 +6,10 @@ import { getDateLocale } from '@/lib/dateFnsLocale';
 import { useT } from '@/hooks/useTranslation';
 
 function formatAmount(amount: number, currency: string): string {
-  const num = Math.round(amount);
-  if (currency === 'USD') return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `${num.toLocaleString()}원`;
+  if (currency === 'USD') {
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `${Math.round(amount).toLocaleString()}원`;
 }
 
 interface PaymentHistoryModalProps {

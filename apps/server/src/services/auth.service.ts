@@ -41,20 +41,29 @@ const TEST_BYPASS_EMAILS = new Set(
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
 );
-// 우회 대상 전화번호. 사용자가 입력할 수 있는 모든 표기 형태를 포함:
-//   - 한국 로컬 표기: 01000000000 / 1000000000 (앞 0 제외)
-//   - 미국 표기: +10000000000 / 10000000000
-//   - 국가코드 결합형: +821000000000, +8210000000000 등
-// 매칭 시 normalize 함수가 양쪽 모두 비교한다.
-const TEST_BYPASS_PHONES = new Set(
-  (
-    process.env.TEST_BYPASS_PHONES ||
-    '01000000000,1000000000,+10000000000,10000000000,+821000000000,+8210000000000'
-  )
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean),
-);
+// 우회 대상 전화번호. 사용자가 입력할 수 있는 모든 표기 형태로 자동 확장된다:
+//   - 원본 (예: "+10000000000")
+//   - 숫자만 (예: "10000000000")
+//   - 앞 0 제거 (예: "1000000000")
+// 운영 시크릿 TEST_BYPASS_PHONES 에 대표 표기 1~2개만 넣어두면 충분하다.
+function expandPhoneVariants(p: string): string[] {
+  const trimmed = p.trim();
+  const normalized = trimmed.replace(/[^0-9+]/g, '');
+  const digitsOnly = normalized.replace(/\+/g, '');
+  const stripLeadingZero = digitsOnly.replace(/^0+/, '');
+  return [trimmed, normalized, digitsOnly, stripLeadingZero].filter(Boolean);
+}
+
+const TEST_BYPASS_PHONES = new Set<string>();
+for (const raw of (
+  process.env.TEST_BYPASS_PHONES ||
+  '01000000000,+10000000000'
+)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)) {
+  for (const v of expandPhoneVariants(raw)) TEST_BYPASS_PHONES.add(v);
+}
 
 if (REVIEW_BYPASS_ENABLED) {
   logger.warn(
@@ -72,14 +81,15 @@ function isBypassEmail(email: string): boolean {
 }
 function isBypassPhone(phone: string, countryCode?: string): boolean {
   if (!REVIEW_BYPASS_ENABLED) return false;
-  const normalized = phone.replace(/[^0-9+]/g, '');
-  const digitsOnly = normalized.replace(/\+/g, '');
-  const stripLeadingZero = digitsOnly.replace(/^0+/, '');
-  const candidates = new Set<string>([phone, normalized, digitsOnly, stripLeadingZero]);
+  const candidates = new Set<string>(expandPhoneVariants(phone));
   if (countryCode) {
-    const cc = countryCode.replace(/[^0-9+]/g, '');
-    candidates.add(cc + stripLeadingZero);
-    candidates.add(cc + digitsOnly);
+    const ccDigits = countryCode.replace(/[^0-9]/g, '');
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+    const phoneNoZero = phoneDigits.replace(/^0+/, '');
+    candidates.add(ccDigits + phoneDigits);
+    candidates.add(ccDigits + phoneNoZero);
+    candidates.add('+' + ccDigits + phoneDigits);
+    candidates.add('+' + ccDigits + phoneNoZero);
   }
   for (const c of candidates) {
     if (TEST_BYPASS_PHONES.has(c)) return true;

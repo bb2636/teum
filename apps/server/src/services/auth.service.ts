@@ -41,8 +41,16 @@ const TEST_BYPASS_EMAILS = new Set(
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
 );
+// 우회 대상 전화번호. 사용자가 입력할 수 있는 모든 표기 형태를 포함:
+//   - 한국 로컬 표기: 01000000000 / 1000000000 (앞 0 제외)
+//   - 미국 표기: +10000000000 / 10000000000
+//   - 국가코드 결합형: +821000000000, +8210000000000 등
+// 매칭 시 normalize 함수가 양쪽 모두 비교한다.
 const TEST_BYPASS_PHONES = new Set(
-  (process.env.TEST_BYPASS_PHONES || '01000000000,+10000000000')
+  (
+    process.env.TEST_BYPASS_PHONES ||
+    '01000000000,1000000000,+10000000000,10000000000,+821000000000,+8210000000000'
+  )
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
@@ -62,10 +70,21 @@ function isBypassEmail(email: string): boolean {
   if (!REVIEW_BYPASS_ENABLED) return false;
   return TEST_BYPASS_EMAILS.has(email.trim().toLowerCase());
 }
-function isBypassPhone(phone: string): boolean {
+function isBypassPhone(phone: string, countryCode?: string): boolean {
   if (!REVIEW_BYPASS_ENABLED) return false;
   const normalized = phone.replace(/[^0-9+]/g, '');
-  return TEST_BYPASS_PHONES.has(normalized) || TEST_BYPASS_PHONES.has(phone);
+  const digitsOnly = normalized.replace(/\+/g, '');
+  const stripLeadingZero = digitsOnly.replace(/^0+/, '');
+  const candidates = new Set<string>([phone, normalized, digitsOnly, stripLeadingZero]);
+  if (countryCode) {
+    const cc = countryCode.replace(/[^0-9+]/g, '');
+    candidates.add(cc + stripLeadingZero);
+    candidates.add(cc + digitsOnly);
+  }
+  for (const c of candidates) {
+    if (TEST_BYPASS_PHONES.has(c)) return true;
+  }
+  return false;
 }
 
 export class AuthService {
@@ -228,7 +247,8 @@ export class AuthService {
     // Apple 심사용 데모 계정: 로그인된 사용자가 bypass 이메일이거나 전화번호가 bypass 목록이면 우회.
     // (심사관이 본인 핸드폰 번호로 결제 본인인증을 진행할 수 있도록 이메일 기반 우회를 허용한다.)
     const bypass =
-      (requesterEmail && isBypassEmail(requesterEmail)) || isBypassPhone(input.phone);
+      (requesterEmail && isBypassEmail(requesterEmail)) ||
+      isBypassPhone(input.phone, input.countryCode);
     if (bypass) {
       logger.info('Phone verification BYPASSED (Apple review demo account)', {
         phone: input.phone,
@@ -316,7 +336,8 @@ export class AuthService {
   async confirmPhoneVerification(input: PhoneVerificationConfirmInput, userId?: string, requesterEmail?: string) {
     // Apple 심사용 데모 계정: 로그인 이메일이 bypass 또는 phone 이 bypass 면 고정코드 123456 검증.
     const bypass =
-      (requesterEmail && isBypassEmail(requesterEmail)) || isBypassPhone(input.phone);
+      (requesterEmail && isBypassEmail(requesterEmail)) ||
+      isBypassPhone(input.phone, input.countryCode);
     if (bypass) {
       const pending = await phoneVerificationRepository.findPendingByPhone(input.phone);
       if (!pending) {

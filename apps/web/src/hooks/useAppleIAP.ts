@@ -148,6 +148,7 @@ export function useAppleIAP() {
         const p = store.get(APPLE_PRODUCT_ID);
         console.log('[IAP] store.get(' + APPLE_PRODUCT_ID + '):', JSON.stringify(p, null, 2));
 
+        storeRef.current = store;
         if (p) {
           const offer = p.getOffer?.();
           console.log('[IAP] product offer:', JSON.stringify(offer, null, 2));
@@ -156,12 +157,14 @@ export function useAppleIAP() {
             title: p.title || '월간 프리미엄',
             price: p.pricing?.price || '',
           });
+          setReady(true);
         } else {
           console.warn('[IAP] product NOT FOUND in store — App Store Connect did not return it');
-          safeSet(setError, '구독 상품을 App Store에서 가져오지 못했습니다. (계약/번들ID/상품상태 확인)');
+          // ⚠️ 상품 로드 실패 시에는 ready=false 로 두어 결제 버튼이 활성화되지 않도록 한다.
+          // (Apple 리뷰: 버튼 누르면 에러 팝업이 뜨는 거절 사유 회피)
+          // 에러 메시지는 alert 대신 화면 내 inline 으로만 표시되도록 setError 만 호출.
+          safeSet(setError, '결제 상품 정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.');
         }
-        storeRef.current = store;
-        setReady(true);
       } catch (err) {
         console.error('[IAP] init exception:', err);
         const message = err instanceof Error ? err.message : 'Apple IAP 초기화 실패';

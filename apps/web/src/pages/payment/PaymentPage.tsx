@@ -223,11 +223,9 @@ export function PaymentPage() {
     }
   };
 
-  useEffect(() => {
-    if (appleIAP.error) {
-      alert(appleIAP.error);
-    }
-  }, [appleIAP.error]);
+  // ⚠️ Apple 리뷰 거절 회피: 페이지 진입 시 IAP 초기화 에러를 자동 alert 으로 노출하면
+  // 결제창에 들어오자마자 에러 팝업이 떠 거절 사유가 된다.
+  // 에러는 아래 결제 버튼 위 inline 안내문으로만 표시한다.
 
   // 본인인증 모달 표시 중 키보드 높이 추적 (iOS WKWebView 대응)
   useEffect(() => {
@@ -663,6 +661,11 @@ export function PaymentPage() {
             <p className="text-[11px] leading-relaxed text-gray-500 text-center mb-3 px-2">
               {t('payment.cancelNotice')}
             </p>
+            {isIOS && paymentMethod === 'apple' && appleIAP.error && !appleIAP.ready && (
+              <p className="text-[12px] leading-relaxed text-red-500 text-center mb-3 px-2">
+                {appleIAP.error}
+              </p>
+            )}
             <button
               onClick={handlePaymentClick}
               disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || !isButtonEnabled}

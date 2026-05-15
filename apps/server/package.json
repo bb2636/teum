@@ -13,6 +13,7 @@
     "test:coverage": "vitest --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:baseline": "tsx src/db/baseline-migrations.ts",
     "db:migrate:order": "tsx src/db/run-order-migrations.ts",
     "db:migrate:keywords": "tsx src/db/run-keywords-migration.ts",
     "db:push": "drizzle-kit push",

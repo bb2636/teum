@@ -42,10 +42,10 @@ export function SubscriptionCancelModal({
       >
         <div className="text-center space-y-4">
           <h2 className="text-lg font-semibold text-[#4A2C1A]">
-            구독을 취소하시겠습니까?
+            {t('payment.cancelModalTitle')}
           </h2>
           <p className="text-sm text-gray-600">
-            취소 후에도 결제 기간이 끝날 때까지<br />플랜 혜택을 이용할 수 있습니다.
+            {t('payment.cancelModalDesc')}
           </p>
           <p className="text-xs text-red-500 leading-relaxed">
             {t('payment.cancelModalRefundNotice')}
@@ -58,14 +58,14 @@ export function SubscriptionCancelModal({
             disabled={isLoading}
             className="px-6 py-3 rounded-full text-[#4A2C1A] font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            {isLoading ? '취소 중...' : '구독취소'}
+            {isLoading ? t('payment.cancelModalLoading') : t('payment.cancelModalConfirm')}
           </button>
           <button
             onClick={onClose}
             disabled={isLoading}
             className="px-6 py-3 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50"
           >
-            유지하기
+            {t('payment.cancelModalKeep')}
           </button>
         </div>
       </div>

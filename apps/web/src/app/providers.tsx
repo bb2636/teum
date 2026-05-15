@@ -28,6 +28,63 @@ export function Layout({ children }: LayoutProps) {
     prevPathRef.current = location.pathname;
   }, [location.pathname, isTabSwitch]);
 
+  const lastBackPressRef = useRef<number>(0);
+  const locationRef = useRef(location.pathname);
+  useEffect(() => { locationRef.current = location.pathname; }, [location.pathname]);
+
+  useEffect(() => {
+    let unmounted = false;
+    let backHandle: { remove: () => void } | null = null;
+
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import('@capacitor/app');
+        if (unmounted) return;
+
+        const handle = await App.addListener('backButton', async () => {
+          const path = locationRef.current;
+
+          const HAS_OWN_HANDLER = ['/diaries/new'];
+          if (
+            HAS_OWN_HANDLER.includes(path) ||
+            /^\/diaries\/[^/]+\/edit$/.test(path) ||
+            path.startsWith('/payment')
+          ) {
+            return;
+          }
+
+          const EXIT_ROUTES = new Set([
+            '/home', '/splash', '/login', '/signup', '/forgot-password',
+          ]);
+
+          if (EXIT_ROUTES.has(path)) {
+            const now = Date.now();
+            if (now - lastBackPressRef.current < 2000) {
+              try { await App.exitApp(); } catch {}
+            } else {
+              lastBackPressRef.current = now;
+              try {
+                const { Toast } = await import('@capacitor/toast');
+                await Toast.show({ text: '한 번 더 누르면 앱이 종료됩니다', duration: 'short' });
+              } catch {}
+            }
+            return;
+          }
+
+          navigate('/home');
+        });
+        if (unmounted) handle.remove(); else backHandle = handle;
+      } catch {}
+    })();
+
+    return () => {
+      unmounted = true;
+      if (backHandle) backHandle.remove();
+    };
+  }, [navigate]);
+
   useEffect(() => {
     let unmounted = false;
     let appHandle: { remove: () => void } | null = null;

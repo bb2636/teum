@@ -181,6 +181,9 @@ importers:
       '@capacitor/status-bar':
         specifier: ^8.0.1
         version: 8.0.1(@capacitor/core@8.2.0)
+      '@capacitor/toast':
+        specifier: ^8.0.1
+        version: 8.0.1(@capacitor/core@8.2.0)
       '@hookform/resolvers':
         specifier: ^3.3.3
         version: 3.10.0(react-hook-form@7.71.2(react@18.3.1))
@@ -427,6 +430,11 @@ packages:
 
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
+
+  '@capacitor/toast@8.0.1':
+    resolution: {integrity: sha512-0uoyftoAeFjtOMiozBo7YXEo+zcpQCAxtBONSvrljJ05SKdlb1A8OFHaV/DZfIpGt+19kzUGaEaUemLdll4wUw==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -4124,6 +4132,10 @@ snapshots:
       '@capacitor/core': 8.2.0
 
   '@capacitor/synapse@1.0.4': {}
+
+  '@capacitor/toast@8.0.1(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
 
   '@drizzle-team/brocli@0.10.2': {}
 

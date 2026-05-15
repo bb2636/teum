@@ -10,7 +10,7 @@ import {
   X,
   Settings,
 } from 'lucide-react';
-import { useMe } from '@/hooks/useProfile';
+import { useMe, useUpdateProfile } from '@/hooks/useProfile';
 import { useSubscriptions, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useSupportInquiries } from '@/hooks/useSupport';
 import { useLogout } from '@/hooks/useAuth';
@@ -42,6 +42,7 @@ export function MyPage() {
   const { data: user, isLoading } = useMe();
   const t = useT();
   const { setLanguage } = useLanguage();
+  const updateProfile = useUpdateProfile();
   const { data: subscriptions = [] } = useSubscriptions();
   useSupportInquiries();
   const logout = useLogout();
@@ -74,9 +75,17 @@ export function MyPage() {
 
   useEffect(() => {
     if (user?.profile?.language) {
+      // 서버에 저장된 언어가 있으면 클라이언트와 동기화
       setLanguage(user.profile.language as Language);
+    } else if (user && !user?.profile?.language) {
+      // 서버에 언어 설정이 없으면 (구버전 가입자) 현재 클라이언트 언어를 서버에 저장
+      // → 이후 발송되는 모든 이메일이 사용자 언어로 발송됨
+      const currentLang = (typeof window !== 'undefined'
+        ? (localStorage.getItem('teum_language') as Language | null)
+        : null) || 'ko';
+      updateProfile.mutate({ language: currentLang });
     }
-  }, [user?.profile?.language]);
+  }, [user?.profile?.language, user]);
   
   // 다음 결제일 (endDate = 한 달 뒤)
   const nextPaymentDateStr = activeSubscription?.endDate

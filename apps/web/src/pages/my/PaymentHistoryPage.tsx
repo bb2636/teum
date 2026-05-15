@@ -16,11 +16,12 @@ function formatAmount(amount: number, currency: string): string {
   return `${Math.round(amount).toLocaleString()}원`;
 }
 
-function formatMonthlyAmount(amount: number, currency: string): string {
+function formatMonthlyAmount(amount: number, currency: string, t: ReturnType<typeof useT>): string {
   if (currency === 'USD') {
-    return `월 $${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatted = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return t('payment.monthlyAmount', { amount: formatted });
   }
-  return `월 ${Math.round(amount).toLocaleString()}원`;
+  return t('payment.monthlyAmount', { amount: Math.round(amount).toLocaleString() });
 }
 
 export function PaymentHistoryPage() {
@@ -98,7 +99,7 @@ export function PaymentHistoryPage() {
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-lg font-semibold text-[#4A2C1A]">
-                    {formatMonthlyAmount(effectiveSubscription.amount, effectiveSubscription.currency)}
+                    {formatMonthlyAmount(effectiveSubscription.amount, effectiveSubscription.currency, t)}
                   </p>
                   {!isSubscriptionActive && (
                     <span

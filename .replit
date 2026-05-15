@@ -45,7 +45,7 @@ externalPort = 3000
 [deployment]
 deploymentTarget = "autoscale"
 run = ["pnpm", "start"]
-build = ["pnpm", "build"]
+build = ["sh", "-c", "pnpm build && pnpm --filter @teum/server db:migrate"]
 
 [userenv]
 

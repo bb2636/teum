@@ -11,6 +11,8 @@ declare const CdvPurchase: {
 };
 
 const APPLE_PRODUCT_ID = 'subscription03';
+const INIT_DELAY_MS = 1000;
+const RETRY_DELAYS_MS = [1500, 2500];
 
 type IAPError = { code?: number; message?: string };
 
@@ -23,6 +25,7 @@ type WhenChain = {
 type StoreInstance = {
   register: (products: Array<{ id: string; type: string; platform: string }>) => void;
   initialize: (platforms?: string[]) => Promise<unknown>;
+  update: () => Promise<unknown>;
   when: () => WhenChain;
   error: (cb: (err: IAPError) => void) => void;
   get: (productId: string) => ProductLike | undefined;
@@ -48,13 +51,18 @@ export function isAppleIAPAvailable(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);
   const [ready, setReady] = useState(false);
+  const [initializing, setInitializing] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [product, setProduct] = useState<{ id: string; title: string; price: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const storeRef = useRef<StoreInstance | null>(null);
+  const initPromiseRef = useRef<Promise<boolean> | null>(null);
+  const initializedRef = useRef(false);
   const verifyingRef = useRef(false);
   const mountedRef = useRef(true);
 
@@ -62,125 +70,188 @@ export function useAppleIAP() {
     if (mountedRef.current) setter(value);
   }, []);
 
+  // ⚠️ Apple 리뷰(iPad sandbox) 거절 회피:
+  // 페이지 mount 시 자동 store.initialize() 호출은 sandbox 에서 빈번히 실패하고
+  // 거기서 뜨는 에러 팝업이 거절 사유가 된다.
+  // → 결제 버튼을 누른 직후에 init 을 시작한다 (lazy init).
+  // 플러그인 로드 여부만 mount 시점에 확인한다.
   useEffect(() => {
     if (!isAppleIAPAvailable()) return;
     mountedRef.current = true;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        console.log('[IAP] init start, bundleId expected: app.teum.com');
-        if (typeof CdvPurchase === 'undefined') {
-          console.error('[IAP] CdvPurchase global is undefined — plugin not loaded');
-          return;
-        }
-        safeSet(setPluginLoaded, true);
-        const store = CdvPurchase.store as StoreInstance;
-        const Platform = CdvPurchase.Platform;
-        const ProductType = CdvPurchase.ProductType;
-        console.log('[IAP] CdvPurchase loaded, registering product:', APPLE_PRODUCT_ID);
-
-        store.register([
-          {
-            id: APPLE_PRODUCT_ID,
-            type: ProductType.PAID_SUBSCRIPTION,
-            platform: Platform.APPLE_APPSTORE,
-          },
-        ]);
-
-        store
-          .when()
-          .approved(async (transaction: TransactionLike) => {
-            if (verifyingRef.current) return;
-            verifyingRef.current = true;
-            try {
-              const transactionId = transaction.transactionId;
-              if (!transactionId) {
-                safeSet(setError, 'Apple 거래 ID를 가져오지 못했습니다.');
-                safeSet(setPurchasing, false);
-                return;
-              }
-              const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
-                '/payments/apple/verify-receipt',
-                {
-                  method: 'POST',
-                  body: JSON.stringify({ transactionId }),
-                }
-              );
-              if (data?.success) {
-                await transaction.finish?.();
-                window.location.href = '/payment/success';
-              } else {
-                safeSet(setError, '서버 검증에 실패했습니다.');
-                safeSet(setPurchasing, false);
-              }
-            } catch (err) {
-              const message = err instanceof Error ? err.message : '검증 실패';
-              safeSet(setError, message);
-              safeSet(setPurchasing, false);
-            } finally {
-              verifyingRef.current = false;
-            }
-          });
-
-        const cancelledCode = CdvPurchase.ErrorCode?.PAYMENT_CANCELLED ?? 6777006;
-        store.error((err: IAPError) => {
-          console.error('[IAP] store.error:', JSON.stringify(err));
-          if (err?.code === cancelledCode) {
-            safeSet(setPurchasing, false);
-            return;
-          }
-          safeSet(setError, `[${err?.code ?? '?'}] ${err?.message || '결제에 실패했습니다.'}`);
-          safeSet(setPurchasing, false);
-        });
-
-        console.log('[IAP] calling store.initialize...');
-        const initResult = await store.initialize([Platform.APPLE_APPSTORE]);
-        console.log('[IAP] initialize result:', JSON.stringify(initResult));
-
-        if (cancelled) return;
-
-        // Dump the entire products array
-        const allProducts = (store as unknown as { products?: unknown[] }).products;
-        console.log('[IAP] store.products length:', allProducts?.length ?? 'n/a');
-        console.log('[IAP] store.products dump:', JSON.stringify(allProducts, null, 2));
-
-        const p = store.get(APPLE_PRODUCT_ID);
-        console.log('[IAP] store.get(' + APPLE_PRODUCT_ID + '):', JSON.stringify(p, null, 2));
-
-        storeRef.current = store;
-        if (p) {
-          const offer = p.getOffer?.();
-          console.log('[IAP] product offer:', JSON.stringify(offer, null, 2));
-          setProduct({
-            id: p.id,
-            title: p.title || '월간 프리미엄',
-            price: p.pricing?.price || '',
-          });
-          setReady(true);
-        } else {
-          console.warn('[IAP] product NOT FOUND in store — App Store Connect did not return it');
-          // ⚠️ 상품 로드 실패 시에는 ready=false 로 두어 결제 버튼이 활성화되지 않도록 한다.
-          // (Apple 리뷰: 버튼 누르면 에러 팝업이 뜨는 거절 사유 회피)
-          // 에러 메시지는 alert 대신 화면 내 inline 으로만 표시되도록 setError 만 호출.
-          safeSet(setError, '결제 상품 정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.');
-        }
-      } catch (err) {
-        console.error('[IAP] init exception:', err);
-        const message = err instanceof Error ? err.message : 'Apple IAP 초기화 실패';
-        setError(message);
-      }
-    })();
-
+    if (typeof CdvPurchase !== 'undefined') {
+      safeSet(setPluginLoaded, true);
+    }
     return () => {
-      cancelled = true;
       mountedRef.current = false;
     };
   }, [safeSet]);
 
+  const tryFetchProduct = useCallback(async (store: StoreInstance): Promise<boolean> => {
+    try {
+      // store.update() 가 있으면 카탈로그를 강제 새로고침
+      if (typeof store.update === 'function') {
+        try {
+          await store.update();
+        } catch (e) {
+          console.warn('[IAP] store.update failed (continuing):', e);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    const p = store.get(APPLE_PRODUCT_ID);
+    if (!p) return false;
+    const offer = p.getOffer?.();
+    console.log('[IAP] product found:', JSON.stringify({ id: p.id, title: p.title, price: p.pricing?.price, hasOffer: !!offer }));
+    if (!offer) return false;
+    safeSet(setProduct, {
+      id: p.id,
+      title: p.title || '월간 프리미엄',
+      price: p.pricing?.price || '',
+    });
+    return true;
+  }, [safeSet]);
+
+  const doInit = useCallback(async (): Promise<boolean> => {
+    if (!isAppleIAPAvailable()) return false;
+    if (typeof CdvPurchase === 'undefined') {
+      console.error('[IAP] CdvPurchase global is undefined');
+      safeSet(setError, '결제 모듈을 불러올 수 없습니다.');
+      return false;
+    }
+    safeSet(setPluginLoaded, true);
+    safeSet(setInitializing, true);
+    safeSet(setError, null);
+
+    try {
+      // iPad sandbox 동기화를 위한 초기 지연
+      await sleep(INIT_DELAY_MS);
+
+      const store = CdvPurchase.store as StoreInstance;
+      const Platform = CdvPurchase.Platform;
+      const ProductType = CdvPurchase.ProductType;
+
+      console.log('[IAP] registering product:', APPLE_PRODUCT_ID);
+      store.register([
+        {
+          id: APPLE_PRODUCT_ID,
+          type: ProductType.PAID_SUBSCRIPTION,
+          platform: Platform.APPLE_APPSTORE,
+        },
+      ]);
+
+      store
+        .when()
+        .approved(async (transaction: TransactionLike) => {
+          if (verifyingRef.current) return;
+          verifyingRef.current = true;
+          try {
+            const transactionId = transaction.transactionId;
+            if (!transactionId) {
+              safeSet(setError, 'Apple 거래 ID를 가져오지 못했습니다.');
+              safeSet(setPurchasing, false);
+              return;
+            }
+            const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
+              '/payments/apple/verify-receipt',
+              {
+                method: 'POST',
+                body: JSON.stringify({ transactionId }),
+              }
+            );
+            if (data?.success) {
+              await transaction.finish?.();
+              window.location.href = '/payment/success';
+            } else {
+              safeSet(setError, '서버 검증에 실패했습니다.');
+              safeSet(setPurchasing, false);
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : '검증 실패';
+            safeSet(setError, message);
+            safeSet(setPurchasing, false);
+          } finally {
+            verifyingRef.current = false;
+          }
+        });
+
+      const cancelledCode = CdvPurchase.ErrorCode?.PAYMENT_CANCELLED ?? 6777006;
+      store.error((err: IAPError) => {
+        console.error('[IAP] store.error:', JSON.stringify(err));
+        if (err?.code === cancelledCode) {
+          safeSet(setPurchasing, false);
+          return;
+        }
+        // store init/load 단계의 에러는 inline 으로만 노출 (alert 금지: Apple 리뷰 거절 회피)
+        safeSet(setError, '결제 정보를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        safeSet(setPurchasing, false);
+      });
+
+      console.log('[IAP] calling store.initialize...');
+      await store.initialize([Platform.APPLE_APPSTORE]);
+
+      storeRef.current = store;
+
+      // 1차 fetch
+      let found = await tryFetchProduct(store);
+
+      // 실패 시 재시도 (지연 → update → get)
+      for (let i = 0; !found && i < RETRY_DELAYS_MS.length; i++) {
+        console.warn(`[IAP] product not found, retry #${i + 1} after ${RETRY_DELAYS_MS[i]}ms`);
+        await sleep(RETRY_DELAYS_MS[i]);
+        if (!mountedRef.current) return false;
+        found = await tryFetchProduct(store);
+      }
+
+      if (found) {
+        initializedRef.current = true;
+        safeSet(setReady, true);
+        safeSet(setError, null);
+        return true;
+      }
+
+      // 모든 재시도 실패
+      console.warn('[IAP] product NOT FOUND after retries');
+      safeSet(setError, '결제 상품 정보를 불러올 수 없습니다. 인터넷 연결을 확인 후 다시 시도해주세요.');
+      return false;
+    } catch (err) {
+      console.error('[IAP] init exception:', err);
+      safeSet(setError, '결제 모듈 초기화에 실패했습니다.');
+      return false;
+    } finally {
+      safeSet(setInitializing, false);
+    }
+  }, [safeSet, tryFetchProduct]);
+
+  const ensureReady = useCallback(async (): Promise<boolean> => {
+    if (initializedRef.current && storeRef.current) {
+      const p = storeRef.current.get(APPLE_PRODUCT_ID);
+      if (p?.getOffer?.()) return true;
+      // 캐시는 있는데 offer 가 사라진 경우 재초기화 시도
+      initializedRef.current = false;
+    }
+    if (!initPromiseRef.current) {
+      initPromiseRef.current = doInit().finally(() => {
+        // 실패한 경우엔 다음 호출에서 다시 시도할 수 있도록 promise 비움
+        if (!initializedRef.current) {
+          initPromiseRef.current = null;
+        }
+      });
+    }
+    return initPromiseRef.current;
+  }, [doInit]);
+
   const purchase = useCallback(async () => {
     setError(null);
     if (purchasing || verifyingRef.current) return;
+
+    // 결제 버튼 클릭 시점에 초기화 보장 (lazy init)
+    const ok = await ensureReady();
+    if (!ok) {
+      // ensureReady 에서 이미 error state 세팅됨
+      return;
+    }
+
     const store = storeRef.current;
     if (!store) {
       setError('Apple 결제가 준비되지 않았습니다.');
@@ -194,8 +265,7 @@ export function useAppleIAP() {
     }
 
     // ⚠️ Apple IAP 는 결제 후 우리가 환불/취소할 수 없다.
-    // 따라서 Apple StoreKit 결제창을 띄우기 *전*에 서버에서 본인인증 / 활성구독 / productId
-    // 를 미리 검증해 결제 자체를 막는다. (precheck 통과 시에만 store.order 호출)
+    // 따라서 Apple StoreKit 결제창을 띄우기 *전*에 서버에서 활성구독 / productId 를 미리 검증해 결제 자체를 막는다.
     setPurchasing(true);
     try {
       await apiRequest('/payments/apple/precheck', {
@@ -207,8 +277,6 @@ export function useAppleIAP() {
       const code = anyErr?.code;
       let message = anyErr?.message || '결제를 시작할 수 없습니다.';
       if (code === 'IDENTITY_VERIFICATION_REQUIRED') {
-        // Apple IAP 는 본인인증 면제 정책으로 변경됨. 이 분기는 더 이상 도달하지 않지만
-        // 혹시 모를 캐시된 클라이언트/구버전 서버 호환을 위한 안내 문구만 정리.
         message = '결제를 진행할 수 없습니다. 잠시 후 다시 시도해주세요.';
       } else if (code === 'ACTIVE_SUBSCRIPTION_EXISTS') {
         message = '이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.';
@@ -223,7 +291,6 @@ export function useAppleIAP() {
     }
 
     // store.order 가 unhandled rejection 을 던질 수 있으므로 try/catch 로 보호
-    // (그렇지 않으면 purchasing 이 true 상태로 남아 버튼이 영구 잠김)
     try {
       const result = await store.order(offer);
       if (result && result.isError) {
@@ -235,14 +302,26 @@ export function useAppleIAP() {
       setError(message);
       setPurchasing(false);
     }
-  }, [purchasing]);
+  }, [purchasing, ensureReady]);
 
   const restore = useCallback(async () => {
     setError(null);
+    const ok = await ensureReady();
+    if (!ok) return;
     const store = storeRef.current;
     if (!store) return;
     await store.restorePurchases();
-  }, []);
+  }, [ensureReady]);
 
-  return { available: isAppleIAPAvailable() && pluginLoaded, ready, purchasing, product, error, purchase, restore };
+  return {
+    available: isAppleIAPAvailable() && pluginLoaded,
+    ready,
+    initializing,
+    purchasing,
+    product,
+    error,
+    purchase,
+    restore,
+    ensureReady,
+  };
 }

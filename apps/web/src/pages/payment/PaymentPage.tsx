@@ -173,10 +173,12 @@ export function PaymentPage() {
     return `${y}.${m}.${d}`;
   }, []);
 
+  // ⚠️ iOS: lazy init 으로 변경되어 ready 를 기다리지 않는다. (버튼 클릭 시 초기화)
+  // 결제 진행 중(initializing/purchasing) 일 때만 버튼 비활성화.
   const isButtonEnabled = isIOS
-    ? paymentMethod === 'apple' && appleIAP.ready
+    ? paymentMethod === 'apple' && !appleIAP.initializing && !appleIAP.purchasing
     : paymentMethod === 'paypal' ||
-      (paymentMethod === 'apple' && appleIAP.ready) ||
+      paymentMethod === 'apple' ||
       !!cardCode;
 
   const handlePaymentClick = () => {
@@ -549,7 +551,7 @@ export function PaymentPage() {
                   <div className="flex-1 text-left">
                     <p className="font-medium text-[#4A2C1A]">App Store</p>
                     <p className="text-xs text-gray-500">
-                      {appleIAP.product?.price || (appleIAP.ready ? 'Apple ID' : t('payment.loadingAppStore'))}
+                      {appleIAP.product?.price || (appleIAP.initializing ? t('payment.loadingAppStore') : 'Apple ID')}
                     </p>
                   </div>
                 </div>
@@ -668,10 +670,10 @@ export function PaymentPage() {
             )}
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || !isButtonEnabled}
+              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || appleIAP.initializing || !isButtonEnabled}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing
+              {isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || appleIAP.initializing
                 ? t('payment.processing')
                 : paymentMethod === 'apple'
                   ? `App Store ${appleIAP.product?.price || ''}`.trim()

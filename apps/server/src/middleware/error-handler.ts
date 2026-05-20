@@ -91,7 +91,15 @@ export function errorHandler(
 
   let safeMessage: string;
   if (statusCode >= 500) {
-    safeMessage = 'Internal server error';
+    // 5xx 도 AppError 처럼 expose:true 가 명시된 경우엔 메시지를 노출한다.
+    // (예: PayPal 502 "잠시 후 다시 시도해주세요" / Apple 503 "결제는 완료, 재시도 안내" 같이
+    //  사용자에게 행동 가이드를 제공하기 위해 의도적으로 작성된 한글 메시지.)
+    // 그 외 raw Error / 알 수 없는 5xx 는 generic 으로 가린다.
+    if (isExposable(err) && err.message) {
+      safeMessage = err.message;
+    } else {
+      safeMessage = 'Internal server error';
+    }
   } else if (isExposable(err)) {
     // Explicitly safe to surface
     safeMessage = err.message || GENERIC_MESSAGES[statusCode] || 'Request failed';

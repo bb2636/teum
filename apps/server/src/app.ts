@@ -25,6 +25,7 @@ app.set('trust proxy', true);
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
+    // 운영 도메인은 정확 일치만 허용 (substring 매칭은 유사도메인 우회 위험).
     const allowedOrigins = [
       process.env.CORS_ORIGIN,
       process.env.FRONTEND_URL,
@@ -38,16 +39,19 @@ app.use(cors({
       'https://sandbox-pay.nicepay.co.kr',
       'https://appleid.apple.com',
     ].filter(Boolean) as string[];
-    if (!origin || origin === 'null' || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else if (origin && (origin.endsWith('.replit.dev') || origin.endsWith('.replit.app')) && (
-      (process.env.REPLIT_DEV_DOMAIN && origin.includes(process.env.REPLIT_DEV_DOMAIN.replace(/:\d+$/, ''))) ||
-      origin.includes('teum')
-    )) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+
+    // 작업환경 (Replit dev) 만 허용: 현재 사용중인 REPLIT_DEV_DOMAIN 과 정확히 일치할 때만.
+    if (process.env.REPLIT_DEV_DOMAIN) {
+      const devOrigin = `https://${process.env.REPLIT_DEV_DOMAIN.replace(/:\d+$/, '')}`;
+      allowedOrigins.push(devOrigin);
     }
+
+    if (!origin || origin === 'null' || allowedOrigins.includes(origin)) {
+      // null origin 은 여기서 CORS preflight 만 통과시키고, 실제 인증 보호는 CSRF 미들웨어
+      // (Bearer 토큰 동반 시에만 허용) 가 담당한다.
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
 }));

@@ -1,4 +1,5 @@
 import { logger } from '../../config/logger';
+import { AppError } from '../../middleware/error-handler';
 
 const PAYPAL_BASE_URL = process.env.PAYPAL_MODE === 'live'
   ? 'https://api-m.paypal.com'
@@ -41,7 +42,10 @@ export class PayPalProvider {
     if (!response.ok) {
       const text = await response.text();
       logger.error({ status: response.status, body: text }, 'PayPal token request failed');
-      throw new Error('Failed to get PayPal access token');
+      throw new AppError('PayPal 인증에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.', {
+        statusCode: 502,
+        code: 'PAYPAL_AUTH_FAILED',
+      });
     }
 
     const data = await response.json() as { access_token: string; expires_in: number };
@@ -112,7 +116,10 @@ export class PayPalProvider {
       if (!productRes.ok) {
         const text = await productRes.text();
         logger.error({ status: productRes.status, body: text }, 'PayPal create product failed');
-        throw new Error('Failed to create PayPal product');
+        throw new AppError('PayPal 상품 등록에 실패했습니다. 잠시 후 다시 시도해주세요.', {
+          statusCode: 502,
+          code: 'PAYPAL_PRODUCT_FAILED',
+        });
       }
 
       const productData = await productRes.json() as { id: string };
@@ -158,7 +165,10 @@ export class PayPalProvider {
     if (!planRes.ok) {
       const text = await planRes.text();
       logger.error({ status: planRes.status, body: text }, 'PayPal create plan failed');
-      throw new Error('Failed to create PayPal plan');
+      throw new AppError('PayPal 결제 플랜 생성에 실패했습니다. 잠시 후 다시 시도해주세요.', {
+        statusCode: 502,
+        code: 'PAYPAL_PLAN_FAILED',
+      });
     }
 
     const planData = await planRes.json() as { id: string };
@@ -202,14 +212,20 @@ export class PayPalProvider {
     if (!response.ok) {
       const text = await response.text().catch(() => '(unreadable)');
       logger.error({ status: response.status, body: text }, 'PayPal create subscription failed');
-      throw new Error('Failed to create PayPal subscription');
+      throw new AppError('PayPal 구독 생성에 실패했습니다. 잠시 후 다시 시도해주세요.', {
+        statusCode: 502,
+        code: 'PAYPAL_SUBSCRIPTION_FAILED',
+      });
     }
 
     const data = await response.json() as { id: string; links: Array<{ rel: string; href: string }> };
 
     const approveLink = data.links?.find((l: { rel: string }) => l.rel === 'approve');
     if (!approveLink) {
-      throw new Error('No approval URL in PayPal subscription response');
+      throw new AppError('PayPal 결제 페이지 URL을 받지 못했습니다.', {
+        statusCode: 502,
+        code: 'PAYPAL_APPROVAL_URL_MISSING',
+      });
     }
 
     logger.info({ paypalSubscriptionId: data.id, customId }, 'PayPal subscription created (pending approval)');
@@ -240,7 +256,10 @@ export class PayPalProvider {
     if (!response.ok) {
       const text = await response.text();
       logger.error({ status: response.status, body: text, subscriptionId }, 'PayPal get subscription details failed');
-      throw new Error('Failed to get PayPal subscription details');
+      throw new AppError('PayPal 구독 정보 조회에 실패했습니다.', {
+        statusCode: 502,
+        code: 'PAYPAL_DETAILS_FAILED',
+      });
     }
 
     const data = await response.json() as Record<string, unknown>;
@@ -389,13 +408,19 @@ export class PayPalProvider {
     if (!response.ok) {
       const text = await response.text().catch(() => '(unreadable)');
       logger.error({ status: response.status, body: text }, 'PayPal create one-time order failed');
-      throw new Error('Failed to create PayPal order');
+      throw new AppError('PayPal 주문 생성에 실패했습니다. 잠시 후 다시 시도해주세요.', {
+        statusCode: 502,
+        code: 'PAYPAL_ORDER_FAILED',
+      });
     }
 
     const data = (await response.json()) as { id: string; links: Array<{ rel: string; href: string }> };
     const approveLink = data.links?.find((l) => l.rel === 'approve' || l.rel === 'payer-action');
     if (!approveLink) {
-      throw new Error('No approval URL in PayPal order response');
+      throw new AppError('PayPal 주문 결제 페이지 URL을 받지 못했습니다.', {
+        statusCode: 502,
+        code: 'PAYPAL_ORDER_APPROVAL_URL_MISSING',
+      });
     }
 
     logger.info({ paypalOrderId: data.id, customId }, 'PayPal one-time order created');

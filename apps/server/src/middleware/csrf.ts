@@ -13,12 +13,10 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 function isAllowedOrigin(origin: string): boolean {
+  // 정확 일치만 허용 (substring 매칭은 유사도메인 우회 위험 → app.ts CORS 와 동일 정책).
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  if (origin.endsWith('.replit.dev') || origin.endsWith('.replit.app')) {
-    const devDomain = process.env.REPLIT_DEV_DOMAIN?.replace(/:\d+$/, '');
-    if (devDomain && origin.includes(devDomain)) return true;
-    if (origin.includes('teum')) return true;
-  }
+  const devDomain = process.env.REPLIT_DEV_DOMAIN?.replace(/:\d+$/, '');
+  if (devDomain && origin === `https://${devDomain}`) return true;
   const frontendUrl = process.env.FRONTEND_URL;
   if (frontendUrl && origin === frontendUrl) return true;
   const corsOrigin = process.env.CORS_ORIGIN;

@@ -830,7 +830,7 @@ export class PaymentController {
     return res.redirect(`${frontendUrl}/payment/fail?message=${encodeURIComponent('Payment was cancelled.')}${nativeQp}`);
   }
 
-  async paypalWebhook(req: Request, res: Response) {
+  async paypalWebhook(req: Request, res: Response, next: NextFunction) {
     const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID;
 
     if (!PAYPAL_WEBHOOK_ID) {
@@ -1017,7 +1017,9 @@ export class PaymentController {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       }, 'PayPal webhook unhandled error');
-      return res.status(500).json({ error: 'Internal error' });
+      // PayPal 은 non-2xx 응답을 받으면 자동 재시도하므로, 일시적 장애는 재처리될 수 있다.
+      // 응답 포맷은 글로벌 error-handler 로 통일.
+      return next(error);
     }
   }
 

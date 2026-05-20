@@ -152,18 +152,51 @@ export function useAppleIAP() {
               safeSet(setPurchasing, false);
               return;
             }
-            const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
-              '/payments/apple/verify-receipt',
-              {
-                method: 'POST',
-                body: JSON.stringify({ transactionId }),
+            // ⚠️ Apple 결제는 이미 과금된 상태. 서버 등록만 실패한 경우
+            // (APPLE_PERSIST_FAILED_RETRY 503 / 네트워크 오류) 사용자가 돈은 냈는데
+            // 구독이 반영되지 않는 사고가 난다. 따라서 backoff 자동 재시도 한다.
+            // 서버측 idempotency (originalTransactionId 기반) 가 있어 중복 등록되지 않는다.
+            const VERIFY_RETRY_DELAYS_MS = [1500, 3000, 5000];
+            let verified = false;
+            let lastError: unknown = null;
+            for (let attempt = 0; attempt <= VERIFY_RETRY_DELAYS_MS.length; attempt++) {
+              if (!mountedRef.current) return;
+              try {
+                const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
+                  '/payments/apple/verify-receipt',
+                  {
+                    method: 'POST',
+                    body: JSON.stringify({ transactionId }),
+                  }
+                );
+                if (data?.success) {
+                  verified = true;
+                  break;
+                }
+                lastError = new Error('서버 검증에 실패했습니다.');
+              } catch (err) {
+                lastError = err;
+                const anyErr = err as { code?: string; status?: number };
+                const retryable =
+                  anyErr?.code === 'APPLE_PERSIST_FAILED_RETRY' ||
+                  anyErr?.status === 503 ||
+                  anyErr?.status === 502 ||
+                  anyErr?.status === undefined; // 네트워크 오류
+                if (!retryable) break;
               }
-            );
-            if (data?.success) {
+              if (attempt < VERIFY_RETRY_DELAYS_MS.length) {
+                safeSet(setError, `결제는 완료되었습니다. 구독 등록 중... (재시도 ${attempt + 1}/${VERIFY_RETRY_DELAYS_MS.length})`);
+                await sleep(VERIFY_RETRY_DELAYS_MS[attempt]);
+                if (!mountedRef.current) return;
+              }
+            }
+
+            if (verified) {
               await transaction.finish?.();
               window.location.href = '/payment/success';
             } else {
-              safeSet(setError, '서버 검증에 실패했습니다.');
+              const message = lastError instanceof Error ? lastError.message : '서버 검증에 실패했습니다.';
+              safeSet(setError, `${message} 앱을 재시작하면 자동으로 동기화됩니다. 결제는 정상 완료되었으며 중복 청구되지 않습니다.`);
               safeSet(setPurchasing, false);
             }
           } catch (err) {

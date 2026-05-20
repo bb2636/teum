@@ -869,7 +869,10 @@ export class PaymentService {
     if (!isRenewal) {
       const activeSubscription = await this.getActiveSubscription(userId);
       if (activeSubscription) {
-        throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+        throw new AppError('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.', {
+          statusCode: 409,
+          code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+        });
       }
     }
 
@@ -1088,7 +1091,10 @@ export class PaymentService {
     if (input.planName && !isRenewal) {
       const activeSubscription = await this.getActiveSubscription(userId);
       if (activeSubscription) {
-        throw new Error('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.');
+        throw new AppError('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.', {
+          statusCode: 409,
+          code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+        });
       }
     }
 
@@ -1168,7 +1174,10 @@ export class PaymentService {
       };
     }
 
-    throw new Error('나이스페이 JS SDK를 통해 결제해주세요.');
+    throw new AppError('나이스페이 JS SDK를 통해 결제해주세요.', {
+      statusCode: 400,
+      code: 'NICEPAY_SDK_REQUIRED',
+    });
   }
 
   async getPayments(userId: string) {
@@ -1205,11 +1214,17 @@ export class PaymentService {
       .limit(1);
 
     if (!payment || payment.userId !== userId) {
-      throw new Error('Payment not found or unauthorized');
+      throw new AppError('Payment not found or unauthorized', {
+        statusCode: 404,
+        code: 'PAYMENT_NOT_FOUND',
+      });
     }
 
     if (payment.status !== 'completed') {
-      throw new Error('Only completed payments can be cancelled');
+      throw new AppError('Only completed payments can be cancelled', {
+        statusCode: 409,
+        code: 'PAYMENT_NOT_CANCELLABLE',
+      });
     }
 
     const cancelResponse = await nicePayProvider.cancelPayment(tid, amount, reason);
@@ -1220,7 +1235,10 @@ export class PaymentService {
         errorCode: cancelResponse.errorCode,
         errorMsg: cancelResponse.errorMsg,
       });
-      throw new Error(cancelResponse.errorMsg || '결제 취소에 실패했습니다.');
+      throw new AppError(cancelResponse.errorMsg || '결제 취소에 실패했습니다.', {
+        statusCode: 502,
+        code: 'NICEPAY_CANCEL_FAILED',
+      });
     }
 
     await db
@@ -1317,7 +1335,21 @@ export class PaymentService {
       });
     }
 
-    const activeSubscription = await this.getActiveSubscription(userId);
+    // DB 일시 장애 시에도 결제 버튼이 막히지 않도록 명시적인 503 으로 변환.
+    // (그대로 throw 하면 500 'Internal server error' 로 노출되어 사용자가 원인을 알 수 없다.)
+    let activeSubscription;
+    try {
+      activeSubscription = await this.getActiveSubscription(userId);
+    } catch (err) {
+      logger.error({
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      }, 'Apple precheck: failed to query active subscription');
+      throw new AppError('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', {
+        statusCode: 503,
+        code: 'PRECHECK_DB_UNAVAILABLE',
+      });
+    }
     if (activeSubscription) {
       throw new AppError('이미 활성 구독이 있습니다. 기존 구독을 취소한 후 다시 시도해주세요.', {
         statusCode: 409,
@@ -1634,7 +1666,10 @@ export class PaymentService {
       .limit(1);
 
     if (!subscription || subscription.userId !== userId) {
-      throw new Error('Subscription not found or unauthorized');
+      throw new AppError('Subscription not found or unauthorized', {
+        statusCode: 404,
+        code: 'SUBSCRIPTION_NOT_FOUND',
+      });
     }
 
     if (subscription.status === 'cancelled') {
@@ -1652,7 +1687,10 @@ export class PaymentService {
     }
 
     if (subscription.status !== 'active') {
-      throw new Error('Only active subscriptions can be cancelled');
+      throw new AppError('Only active subscriptions can be cancelled', {
+        statusCode: 409,
+        code: 'SUBSCRIPTION_NOT_ACTIVE',
+      });
     }
 
     await db
@@ -1728,7 +1766,10 @@ export class PaymentService {
   ): Promise<{ approveUrl: string; orderId: string; paypalSubscriptionId: string }> {
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
-      throw new Error('You already have an active subscription.');
+      throw new AppError('You already have an active subscription.', {
+        statusCode: 409,
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+      });
     }
 
     // PayPal은 해외 사용자 결제 수단이므로 본인인증 불필요
@@ -1800,7 +1841,10 @@ export class PaymentService {
   ): Promise<{ approveUrl: string; orderId: string; paypalOrderId: string }> {
     const activeSubscription = await this.getActiveSubscription(userId);
     if (activeSubscription) {
-      throw new Error('You already have an active subscription.');
+      throw new AppError('You already have an active subscription.', {
+        statusCode: 409,
+        code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+      });
     }
 
     const usdAmount = getBasePriceUSD().toFixed(2);

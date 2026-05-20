@@ -56,6 +56,16 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     if (isAllowedOrigin(origin)) {
       return next();
     }
+    // Origin: 'null' 은 sandboxed iframe / file:// / 일부 webview redirect 컨텍스트에서 나온다.
+    // 무조건 허용하면 쿠키 기반 CSRF 우회 위험이 있으므로, **Authorization: Bearer 토큰이 있는 경우에만** 통과시킨다.
+    // (CSRF 공격은 cross-site 요청에 사용자의 Bearer 토큰을 임의로 첨부할 수 없다.
+    //  쿠키만 자동 첨부되므로, Bearer 가 있다는 것은 우리 모바일/Capacitor 클라이언트가 명시적으로 호출한 것.)
+    if (origin === 'null') {
+      const auth = req.headers.authorization;
+      if (typeof auth === 'string' && /^Bearer\s+\S+/i.test(auth)) {
+        return next();
+      }
+    }
     logger.warn({ origin, path: req.path }, 'CSRF: blocked request with disallowed origin');
     return res.status(403).json({
       success: false,

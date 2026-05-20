@@ -1475,35 +1475,52 @@ export class PaymentService {
     const txKey = `apple_${verified.transactionId}`;
     let subscriptionId: string | undefined;
 
-    await db.transaction(async (tx) => {
-      const [newSub] = await tx
-        .insert(subscriptions)
-        .values({
+    // ⚠️ 이 시점에는 Apple 측에서 이미 결제가 완료되었으므로 DB 일시 장애로 throw 되면
+    //   사용자는 돈을 냈는데 구독이 등록되지 않은 상태가 된다.
+    //   originalTransactionId 기반 idempotency 가 있으므로 클라이언트가 재시도하면 위쪽 existing 분기로 흡수된다.
+    //   따라서 명확한 503 + 재시도 코드로 변환해 클라이언트가 자동 재시도하도록 한다.
+    try {
+      await db.transaction(async (tx) => {
+        const [newSub] = await tx
+          .insert(subscriptions)
+          .values({
+            userId,
+            status: 'active',
+            planName,
+            amount: basePriceUSD.toString(),
+            currency: 'USD',
+            appleOriginalTransactionId: verified.originalTransactionId,
+            appleProductId: verified.productId,
+            startDate,
+            endDate,
+          })
+          .returning();
+
+        await tx.insert(payments).values({
           userId,
-          status: 'active',
-          planName,
+          subscriptionId: newSub.id,
+          status: 'completed',
           amount: basePriceUSD.toString(),
           currency: 'USD',
-          appleOriginalTransactionId: verified.originalTransactionId,
-          appleProductId: verified.productId,
-          startDate,
-          endDate,
-        })
-        .returning();
+          paymentMethod: 'APPLE_IAP',
+          transactionId: txKey,
+          paidAt: startDate,
+        });
 
-      await tx.insert(payments).values({
-        userId,
-        subscriptionId: newSub.id,
-        status: 'completed',
-        amount: basePriceUSD.toString(),
-        currency: 'USD',
-        paymentMethod: 'APPLE_IAP',
-        transactionId: txKey,
-        paidAt: startDate,
+        subscriptionId = newSub.id;
       });
-
-      subscriptionId = newSub.id;
-    });
+    } catch (err) {
+      logger.error({
+        userId,
+        originalTransactionId: verified.originalTransactionId,
+        transactionId: verified.transactionId,
+        error: err instanceof Error ? err.message : String(err),
+      }, 'Apple verify: DB transaction failed after successful Apple charge - retry expected');
+      throw new AppError('구독 등록 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요. 결제는 이미 완료되어 중복 청구되지 않습니다.', {
+        statusCode: 503,
+        code: 'APPLE_PERSIST_FAILED_RETRY',
+      });
+    }
 
     logger.info({
       userId,

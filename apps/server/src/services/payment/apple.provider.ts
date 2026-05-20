@@ -182,7 +182,10 @@ export class AppleProvider {
     renewalInfo?: JWSRenewalInfoDecodedPayload;
   }> {
     if (!this.verifier) {
-      throw new Error('Apple provider not configured');
+      throw new AppError('Apple provider not configured', {
+        statusCode: 503,
+        code: 'APPLE_NOT_CONFIGURED',
+      });
     }
 
     const payload = await this.verifier.verifyAndDecodeNotification(signedPayload);
@@ -203,7 +206,10 @@ export class AppleProvider {
 
   private toVerified(decoded: JWSTransactionDecodedPayload): AppleVerifiedTransaction {
     if (!decoded.originalTransactionId || !decoded.transactionId || !decoded.productId) {
-      throw new Error('Invalid Apple transaction payload');
+      throw new AppError('Apple 영수증 데이터가 올바르지 않습니다.', {
+        statusCode: 400,
+        code: 'APPLE_TX_INVALID',
+      });
     }
     return {
       originalTransactionId: decoded.originalTransactionId,

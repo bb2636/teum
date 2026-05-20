@@ -38,7 +38,7 @@ app.use(cors({
       'https://sandbox-pay.nicepay.co.kr',
       'https://appleid.apple.com',
     ].filter(Boolean) as string[];
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || origin === 'null' || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else if (origin && (origin.endsWith('.replit.dev') || origin.endsWith('.replit.app')) && (
       (process.env.REPLIT_DEV_DOMAIN && origin.includes(process.env.REPLIT_DEV_DOMAIN.replace(/:\d+$/, ''))) ||

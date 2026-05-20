@@ -49,15 +49,26 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): Response | void {
+  const statusCode = (err as ApiError).statusCode || 500;
+
+  const userId = (req as Request & { user?: { userId?: string } }).user?.userId;
+
   const errorDetails = {
     error: err.message,
     stack: err.stack,
     path: req.path,
     method: req.method,
     name: err.name,
+    statusCode,
+    ...(userId ? { userId } : {}),
+    ...(Object.keys(req.query).length ? { query: req.query } : {}),
   };
 
-  logger.error(errorDetails, 'Unhandled error');
+  if (statusCode >= 500) {
+    logger.error(errorDetails, 'Unhandled error');
+  } else {
+    logger.warn(errorDetails, 'Request error');
+  }
 
   // Ensure response hasn't been sent
   if (res.headersSent) {
@@ -76,7 +87,6 @@ export function errorHandler(
     });
   }
 
-  const statusCode = (err as ApiError).statusCode || 500;
   const code = (err as ApiError).code || (statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_ERROR');
 
   let safeMessage: string;

@@ -844,173 +844,181 @@ export class PaymentController {
       return res.status(400).json({ error: 'Missing request body' });
     }
 
-    const verified = await paypalProvider.verifyWebhookSignature(
-      req.headers,
-      rawBody,
-      PAYPAL_WEBHOOK_ID
-    );
-
-    if (!verified) {
-      logger.warn({ headers: {
-        authAlgo: req.headers['paypal-auth-algo'],
-        transmissionId: req.headers['paypal-transmission-id'],
-      }}, 'PayPal webhook signature verification failed');
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    let event: Record<string, unknown>;
     try {
-      event = JSON.parse(rawBody);
-    } catch {
-      logger.error('PayPal webhook: invalid JSON body');
-      return res.status(400).json({ error: 'Invalid JSON' });
-    }
+      const verified = await paypalProvider.verifyWebhookSignature(
+        req.headers,
+        rawBody,
+        PAYPAL_WEBHOOK_ID
+      );
 
-    const eventType = event.event_type as string;
-    const eventId = event.id as string;
-
-    if (!eventId || !eventType) {
-      logger.error({ event }, 'PayPal webhook: missing event_type or id');
-      return res.status(400).json({ error: 'Missing event_type or id' });
-    }
-
-    const REFUND_EVENTS = ['PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'];
-    const DISPUTE_EVENTS = ['CUSTOMER.DISPUTE.CREATED'];
-    const CANCEL_EVENTS = ['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.EXPIRED', 'BILLING.SUBSCRIPTION.SUSPENDED'];
-    const ACTIVATE_EVENTS = ['BILLING.SUBSCRIPTION.ACTIVATED'];
-
-    if (ACTIVATE_EVENTS.includes(eventType)) {
-      if (await refundService.isDuplicateWebhookEvent(eventId)) {
-        logger.info({ eventId, eventType }, 'Duplicate PayPal activate webhook, skipping');
-        return res.status(200).json({ status: 'duplicate' });
+      if (!verified) {
+        logger.warn({ headers: {
+          authAlgo: req.headers['paypal-auth-algo'],
+          transmissionId: req.headers['paypal-transmission-id'],
+        }}, 'PayPal webhook signature verification failed');
+        return res.status(401).json({ error: 'Invalid signature' });
       }
 
-      const resource = event.resource as Record<string, unknown> | undefined;
-      const paypalSubscriptionId = resource?.id as string | undefined;
-
-      if (!paypalSubscriptionId) {
-        logger.error({ eventId, eventType }, 'PayPal activate webhook: missing subscription id');
-        return res.status(200).json({ status: 'acknowledged' });
-      }
-
+      let event: Record<string, unknown>;
       try {
-        const subDetails = await paypalProvider.getSubscriptionDetails(paypalSubscriptionId);
-        const internalOrderId = subDetails.customId;
+        event = JSON.parse(rawBody);
+      } catch {
+        logger.error('PayPal webhook: invalid JSON body');
+        return res.status(400).json({ error: 'Invalid JSON' });
+      }
 
-        if (!internalOrderId) {
-          logger.warn({ eventId, paypalSubscriptionId }, 'PayPal activate webhook: missing custom_id, cannot activate');
+      const eventType = event.event_type as string;
+      const eventId = event.id as string;
+
+      if (!eventId || !eventType) {
+        logger.error({ event }, 'PayPal webhook: missing event_type or id');
+        return res.status(400).json({ error: 'Missing event_type or id' });
+      }
+
+      const REFUND_EVENTS = ['PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED'];
+      const DISPUTE_EVENTS = ['CUSTOMER.DISPUTE.CREATED'];
+      const CANCEL_EVENTS = ['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.EXPIRED', 'BILLING.SUBSCRIPTION.SUSPENDED'];
+      const ACTIVATE_EVENTS = ['BILLING.SUBSCRIPTION.ACTIVATED'];
+
+      if (ACTIVATE_EVENTS.includes(eventType)) {
+        if (await refundService.isDuplicateWebhookEvent(eventId)) {
+          logger.info({ eventId, eventType }, 'Duplicate PayPal activate webhook, skipping');
+          return res.status(200).json({ status: 'duplicate' });
+        }
+
+        const resource = event.resource as Record<string, unknown> | undefined;
+        const paypalSubscriptionId = resource?.id as string | undefined;
+
+        if (!paypalSubscriptionId) {
+          logger.error({ eventId, eventType }, 'PayPal activate webhook: missing subscription id');
           return res.status(200).json({ status: 'acknowledged' });
+        }
+
+        try {
+          const subDetails = await paypalProvider.getSubscriptionDetails(paypalSubscriptionId);
+          const internalOrderId = subDetails.customId;
+
+          if (!internalOrderId) {
+            logger.warn({ eventId, paypalSubscriptionId }, 'PayPal activate webhook: missing custom_id, cannot activate');
+            return res.status(200).json({ status: 'acknowledged' });
+          }
+
+          const recorded = await refundService.recordWebhookEvent(eventId, 'paypal', eventType, rawBody);
+          if (!recorded) {
+            logger.info({ eventId, eventType }, 'PayPal activate webhook: concurrent duplicate, skipping');
+            return res.status(200).json({ status: 'duplicate' });
+          }
+
+          const result = await paymentService.activatePayPalSubscription(paypalSubscriptionId, internalOrderId);
+          logger.info({ eventId, paypalSubscriptionId, internalOrderId, result }, 'PayPal subscription activate webhook handled');
+        } catch (err) {
+          logger.error({ eventId, paypalSubscriptionId, err }, 'PayPal activate webhook processing error');
+        }
+
+        return res.status(200).json({ status: 'processed' });
+      }
+
+      if (DISPUTE_EVENTS.includes(eventType)) {
+        const resource = event.resource as Record<string, unknown> | undefined;
+        const disputeId = (resource?.dispute_id as string) || eventId;
+        const reason = resource?.reason as string | undefined;
+        const disputedTransactions = resource?.disputed_transactions as Array<{ seller_transaction_id?: string }> | undefined;
+
+        const result = await refundService.processPayPalDispute({
+          eventId,
+          eventType,
+          disputeId,
+          reason,
+          disputedTransactions,
+          rawPayload: rawBody,
+        });
+
+        logger.info({
+          eventId,
+          eventType,
+          disputeId,
+          result,
+        }, 'PayPal dispute webhook handled');
+
+        return res.status(200).json({ status: result.reason });
+      }
+
+      if (CANCEL_EVENTS.includes(eventType)) {
+        if (await refundService.isDuplicateWebhookEvent(eventId)) {
+          logger.info({ eventId, eventType }, 'Duplicate PayPal cancel webhook, skipping');
+          return res.status(200).json({ status: 'duplicate' });
+        }
+
+        const resource = event.resource as Record<string, unknown> | undefined;
+        const paypalSubscriptionId = resource?.id as string | undefined;
+
+        if (!paypalSubscriptionId) {
+          logger.error({ eventId, eventType }, 'PayPal subscription webhook: missing subscription id');
+          return res.status(400).json({ error: 'Missing subscription id' });
         }
 
         const recorded = await refundService.recordWebhookEvent(eventId, 'paypal', eventType, rawBody);
         if (!recorded) {
-          logger.info({ eventId, eventType }, 'PayPal activate webhook: concurrent duplicate, skipping');
+          logger.info({ eventId, eventType }, 'PayPal cancel webhook: concurrent duplicate, skipping');
           return res.status(200).json({ status: 'duplicate' });
         }
 
-        const result = await paymentService.activatePayPalSubscription(paypalSubscriptionId, internalOrderId);
-        logger.info({ eventId, paypalSubscriptionId, internalOrderId, result }, 'PayPal subscription activate webhook handled');
-      } catch (err) {
-        logger.error({ eventId, paypalSubscriptionId, err }, 'PayPal activate webhook processing error');
+        const result = await paymentService.handlePayPalSubscriptionCancelled(paypalSubscriptionId, eventType);
+
+        logger.info({
+          eventId,
+          eventType,
+          paypalSubscriptionId,
+          result,
+        }, 'PayPal subscription cancellation webhook handled');
+
+        return res.status(200).json({ status: result });
       }
 
-      return res.status(200).json({ status: 'processed' });
-    }
+      if (!REFUND_EVENTS.includes(eventType)) {
+        logger.info({ eventType, eventId }, 'PayPal webhook: unhandled event, acknowledging');
+        return res.status(200).json({ status: 'acknowledged' });
+      }
 
-    if (DISPUTE_EVENTS.includes(eventType)) {
       const resource = event.resource as Record<string, unknown> | undefined;
-      const disputeId = (resource?.dispute_id as string) || eventId;
-      const reason = resource?.reason as string | undefined;
-      const disputedTransactions = resource?.disputed_transactions as Array<{ seller_transaction_id?: string }> | undefined;
+      if (!resource) {
+        logger.error({ eventId, eventType }, 'PayPal webhook: missing resource');
+        return res.status(400).json({ error: 'Missing resource' });
+      }
 
-      const result = await refundService.processPayPalDispute({
+      const saleId = (resource.id as string) || '';
+      const billingAgreementId = resource.billing_agreement_id as string | undefined;
+      const amountObj = resource.amount as Record<string, unknown> | undefined;
+      const amount = amountObj?.total as string | undefined;
+      const currency = amountObj?.currency as string | undefined;
+
+      const result = await refundService.processPayPalRefund({
         eventId,
         eventType,
-        disputeId,
-        reason,
-        disputedTransactions,
+        saleId,
+        billingAgreementId,
+        amount,
+        currency,
         rawPayload: rawBody,
       });
 
       logger.info({
         eventId,
         eventType,
-        disputeId,
-        result,
-      }, 'PayPal dispute webhook handled');
+        saleId,
+        billingAgreementId,
+        processed: result.processed,
+        reason: result.reason,
+      }, 'PayPal refund webhook handled');
 
       return res.status(200).json({ status: result.reason });
+    } catch (error) {
+      logger.error({
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }, 'PayPal webhook unhandled error');
+      return res.status(500).json({ error: 'Internal error' });
     }
-
-    if (CANCEL_EVENTS.includes(eventType)) {
-      if (await refundService.isDuplicateWebhookEvent(eventId)) {
-        logger.info({ eventId, eventType }, 'Duplicate PayPal cancel webhook, skipping');
-        return res.status(200).json({ status: 'duplicate' });
-      }
-
-      const resource = event.resource as Record<string, unknown> | undefined;
-      const paypalSubscriptionId = resource?.id as string | undefined;
-
-      if (!paypalSubscriptionId) {
-        logger.error({ eventId, eventType }, 'PayPal subscription webhook: missing subscription id');
-        return res.status(400).json({ error: 'Missing subscription id' });
-      }
-
-      const recorded = await refundService.recordWebhookEvent(eventId, 'paypal', eventType, rawBody);
-      if (!recorded) {
-        logger.info({ eventId, eventType }, 'PayPal cancel webhook: concurrent duplicate, skipping');
-        return res.status(200).json({ status: 'duplicate' });
-      }
-
-      const result = await paymentService.handlePayPalSubscriptionCancelled(paypalSubscriptionId, eventType);
-
-      logger.info({
-        eventId,
-        eventType,
-        paypalSubscriptionId,
-        result,
-      }, 'PayPal subscription cancellation webhook handled');
-
-      return res.status(200).json({ status: result });
-    }
-
-    if (!REFUND_EVENTS.includes(eventType)) {
-      logger.info({ eventType, eventId }, 'PayPal webhook: unhandled event, acknowledging');
-      return res.status(200).json({ status: 'acknowledged' });
-    }
-
-    const resource = event.resource as Record<string, unknown> | undefined;
-    if (!resource) {
-      logger.error({ eventId, eventType }, 'PayPal webhook: missing resource');
-      return res.status(400).json({ error: 'Missing resource' });
-    }
-
-    const saleId = (resource.id as string) || '';
-    const billingAgreementId = resource.billing_agreement_id as string | undefined;
-    const amountObj = resource.amount as Record<string, unknown> | undefined;
-    const amount = amountObj?.total as string | undefined;
-    const currency = amountObj?.currency as string | undefined;
-
-    const result = await refundService.processPayPalRefund({
-      eventId,
-      eventType,
-      saleId,
-      billingAgreementId,
-      amount,
-      currency,
-      rawPayload: rawBody,
-    });
-
-    logger.info({
-      eventId,
-      eventType,
-      saleId,
-      billingAgreementId,
-      processed: result.processed,
-      reason: result.reason,
-    }, 'PayPal refund webhook handled');
-
-    return res.status(200).json({ status: result.reason });
   }
 
   async appleVerifyReceipt(req: Request, res: Response, next: NextFunction) {
@@ -1163,23 +1171,33 @@ export class PaymentController {
 
     const eventId = body.cancelNum || `nicepay_${tid}`;
 
-    const result = await refundService.processNicePayRefund({
-      eventId,
-      tid,
-      orderId,
-      amount: cancelAmt || body.amount,
-      resultCode,
-      resultMsg,
-      rawPayload: rawBody || JSON.stringify(body),
-    });
+    try {
+      const result = await refundService.processNicePayRefund({
+        eventId,
+        tid,
+        orderId,
+        amount: cancelAmt || body.amount,
+        resultCode,
+        resultMsg,
+        rawPayload: rawBody || JSON.stringify(body),
+      });
 
-    logger.info({
-      eventId,
-      tid,
-      orderId,
-      processed: result.processed,
-      reason: result.reason,
-    }, 'NicePay refund webhook handled');
+      logger.info({
+        eventId,
+        tid,
+        orderId,
+        processed: result.processed,
+        reason: result.reason,
+      }, 'NicePay refund webhook handled');
+    } catch (error) {
+      logger.error({
+        eventId,
+        tid,
+        orderId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }, 'NicePay refund webhook processing error');
+    }
 
     return res.status(200).send('OK');
   }

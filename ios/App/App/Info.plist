@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CAPACITOR_DEBUG</key>
+    <string>$(CAPACITOR_DEBUG)</string>
+ 
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>TEUM</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>app.teum.com</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.teum.app</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- ✅ FIX: HTTPS only — Apple 심사 안전 (NicePay HTTP 콜백 필요 시 NSExceptionDomains 로 별도 화이트리스트) -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+    </dict>
+ <!-- ✅ FIX: TestFlight 제출 시 매번 묻는 암호화 질문 자동 응답 -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!-- ✅ NicePay 은행/카드사 앱 호출 (iOS 9+ 필수). iOS 에서 NicePay 안 쓰면 이 블록 통째 삭제 가능 -->
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>ispmobile</string>
+        <string>kb-acp</string>
+        <string>shinhan-sr-ansimclick</string>
+        <string>smshinhanansimclick</string>
+        <string>hdcardappcardansimclick</string>
+        <string>smhyundaiansimclick</string>
+        <string>lotteappcard</string>
+        <string>lottesmartpay</string>
+        <string>nhappcardansimclick</string>
+        <string>nhallonepayansimclick</string>
+        <string>citispay</string>
+        <string>ciabordo</string>
+        <string>cloudpay</string>
+        <string>hanawalletmembers</string>
+        <string>wooripay</string>
+        <string>wooricard</string>
+        <string>com.wooricard.wcard</string>
+        <string>com.wooricard.wpay</string>
+        <string>newsmartpib</string>
+        <string>kftc-bankpay</string>
+        <string>lguthepay</string>
+        <string>lguthepay-xpay</string>
+        <string>supertoss</string>
+        <string>kakaotalk</string>
+        <string>lpayapp</string>
+        <string>liivbank</string>
+        <string>naversearchapp</string>
+        <string>samsungpay</string>
+        <string>scardcertiapp</string>
+    </array>
+
+
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-3503508648798732~6807941370</string>
+
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+
+    <key>NSCameraUsageDescription</key>
+    <string>일기에 사진을 첨부하기 위해 카메라 접근 권한이 필요합니다.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>일기 작성 시 사진을 첨부하기 위해 사진 라이브러리 접근 권한이 필요합니다.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>생성된 음악을 사진 라이브러리에 저장하기 위해 권한이 필요합니다.</string>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+
+ 
+
+    <!-- ✅ FIX: armv7 제거 (iOS 11+ 64-bit only) -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <true/>
+ 
+    <!-- 키보드/Safe-area 안정화 (선택) -->
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleDefault</string>
+</dict>
+</plist>
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1 @@
+import{a as s}from"./query-uVyHZiHk.js";import{a}from"./index-hzt8RlH5.js";function u(e,n=!1){return s({queryKey:["nickname-check",e],queryFn:async()=>(await a(`/users/check-nickname?nickname=${encodeURIComponent(e)}`)).data,enabled:n&&e.length>=2&&e.length<=12,staleTime:0})}export{u};

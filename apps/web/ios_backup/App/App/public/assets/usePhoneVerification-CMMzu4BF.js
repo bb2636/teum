@@ -1,0 +1,1 @@
+import{u as n}from"./query-uVyHZiHk.js";import{a as e}from"./index-hzt8RlH5.js";function s(){return n({mutationFn:async t=>({...(await e("/auth/phone/request",{method:"POST",body:JSON.stringify({phone:t})})).data,phone:t})})}function i(){return n({mutationFn:async t=>(await e("/auth/phone/confirm",{method:"POST",body:JSON.stringify(t)})).data})}export{i as a,s as u};

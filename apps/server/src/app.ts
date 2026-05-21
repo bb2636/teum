@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pinoHttp from 'pino-http';
 import { errorHandler } from './middleware/error-handler';
 import { setCacheHeaders } from './middleware/cache-headers';
 import { performanceMiddleware } from './middleware/performance';
@@ -13,6 +14,7 @@ import { adapter } from './storage';
 import { globalApiLimiter } from './middleware/rate-limiter';
 import { csrfProtection } from './middleware/csrf';
 import { verifySignedToken } from './utils/signed-url';
+import { logger } from './config/logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +23,36 @@ export const app: Express = express();
 
 // Trust proxy for accurate IP detection (behind reverse proxy/load balancer)
 app.set('trust proxy', true);
+
+// HTTP request logger — logs every request with method, path, status, response time
+app.use(pinoHttp({
+  logger,
+  // Skip noisy health checks from logs
+  autoLogging: {
+    ignore: (req) => req.url === '/health',
+  },
+  customLogLevel: (_req, res, err) => {
+    if (err || res.statusCode >= 500) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+  customSuccessMessage: (req, res) => {
+    return `${req.method} ${req.url} ${res.statusCode}`;
+  },
+  customErrorMessage: (req, res, err) => {
+    return `${req.method} ${req.url} ${res.statusCode} — ${err?.message ?? 'error'}`;
+  },
+  serializers: {
+    req: (req) => ({
+      method: req.method,
+      url: req.url,
+      userAgent: req.headers['user-agent'],
+    }),
+    res: (res) => ({
+      statusCode: res.statusCode,
+    }),
+  },
+}));
 
 // Middleware
 app.use(cors({

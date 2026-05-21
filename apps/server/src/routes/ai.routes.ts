@@ -68,6 +68,16 @@ router.post('/feedback/:diaryId', (async (req, res, next): Promise<ExpressRespon
       });
     }
 
+    let language = 'ko';
+    try {
+      const userWithProfile = await userRepository.findByIdWithProfile(req.user.userId);
+      if (userWithProfile?.profile?.language) {
+        language = userWithProfile.profile.language;
+      }
+    } catch {
+      // ignore, default to ko
+    }
+
     await encouragementService.generateAndSaveEncouragement(
       diaryId,
       req.user.userId,
@@ -76,6 +86,7 @@ router.post('/feedback/:diaryId', (async (req, res, next): Promise<ExpressRespon
         content,
         type: type || 'free_form',
         answers,
+        language,
       }
     );
 

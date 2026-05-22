@@ -376,8 +376,9 @@ export function SplashPage() {
           url: `${baseUrl}/auth/google/init?state=${encodeURIComponent(state)}`,
           presentationStyle: 'fullscreen',
         });
-      } catch {
-        window.location.href = `${getApiBaseUrl()}/auth/google/init?state=${encodeURIComponent(state)}`;
+      } catch (err) {
+        clearOAuthState();
+        console.error('[Auth] Failed to open in-app browser for Google login', err);
       }
     } else {
       const state = `nonce=${nonce}&lang=${currentLang}`;
@@ -407,8 +408,9 @@ export function SplashPage() {
           url: `${baseUrl}/auth/apple/init?state=${encodeURIComponent(state)}`,
           presentationStyle: 'fullscreen',
         });
-      } catch {
-        window.location.href = `${getApiBaseUrl()}/auth/apple/init?state=${encodeURIComponent(state)}`;
+      } catch (err) {
+        clearOAuthState();
+        console.error('[Auth] Failed to open in-app browser for Apple login', err);
       }
     } else {
       window.location.href = `/api/auth/apple/init?state=${encodeURIComponent(state)}`;

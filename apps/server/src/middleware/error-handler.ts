@@ -87,6 +87,18 @@ export function errorHandler(
     });
   }
 
+  // DB compute quota exceeded → 503 Service Unavailable
+  const errMsg = err.message || '';
+  if (errMsg.includes('compute time quota') || errMsg.includes('exceeded the compute')) {
+    return res.status(503).json({
+      success: false,
+      error: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: '서비스가 일시적으로 이용 불가합니다. 잠시 후 다시 시도해주세요.',
+      },
+    });
+  }
+
   const code = (err as ApiError).code || (statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_ERROR');
 
   let safeMessage: string;

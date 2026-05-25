@@ -8,7 +8,7 @@ import { paymentService } from './services/payment.service';
 
 const PORT = process.env.PORT || 3001;
 
-const MUSIC_POLL_INTERVAL = 10_000;
+const MUSIC_POLL_INTERVAL = 60_000;
 let musicPollTimer: NodeJS.Timeout | null = null;
 
 function startMusicPolling() {

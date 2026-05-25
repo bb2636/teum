@@ -189,8 +189,24 @@ export class MusicPollingService {
   }
 
   private isPolling = false;
+  private dbCircuitOpen = false;
+  private dbCircuitOpenUntil = 0;
+
+  private isDbQuotaError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes('compute time quota') || msg.includes('exceeded the compute');
+  }
 
   async pollAllPendingJobs(): Promise<void> {
+    // Circuit breaker: if DB quota was exceeded recently, skip until backoff expires
+    if (this.dbCircuitOpen) {
+      if (Date.now() < this.dbCircuitOpenUntil) {
+        return;
+      }
+      this.dbCircuitOpen = false;
+      logger.info('Music polling circuit breaker reset, resuming DB queries');
+    }
+
     if (this.isPolling) {
       logger.info('Polling already in progress, skipping');
       return;
@@ -216,6 +232,16 @@ export class MusicPollingService {
           await this.pollJob(job.id);
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
+      }
+    } catch (err) {
+      if (this.isDbQuotaError(err)) {
+        // Back off for 30 minutes when quota is exceeded
+        this.dbCircuitOpen = true;
+        this.dbCircuitOpenUntil = Date.now() + 30 * 60 * 1000;
+        logger.warn({ backoffUntil: new Date(this.dbCircuitOpenUntil).toISOString() },
+          'Music polling: DB quota exceeded, circuit open for 30 min');
+      } else {
+        throw err;
       }
     } finally {
       this.isPolling = false;

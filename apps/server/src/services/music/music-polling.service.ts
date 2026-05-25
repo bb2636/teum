@@ -1,20 +1,132 @@
 import { db } from '../../db';
 import { musicJobs } from '../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { murekaProvider } from './mureka.provider';
 import { logger } from '../../config/logger';
 
 /**
  * Music Polling Service
- * 
- * Handles polling for async music generation jobs.
- * This service should be run as a background worker/cron job.
+ *
+ * Event-driven: polls only jobs explicitly registered via registerJob().
+ * When no jobs are active, no DB queries are made and no timer runs.
+ *
+ * Lifecycle:
+ *   generateMusic  → registerJob(jobId)   → timer starts if needed
+ *   job done/fail  → unregisterJob(jobId) → timer stops if set is empty
+ *   server restart → recoverPendingJobs() → re-registers in-flight jobs (1 query)
  */
 export class MusicPollingService {
+  private readonly POLL_INTERVAL_MS = 60_000;
+
+  private activeJobIds = new Set<string>();
+  private pollTimer: NodeJS.Timeout | null = null;
+
+  private dbCircuitOpen = false;
+  private dbCircuitOpenUntil = 0;
+
+  private isDbQuotaError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes('compute time quota') || msg.includes('exceeded the compute');
+  }
+
+  registerJob(jobId: string): void {
+    this.activeJobIds.add(jobId);
+    this.ensurePollerRunning();
+    logger.info('Music job registered for polling', { jobId, activeJobs: this.activeJobIds.size });
+  }
+
+  unregisterJob(jobId: string): void {
+    this.activeJobIds.delete(jobId);
+    if (this.activeJobIds.size === 0) {
+      this.stopPoller();
+    }
+  }
+
   /**
-   * Poll a single music job for completion
-   * @param jobId Internal job ID
-   * @returns true if job is completed or failed, false if still processing
+   * Called once on server startup to re-register any jobs that were
+   * in-flight before a restart. Makes exactly ONE DB query.
+   */
+  async recoverPendingJobs(): Promise<void> {
+    try {
+      const pending = await db
+        .select({ id: musicJobs.id })
+        .from(musicJobs)
+        .where(eq(musicJobs.status, 'processing'));
+
+      for (const { id } of pending) {
+        this.activeJobIds.add(id);
+      }
+
+      if (this.activeJobIds.size > 0) {
+        this.ensurePollerRunning();
+        logger.info('Recovered in-flight music jobs', { count: this.activeJobIds.size });
+      }
+    } catch (err) {
+      logger.warn('Could not recover pending music jobs on startup', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  private ensurePollerRunning(): void {
+    if (this.pollTimer !== null || this.activeJobIds.size === 0) return;
+    this.pollTimer = setInterval(() => this.pollActiveJobs(), this.POLL_INTERVAL_MS);
+    logger.info('Music poller started', { activeJobs: this.activeJobIds.size, intervalMs: this.POLL_INTERVAL_MS });
+  }
+
+  private stopPoller(): void {
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+      logger.info('Music poller stopped (no active jobs)');
+    }
+  }
+
+  private async pollActiveJobs(): Promise<void> {
+    if (this.activeJobIds.size === 0) {
+      this.stopPoller();
+      return;
+    }
+
+    if (this.dbCircuitOpen) {
+      if (Date.now() < this.dbCircuitOpenUntil) return;
+      this.dbCircuitOpen = false;
+      logger.info('Music polling circuit breaker reset, resuming');
+    }
+
+    const ids = [...this.activeJobIds];
+    for (const jobId of ids) {
+      try {
+        const done = await this.pollJob(jobId);
+        if (done) {
+          this.unregisterJob(jobId);
+        }
+      } catch (err) {
+        if (this.isDbQuotaError(err)) {
+          this.dbCircuitOpen = true;
+          this.dbCircuitOpenUntil = Date.now() + 30 * 60 * 1000;
+          logger.warn(
+            { backoffUntil: new Date(this.dbCircuitOpenUntil).toISOString() },
+            'Music polling: DB quota exceeded, circuit open for 30 min'
+          );
+          break;
+        }
+        logger.error('Music polling error for job', {
+          jobId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    if (this.activeJobIds.size === 0) {
+      this.stopPoller();
+    }
+  }
+
+  /**
+   * Poll a single music job for completion.
+   * Used by: pollActiveJobs (background), getJob endpoint (on-demand), webhook handler.
+   * @returns true if job is done (completed or failed), false if still processing
    */
   async pollJob(jobId: string): Promise<boolean> {
     const [job] = await db
@@ -25,20 +137,23 @@ export class MusicPollingService {
 
     if (!job) {
       logger.warn('Job not found for polling', { jobId });
-      return true; // Job doesn't exist, consider it done
+      return true;
     }
 
     if (job.status === 'completed' || job.status === 'failed') {
-      return true; // Already done
+      return true;
     }
 
     if (!job.providerJobId) {
       logger.warn('No provider job ID for polling', { jobId });
-      return true; // Can't poll without provider job ID
+      return true;
     }
 
     try {
-      const mode = job.provider === 'mureka_bgm' ? 'bgm' as const : job.provider === 'mureka' ? 'song' as const : 'bgm' as const;
+      const mode =
+        job.provider === 'mureka_bgm' ? ('bgm' as const) :
+        job.provider === 'mureka'     ? ('song' as const) : ('bgm' as const);
+
       const status = await murekaProvider.getJobStatus(job.providerJobId, mode);
 
       if (status.status === 'completed' && status.audioUrl) {
@@ -58,11 +173,11 @@ export class MusicPollingService {
           })
           .where(eq(musicJobs.id, jobId));
 
-        logger.info('Music job completed via polling', { jobId, providerJobId: job.providerJobId });
-
+        logger.info('Music job completed', { jobId, providerJobId: job.providerJobId });
         return true;
-      } else if (status.status === 'failed') {
-        // Job failed
+      }
+
+      if (status.status === 'failed') {
         await db
           .update(musicJobs)
           .set({
@@ -71,7 +186,7 @@ export class MusicPollingService {
           })
           .where(eq(musicJobs.id, jobId));
 
-        logger.error('Music job failed via polling', {
+        logger.error('Music job failed', {
           jobId,
           providerJobId: job.providerJobId,
           error: status.error,
@@ -79,7 +194,6 @@ export class MusicPollingService {
         return true;
       }
 
-      // Still processing
       return false;
     } catch (error) {
       logger.error('Error polling music job', {
@@ -87,7 +201,6 @@ export class MusicPollingService {
         providerJobId: job.providerJobId,
         error: error instanceof Error ? error.message : String(error),
       });
-      // Don't mark as failed on polling error - might be temporary
       return false;
     }
   }
@@ -157,8 +270,9 @@ export class MusicPollingService {
 
       const bitrate = this.findMp3FrameBitrate(buffer, frameStart);
       if (bitrate) {
-        const totalSize = parseInt(response.headers.get('content-range')?.split('/')[1] || '0', 10)
-          || parseInt(response.headers.get('content-length') || '0', 10);
+        const totalSize =
+          parseInt(response.headers.get('content-range')?.split('/')[1] || '0', 10) ||
+          parseInt(response.headers.get('content-length') || '0', 10);
         if (totalSize > 0) {
           const durationSec = Math.round((totalSize * 8) / (bitrate * 1000));
           if (durationSec > 0 && durationSec < 600) {
@@ -183,68 +297,10 @@ export class MusicPollingService {
 
       return null;
     } catch (error) {
-      logger.warn('Failed to get audio duration', { error: error instanceof Error ? error.message : error });
+      logger.warn('Failed to get audio duration', {
+        error: error instanceof Error ? error.message : error,
+      });
       return null;
-    }
-  }
-
-  private isPolling = false;
-  private dbCircuitOpen = false;
-  private dbCircuitOpenUntil = 0;
-
-  private isDbQuotaError(err: unknown): boolean {
-    const msg = err instanceof Error ? err.message : String(err);
-    return msg.includes('compute time quota') || msg.includes('exceeded the compute');
-  }
-
-  async pollAllPendingJobs(): Promise<void> {
-    // Circuit breaker: if DB quota was exceeded recently, skip until backoff expires
-    if (this.dbCircuitOpen) {
-      if (Date.now() < this.dbCircuitOpenUntil) {
-        return;
-      }
-      this.dbCircuitOpen = false;
-      logger.info('Music polling circuit breaker reset, resuming DB queries');
-    }
-
-    if (this.isPolling) {
-      logger.info('Polling already in progress, skipping');
-      return;
-    }
-
-    this.isPolling = true;
-    try {
-      const pendingJobs = await db
-        .select()
-        .from(musicJobs)
-        .where(
-          and(
-            eq(musicJobs.status, 'processing'),
-          )
-        );
-
-      if (pendingJobs.length > 0) {
-        logger.info({ count: pendingJobs.length }, 'Polling pending music jobs');
-      }
-
-      for (const job of pendingJobs) {
-        if (job.providerJobId) {
-          await this.pollJob(job.id);
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      }
-    } catch (err) {
-      if (this.isDbQuotaError(err)) {
-        // Back off for 30 minutes when quota is exceeded
-        this.dbCircuitOpen = true;
-        this.dbCircuitOpenUntil = Date.now() + 30 * 60 * 1000;
-        logger.warn({ backoffUntil: new Date(this.dbCircuitOpenUntil).toISOString() },
-          'Music polling: DB quota exceeded, circuit open for 30 min');
-      } else {
-        throw err;
-      }
-    } finally {
-      this.isPolling = false;
     }
   }
 }

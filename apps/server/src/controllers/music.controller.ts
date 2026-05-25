@@ -45,6 +45,10 @@ export class MusicController {
         input.language
       );
 
+      if (result.status === 'processing' && result.jobId) {
+        musicPollingService.registerJob(result.jobId);
+      }
+
       res.json({
         success: true,
         data: result,
@@ -353,6 +357,9 @@ export class MusicController {
 
       if (status === 'completed' && audio_url) {
         await musicPollingService.pollJob(jobId);
+        musicPollingService.unregisterJob(jobId);
+      } else if (status === 'failed') {
+        musicPollingService.unregisterJob(jobId);
       }
 
       res.json({ success: true, message: 'Webhook received' });

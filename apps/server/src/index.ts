@@ -8,27 +8,6 @@ import { paymentService } from './services/payment.service';
 
 const PORT = process.env.PORT || 3001;
 
-const MUSIC_POLL_INTERVAL = 60_000;
-let musicPollTimer: NodeJS.Timeout | null = null;
-
-function startMusicPolling() {
-  if (musicPollTimer) return;
-  musicPollTimer = setInterval(async () => {
-    try {
-      await musicPollingService.pollAllPendingJobs();
-    } catch (err) {
-      logger.error(
-        {
-          error: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined,
-        },
-        'Music polling error'
-      );
-    }
-  }, MUSIC_POLL_INTERVAL);
-  logger.info('Music polling worker started', { intervalMs: MUSIC_POLL_INTERVAL });
-}
-
 const AUTO_RENEWAL_INTERVAL = 60 * 60 * 1000;
 let autoRenewalTimer: NodeJS.Timeout | null = null;
 
@@ -92,7 +71,7 @@ process.on('uncaughtException', (error) => {
 const server = app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   startCleanupJob();
-  startMusicPolling();
+  musicPollingService.recoverPendingJobs();
   startAutoRenewal();
   startPayPalSweep();
 });
@@ -103,11 +82,6 @@ async function gracefulShutdown(signal: string) {
   if (isShuttingDown) return;
   isShuttingDown = true;
   logger.info(`Graceful shutdown initiated (${signal})`);
-
-  if (musicPollTimer) {
-    clearInterval(musicPollTimer);
-    musicPollTimer = null;
-  }
 
   if (autoRenewalTimer) {
     clearInterval(autoRenewalTimer);

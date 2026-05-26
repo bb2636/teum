@@ -777,9 +777,15 @@ export function PaymentPage() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('payment.identityVerification')}</h2>
-              <button onClick={() => setShowIdentityModal(false)} className="p-2 rounded-full hover:bg-gray-100">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* TEMP DEBUG: 키보드 높이가 실제로 들어오는지 확인용. 디버그 끝나면 제거. */}
+                <span className="text-[10px] font-mono px-1.5 py-0.5 bg-yellow-100 text-yellow-900 rounded">
+                  kb:{keyboardOffset}
+                </span>
+                <button onClick={() => setShowIdentityModal(false)} className="p-2 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <p className="text-sm text-gray-500">{t('payment.identityVerificationDesc')}</p>
 

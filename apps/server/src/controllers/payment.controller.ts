@@ -280,6 +280,9 @@ export class PaymentController {
       const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `https://${process.env.REPLIT_DEV_DOMAIN || 'localhost:5000'}`;
       const returnUrl = `${backendUrl}/api/payments/nicepay/billing-return${isNative ? '?native=1' : ''}`;
 
+      // 신한카드 등 일부 카드사는 buyer 정보가 누락되면 "사용자 정보 조회 실패" 에러를 반환한다.
+      const buyerInfo = await paymentService.getBuyerInfoForNicePay(session.userId);
+
       const jsEsc = (s: string) => String(s).replace(/[\\'"<>&\r\n\u2028\u2029]/g, (c) => {
         const map: Record<string, string> = {
           '\\': '\\\\', "'": "\\'", '"': '\\"',
@@ -332,7 +335,10 @@ export class PaymentController {
         amount: ${amount},
         goodsName: '${jsEsc(goodsName)}',
         returnUrl: '${jsEsc(returnUrl)}',
-        subscYn: 'Y',${cardCodeLine}
+        subscYn: 'Y',
+        buyerName: '${jsEsc(buyerInfo.buyerName)}',
+        buyerEmail: '${jsEsc(buyerInfo.buyerEmail)}',
+        buyerTel: '${jsEsc(buyerInfo.buyerTel)}',${cardCodeLine}
         fnError: function (result) {
           showError((result && (result.errorMsg || result.resultMsg)) || '');
         }

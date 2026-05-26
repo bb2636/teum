@@ -58,6 +58,29 @@ export class PaymentService {
     return { email: result.email, nickname: result.nickname || '회원', language: result.language || 'ko' };
   }
 
+  // NicePay 결제창에 전달할 구매자 정보 (특히 신한카드 등 일부 카드사는 buyer 정보가
+  // 누락되면 "사용자 정보 조회 실패" 에러를 반환한다).
+  async getBuyerInfoForNicePay(userId: string): Promise<{ buyerName: string; buyerEmail: string; buyerTel: string }> {
+    const [row] = await db
+      .select({
+        email: users.email,
+        name: userProfiles.name,
+        phone: userProfiles.phone,
+        nickname: userProfiles.nickname,
+      })
+      .from(users)
+      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const buyerName = (row?.name || row?.nickname || '회원').slice(0, 30);
+    const buyerEmail = row?.email || 'noreply@teum.app';
+    // 한국 휴대폰 번호는 하이픈 없는 11자리 (예: 01012345678) 형식이 표준
+    const rawPhone = (row?.phone || '').replace(/\D/g, '');
+    const buyerTel = rawPhone || '01000000000';
+    return { buyerName, buyerEmail, buyerTel };
+  }
+
   async getActiveSubscription(userId: string) {
     const subs = await this.getSubscriptions(userId);
     const now = new Date();

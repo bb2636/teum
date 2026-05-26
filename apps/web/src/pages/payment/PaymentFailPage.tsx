@@ -51,7 +51,14 @@ export function PaymentFailPage() {
         <p className="text-base text-gray-500 text-center leading-relaxed">{message}</p>
       </div>
 
-      <div className="p-6 pb-safe-fixed space-y-3">
+      <div
+        className="px-6 pt-6 space-y-3"
+        style={{
+          // Android 의 제스처 네비바/3버튼 네비바에 버튼이 묻히지 않도록
+          // env() safe-area 가 0 으로 잡히는 환경에서도 최소 24px 여백 보장.
+          paddingBottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px))',
+        }}
+      >
         <button
           onClick={() => navigate('/payment', { replace: true })}
           className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"

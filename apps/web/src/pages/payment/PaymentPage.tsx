@@ -753,26 +753,25 @@ export function PaymentPage() {
 
       {showIdentityModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center animate-overlay-fade px-4"
-          style={{
-            // 항상 items-end 로 두고 paddingBottom 만 변화시켜 부드러운 transition 보장.
-            // - 키보드 닫힘: 화면 중앙쯤에 떠 보이도록 큰 paddingBottom
-            // - 키보드 열림: 키보드 바로 위에 딱 붙도록 paddingBottom = 키보드 높이 + 여백
-            paddingTop: '16px',
-            paddingBottom: keyboardOffset > 0
-              ? `calc(${keyboardOffset}px + 16px)`
-              : 'calc(35vh + env(safe-area-inset-bottom, 0px))',
-            transition: 'padding-bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
-          }}
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4"
           onClick={() => setShowIdentityModal(false)}
         >
           <div
             className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop overflow-y-auto"
             style={{
+              // - 키보드 닫힘: 화면 정중앙 (transform: none, maxHeight 70vh)
+              // - 키보드 열림: translateY 로 위로 올려서 키보드에 가려지지 않게.
+              //   items-center 기준 modal 중심을 keyboardOffset/2 만큼 위로 이동시키면
+              //   maxHeight = 100vh - keyboardOffset - 48 일 때 modal 하단이
+              //   키보드 상단보다 24px 위에 위치한다. align-items 토글이 없어 점프 없이 부드럽게 보간.
               maxHeight: keyboardOffset > 0
                 ? `calc(100vh - ${keyboardOffset}px - 48px)`
-                : '60vh',
-              transition: 'max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+                : '70vh',
+              transform: keyboardOffset > 0
+                ? `translateY(calc(-${keyboardOffset}px / 2))`
+                : 'translateY(0)',
+              transition:
+                'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
             }}
             onClick={(e) => e.stopPropagation()}
           >

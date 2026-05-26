@@ -753,10 +753,13 @@ export function PaymentPage() {
 
       {showIdentityModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4 py-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/50 flex justify-center animate-overlay-fade px-4 overflow-y-auto"
           style={{
-            // 키보드가 올라오면 paddingBottom 으로 가용 영역을 위쪽으로 줄여,
-            // items-center 가 모달을 자동으로 키보드 위쪽 중앙에 재배치하도록 한다.
+            // 키보드가 올라오면 모달을 화면 하단(키보드 바로 위)에 붙이고,
+            // 키보드가 없으면 화면 중앙에 띄운다. Android adjustNothing 환경에서도
+            // 모달이 확실하게 키보드 위로 올라간다.
+            alignItems: keyboardOffset > 0 ? 'flex-end' : 'center',
+            paddingTop: '16px',
             paddingBottom: `calc(${keyboardOffset}px + max(16px, env(safe-area-inset-bottom, 16px)))`,
             transition: 'padding-bottom 0.2s ease-out',
           }}
@@ -768,9 +771,9 @@ export function PaymentPage() {
               // 키보드가 올라오면 가용 viewport 영역 안쪽으로 모달 카드 자체를 축소시켜
               // 모달이 키보드 영역을 절대 침범하지 않도록 한다. (overflow-y-auto 로 내부 스크롤)
               maxHeight: keyboardOffset > 0
-                ? `calc(100vh - ${keyboardOffset}px - 64px)`
+                ? `calc(100vh - ${keyboardOffset}px - 48px)`
                 : '85vh',
-              transition: 'max-height 0.2s ease-out',
+              transition: 'max-height 0.2s ease-out, margin-bottom 0.2s ease-out',
             }}
             onClick={(e) => e.stopPropagation()}
           >

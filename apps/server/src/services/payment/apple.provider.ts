@@ -61,9 +61,24 @@ export interface AppleVerifiedTransaction {
 }
 
 export class AppleProvider {
-  private client: AppStoreServerAPIClient | null = null;
-  private verifier: SignedDataVerifier | null = null;
+  // ⚠️ Apple 리뷰팀은 Sandbox 에서 IAP 를 테스트하지만, 운영 환경의 사용자는 Production 에서 결제한다.
+  //    한 client/verifier 만 보유하면 둘 중 한쪽 환경의 transactionId 검증이 항상 실패한다.
+  //    → 두 환경(Sandbox/Production) 클라이언트를 모두 보유하고,
+  //      verifyTransactionId 에서 기본 환경(APPLE_ENV)부터 시도 후 실패 시 다른 환경으로 폴백한다.
+  //    (Apple 공식 권장 패턴: production → sandbox 폴백)
+  private clientProd: AppStoreServerAPIClient | null = null;
+  private clientSandbox: AppStoreServerAPIClient | null = null;
+  private verifierProd: SignedDataVerifier | null = null;
+  private verifierSandbox: SignedDataVerifier | null = null;
   private enabled = false;
+
+  // 외부에서 사용하던 client/verifier 참조 호환용 (notification 검증 등)
+  private get client(): AppStoreServerAPIClient | null {
+    return APPLE_ENVIRONMENT === Environment.PRODUCTION ? this.clientProd : this.clientSandbox;
+  }
+  private get verifier(): SignedDataVerifier | null {
+    return APPLE_ENVIRONMENT === Environment.PRODUCTION ? this.verifierProd : this.verifierSandbox;
+  }
 
   constructor() {
     if (!APPLE_KEY_ID || !APPLE_PRIVATE_KEY || !APPLE_ISSUER_ID) {
@@ -77,26 +92,24 @@ export class AppleProvider {
         ? APPLE_PRIVATE_KEY
         : `-----BEGIN PRIVATE KEY-----\n${APPLE_PRIVATE_KEY.replace(/\\n/g, '\n')}\n-----END PRIVATE KEY-----`;
 
-      this.client = new AppStoreServerAPIClient(
-        privateKey,
-        APPLE_KEY_ID,
-        APPLE_ISSUER_ID,
-        APPLE_BUNDLE_ID,
-        APPLE_ENVIRONMENT,
+      this.clientProd = new AppStoreServerAPIClient(
+        privateKey, APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_BUNDLE_ID, Environment.PRODUCTION,
+      );
+      this.clientSandbox = new AppStoreServerAPIClient(
+        privateKey, APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_BUNDLE_ID, Environment.SANDBOX,
       );
 
       const rootCAs = loadAppleRootCAs();
-      this.verifier = new SignedDataVerifier(
-        rootCAs,
-        rootCAs.length > 0,
-        APPLE_ENVIRONMENT,
-        APPLE_BUNDLE_ID,
-        APPLE_APP_ID_NUMERIC,
+      this.verifierProd = new SignedDataVerifier(
+        rootCAs, rootCAs.length > 0, Environment.PRODUCTION, APPLE_BUNDLE_ID, APPLE_APP_ID_NUMERIC,
+      );
+      this.verifierSandbox = new SignedDataVerifier(
+        rootCAs, rootCAs.length > 0, Environment.SANDBOX, APPLE_BUNDLE_ID, APPLE_APP_ID_NUMERIC,
       );
 
       this.enabled = true;
-      logger.info('Apple provider initialized', {
-        env: APPLE_ENVIRONMENT,
+      logger.info('Apple provider initialized (dual env)', {
+        defaultEnv: APPLE_ENVIRONMENT,
         bundleId: APPLE_BUNDLE_ID,
         rootCertsLoaded: rootCAs.length,
       });
@@ -120,43 +133,70 @@ export class AppleProvider {
    * Returns the latest signed transaction info (decoded JWS payload).
    */
   async verifyTransactionId(transactionId: string): Promise<AppleVerifiedTransaction> {
-    if (!this.client || !this.verifier) {
+    if (!this.clientProd || !this.clientSandbox || !this.verifierProd || !this.verifierSandbox) {
       throw new AppError('Apple provider not configured', { statusCode: 503, code: 'APPLE_NOT_CONFIGURED' });
     }
 
-    let history;
-    try {
-      history = await this.client.getTransactionHistory(transactionId, null, {
-        sort: Order.DESCENDING,
-        productTypes: [ProductType.AUTO_RENEWABLE],
-      });
-    } catch (error) {
-      logger.error('Apple getTransactionHistory failed', {
-        transactionId,
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw new AppError('Apple 영수증 조회에 실패했습니다.', { statusCode: 502, code: 'APPLE_HISTORY_FAILED' });
+    // 기본 환경 우선, 실패 시 반대 환경 폴백
+    const primaryIsProd = APPLE_ENVIRONMENT === Environment.PRODUCTION;
+    const order: Array<{ env: 'Production' | 'Sandbox'; client: AppStoreServerAPIClient; verifier: SignedDataVerifier }> = primaryIsProd
+      ? [
+          { env: 'Production', client: this.clientProd, verifier: this.verifierProd },
+          { env: 'Sandbox', client: this.clientSandbox, verifier: this.verifierSandbox },
+        ]
+      : [
+          { env: 'Sandbox', client: this.clientSandbox, verifier: this.verifierSandbox },
+          { env: 'Production', client: this.clientProd, verifier: this.verifierProd },
+        ];
+
+    let lastError: unknown = null;
+    for (const { env, client, verifier } of order) {
+      try {
+        const history = await client.getTransactionHistory(transactionId, null, {
+          sort: Order.DESCENDING,
+          productTypes: [ProductType.AUTO_RENEWABLE],
+        });
+        const signedTx = history.signedTransactions?.[0];
+        if (!signedTx) {
+          // 거래 자체가 다른 환경에 있을 수 있으므로 폴백 시도
+          lastError = new AppError('Apple 거래 내역을 찾을 수 없습니다.', { statusCode: 404, code: 'APPLE_TX_NOT_FOUND' });
+          logger.warn('Apple verify: no transactions in this env, trying fallback', { transactionId, env });
+          continue;
+        }
+        const decoded = await verifier.verifyAndDecodeTransaction(signedTx);
+        if (env !== (primaryIsProd ? 'Production' : 'Sandbox')) {
+          // Apple 공식 권장 패턴: 프로덕션 서버는 21007 시 Sandbox 폴백을 해야 한다.
+          // (Apple 리뷰어가 Sandbox 계정으로 결제하기 때문) — 그러나 운영 가시성을
+          // 위해 prod-accepts-sandbox 케이스는 warn 으로 기록한다.
+          if (primaryIsProd && env === 'Sandbox') {
+            logger.warn('Apple verify: PRODUCTION server accepted SANDBOX transaction (Apple review or tester account)', {
+              transactionId,
+              originalTransactionId: decoded.originalTransactionId,
+              bundleId: APPLE_BUNDLE_ID,
+            });
+          } else {
+            logger.info('Apple verify: succeeded via fallback env', { transactionId, env });
+          }
+        }
+        return this.toVerified(decoded);
+      } catch (error) {
+        lastError = error;
+        const msg = error instanceof Error ? error.message : String(error);
+        // 404/Not found 류 에러는 다른 환경으로 폴백, 기타 에러도 한번 더 시도
+        logger.warn('Apple verify attempt failed, will try fallback env if available', {
+          transactionId, env, error: msg,
+        });
+      }
     }
 
-    const signedTx = history.signedTransactions?.[0];
-    if (!signedTx) {
-      throw new AppError('Apple 거래 내역을 찾을 수 없습니다.', { statusCode: 404, code: 'APPLE_TX_NOT_FOUND' });
-    }
-
-    try {
-      const decoded = await this.verifier.verifyAndDecodeTransaction(signedTx);
-      return this.toVerified(decoded);
-    } catch (error) {
-      logger.error('Apple verifyAndDecodeTransaction failed', {
-        transactionId,
-        bundleId: APPLE_BUNDLE_ID,
-        env: APPLE_ENVIRONMENT,
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw new AppError('Apple 영수증 검증에 실패했습니다.', { statusCode: 400, code: 'APPLE_VERIFY_FAILED' });
-    }
+    logger.error('Apple verifyTransactionId failed in both envs', {
+      transactionId,
+      bundleId: APPLE_BUNDLE_ID,
+      defaultEnv: APPLE_ENVIRONMENT,
+      error: lastError instanceof Error ? lastError.message : String(lastError),
+    });
+    if (lastError instanceof AppError) throw lastError;
+    throw new AppError('Apple 영수증 검증에 실패했습니다.', { statusCode: 400, code: 'APPLE_VERIFY_FAILED' });
   }
 
   /**
@@ -181,24 +221,44 @@ export class AppleProvider {
     transaction?: JWSTransactionDecodedPayload;
     renewalInfo?: JWSRenewalInfoDecodedPayload;
   }> {
-    if (!this.verifier) {
+    if (!this.verifierProd || !this.verifierSandbox) {
       throw new AppError('Apple provider not configured', {
         statusCode: 503,
         code: 'APPLE_NOT_CONFIGURED',
       });
     }
 
-    const payload = await this.verifier.verifyAndDecodeNotification(signedPayload);
+    // Sandbox/Production 모두 시도 (Apple 웹훅은 두 환경 모두에서 전송됨)
+    const primaryIsProd = APPLE_ENVIRONMENT === Environment.PRODUCTION;
+    const verifiers = primaryIsProd
+      ? [this.verifierProd, this.verifierSandbox]
+      : [this.verifierSandbox, this.verifierProd];
+
+    let payload: ResponseBodyV2DecodedPayload | null = null;
+    let activeVerifier: SignedDataVerifier | null = null;
+    let lastErr: unknown = null;
+    for (const v of verifiers) {
+      try {
+        payload = await v.verifyAndDecodeNotification(signedPayload);
+        activeVerifier = v;
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (!payload || !activeVerifier) {
+      throw lastErr instanceof Error ? lastErr : new AppError('Apple notification verification failed', { statusCode: 400, code: 'APPLE_NOTIFICATION_INVALID' });
+    }
 
     let transaction: JWSTransactionDecodedPayload | undefined;
     let renewalInfo: JWSRenewalInfoDecodedPayload | undefined;
 
     const data = payload.data;
     if (data?.signedTransactionInfo) {
-      transaction = await this.verifier.verifyAndDecodeTransaction(data.signedTransactionInfo);
+      transaction = await activeVerifier.verifyAndDecodeTransaction(data.signedTransactionInfo);
     }
     if (data?.signedRenewalInfo) {
-      renewalInfo = await this.verifier.verifyAndDecodeRenewalInfo(data.signedRenewalInfo);
+      renewalInfo = await activeVerifier.verifyAndDecodeRenewalInfo(data.signedRenewalInfo);
     }
 
     return { payload, transaction, renewalInfo };

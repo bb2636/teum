@@ -58,12 +58,20 @@ export function useAppleIAP() {
   const [ready, setReady] = useState(false);
   const [initializing, setInitializing] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [product, setProduct] = useState<{ id: string; title: string; price: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const storeRef = useRef<StoreInstance | null>(null);
   const initPromiseRef = useRef<Promise<boolean> | null>(null);
   const initializedRef = useRef(false);
+  // 콜백 리스너는 store 객체 lifecycle 동안 한 번만 등록되어야 한다.
+  // doInit 가 재시도되더라도 중복 등록되지 않도록 가드한다.
+  const listenersAttachedRef = useRef(false);
   const verifyingRef = useRef(false);
+  // 복원 진행 중 verify 결과를 즉시 resolve 하기 위한 deferred
+  const restoreVerifyDeferredRef = useRef<{
+    resolve: (v: 'restored' | 'verify_failed') => void;
+  } | null>(null);
   const mountedRef = useRef(true);
 
   const safeSet = useCallback(<T,>(setter: (v: T) => void, value: T) => {
@@ -140,7 +148,10 @@ export function useAppleIAP() {
         },
       ]);
 
-      store
+      // ⚠️ 리스너는 한 번만 등록 (재시도/재초기화 시 중복 등록 방지)
+      if (!listenersAttachedRef.current) {
+        listenersAttachedRef.current = true;
+        store
         .when()
         .approved(async (transaction: TransactionLike) => {
           if (verifyingRef.current) return;
@@ -150,6 +161,9 @@ export function useAppleIAP() {
             if (!transactionId) {
               safeSet(setError, 'Apple 거래 ID를 가져오지 못했습니다.');
               safeSet(setPurchasing, false);
+              // 복원 중이라면 실패로 즉시 종료
+              restoreVerifyDeferredRef.current?.resolve('verify_failed');
+              restoreVerifyDeferredRef.current = null;
               return;
             }
             // ⚠️ Apple 결제는 이미 과금된 상태. 서버 등록만 실패한 경우
@@ -193,32 +207,43 @@ export function useAppleIAP() {
 
             if (verified) {
               await transaction.finish?.();
-              window.location.href = '/payment/success';
+              // 복원 흐름: deferred 가 결과를 받게 하고 navigate 는 호출측이 결정
+              if (restoreVerifyDeferredRef.current) {
+                restoreVerifyDeferredRef.current.resolve('restored');
+                restoreVerifyDeferredRef.current = null;
+              } else {
+                window.location.href = '/payment/success';
+              }
             } else {
               const message = lastError instanceof Error ? lastError.message : '서버 검증에 실패했습니다.';
               safeSet(setError, `${message} 앱을 재시작하면 자동으로 동기화됩니다. 결제는 정상 완료되었으며 중복 청구되지 않습니다.`);
               safeSet(setPurchasing, false);
+              restoreVerifyDeferredRef.current?.resolve('verify_failed');
+              restoreVerifyDeferredRef.current = null;
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : '검증 실패';
             safeSet(setError, message);
             safeSet(setPurchasing, false);
+            restoreVerifyDeferredRef.current?.resolve('verify_failed');
+            restoreVerifyDeferredRef.current = null;
           } finally {
             verifyingRef.current = false;
           }
         });
 
-      const cancelledCode = CdvPurchase.ErrorCode?.PAYMENT_CANCELLED ?? 6777006;
-      store.error((err: IAPError) => {
-        console.error('[IAP] store.error:', JSON.stringify(err));
-        if (err?.code === cancelledCode) {
+        const cancelledCode = CdvPurchase.ErrorCode?.PAYMENT_CANCELLED ?? 6777006;
+        store.error((err: IAPError) => {
+          console.error('[IAP] store.error:', JSON.stringify(err));
+          if (err?.code === cancelledCode) {
+            safeSet(setPurchasing, false);
+            return;
+          }
+          // store init/load 단계의 에러는 inline 으로만 노출 (alert 금지: Apple 리뷰 거절 회피)
+          safeSet(setError, '결제 정보를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
           safeSet(setPurchasing, false);
-          return;
-        }
-        // store init/load 단계의 에러는 inline 으로만 노출 (alert 금지: Apple 리뷰 거절 회피)
-        safeSet(setError, '결제 정보를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
-        safeSet(setPurchasing, false);
-      });
+        });
+      } // end listenersAttachedRef guard
 
       console.log('[IAP] calling store.initialize...');
       await store.initialize([Platform.APPLE_APPSTORE]);
@@ -337,20 +362,65 @@ export function useAppleIAP() {
     }
   }, [purchasing, ensureReady]);
 
-  const restore = useCallback(async () => {
+  // Apple App Store 가이드라인 3.1.1 준수:
+  // 이전에 구매한 구독을 복원하기 위해 StoreKit restorePurchases 를 호출한다.
+  // - 복원할 구독이 있으면 approved 콜백 → verify-receipt → /payment/success 로 자동 이동
+  // - 없으면 'no_purchases' 반환
+  const restore = useCallback(async (): Promise<'restored' | 'no_purchases' | 'failed'> => {
     setError(null);
-    const ok = await ensureReady();
-    if (!ok) return;
-    const store = storeRef.current;
-    if (!store) return;
-    await store.restorePurchases();
-  }, [ensureReady]);
+    if (restoring || purchasing || verifyingRef.current) return 'failed';
+    safeSet(setRestoring, true);
+    try {
+      const ok = await ensureReady();
+      if (!ok) return 'failed';
+      const store = storeRef.current;
+      if (!store) return 'failed';
+
+      // 이벤트 기반 deferred: approved → verify 성공/실패 시점에 resolve
+      // 일정 시간 안에 approved 가 발화되지 않으면 'no_purchases' 로 간주
+      const verifyOutcome = await new Promise<'restored' | 'verify_failed' | 'timeout'>((resolve) => {
+        let settled = false;
+        restoreVerifyDeferredRef.current = {
+          resolve: (v) => {
+            if (settled) return;
+            settled = true;
+            resolve(v);
+          },
+        };
+        // restorePurchases 호출 자체가 실패할 수 있다
+        store.restorePurchases().catch((e: unknown) => {
+          console.error('[IAP] restorePurchases failed:', e);
+          if (!settled) {
+            settled = true;
+            restoreVerifyDeferredRef.current = null;
+            resolve('verify_failed');
+          }
+        });
+        // 안전망 타임아웃: approved 가 발화 안 되면 복원할 항목이 없는 것으로 간주
+        // (iOS StoreKit 은 복원 항목이 없으면 콜백 발화 없이 침묵)
+        setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            restoreVerifyDeferredRef.current = null;
+            resolve('timeout');
+          }
+        }, 8000);
+      });
+
+      if (verifyOutcome === 'restored') return 'restored';
+      if (verifyOutcome === 'verify_failed') return 'failed';
+      return 'no_purchases'; // timeout
+    } finally {
+      safeSet(setRestoring, false);
+    }
+  }, [ensureReady, restoring, purchasing, safeSet]);
 
   return {
     available: isAppleIAPAvailable() && pluginLoaded,
     ready,
     initializing,
     purchasing,
+    restoring,
     product,
     error,
     purchase,

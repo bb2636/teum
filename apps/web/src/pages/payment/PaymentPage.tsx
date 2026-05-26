@@ -670,7 +670,7 @@ export function PaymentPage() {
             )}
             <button
               onClick={handlePaymentClick}
-              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || appleIAP.initializing || !isButtonEnabled}
+              disabled={isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || appleIAP.initializing || appleIAP.restoring || !isButtonEnabled}
               className="w-full py-4 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing || initBillingKey.isPending || initPayPal.isPending || appleIAP.purchasing || appleIAP.initializing
@@ -685,6 +685,27 @@ export function PaymentPage() {
                       ? t('payment.startMonthly', { amount: displayAmountFormatted })
                       : `Start at $${(planPrice?.usd ?? 3.99).toFixed(2)}/month`}
             </button>
+            {/* Apple App Store 가이드라인 3.1.1 준수: 이전 구매 복원 버튼 (iOS 전용) */}
+            {isIOS && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (appleIAP.restoring || appleIAP.purchasing) return;
+                  const result = await appleIAP.restore();
+                  if (result === 'restored') {
+                    // approved 콜백이 verify-receipt 호출 후 /payment/success 로 이동시킴
+                  } else if (result === 'no_purchases') {
+                    alert(t('payment.restoreNoPurchase'));
+                  } else if (result === 'failed') {
+                    alert(t('payment.restoreFailedApple'));
+                  }
+                }}
+                disabled={appleIAP.restoring || appleIAP.purchasing || appleIAP.initializing}
+                className="w-full mt-2 py-2 text-sm text-[#4A2C1A] underline disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {appleIAP.restoring ? t('payment.restoreInProgress') : t('payment.restorePurchase')}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, RefreshCw } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { useSubscriptions, usePayments, useCancelSubscription, useBillingKeyStatus, useRestoreBilling, getEffectiveSubscription } from '@/hooks/usePayment';
 import { useMe } from '@/hooks/useProfile';
+import { useAppleIAP } from '@/hooks/useAppleIAP';
 import { SubscriptionCancelModal } from '@/components/SubscriptionCancelModal';
 import { format } from 'date-fns';
 import { getDateLocale } from '@/lib/dateFnsLocale';
@@ -42,6 +44,23 @@ export function PaymentHistoryPage() {
   const [showRestoreSuccess, setShowRestoreSuccess] = useState(false);
   const [showRestoreError, setShowRestoreError] = useState(false);
   const [restoreErrorMessage, setRestoreErrorMessage] = useState('');
+
+  // Apple App Store 가이드라인 3.1.1 — iOS 사용자용 "이전 구매 복원" 버튼
+  const isIOS = Capacitor.getPlatform() === 'ios';
+  const appleIAP = useAppleIAP();
+  const [showAppleRestoreInfo, setShowAppleRestoreInfo] = useState<string | null>(null);
+
+  const handleAppleRestore = async () => {
+    if (appleIAP.restoring || appleIAP.purchasing) return;
+    const result = await appleIAP.restore();
+    if (result === 'restored') {
+      // approved 콜백이 verify 후 /payment/success 로 이동
+    } else if (result === 'no_purchases') {
+      setShowAppleRestoreInfo(t('payment.restoreNoPurchase'));
+    } else if (result === 'failed') {
+      setShowAppleRestoreInfo(t('payment.restoreFailedApple'));
+    }
+  };
 
   if (subscriptionsLoading || paymentsLoading) {
     return (
@@ -129,6 +148,29 @@ export function PaymentHistoryPage() {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Apple App Store 가이드라인 3.1.1 — iOS 사용자용 "이전 구매 복원" */}
+          {isIOS && (
+            <div>
+              <h2 className="text-sm font-medium text-gray-500 mb-2">App Store</h2>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                  {t('payment.restorePurchaseDesc') !== 'payment.restorePurchaseDesc'
+                    ? t('payment.restorePurchaseDesc')
+                    : '다른 기기나 재설치 후 이전에 구매한 구독을 복원할 수 있습니다.'}
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleAppleRestore}
+                  disabled={appleIAP.restoring || appleIAP.purchasing || appleIAP.initializing}
+                  className="w-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white rounded-full"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${appleIAP.restoring ? 'animate-spin' : ''}`} />
+                  {appleIAP.restoring ? t('payment.restoreInProgress') : t('payment.restorePurchase')}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -333,6 +375,20 @@ export function PaymentHistoryPage() {
             <p className="text-[#4A2C1A] mb-6 leading-relaxed">{restoreErrorMessage}</p>
             <button
               onClick={() => setShowRestoreError(false)}
+              className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
+            >
+              {t('common.confirm')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showAppleRestoreInfo && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-overlay-fade">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl text-center animate-modal-pop">
+            <p className="text-[#4A2C1A] mb-6 leading-relaxed">{showAppleRestoreInfo}</p>
+            <button
+              onClick={() => setShowAppleRestoreInfo(null)}
               className="w-full py-3 px-4 rounded-full bg-[#4A2C1A] hover:bg-[#3A2010] text-white font-medium transition-colors"
             >
               {t('common.confirm')}

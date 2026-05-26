@@ -756,25 +756,29 @@ export function PaymentPage() {
           className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-overlay-fade px-4"
           onClick={() => setShowIdentityModal(false)}
         >
+          {/* 등장 애니메이션 (scale+translateY)을 담당하는 외부 wrapper.
+              animate-modal-pop 의 keyframe transform 이 인라인 transform 을 덮어쓰는 문제를
+              피하기 위해 키보드 추적 transform 은 아래 내부 div 로 분리한다. */}
           <div
-            className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 animate-modal-pop overflow-y-auto"
+            className="w-full max-w-sm animate-modal-pop"
             style={{
-              // - 키보드 닫힘: 화면 정중앙 (transform: none, maxHeight 70vh)
-              // - 키보드 열림: translateY 로 위로 올려서 키보드에 가려지지 않게.
-              //   items-center 기준 modal 중심을 keyboardOffset/2 만큼 위로 이동시키면
-              //   maxHeight = 100vh - keyboardOffset - 48 일 때 modal 하단이
-              //   키보드 상단보다 24px 위에 위치한다. align-items 토글이 없어 점프 없이 부드럽게 보간.
-              maxHeight: keyboardOffset > 0
-                ? `calc(100vh - ${keyboardOffset}px - 48px)`
-                : '70vh',
               transform: keyboardOffset > 0
                 ? `translateY(calc(-${keyboardOffset}px / 2))`
                 : 'translateY(0)',
               transition:
-                'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+                'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <div
+              className="bg-white rounded-2xl w-full p-6 space-y-4 overflow-y-auto"
+              style={{
+                maxHeight: keyboardOffset > 0
+                  ? `calc(100vh - ${keyboardOffset}px - 48px)`
+                  : '70vh',
+                transition: 'max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+              }}
+            >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{t('payment.identityVerification')}</h2>
               <div className="flex items-center gap-2">
@@ -869,6 +873,7 @@ export function PaymentPage() {
                 {confirmPhoneVerification.isPending ? t('auth.verifying') : t('common.confirm')}
               </Button>
             )}
+            </div>
           </div>
         </div>
       )}

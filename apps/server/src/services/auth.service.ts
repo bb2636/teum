@@ -100,6 +100,9 @@ function isBypassPhone(phone: string, countryCode?: string): boolean {
 export class AuthService {
   private async generateTokensForUser(user: { id: string; email: string; role: string }) {
     const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
+    // 캐시를 즉시 새 버전으로 갱신 — generation 증가로 in-flight stale write 도 차단된다.
+    const { setTokenVersionCache } = await import('../middleware/auth');
+    setTokenVersionCache(user.id, newTokenVersion);
     const payload: JWTPayload = { userId: user.id, email: user.email, role: user.role, tokenVersion: newTokenVersion };
     return {
       accessToken: generateAccessToken(payload),

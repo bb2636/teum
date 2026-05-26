@@ -179,8 +179,9 @@ app.get(/^\/api\/storage\/(.+)$/, async (req, res) => {
         const { verifyAccessToken } = await import('./utils/jwt');
         const payload = verifyAccessToken(cookieToken);
         if (payload) {
-          const { userRepository } = await import('./repositories/user.repository');
-          const currentVersion = await userRepository.getTokenVersion(payload.userId);
+          // storage 인증은 tokenVersion 캐시(30초 TTL) 를 사용해 DB 부하 절감
+          const { getTokenVersionCached } = await import('./middleware/auth');
+          const currentVersion = await getTokenVersionCached(payload.userId);
           if (currentVersion !== null && payload.tokenVersion !== undefined && payload.tokenVersion === currentVersion) {
             authorized = true;
           }

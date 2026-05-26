@@ -320,21 +320,22 @@ export function SplashPage() {
     window.addEventListener('focus', onFocus);
 
     let pollCount = 0;
+    // 1초 폴링은 OAuth 가 끝나든 말든 분당 60회를 DB 까지 보낸다.
+    // visibilitychange / focus / Browser plugin finished 이벤트가 이미 즉시 트리거하므로
+    // 폴링은 단순 안전망. 5초 간격 × 60회 = 5분 안전망으로 충분.
     const pollInterval = setInterval(() => {
       if (unmounted) { clearInterval(pollInterval); return; }
       const { nonce } = getOAuthState();
       if (!nonce) { pollCount = 0; return; }
       pollCount++;
-      // 5분 = 300회 (1000ms * 300)
-      if (pollCount > 300) {
+      if (pollCount > 60) {
         clearOAuthState();
         setIsExchanging(false);
         clearInterval(pollInterval);
         return;
       }
-      // exchangingRef를 강제 초기화하지 않음 — 진행 중인 요청이 있으면 guard가 막아줌
       exchangeToken();
-    }, 1000);
+    }, 5000);
 
     return () => {
       unmounted = true;

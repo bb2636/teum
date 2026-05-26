@@ -285,7 +285,8 @@ export class AuthController {
 
       const payload = verifyRefreshToken(refreshToken);
 
-      const currentVersion = await userRepository.getTokenVersion(payload.userId);
+      const { getTokenVersionCached } = await import('../middleware/auth');
+      const currentVersion = await getTokenVersionCached(payload.userId);
       if (currentVersion === null || payload.tokenVersion === undefined || payload.tokenVersion !== currentVersion) {
         const cookieOpts = {
           httpOnly: true,

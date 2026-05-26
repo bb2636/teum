@@ -194,12 +194,15 @@ export function useMusicJob(jobId: string) {
     },
     enabled: !!jobId,
     refetchInterval: (query) => {
-      // Poll every 2 seconds if job is still processing
+      // 음악 생성은 보통 1~3분 걸리므로 짧은 폴링은 DB 부하만 키운다.
+      // 5초 간격으로 조정 — UX 손해 거의 없고 요청 수 60% 감소
       const data = query.state.data;
       if (data?.status === 'processing' || data?.status === 'queued') {
-        return 2000;
+        return 5000;
       }
       return false;
     },
+    // 페이지 진입 시 무조건 재요청하지 않음 (5초 폴링이 알아서 갱신)
+    refetchOnMount: true,
   });
 }

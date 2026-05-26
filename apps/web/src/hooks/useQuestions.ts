@@ -23,7 +23,7 @@ export function useRandomQuestions(count: number = 3) {
     },
     staleTime: 0,
     gcTime: 0,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
 }

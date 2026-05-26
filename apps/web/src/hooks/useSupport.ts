@@ -60,7 +60,7 @@ export function useSupportInquiries() {
       return response.data.inquiries;
     },
     staleTime: 1000 * 10,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 }
 
@@ -89,7 +89,7 @@ export function useAllSupportInquiries() {
       return response.data.inquiries;
     },
     staleTime: 1000 * 10,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 }
 

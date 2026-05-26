@@ -54,6 +54,7 @@ export function MusicCreatePage() {
 
   const startPolling = useCallback((jobId: string) => {
     stopPolling();
+    // 음악 생성은 보통 1~3분 걸린다. 짧은 폴링은 DB quota 만 빠르게 소진시키므로 10초 간격으로 조정.
     pollingRef.current = setInterval(async () => {
       try {
         const response = await apiRequest<{ data: { status: string; audioUrl?: string } }>(`/music/jobs/${jobId}`);
@@ -71,7 +72,7 @@ export function MusicCreatePage() {
       } catch {
         // ignore polling errors
       }
-    }, 3000);
+    }, 10000);
   }, [stopPolling, t]);
 
   useEffect(() => {

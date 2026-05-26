@@ -229,24 +229,65 @@ export function PaymentPage() {
   // 결제창에 들어오자마자 에러 팝업이 떠 거절 사유가 된다.
   // 에러는 아래 결제 버튼 위 inline 안내문으로만 표시한다.
 
-  // 본인인증 모달 표시 중 키보드 높이 추적 (iOS WKWebView 대응)
+  // 본인인증 모달 표시 중 키보드 높이 추적
+  // - 네이티브 (Android/iOS Capacitor): @capacitor/keyboard 이벤트로 정확한 높이 수신
+  //   (Android 의 windowSoftInputMode=adjustNothing + Keyboard.resize=none 환경에서도 동작)
+  // - 웹: window.visualViewport 폴백
   useEffect(() => {
     if (!showIdentityModal) {
       setKeyboardOffset(0);
       return;
     }
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const onResize = () => {
-      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardOffset(offset);
-    };
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    onResize();
+
+    let cleanupNative: (() => void) | null = null;
+    let cleanupWeb: (() => void) | null = null;
+
+    if (Capacitor.isNativePlatform()) {
+      let cancelled = false;
+      import('@capacitor/keyboard').then(({ Keyboard }) => {
+        if (cancelled) return;
+        const showHandle = Keyboard.addListener('keyboardWillShow', (info) => {
+          setKeyboardOffset(info.keyboardHeight);
+        });
+        const showDoneHandle = Keyboard.addListener('keyboardDidShow', (info) => {
+          setKeyboardOffset(info.keyboardHeight);
+        });
+        const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
+          setKeyboardOffset(0);
+        });
+        const hideDoneHandle = Keyboard.addListener('keyboardDidHide', () => {
+          setKeyboardOffset(0);
+        });
+        cleanupNative = () => {
+          showHandle.then((h) => h.remove()).catch(() => undefined);
+          showDoneHandle.then((h) => h.remove()).catch(() => undefined);
+          hideHandle.then((h) => h.remove()).catch(() => undefined);
+          hideDoneHandle.then((h) => h.remove()).catch(() => undefined);
+        };
+      }).catch(() => undefined);
+
+      // 네이티브 이벤트 등록 전 cleanup 호출 가능성 처리
+      cleanupWeb = () => { cancelled = true; };
+    } else {
+      const vv = window.visualViewport;
+      if (vv) {
+        const onResize = () => {
+          const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+          setKeyboardOffset(offset);
+        };
+        vv.addEventListener('resize', onResize);
+        vv.addEventListener('scroll', onResize);
+        onResize();
+        cleanupWeb = () => {
+          vv.removeEventListener('resize', onResize);
+          vv.removeEventListener('scroll', onResize);
+        };
+      }
+    }
+
     return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
+      cleanupWeb?.();
+      cleanupNative?.();
     };
   }, [showIdentityModal]);
 

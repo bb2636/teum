@@ -167,10 +167,19 @@ function buildNotificationHtml(lang: Lang, title: string, body: string): string 
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light only">
+        <meta name="supported-color-schemes" content="light">
+        <style>
+          :root { color-scheme: light only; supported-color-schemes: light; }
+          /* Gmail 다크모드에서 배너/버튼이 자동 반전되는 것 방지 */
+          u + .body .teum-keep,
+          [data-ogsc] .teum-keep { background-color: #4A2C1A !important; color: #ffffff !important; }
+          [data-ogsc] .teum-keep a { color: #ffffff !important; }
+        </style>
         <title>${title}</title>
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+        <div class="teum-keep" style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
           <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="TEUM" style="height: 48px; width: auto; display: inline-block; border: 0;">
           <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(lang, 'slogan')}</p>
         </div>
@@ -209,10 +218,19 @@ export class EmailService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light only">
+        <meta name="supported-color-schemes" content="light">
+        <style>
+          :root { color-scheme: light only; supported-color-schemes: light; }
+          /* Gmail 다크모드에서 배너/버튼이 자동 반전되는 것 방지 */
+          u + .body .teum-keep,
+          [data-ogsc] .teum-keep { background-color: #4A2C1A !important; color: #ffffff !important; }
+          [data-ogsc] .teum-keep a { color: #ffffff !important; }
+        </style>
           <title>${tt(l, 'resetTitle')}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <div class="teum-keep" style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
             <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="TEUM" style="height: 48px; width: auto; display: inline-block; border: 0;">
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
@@ -226,7 +244,7 @@ export class EmailService {
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetLink}" 
-                 style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                 class="teum-keep" style="display: inline-block; background-color: #4A2C1A; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
                 ${tt(l, 'resetButton')}
               </a>
             </div>
@@ -279,10 +297,19 @@ export class EmailService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light only">
+        <meta name="supported-color-schemes" content="light">
+        <style>
+          :root { color-scheme: light only; supported-color-schemes: light; }
+          /* Gmail 다크모드에서 배너/버튼이 자동 반전되는 것 방지 */
+          u + .body .teum-keep,
+          [data-ogsc] .teum-keep { background-color: #4A2C1A !important; color: #ffffff !important; }
+          [data-ogsc] .teum-keep a { color: #ffffff !important; }
+        </style>
           <title>${tt(l, 'verifyTitle')}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <div class="teum-keep" style="background-color: #4A2C1A; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
             <img src="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dark.logo.png" alt="TEUM" style="height: 48px; width: auto; display: inline-block; border: 0;">
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${tt(l, 'slogan')}</p>
           </div>
@@ -336,7 +363,7 @@ export class EmailService {
       <p>${tt(l, 'signupCta')}</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-           style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+           class="teum-keep" style="display: inline-block; background-color: #4A2C1A; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
           ${tt(l, 'signupButton')}
         </a>
       </div>
@@ -387,7 +414,7 @@ export class EmailService {
       <p>${tt(l, 'subStartFeatures')}</p>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-           style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+           class="teum-keep" style="display: inline-block; background-color: #4A2C1A; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
           ${tt(l, 'subStartButton')}
         </a>
       </div>
@@ -506,7 +533,7 @@ export class EmailService {
       </div>
       <div style="text-align: center; margin: 30px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/my/support" 
-           style="display: inline-block; background-color: #4A2C1A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+           class="teum-keep" style="display: inline-block; background-color: #4A2C1A; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">
           ${tt(l, 'inquiryAnswerButton')}
         </a>
       </div>

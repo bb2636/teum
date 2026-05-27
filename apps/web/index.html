@@ -26,16 +26,26 @@
         </p>
       </noscript>
     </div>
-    <footer id="legal-footer" style="position:fixed;bottom:0;left:0;right:0;text-align:center;padding:8px;font-size:12px;color:#888;background:transparent;pointer-events:auto;z-index:1;">
+    <footer id="legal-footer" style="display:none;position:fixed;bottom:0;left:0;right:0;text-align:center;padding:8px;font-size:12px;color:#888;background:transparent;pointer-events:auto;z-index:1;">
       <a href="/privacy" style="color:#888;text-decoration:underline;margin:0 8px;">개인정보처리방침</a>
       <a href="/terms" style="color:#888;text-decoration:underline;margin:0 8px;">서비스 약관</a>
     </footer>
     <script>
       (function () {
-        var isCapacitor = /^capacitor:/i.test(location.protocol) || /^https?:\/\/localhost/i.test(location.origin) || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-        if (isCapacitor) {
+        // 기본은 숨김. 진짜 일반 웹(앱/Capacitor 가 아님)에서만 표시.
+        // 검출 실패 시에도 안전하게 앱에서는 보이지 않음.
+        var proto = location.protocol;
+        var host = location.hostname;
+        var isCapacitor =
+          /^capacitor:/i.test(proto) ||
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          /\.local$/i.test(host) ||
+          (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        var isHttpWeb = proto === 'http:' || proto === 'https:';
+        if (isHttpWeb && !isCapacitor) {
           var f = document.getElementById('legal-footer');
-          if (f) f.style.display = 'none';
+          if (f) f.style.display = '';
         }
       })();
     </script>

@@ -37,10 +37,19 @@ export class NicePayProvider {
   constructor() {
     this.clientId = process.env.NICEPAY_MERCHANT_ID || '';
     this.secretKey = process.env.NICEPAY_API_SECRET || '';
-    this.isTestMode =
-      (process.env.NICEPAY_TEST_MODE || '').toUpperCase() === 'TRUE'
-      || !this.clientId
-      || this.clientId.startsWith('S2_');
+
+    // R2_ prefix = 라이브 가맹점 ID → NICEPAY_TEST_MODE 환경변수 무시하고 강제 프로덕션
+    // S2_ prefix = 샌드박스 가맹점 ID → 강제 테스트
+    // 그 외 = 환경변수 또는 ID 미설정 여부로 판단
+    if (this.clientId.startsWith('R2_')) {
+      this.isTestMode = false;
+    } else if (this.clientId.startsWith('S2_')) {
+      this.isTestMode = true;
+    } else {
+      this.isTestMode =
+        (process.env.NICEPAY_TEST_MODE || '').toUpperCase() === 'TRUE'
+        || !this.clientId;
+    }
 
     this.approvalBaseUrl = this.isTestMode
       ? 'https://sandbox-api.nicepay.co.kr'
@@ -117,7 +126,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay approval failed', { error, tid });
+      logger.error({ err: error, tid }, 'NicePay approval failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -206,7 +215,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error({ error, orderId }, 'NicePay billing key issue failed');
+      logger.error({ err: error, orderId }, 'NicePay billing key issue failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -260,7 +269,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing key approval failed', { error });
+      logger.error({ err: error }, 'NicePay billing key approval failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -329,7 +338,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing payment failed', { error, orderId });
+      logger.error({ err: error, orderId }, 'NicePay billing payment failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -370,7 +379,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay billing key cancellation failed', { error });
+      logger.error({ err: error }, 'NicePay billing key cancellation failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',
@@ -422,7 +431,7 @@ export class NicePayProvider {
         };
       }
     } catch (error) {
-      logger.error('NicePay cancellation failed', { error, tid });
+      logger.error({ err: error, tid }, 'NicePay cancellation failed');
       return {
         success: false,
         errorCode: 'NETWORK_ERROR',

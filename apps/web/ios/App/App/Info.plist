@@ -31,7 +31,7 @@
 
     <!-- 🔥 AdMob -->
     <key>GADApplicationIdentifier</key>
-    <string>ca-app-pub-3940256099942544~1458002511</string>
+    <string>ca-app-pub-3503508648798732~6807941370</string>
 
     <!-- 🔥 WebView / 외부 요청 허용 -->
     <key>NSAppTransportSecurity</key>

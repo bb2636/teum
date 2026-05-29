@@ -53,6 +53,14 @@ export function isAppleIAPAvailable(): boolean {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// ─── 모듈 레벨 싱글턴 가드 ───────────────────────────────────────────────
+// CdvPurchase.store 는 전역 싱글턴이므로 여러 컴포넌트(PaymentPage, PaymentHistoryPage,
+// useAppleIAPStartupRecovery) 에서 useAppleIAP 가 마운트되어도 리스너는 한 번만 등록된다.
+// ⚠️ useRef 대신 모듈 레벨 변수를 사용하는 이유:
+//   useRef 는 컴포넌트 인스턴스마다 별도의 값을 가지므로, 두 컴포넌트가 동시에 마운트되면
+//   두 인스턴스 모두 listenersAttached=false 로 시작해 리스너를 중복 등록한다.
+let _globalListenersAttached = false;
+
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);
   const [ready, setReady] = useState(false);
@@ -64,9 +72,6 @@ export function useAppleIAP() {
   const storeRef = useRef<StoreInstance | null>(null);
   const initPromiseRef = useRef<Promise<boolean> | null>(null);
   const initializedRef = useRef(false);
-  // 콜백 리스너는 store 객체 lifecycle 동안 한 번만 등록되어야 한다.
-  // doInit 가 재시도되더라도 중복 등록되지 않도록 가드한다.
-  const listenersAttachedRef = useRef(false);
   const verifyingRef = useRef(false);
   // 복원 진행 중 verify 결과를 즉시 resolve 하기 위한 deferred
   const restoreVerifyDeferredRef = useRef<{
@@ -149,8 +154,10 @@ export function useAppleIAP() {
       ]);
 
       // ⚠️ 리스너는 한 번만 등록 (재시도/재초기화 시 중복 등록 방지)
-      if (!listenersAttachedRef.current) {
-        listenersAttachedRef.current = true;
+      // _globalListenersAttached: 모듈 레벨 가드 — useAppleIAPStartupRecovery 가 먼저
+      // 리스너를 등록했더라도 여기서 중복 등록하지 않는다.
+      if (!_globalListenersAttached) {
+        _globalListenersAttached = true;
         store
         .when()
         .approved(async (transaction: TransactionLike) => {

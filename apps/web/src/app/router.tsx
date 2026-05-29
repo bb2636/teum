@@ -7,6 +7,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { SplashPage } from '../pages/auth/SplashPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { useMe } from '../hooks/useProfile';
+import { useAppleIAPStartupRecovery } from '../hooks/useAppleIAPStartupRecovery';
 
 const SignupPage = lazy(() => import('../pages/auth/SignupPage').then(m => ({ default: m.SignupPage })));
 const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
@@ -98,6 +99,10 @@ function RootRedirect() {
 
 function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
   const { data: user, isLoading, isError, refetch } = useMe();
+  // iOS: 로그인 후 StoreKit 미완료 거래 자동 복구
+  // ProtectedRoute 안에서 호출해야 인증 전에 store.initialize() 가 호출되지 않는다
+  // (Apple 리뷰 sandbox 에러 팝업 방지)
+  useAppleIAPStartupRecovery();
 
   if (isError) {
     return <BootstrapErrorScreen onRetry={() => refetch()} />;

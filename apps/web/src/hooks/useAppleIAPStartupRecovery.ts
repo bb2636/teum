@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Capacitor } from '@capacitor/core';
 import { apiRequest } from '@/lib/api';
+import { _globalListenersAttached, _setGlobalListenersAttached } from './useAppleIAP';
 
 declare const CdvPurchase: {
   store: unknown;
@@ -82,6 +83,16 @@ export function useAppleIAPStartupRecovery() {
           platform: Platform.APPLE_APPSTORE,
         }]);
 
+        // 리스너 중복 등록 방지: useAppleIAP 와 공유하는 모듈 레벨 플래그 확인
+        if (_globalListenersAttached) {
+          console.log('[IAP recovery] listeners already attached by purchase flow, skipping registration');
+          // store.initialize() 만 호출해 pending 거래를 기존 리스너로 replay
+          await store.initialize([Platform.APPLE_APPSTORE]);
+          console.log('[IAP recovery] store initialized (listeners re-used from purchase flow)');
+          return;
+        }
+        _setGlobalListenersAttached(true);
+
         // approved 리스너: pending 거래 발견 시 서버에 verify-receipt 요청
         store.when().approved(async (tx: TransactionLike) => {
           if (_recovering) {
@@ -132,9 +143,9 @@ export function useAppleIAPStartupRecovery() {
             if (verified) {
               // StoreKit 에 거래 완료 알림 → pending 큐에서 제거
               await tx.finish?.();
-              // 구독 상태 캐시 무효화
+              // 구독 상태 캐시 무효화 (실제 캐시 키: ['user', 'me'], ['subscriptions'])
               await qc.invalidateQueries({ queryKey: ['subscriptions'] });
-              await qc.invalidateQueries({ queryKey: ['me'] });
+              await qc.invalidateQueries({ queryKey: ['user', 'me'] });
               console.log('[IAP recovery] pending transaction recovered successfully:', transactionId);
               navigateFn('/payment/success', { replace: true });
             } else {

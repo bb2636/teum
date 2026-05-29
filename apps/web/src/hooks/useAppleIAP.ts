@@ -59,7 +59,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // ⚠️ useRef 대신 모듈 레벨 변수를 사용하는 이유:
 //   useRef 는 컴포넌트 인스턴스마다 별도의 값을 가지므로, 두 컴포넌트가 동시에 마운트되면
 //   두 인스턴스 모두 listenersAttached=false 로 시작해 리스너를 중복 등록한다.
-let _globalListenersAttached = false;
+// export: useAppleIAPStartupRecovery 가 같은 플래그를 공유해 중복 등록을 막는다.
+export let _globalListenersAttached = false;
+export function _setGlobalListenersAttached(v: boolean) { _globalListenersAttached = v; }
 
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);

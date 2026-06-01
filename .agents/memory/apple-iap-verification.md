@@ -44,6 +44,19 @@ no `POST /api/payments/apple/verify-receipt` at all (client problem → restoreP
 **Why this matters:** server-side cert/cred fix needs only a Replit redeploy, NO
 costly Xcode/TestFlight rebuild. Confirm the layer before rebuilding anything.
 
+# Resolution (this codebase)
+Apple Root CA certs (Apple Inc Root, G2, G3 — G3 is the one that anchors App Store
+Server JWS) committed to `apps/server/apple-certs/`; loader finds them in both dev
+(`tsx`) and prod (`node dist`) via the `__dirname/../../../apple-certs` candidate.
+Startup log now shows `rootCertsLoaded: 3`. Also corrected the hardcoded
+`APPLE_APP_ID_NUMERIC` fallback to the real app Apple ID (was an unrelated number).
+
+# Gotcha: pino logger arg order
+`logger` is raw pino → call is `logger.info(mergeObj, msg)` (object FIRST). Several
+apple.provider verify logs were written `(msg, obj)`, so ALL structured fields
+(incl. `rootCertsLoaded`, failure `error`/`transactionId`) were silently dropped —
+making prod diagnosis impossible. Always put the object first.
+
 # Two-replit caveat
 Build/deploy + prod DB run on a SEPARATE replit. This dev replit can't reach prod
 DB/logs and its code may lag the build replit. Apply fixes on the build replit.

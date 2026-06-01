@@ -27,7 +27,7 @@ const APPLE_ISSUER_ID = process.env.APPLE_ISSUER_ID || '';
 // 미설정 시 Apple Sign In과 동일한 키를 공유하던 기존 동작으로 폴백.
 const APPLE_KEY_ID = process.env.APPLE_IAP_KEY_ID || process.env.APPLE_KEY_ID || '';
 const APPLE_PRIVATE_KEY = process.env.APPLE_IAP_PRIVATE_KEY || process.env.APPLE_PRIVATE_KEY || '';
-const APPLE_APP_ID_NUMERIC = Number(process.env.APPLE_APP_ID_NUMERIC || '6762346897');
+const APPLE_APP_ID_NUMERIC = Number(process.env.APPLE_APP_ID_NUMERIC || '6762116763');
 const APPLE_ENVIRONMENT: Environment =
   process.env.APPLE_ENV === 'production' ? Environment.PRODUCTION : Environment.SANDBOX;
 
@@ -108,11 +108,11 @@ export class AppleProvider {
       );
 
       this.enabled = true;
-      logger.info('Apple provider initialized (dual env)', {
+      logger.info({
         defaultEnv: APPLE_ENVIRONMENT,
         bundleId: APPLE_BUNDLE_ID,
         rootCertsLoaded: rootCAs.length,
-      });
+      }, 'Apple provider initialized (dual env)');
     } catch (error) {
       logger.error(
         {
@@ -160,7 +160,7 @@ export class AppleProvider {
         if (!signedTx) {
           // 거래 자체가 다른 환경에 있을 수 있으므로 폴백 시도
           lastError = new AppError('Apple 거래 내역을 찾을 수 없습니다.', { statusCode: 404, code: 'APPLE_TX_NOT_FOUND' });
-          logger.warn('Apple verify: no transactions in this env, trying fallback', { transactionId, env });
+          logger.warn({ transactionId, env }, 'Apple verify: no transactions in this env, trying fallback');
           continue;
         }
         const decoded = await verifier.verifyAndDecodeTransaction(signedTx);
@@ -169,13 +169,13 @@ export class AppleProvider {
           // (Apple 리뷰어가 Sandbox 계정으로 결제하기 때문) — 그러나 운영 가시성을
           // 위해 prod-accepts-sandbox 케이스는 warn 으로 기록한다.
           if (primaryIsProd && env === 'Sandbox') {
-            logger.warn('Apple verify: PRODUCTION server accepted SANDBOX transaction (Apple review or tester account)', {
+            logger.warn({
               transactionId,
               originalTransactionId: decoded.originalTransactionId,
               bundleId: APPLE_BUNDLE_ID,
-            });
+            }, 'Apple verify: PRODUCTION server accepted SANDBOX transaction (Apple review or tester account)');
           } else {
-            logger.info('Apple verify: succeeded via fallback env', { transactionId, env });
+            logger.info({ transactionId, env }, 'Apple verify: succeeded via fallback env');
           }
         }
         return this.toVerified(decoded);
@@ -183,18 +183,18 @@ export class AppleProvider {
         lastError = error;
         const msg = error instanceof Error ? error.message : String(error);
         // 404/Not found 류 에러는 다른 환경으로 폴백, 기타 에러도 한번 더 시도
-        logger.warn('Apple verify attempt failed, will try fallback env if available', {
+        logger.warn({
           transactionId, env, error: msg,
-        });
+        }, 'Apple verify attempt failed, will try fallback env if available');
       }
     }
 
-    logger.error('Apple verifyTransactionId failed in both envs', {
+    logger.error({
       transactionId,
       bundleId: APPLE_BUNDLE_ID,
       defaultEnv: APPLE_ENVIRONMENT,
       error: lastError instanceof Error ? lastError.message : String(lastError),
-    });
+    }, 'Apple verifyTransactionId failed in both envs');
     if (lastError instanceof AppError) throw lastError;
     throw new AppError('Apple 영수증 검증에 실패했습니다.', { statusCode: 400, code: 'APPLE_VERIFY_FAILED' });
   }

@@ -31,6 +31,22 @@ const APPLE_APP_ID_NUMERIC = Number(process.env.APPLE_APP_ID_NUMERIC || '6762116
 const APPLE_ENVIRONMENT: Environment =
   process.env.APPLE_ENV === 'production' ? Environment.PRODUCTION : Environment.SANDBOX;
 
+// Apple .p8 키는 환경변수 저장 방식이 제각각이다:
+//   ① 실제 개행 포함 멀티라인 PEM
+//   ② "\n" 이스케이프가 포함된 한 줄 (JSON/일부 시크릿 저장소)
+//   ③ 헤더는 있으나 개행이 전혀 없는 한 줄 PEM  ← 기존 코드가 처리 못 해 ES256 서명 실패
+//   ④ 헤더 없이 base64 본문만 저장
+// 어떤 형태든 항상 유효한 PKCS#8 PEM 으로 재조립한다.
+function normalizeApplePrivateKey(input: string): string {
+  const unescaped = (input || '').trim().replace(/\\r/g, '').replace(/\\n/g, '\n');
+  const body = unescaped
+    .replace(/-----BEGIN [^-]+-----/g, '')
+    .replace(/-----END [^-]+-----/g, '')
+    .replace(/\s+/g, '');
+  const wrapped = body.match(/.{1,64}/g)?.join('\n') ?? body;
+  return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
+}
+
 function loadAppleRootCAs(): Buffer[] {
   const candidates = [
     path.resolve(process.cwd(), 'apple-certs'),
@@ -88,10 +104,7 @@ export class AppleProvider {
       return;
     }
     try {
-      const rawKey = APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
-      const privateKey = rawKey.includes('-----BEGIN')
-        ? rawKey
-        : `-----BEGIN PRIVATE KEY-----\n${rawKey}\n-----END PRIVATE KEY-----`;
+      const privateKey = normalizeApplePrivateKey(APPLE_PRIVATE_KEY);
 
       this.clientProd = new AppStoreServerAPIClient(
         privateKey, APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_BUNDLE_ID, Environment.PRODUCTION,

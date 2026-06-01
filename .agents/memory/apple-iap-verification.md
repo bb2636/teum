@@ -76,3 +76,18 @@ purchase-flow and recovery handlers.
 # Two-replit caveat
 Build/deploy + prod DB run on a SEPARATE replit. This dev replit can't reach prod
 DB/logs and its code may lag the build replit. Apply fixes on the build replit.
+
+# Gotcha: APPLE_PRIVATE_KEY (.p8) PEM normalization
+After certs were fixed, prod hit `secretOrPrivateKey must be an asymmetric key
+when using ES256` — App Store Server API JWT signing failed. Cause: the .p8 key
+env var can be stored in 4 shapes (real-newline multiline PEM; escaped `\n`;
+single-line PEM with header+footer but NO newlines; raw base64, no header). The
+old code only un-escaped `\n` and passed through anything containing `-----BEGIN`
+as-is — so a single-line PEM stayed unparseable (`DECODER unsupported`).
+**Rule:** normalize by stripping ALL PEM armor + whitespace down to the base64
+body, re-wrap at 64 chars, re-emit `-----BEGIN PRIVATE KEY-----` PKCS#8 PEM
+(`normalizeApplePrivateKey` in apple.provider.ts). Apple .p8 is always
+unencrypted PKCS#8 EC P-256, so forcing that header is safe.
+**Verify fast:** `crypto.createPrivateKey(pem)` should give
+`asymmetricKeyType:'ec', namedCurve:'prime256v1'` and a 64-byte ieee-p1363
+sha256 signature. Never print the key — only metadata.

@@ -88,9 +88,10 @@ export class AppleProvider {
       return;
     }
     try {
-      const privateKey = APPLE_PRIVATE_KEY.includes('-----BEGIN')
-        ? APPLE_PRIVATE_KEY
-        : `-----BEGIN PRIVATE KEY-----\n${APPLE_PRIVATE_KEY.replace(/\\n/g, '\n')}\n-----END PRIVATE KEY-----`;
+      const rawKey = APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+      const privateKey = rawKey.includes('-----BEGIN')
+        ? rawKey
+        : `-----BEGIN PRIVATE KEY-----\n${rawKey}\n-----END PRIVATE KEY-----`;
 
       this.clientProd = new AppStoreServerAPIClient(
         privateKey, APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_BUNDLE_ID, Environment.PRODUCTION,

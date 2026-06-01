@@ -57,6 +57,22 @@ apple.provider verify logs were written `(msg, obj)`, so ALL structured fields
 (incl. `rootCertsLoaded`, failure `error`/`transactionId`) were silently dropped —
 making prod diagnosis impossible. Always put the object first.
 
+# Startup auto-recovery (restorePurchases on relaunch)
+The iOS startup-recovery hook calls `store.initialize()` (replays only UNFINISHED
+pending transactions) AND `store.restorePurchases()` (surfaces already-owned active
+subs) so a purchased sub auto-reflects on app relaunch without the manual Restore
+button.
+**Rule 1:** before doing any StoreKit work, fetch `GET /payments/subscriptions` and
+SKIP recovery entirely if an active (or cancelled-but-not-expired) sub already
+exists in our DB. **Why:** `restorePurchases()` re-emits `approved` on EVERY call,
+so without this guard every launch fires a needless verify-receipt + navigates to
+/payment/success.
+**Rule 2:** `_recovering`/`verifyingRef` only block CONCURRENT approved handling, not
+SEQUENTIAL (initialize replay then restorePurchases can re-emit the same txid). Use a
+module-level processed-transactionId Set (`_isTransactionProcessed`/`_markTransactionProcessed`
+in useAppleIAP), marked only after successful verify+finish, shared by both the
+purchase-flow and recovery handlers.
+
 # Two-replit caveat
 Build/deploy + prod DB run on a SEPARATE replit. This dev replit can't reach prod
 DB/logs and its code may lag the build replit. Apply fixes on the build replit.

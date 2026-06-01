@@ -63,6 +63,15 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export let _globalListenersAttached = false;
 export function _setGlobalListenersAttached(v: boolean) { _globalListenersAttached = v; }
 
+// ─── 거래 멱등 가드 (세션 단위) ──────────────────────────────────────────
+// initialize() replay 와 restorePurchases() 가 같은 거래에 대해 approved 를 순차적으로
+// 두 번 발행할 수 있다. (_recovering/verifyingRef 는 동시 실행만 막고 순차 중복은 못 막음)
+// 검증·완료(finish)에 성공한 transactionId 를 기록해, 같은 세션에서 중복 verify-receipt /
+// 중복 화면 이동을 방지한다. 실패한 거래는 기록하지 않아 재시도(다음 approved)가 가능하다.
+const _processedTransactionIds = new Set<string>();
+export function _isTransactionProcessed(id: string): boolean { return _processedTransactionIds.has(id); }
+export function _markTransactionProcessed(id: string): void { _processedTransactionIds.add(id); }
+
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);
   const [ready, setReady] = useState(false);
@@ -175,6 +184,17 @@ export function useAppleIAP() {
               restoreVerifyDeferredRef.current = null;
               return;
             }
+            // 같은 세션에서 이미 검증·완료한 거래는 재처리하지 않음
+            // (initialize replay + restorePurchases 가 같은 거래를 순차로 재발행하는 경우)
+            if (_isTransactionProcessed(transactionId)) {
+              await transaction.finish?.();
+              if (restoreVerifyDeferredRef.current) {
+                restoreVerifyDeferredRef.current.resolve('restored');
+                restoreVerifyDeferredRef.current = null;
+              }
+              safeSet(setPurchasing, false);
+              return;
+            }
             // ⚠️ Apple 결제는 이미 과금된 상태. 서버 등록만 실패한 경우
             // (APPLE_PERSIST_FAILED_RETRY 503 / 네트워크 오류) 사용자가 돈은 냈는데
             // 구독이 반영되지 않는 사고가 난다. 따라서 backoff 자동 재시도 한다.
@@ -216,6 +236,7 @@ export function useAppleIAP() {
 
             if (verified) {
               await transaction.finish?.();
+              _markTransactionProcessed(transactionId);
               // 복원 흐름: deferred 가 결과를 받게 하고 navigate 는 호출측이 결정
               if (restoreVerifyDeferredRef.current) {
                 restoreVerifyDeferredRef.current.resolve('restored');

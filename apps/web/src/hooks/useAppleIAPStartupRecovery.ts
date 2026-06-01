@@ -4,7 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Capacitor } from '@capacitor/core';
 import { apiRequest } from '@/lib/api';
-import { _globalListenersAttached, _setGlobalListenersAttached } from './useAppleIAP';
+import {
+  _globalListenersAttached,
+  _setGlobalListenersAttached,
+  _isTransactionProcessed,
+  _markTransactionProcessed,
+} from './useAppleIAP';
 
 declare const CdvPurchase: {
   store: unknown;
@@ -17,6 +22,7 @@ const APPLE_PRODUCT_ID = 'subscription03';
 type StoreInstance = {
   register: (products: Array<{ id: string; type: string; platform: string }>) => void;
   initialize: (platforms?: string[]) => Promise<unknown>;
+  restorePurchases: () => Promise<unknown>;
   when: () => {
     approved: (cb: (tx: TransactionLike) => void) => unknown;
     verified?: (cb: (receipt: unknown) => void) => unknown;
@@ -46,8 +52,15 @@ let _recovering = false;
  * store.initialize() 가 호출될 때마다 approved 이벤트를 재발행(replay) 한다.
  *
  * 해결: 로그인 후 (ProtectedRoute 안) store.initialize() 를 조용히 호출해
- * 미완료 거래를 자동 처리한다. Apple 리뷰 sandbox 에러 팝업을 피하기 위해
+ * 미완료 거래를 자동 처리하고, 이어서 store.restorePurchases() 를 호출해
+ * 이미 소유한(과거에 구매했지만 서버 DB 에 반영되지 않은) 활성 구독을 능동적으로
+ * 끌어와 서버에 등록한다. 즉, 사용자가 "구독 복원" 버튼을 누르지 않아도 앱 재실행만으로
+ * 구독이 자동 반영된다. Apple 리뷰 sandbox 에러 팝업을 피하기 위해
  * 에러는 suppressed 처리하고, 지연(delay) 을 두어 앱이 완전히 초기화된 후 실행한다.
+ *
+ * ⚠️ restorePurchases() 는 호출할 때마다 소유 구독에 대해 approved 이벤트를 재발행한다.
+ * 따라서 이미 활성 구독이 서버 DB 에 있는 경우엔 (매 실행마다 불필요한 verify-receipt 호출과
+ * /payment/success 이동이 발생하지 않도록) 복구 자체를 건너뛴다.
  *
  * ⚠️ ProtectedRoute 안에서만 호출해야 한다 (인증 후 실행 보장).
  */
@@ -73,6 +86,29 @@ export function useAppleIAPStartupRecovery() {
           return;
         }
 
+        // 이미 활성 구독이 서버 DB 에 있으면 복구 불필요.
+        // restorePurchases() 는 매 실행마다 approved 를 재발행하므로,
+        // 활성 구독 보유 시 호출하면 불필요한 verify-receipt / 화면이동이 반복된다.
+        try {
+          const subsRes = await apiRequest<{ data: { subscriptions: Array<{ status?: string; endDate?: string }> } }>(
+            '/payments/subscriptions'
+          );
+          const subs = subsRes?.data?.subscriptions ?? [];
+          const now = Date.now();
+          const hasActive = subs.some(
+            (s) =>
+              s.status === 'active' ||
+              (s.status === 'cancelled' && s.endDate && new Date(s.endDate).getTime() >= now)
+          );
+          if (hasActive) {
+            console.log('[IAP recovery] active subscription already present in DB, skipping restore');
+            return;
+          }
+        } catch (e) {
+          // 구독 조회 실패 시에도 복구는 시도한다 (서버 일시 오류 등)
+          console.warn('[IAP recovery] subscription status check failed, proceeding with restore:', e);
+        }
+
         const store = CdvPurchase.store as StoreInstance;
         const Platform = CdvPurchase.Platform;
         const ProductType = CdvPurchase.ProductType;
@@ -86,9 +122,15 @@ export function useAppleIAPStartupRecovery() {
         // 리스너 중복 등록 방지: useAppleIAP 와 공유하는 모듈 레벨 플래그 확인
         if (_globalListenersAttached) {
           console.log('[IAP recovery] listeners already attached by purchase flow, skipping registration');
-          // store.initialize() 만 호출해 pending 거래를 기존 리스너로 replay
+          // initialize() 로 pending 거래 replay + restorePurchases() 로 소유 구독 능동 조회.
+          // 기존 (purchase flow) approved 리스너가 verify-receipt 를 처리한다.
           await store.initialize([Platform.APPLE_APPSTORE]);
-          console.log('[IAP recovery] store initialized (listeners re-used from purchase flow)');
+          try {
+            await store.restorePurchases();
+          } catch (e) {
+            console.warn('[IAP recovery] restorePurchases failed (suppressed):', e);
+          }
+          console.log('[IAP recovery] store initialized + restorePurchases (listeners re-used from purchase flow)');
           return;
         }
         _setGlobalListenersAttached(true);
@@ -104,6 +146,12 @@ export function useAppleIAPStartupRecovery() {
             const transactionId = tx.transactionId;
             if (!transactionId) {
               console.warn('[IAP recovery] approved transaction has no transactionId');
+              return;
+            }
+            // 같은 세션에서 이미 처리한 거래는 건너뜀 (initialize replay + restorePurchases 중복 방지)
+            if (_isTransactionProcessed(transactionId)) {
+              console.log('[IAP recovery] transaction already processed this session, finishing & skipping:', transactionId);
+              await tx.finish?.();
               return;
             }
 
@@ -143,6 +191,7 @@ export function useAppleIAPStartupRecovery() {
             if (verified) {
               // StoreKit 에 거래 완료 알림 → pending 큐에서 제거
               await tx.finish?.();
+              _markTransactionProcessed(transactionId);
               // 구독 상태 캐시 무효화 (실제 캐시 키: ['user', 'me'], ['subscriptions'])
               await qc.invalidateQueries({ queryKey: ['subscriptions'] });
               await qc.invalidateQueries({ queryKey: ['user', 'me'] });
@@ -165,7 +214,14 @@ export function useAppleIAPStartupRecovery() {
         });
 
         await store.initialize([Platform.APPLE_APPSTORE]);
-        console.log('[IAP recovery] store initialized, pending transactions will be replayed');
+        // restorePurchases() 로 이미 소유한 활성 구독을 능동 조회 → approved 재발행 →
+        // 위 approved 리스너가 verify-receipt 로 서버에 등록. (initialize 는 미완료 거래만 replay)
+        try {
+          await store.restorePurchases();
+        } catch (e) {
+          console.warn('[IAP recovery] restorePurchases failed (suppressed):', e);
+        }
+        console.log('[IAP recovery] store initialized + restorePurchases called');
 
       } catch (e) {
         // startup recovery 실패는 조용히 처리 — 사용자에게 노출하지 않음

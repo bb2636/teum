@@ -1,0 +1,1 @@
+- [Apple IAP server verification](apple-iap-verification.md) — paid but no subscription row: verify-receipt is the only first-sub creator; fails if apple-certs root CAs absent or Apple creds missing; check prod startup `rootCertsLoaded` before any rebuild.

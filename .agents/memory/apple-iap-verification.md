@@ -91,3 +91,21 @@ unencrypted PKCS#8 EC P-256, so forcing that header is safe.
 **Verify fast:** `crypto.createPrivateKey(pem)` should give
 `asymmetricKeyType:'ec', namedCurve:'prime256v1'` and a 64-byte ieee-p1363
 sha256 signature. Never print the key — only metadata.
+
+# Gotcha: TestFlight = Sandbox, can't restore a PRODUCTION purchase
+"복원할 구매 내역이 없습니다" on the restore screen in a TestFlight build is NOT a
+bug when the original purchase was a real App Store (production) purchase. TestFlight
+builds ALWAYS use the StoreKit Sandbox environment, so `restorePurchases()` only sees
+sandbox purchases — a production (real-money) subscription is invisible there and the
+8s no-`approved` timeout correctly yields `no_purchases`. The restore handler and the
+shared `.approved()` listener (fires for both buy & restore) are sound — confirm them
+before suspecting client code.
+**How to validate correctly:**
+- Test the SERVER fix end-to-end in TestFlight by making a NEW *sandbox* purchase
+  (Settings→App Store→Sandbox Account) — fresh buy goes straight to verify-receipt;
+  prod server tries Production then falls back to Sandbox, so it verifies.
+- To restore an actual production purchase you must use the PRODUCTION App Store app
+  (new build live), not TestFlight.
+- Already-affected real users self-recover only once the new build (with restore +
+  startup recovery) is LIVE on the App Store AND the server verify fix is deployed;
+  then restore / relaunch auto-recovery succeeds.

@@ -76,6 +76,30 @@ const _processedTransactionIds = new Set<string>();
 export function _isTransactionProcessed(id: string): boolean { return _processedTransactionIds.has(id); }
 export function _markTransactionProcessed(id: string): void { _processedTransactionIds.add(id); }
 
+// ─── Apple 앱 번들 영수증 추출 ───────────────────────────────────────────
+// CdvPurchase v13 iOS는 앱 번들 영수증 처리 시 transaction.transactionId 를
+// "appstore.application" 으로 반환한다. 이는 Apple App Store Server API의
+// getTransactionHistory() 에 사용할 수 없는 값이다.
+// 이 경우 store.localReceipts 에서 base64 앱 영수증을 꺼내 서버에 전달하면,
+// 서버의 ReceiptUtility.extractTransactionIdFromAppReceipt() 가 실제 트랜잭션 ID를
+// 추출해 App Store Server API 호출에 사용한다.
+export function extractAppleReceiptBase64(store: StoreInstance): string | null {
+  try {
+    const storeAny = store as any;
+    const receipts = storeAny?.localReceipts as
+      | Array<{ platform: string; nativeData?: { appStoreReceipt?: string } }>
+      | undefined;
+    if (!receipts?.length) return null;
+    const platformId = (CdvPurchase as any)?.Platform?.APPLE_APPSTORE ?? 'ios-appstore';
+    const appleReceipt = receipts.find(
+      (r) => r.platform === platformId || r.platform === 'ios-appstore',
+    );
+    return appleReceipt?.nativeData?.appStoreReceipt ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);
   const [ready, setReady] = useState(false);
@@ -199,6 +223,17 @@ export function useAppleIAP() {
               safeSet(setPurchasing, false);
               return;
             }
+            // CdvPurchase v13 iOS는 앱 번들 영수증을 "appstore.application" ID로 전달한다.
+            // 이 값은 App Store Server API의 getTransactionHistory() 에 사용 불가하므로,
+            // localReceipts 에서 base64 앱 영수증을 꺼내 서버로 전달한다.
+            // 서버는 ReceiptUtility 로 실제 트랜잭션 ID를 추출해 처리한다.
+            const isAppReceipt = transactionId === 'appstore.application';
+            const receiptBase64 = isAppReceipt && storeRef.current
+              ? extractAppleReceiptBase64(storeRef.current)
+              : null;
+            if (isAppReceipt && !receiptBase64) {
+              console.warn('[IAP] appstore.application tx but no receipt found in localReceipts');
+            }
             // ⚠️ Apple 결제는 이미 과금된 상태. 서버 등록만 실패한 경우
             // (APPLE_PERSIST_FAILED_RETRY 503 / 네트워크 오류) 사용자가 돈은 냈는데
             // 구독이 반영되지 않는 사고가 난다. 따라서 backoff 자동 재시도 한다.
@@ -213,7 +248,9 @@ export function useAppleIAP() {
                   '/payments/apple/verify-receipt',
                   {
                     method: 'POST',
-                    body: JSON.stringify({ transactionId }),
+                    body: JSON.stringify(
+                      receiptBase64 ? { receipt: receiptBase64 } : { transactionId }
+                    ),
                   }
                 );
                 if (data?.success) {

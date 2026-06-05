@@ -9,6 +9,7 @@ import {
   _setGlobalListenersAttached,
   _isTransactionProcessed,
   _markTransactionProcessed,
+  extractAppleReceiptBase64,
 } from './useAppleIAP';
 
 declare const CdvPurchase: {
@@ -161,6 +162,13 @@ export function useAppleIAPStartupRecovery() {
 
             console.log('[IAP recovery] pending transaction found, verifying:', transactionId);
 
+            // CdvPurchase v13 iOS는 앱 번들 영수증을 "appstore.application" ID로 전달한다.
+            // App Store Server API 에서 이 ID를 사용할 수 없으므로, base64 영수증을 보낸다.
+            const isAppReceipt = transactionId === 'appstore.application';
+            const receiptBase64 = isAppReceipt
+              ? extractAppleReceiptBase64(store as any)
+              : null;
+
             // 서버 verify-receipt 재시도 (503/네트워크 오류 시)
             const RETRY_DELAYS_MS = [1500, 3000, 5000];
             let verified = false;
@@ -170,7 +178,12 @@ export function useAppleIAPStartupRecovery() {
               try {
                 const data = await apiRequest<{ success?: boolean }>(
                   '/payments/apple/verify-receipt',
-                  { method: 'POST', body: JSON.stringify({ transactionId }) }
+                  {
+                    method: 'POST',
+                    body: JSON.stringify(
+                      receiptBase64 ? { receipt: receiptBase64 } : { transactionId }
+                    ),
+                  }
                 );
                 if (data?.success) {
                   verified = true;

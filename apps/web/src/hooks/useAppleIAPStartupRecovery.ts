@@ -17,7 +17,9 @@ declare const CdvPurchase: {
   ProductType: { PAID_SUBSCRIPTION: string };
 };
 
-const APPLE_PRODUCT_ID = 'subscription03';
+// 신규 구매는 subscription03 만 쓰지만, 레거시 상품 ID 도 등록해야 과거(subscription01/02)
+// 구독자의 자동복구(restorePurchases)가 그들의 구독을 감지할 수 있다.
+const APPLE_PRODUCT_IDS = ['subscription03', 'subscription02', 'subscription01'];
 
 type StoreInstance = {
   register: (products: Array<{ id: string; type: string; platform: string }>) => void;
@@ -113,11 +115,13 @@ export function useAppleIAPStartupRecovery() {
         const Platform = CdvPurchase.Platform;
         const ProductType = CdvPurchase.ProductType;
 
-        store.register([{
-          id: APPLE_PRODUCT_ID,
-          type: ProductType.PAID_SUBSCRIPTION,
-          platform: Platform.APPLE_APPSTORE,
-        }]);
+        store.register(
+          APPLE_PRODUCT_IDS.map((id) => ({
+            id,
+            type: ProductType.PAID_SUBSCRIPTION,
+            platform: Platform.APPLE_APPSTORE,
+          }))
+        );
 
         // 리스너 중복 등록 방지: useAppleIAP 와 공유하는 모듈 레벨 플래그 확인
         if (_globalListenersAttached) {

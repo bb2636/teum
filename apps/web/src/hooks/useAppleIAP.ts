@@ -11,6 +11,10 @@ declare const CdvPurchase: {
 };
 
 const APPLE_PRODUCT_ID = 'subscription03';
+// 신규 구매는 현행 상품(subscription03)만 사용하지만, 과거 빌드에서 subscription01/02 로
+// 결제한 기존 구독자는 그 상품 ID 로 자동갱신을 이어간다. 복원/자동복구가 그들의 구독을
+// 감지하려면 StoreKit 에 레거시 상품 ID 도 함께 등록해야 한다(미등록 ID 의 거래는 무시됨).
+const APPLE_PRODUCT_IDS = ['subscription03', 'subscription02', 'subscription01'];
 const INIT_DELAY_MS = 1000;
 const RETRY_DELAYS_MS = [1500, 2500];
 
@@ -155,14 +159,14 @@ export function useAppleIAP() {
       const Platform = CdvPurchase.Platform;
       const ProductType = CdvPurchase.ProductType;
 
-      console.log('[IAP] registering product:', APPLE_PRODUCT_ID);
-      store.register([
-        {
-          id: APPLE_PRODUCT_ID,
+      console.log('[IAP] registering products:', APPLE_PRODUCT_IDS.join(', '));
+      store.register(
+        APPLE_PRODUCT_IDS.map((id) => ({
+          id,
           type: ProductType.PAID_SUBSCRIPTION,
           platform: Platform.APPLE_APPSTORE,
-        },
-      ]);
+        }))
+      );
 
       // ⚠️ 리스너는 한 번만 등록 (재시도/재초기화 시 중복 등록 방지)
       // _globalListenersAttached: 모듈 레벨 가드 — useAppleIAPStartupRecovery 가 먼저

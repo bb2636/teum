@@ -1415,9 +1415,17 @@ export class PaymentService {
       ? await appleProvider.verifyTransactionId(input.transactionId)
       : await appleProvider.verifyReceipt(input.receipt!);
 
-    const expectedProductId = process.env.APPLE_PRODUCT_ID || 'subscription03';
-    if (verified.productId !== expectedProductId) {
-      logger.warn({ verified, expected: expectedProductId }, 'Apple verify: unexpected product id');
+    // 신규 구매는 현행 상품(subscription03)만 허용하지만, 검증(복원 포함) 단계에서는
+    // 과거 빌드의 레거시 상품(subscription01/02)으로 자동갱신 중인 기존 구독자도
+    // 정당한 프리미엄 구독자로 인정해야 한다. (상품 ID 변경 이전 결제자 구제)
+    const currentProductId = process.env.APPLE_PRODUCT_ID || 'subscription03';
+    const legacyProductIds = (process.env.APPLE_LEGACY_PRODUCT_IDS || 'subscription01,subscription02')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const acceptedProductIds = new Set([currentProductId, ...legacyProductIds]);
+    if (!acceptedProductIds.has(verified.productId)) {
+      logger.warn({ verified, accepted: [...acceptedProductIds] }, 'Apple verify: unexpected product id');
       throw new AppError(`예상하지 않은 상품입니다: ${verified.productId}`, {
         statusCode: 400,
         code: 'INVALID_PRODUCT',

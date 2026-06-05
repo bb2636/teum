@@ -109,3 +109,22 @@ before suspecting client code.
 - Already-affected real users self-recover only once the new build (with restore +
   startup recovery) is LIVE on the App Store AND the server verify fix is deployed;
   then restore / relaunch auto-recovery succeeds.
+
+# Root cause: product-ID migration orphaned legacy subscribers
+The Apple IAP product ID was migrated over time: subscription01 → subscription02 →
+subscription03 (current). Auto-renewable subs KEEP renewing under the product ID they
+were first bought on, so users who subscribed before a switch are still renewing the
+OLD id. The app registered ONLY the current id with StoreKit, so `restorePurchases()`/
+startup recovery never surfaced legacy subscribers' transactions (StoreKit ignores
+transactions for unregistered product IDs) → restore shows "복원할 구매 내역이 없습니다"
+and their subscription is never recorded. Server `verifyAppleTransaction` also hard-
+rejected any productId != current with INVALID_PRODUCT.
+**Rule:** register ALL historic product IDs on the client (subscription01/02/03) and
+ACCEPT all of them in server verify (allowlist: current `APPLE_PRODUCT_ID` +
+`APPLE_LEGACY_PRODUCT_IDS`, default 'subscription01,subscription02'); keep NEW
+purchases (precheck + order) limited to the current id only. Whenever the product ID
+changes again, add the retired id to both the client register list and the server
+legacy allowlist, or every existing subscriber gets orphaned.
+**Important:** the client (register list) fix only reaches users once a NEW build is
+LIVE on the App Store (TestFlight can't restore production purchases); the server
+allowlist fix needs a prod redeploy. Both required for legacy subscribers to recover.

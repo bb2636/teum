@@ -143,3 +143,12 @@ paths race and settle once; server is idempotent by originalTransactionId so a
 duplicate verify between the two paths is safe. Access `localReceipts` defensively
 (shape varies by plugin version) and degrade to null. The shared helper is
 `findOwnedAppleTransactionId(store, productIds)`.
+
+## Invariant: "appstore.application" is a placeholder, never a real transaction id
+CdvPurchase v13 on iOS can report `transaction.transactionId === "appstore.application"` for the app-bundle receipt. It is NOT usable by App Store Server API and must NEVER be written to the module-level processed set (`_markTransactionProcessed`) — doing so silently blocks every later real purchase in that session.
+
+**Rule:** at every consumer (approved handlers, restore scan, startup-recovery scan) treat the placeholder as "no real txId": skip the already-processed short-circuit for it, never mark it processed, and route it to the base64 app-receipt path (`extractAppleReceiptBase64` → server `verify-receipt` with `{ receipt }`, which extracts the real id via ReceiptUtility). `findOwnedAppleTransactionId` may surface it, so guards must live at the call sites (or filter it inside the helper).
+
+**Why:** found via 3 architect rounds — the subtle failure is not a crash but a one-time success followed by all future purchases being treated as "already processed" and never verified, so paid users get no subscription.
+
+**Dedup:** share in-flight verifications via `Map<key, Promise<boolean>>` (callers await the real result), not a `Set` + polling that can force-return false.

@@ -220,6 +220,10 @@ export class AppleProvider {
   async verifyReceipt(receiptBase64: string): Promise<AppleVerifiedTransaction> {
     const receiptUtil = new ReceiptUtility();
     const txId = receiptUtil.extractTransactionIdFromAppReceipt(receiptBase64);
+    logger.info(
+      { receiptLength: receiptBase64.length, extractedTxId: txId ?? '(none)' },
+      'Apple verifyReceipt: extracted transactionId from app receipt'
+    );
     if (!txId) {
       throw new AppError('영수증에서 거래 ID를 추출할 수 없습니다.', { statusCode: 400, code: 'APPLE_RECEIPT_INVALID' });
     }

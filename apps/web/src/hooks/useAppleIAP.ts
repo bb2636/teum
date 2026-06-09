@@ -77,11 +77,43 @@ const _processedTransactionIds = new Set<string>();
 export function _isTransactionProcessed(id: string): boolean { return _processedTransactionIds.has(id); }
 export function _markTransactionProcessed(id: string): void { _processedTransactionIds.add(id); }
 
-// ─── verify-receipt 동시 호출 가드 (거래ID 단위) ──────────────────────────
-// approved 이벤트 경로와 영수증 스캔 경로가 같은 거래ID 를 동시에 검증하려 할 때
-// 중복 서버 호출을 줄인다. (서버는 originalTransactionId 기반 멱등이라 중복돼도 안전하지만
-// 불필요한 호출을 피한다.)
-const _verifyInFlight = new Set<string>();
+// ─── verify-receipt 동시 호출 가드 (in-flight 키 단위) ─────────────────────
+// approved 이벤트 경로와 영수증 스캔 경로가 같은 항목을 동시에 검증하려 할 때
+// 진행 중인 Promise 를 공유해 중복 서버 호출을 줄이고, 대기 측도 실제 결과를 받는다.
+// (서버는 originalTransactionId 기반 멱등이라 중복돼도 안전하지만 불필요한 호출을 피한다.)
+const _verifyInFlightPromises = new Map<string, Promise<boolean>>();
+
+// 영수증 문자열로 안정적인 짧은 in-flight 키를 만든다 (djb2). 동시 중복 호출 방지용일 뿐
+// 영구 처리표시에는 쓰지 않는다.
+function _shortHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+// ─── Apple 앱 번들 영수증 추출 ───────────────────────────────────────────
+// CdvPurchase v13 iOS는 앱 번들 영수증 처리 시 transaction.transactionId 를
+// "appstore.application" 으로 반환한다. 이는 Apple App Store Server API의
+// getTransactionHistory() 에 사용할 수 없는 값이다.
+// 이 경우 store.localReceipts 에서 base64 앱 영수증을 꺼내 서버에 전달하면,
+// 서버의 ReceiptUtility.extractTransactionIdFromAppReceipt() 가 실제 트랜잭션 ID를
+// 추출해 App Store Server API 호출에 사용한다.
+export function extractAppleReceiptBase64(store: StoreInstance): string | null {
+  try {
+    const storeAny = store as any;
+    const receipts = storeAny?.localReceipts as
+      | Array<{ platform: string; nativeData?: { appStoreReceipt?: string } }>
+      | undefined;
+    if (!receipts?.length) return null;
+    const platformId = (CdvPurchase as any)?.Platform?.APPLE_APPSTORE ?? 'ios-appstore';
+    const appleReceipt = receipts.find(
+      (r) => r.platform === platformId || r.platform === 'ios-appstore',
+    );
+    return appleReceipt?.nativeData?.appStoreReceipt ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);
@@ -197,7 +229,9 @@ export function useAppleIAP() {
             }
             // 같은 세션에서 이미 검증·완료한 거래는 재처리하지 않음
             // (initialize replay + restorePurchases 가 같은 거래를 순차로 재발행하는 경우)
-            if (_isTransactionProcessed(transactionId)) {
+            // ⚠️ "appstore.application" 은 앱 영수증 placeholder 라 거래 단위 식별자가 아니다.
+            //   이 값으로는 단축경로(이미 처리됨)를 타지 않고 매번 서버 검증을 받는다.
+            if (transactionId !== 'appstore.application' && _isTransactionProcessed(transactionId)) {
               await transaction.finish?.();
               if (restoreVerifyDeferredRef.current) {
                 restoreVerifyDeferredRef.current.resolve('restored');
@@ -205,6 +239,19 @@ export function useAppleIAP() {
               }
               safeSet(setPurchasing, false);
               return;
+            }
+            // CdvPurchase v13 iOS는 앱 번들 영수증을 "appstore.application" ID로 전달한다.
+            // 이 값은 App Store Server API의 getTransactionHistory() 에 사용 불가하므로,
+            // localReceipts 에서 base64 앱 영수증을 꺼내 서버로 전달한다.
+            // 서버는 ReceiptUtility 로 실제 트랜잭션 ID를 추출해 처리한다.
+            // initialize replay 가 storeRef 할당 전에 도착할 수 있으므로 로컬 store 로 폴백한다.
+            const activeStore = storeRef.current ?? store;
+            const isAppReceipt = transactionId === 'appstore.application';
+            const receiptBase64 = isAppReceipt && activeStore
+              ? extractAppleReceiptBase64(activeStore)
+              : null;
+            if (isAppReceipt && !receiptBase64) {
+              console.warn('[IAP] appstore.application tx but no receipt found in localReceipts');
             }
             // ⚠️ Apple 결제는 이미 과금된 상태. 서버 등록만 실패한 경우
             // (APPLE_PERSIST_FAILED_RETRY 503 / 네트워크 오류) 사용자가 돈은 냈는데
@@ -220,7 +267,9 @@ export function useAppleIAP() {
                   '/payments/apple/verify-receipt',
                   {
                     method: 'POST',
-                    body: JSON.stringify({ transactionId }),
+                    body: JSON.stringify(
+                      receiptBase64 ? { receipt: receiptBase64 } : { transactionId }
+                    ),
                   }
                 );
                 if (data?.success) {
@@ -247,7 +296,8 @@ export function useAppleIAP() {
 
             if (verified) {
               await transaction.finish?.();
-              _markTransactionProcessed(transactionId);
+              // 실제 거래ID 만 영구 처리표시 (placeholder 는 단축경로 오용 방지를 위해 제외)
+              if (transactionId !== 'appstore.application') _markTransactionProcessed(transactionId);
               // 복원 흐름: deferred 가 결과를 받게 하고 navigate 는 호출측이 결정
               if (restoreVerifyDeferredRef.current) {
                 restoreVerifyDeferredRef.current.resolve('restored');
@@ -404,30 +454,32 @@ export function useAppleIAP() {
   }, [purchasing, ensureReady]);
 
   // 서버 verify-receipt 호출 (503/네트워크 오류 시 backoff 재시도).
-  // approved 이벤트 경로와 영수증 스캔 경로가 공유한다.
-  const verifyReceiptWithRetry = useCallback(async (transactionId: string): Promise<boolean> => {
-    if (_isTransactionProcessed(transactionId)) return true;
-    // 다른 경로가 같은 거래를 검증 중이면 결과를 기다린다 (중복 호출 최소화)
-    if (_verifyInFlight.has(transactionId)) {
-      for (let i = 0; i < 30; i++) {
-        await sleep(300);
-        if (_isTransactionProcessed(transactionId)) return true;
-        if (!_verifyInFlight.has(transactionId)) break;
-      }
-      return _isTransactionProcessed(transactionId);
-    }
-    _verifyInFlight.add(transactionId);
-    try {
+  // payload 는 거래ID({transactionId}) 또는 앱 번들 영수증({receipt}) 둘 중 하나.
+  // - inFlightKey: 동시 중복 호출을 막는 키 (in-session 한정). receipt 모드는 영수증 해시로 만든다.
+  // - processedKey: 실제 거래ID 를 알 때만 전달한다. 전달되면 성공 후 영구 처리표시 + 단축경로로 쓴다.
+  //   (receipt 모드는 서버가 추출하기 전엔 실제 txId 를 모르므로 processedKey 를 주지 않는다.
+  //    정적 키로 영구 표시하면 이후 복원이 서버 검증 없이 true 를 반환하는 버그가 생긴다.)
+  const verifyWithRetry = useCallback(async (
+    payload: { transactionId: string } | { receipt: string },
+    opts: { inFlightKey: string; processedKey?: string },
+  ): Promise<boolean> => {
+    const { inFlightKey, processedKey } = opts;
+    if (processedKey && _isTransactionProcessed(processedKey)) return true;
+    // 같은 항목을 검증 중이면 진행 중인 Promise 를 그대로 공유한다 (대기 측도 실제 결과를 받음)
+    const existing = _verifyInFlightPromises.get(inFlightKey);
+    if (existing) return existing;
+
+    const run = (async (): Promise<boolean> => {
       const VERIFY_RETRY_DELAYS_MS = [1500, 3000, 5000];
       for (let attempt = 0; attempt <= VERIFY_RETRY_DELAYS_MS.length; attempt++) {
         if (!mountedRef.current) return false;
         try {
           const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
             '/payments/apple/verify-receipt',
-            { method: 'POST', body: JSON.stringify({ transactionId }) }
+            { method: 'POST', body: JSON.stringify(payload) }
           );
           if (data?.success) {
-            _markTransactionProcessed(transactionId);
+            if (processedKey) _markTransactionProcessed(processedKey);
             return true;
           }
         } catch (err) {
@@ -444,10 +496,21 @@ export function useAppleIAP() {
         }
       }
       return false;
+    })();
+
+    _verifyInFlightPromises.set(inFlightKey, run);
+    try {
+      return await run;
     } finally {
-      _verifyInFlight.delete(transactionId);
+      _verifyInFlightPromises.delete(inFlightKey);
     }
   }, []);
+
+  const verifyReceiptWithRetry = useCallback(
+    (transactionId: string): Promise<boolean> =>
+      verifyWithRetry({ transactionId }, { inFlightKey: transactionId, processedKey: transactionId }),
+    [verifyWithRetry]
+  );
 
   // Apple App Store 가이드라인 3.1.1 준수:
   // 이전에 구매한 구독을 복원하기 위해 StoreKit restorePurchases 를 호출한다.
@@ -489,9 +552,24 @@ export function useAppleIAP() {
           const deadline = Date.now() + 8000;
           while (Date.now() < deadline && !settled) {
             const txId = findOwnedAppleTransactionId(store, APPLE_PRODUCT_IDS);
-            if (txId) {
+            // 실제 거래ID 가 있으면 그대로 서버 검증.
+            // ⚠️ CdvPurchase v13 iOS 는 앱 번들 영수증을 "appstore.application" 으로 줄 수 있는데
+            //   이는 App Store Server API 에 사용할 수 없으므로 base64 영수증 경로로 우회한다.
+            if (txId && txId !== 'appstore.application') {
               console.log('[IAP] restore: owned transaction found in receipts:', txId);
               const verified = await verifyReceiptWithRetry(txId);
+              settle(verified ? 'restored' : 'failed');
+              return;
+            }
+            // 거래ID 가 없거나 앱 영수증 placeholder 인 경우 → base64 영수증을 서버로 전달
+            //   (서버 ReceiptUtility 가 실제 거래ID 추출)
+            const receiptB64 = extractAppleReceiptBase64(store);
+            if (receiptB64) {
+              console.log('[IAP] restore: verifying via app receipt base64');
+              const verified = await verifyWithRetry(
+                { receipt: receiptB64 },
+                { inFlightKey: 'receipt:' + _shortHash(receiptB64) },
+              );
               settle(verified ? 'restored' : 'failed');
               return;
             }
@@ -506,7 +584,7 @@ export function useAppleIAP() {
     } finally {
       safeSet(setRestoring, false);
     }
-  }, [ensureReady, restoring, purchasing, safeSet, verifyReceiptWithRetry]);
+  }, [ensureReady, restoring, purchasing, safeSet, verifyReceiptWithRetry, verifyWithRetry]);
 
   return {
     available: isAppleIAPAvailable() && pluginLoaded,

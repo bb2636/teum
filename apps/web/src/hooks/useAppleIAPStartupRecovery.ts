@@ -9,6 +9,7 @@ import {
   _setGlobalListenersAttached,
   _isTransactionProcessed,
   _markTransactionProcessed,
+  extractAppleReceiptBase64,
 } from './useAppleIAP';
 import { findOwnedAppleTransactionId } from '@/lib/appleReceipt';
 
@@ -130,42 +131,59 @@ export function useAppleIAPStartupRecovery() {
         // "0건" 문제가 해결되지 않는다.)
         const recoverOwnedFromReceipts = async (): Promise<void> => {
           const deadline = Date.now() + 6000;
+          // payload({transactionId} 또는 {receipt})로 서버 verify-receipt 를 재시도한다.
+          const verifyOnce = async (
+            payload: { transactionId: string } | { receipt: string },
+          ): Promise<boolean> => {
+            const RETRY_DELAYS_MS = [1500, 3000, 5000];
+            for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+              try {
+                const data = await apiRequest<{ success?: boolean }>(
+                  '/payments/apple/verify-receipt',
+                  { method: 'POST', body: JSON.stringify(payload) }
+                );
+                if (data?.success) return true;
+              } catch (err) {
+                const anyErr = err as { code?: string; status?: number };
+                const retryable =
+                  anyErr?.code === 'APPLE_PERSIST_FAILED_RETRY' ||
+                  anyErr?.status === 503 ||
+                  anyErr?.status === 502 ||
+                  anyErr?.status === undefined;
+                if (!retryable) break;
+              }
+              if (attempt < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[attempt]);
+            }
+            return false;
+          };
           while (Date.now() < deadline) {
             const txId = findOwnedAppleTransactionId(store, APPLE_PRODUCT_IDS);
-            if (txId) {
-              if (_isTransactionProcessed(txId)) return;
+            // ⚠️ CdvPurchase v13 iOS 는 앱 번들 영수증을 "appstore.application" 으로 줄 수 있는데
+            //   이는 App Store Server API 에 사용할 수 없으므로 base64 영수증 경로로 우회한다.
+            const hasRealTxId = !!txId && txId !== 'appstore.application';
+            if (hasRealTxId && _isTransactionProcessed(txId as string)) return;
+            const receiptB64 = hasRealTxId ? null : extractAppleReceiptBase64(store as any);
+            if (hasRealTxId || receiptB64) {
               if (_recovering) return; // approved 경로가 처리 중 → 중복 방지
               _recovering = true;
               try {
-                console.log('[IAP recovery] owned transaction found in receipts, verifying:', txId);
-                const RETRY_DELAYS_MS = [1500, 3000, 5000];
-                let verified = false;
-                for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-                  try {
-                    const data = await apiRequest<{ success?: boolean }>(
-                      '/payments/apple/verify-receipt',
-                      { method: 'POST', body: JSON.stringify({ transactionId: txId }) }
-                    );
-                    if (data?.success) { verified = true; break; }
-                  } catch (err) {
-                    const anyErr = err as { code?: string; status?: number };
-                    const retryable =
-                      anyErr?.code === 'APPLE_PERSIST_FAILED_RETRY' ||
-                      anyErr?.status === 503 ||
-                      anyErr?.status === 502 ||
-                      anyErr?.status === undefined;
-                    if (!retryable) break;
-                  }
-                  if (attempt < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[attempt]);
-                }
+                const payload = hasRealTxId
+                  ? { transactionId: txId as string }
+                  : { receipt: receiptB64 as string };
+                console.log(
+                  '[IAP recovery] owned subscription found in receipts, verifying via',
+                  hasRealTxId ? `txId ${txId}` : 'app receipt base64',
+                );
+                const verified = await verifyOnce(payload);
                 if (verified) {
-                  _markTransactionProcessed(txId);
+                  // 실제 txId 를 알 때만 영구 처리표시 (영수증 경로는 서버가 추출 전이라 표시하지 않음)
+                  if (hasRealTxId) _markTransactionProcessed(txId as string);
                   await qc.invalidateQueries({ queryKey: ['subscriptions'] });
                   await qc.invalidateQueries({ queryKey: ['user', 'me'] });
-                  console.log('[IAP recovery] owned subscription recovered from receipts:', txId);
+                  console.log('[IAP recovery] owned subscription recovered from receipts');
                   navigateFn('/payment/success', { replace: true });
                 } else {
-                  console.warn('[IAP recovery] receipt-based verify failed for:', txId);
+                  console.warn('[IAP recovery] receipt-based verify failed');
                 }
               } finally {
                 _recovering = false;
@@ -208,13 +226,22 @@ export function useAppleIAPStartupRecovery() {
               return;
             }
             // 같은 세션에서 이미 처리한 거래는 건너뜀 (initialize replay + restorePurchases 중복 방지)
-            if (_isTransactionProcessed(transactionId)) {
+            // ⚠️ "appstore.application" 은 앱 영수증 placeholder 라 거래 식별자가 아니다.
+            //   이 값으로는 단축경로를 타지 않고 매번 서버 검증을 받는다.
+            if (transactionId !== 'appstore.application' && _isTransactionProcessed(transactionId)) {
               console.log('[IAP recovery] transaction already processed this session, finishing & skipping:', transactionId);
               await tx.finish?.();
               return;
             }
 
             console.log('[IAP recovery] pending transaction found, verifying:', transactionId);
+
+            // CdvPurchase v13 iOS는 앱 번들 영수증을 "appstore.application" ID로 전달한다.
+            // App Store Server API 에서 이 ID를 사용할 수 없으므로, base64 영수증을 보낸다.
+            const isAppReceipt = transactionId === 'appstore.application';
+            const receiptBase64 = isAppReceipt
+              ? extractAppleReceiptBase64(store as any)
+              : null;
 
             // 서버 verify-receipt 재시도 (503/네트워크 오류 시)
             const RETRY_DELAYS_MS = [1500, 3000, 5000];
@@ -225,7 +252,12 @@ export function useAppleIAPStartupRecovery() {
               try {
                 const data = await apiRequest<{ success?: boolean }>(
                   '/payments/apple/verify-receipt',
-                  { method: 'POST', body: JSON.stringify({ transactionId }) }
+                  {
+                    method: 'POST',
+                    body: JSON.stringify(
+                      receiptBase64 ? { receipt: receiptBase64 } : { transactionId }
+                    ),
+                  }
                 );
                 if (data?.success) {
                   verified = true;
@@ -250,7 +282,8 @@ export function useAppleIAPStartupRecovery() {
             if (verified) {
               // StoreKit 에 거래 완료 알림 → pending 큐에서 제거
               await tx.finish?.();
-              _markTransactionProcessed(transactionId);
+              // 실제 거래ID 만 영구 처리표시 (placeholder 는 단축경로 오용 방지를 위해 제외)
+              if (transactionId !== 'appstore.application') _markTransactionProcessed(transactionId);
               // 구독 상태 캐시 무효화 (실제 캐시 키: ['user', 'me'], ['subscriptions'])
               await qc.invalidateQueries({ queryKey: ['subscriptions'] });
               await qc.invalidateQueries({ queryKey: ['user', 'me'] });

@@ -1,1 +1,1 @@
-- [Apple IAP server verification](apple-iap-verification.md) — paid but no subscription row: verify-receipt is the only first-sub creator; two systematic blockers are missing apple-certs root CAs and a malformed APPLE_PRIVATE_KEY (.p8) PEM (ES256 sign fails); check prod startup `rootCertsLoaded` and key format before any rebuild.
+- [Apple IAP verify-receipt quirks](apple-iap-verify.md) — CdvPurchase v13 iOS "appstore.application" placeholder txId; never persist it as processed; receipt fallback + dedup-key rules.

@@ -128,3 +128,18 @@ legacy allowlist, or every existing subscriber gets orphaned.
 **Important:** the client (register list) fix only reaches users once a NEW build is
 LIVE on the App Store (TestFlight can't restore production purchases); the server
 allowlist fix needs a prod redeploy. Both required for legacy subscribers to recover.
+
+# Client gap: `approved` never re-fires for already-acknowledged subs
+`store.restorePurchases()` only emits an `approved` event for transactions that are
+NOT yet finished/acknowledged. An already-active auto-renewing subscription that was
+finished in a prior session is present in `store.localReceipts` but emits NO
+`approved` on restore → an `approved`-only restore/recovery handler hits its 8s
+timeout and wrongly returns "복원할 구매 내역이 없습니다", so verify-receipt is never
+called and the sub is never recorded.
+**Rule:** never rely solely on `approved` for restore/startup-recovery. In parallel,
+scan `store.localReceipts[].transactions[]` for a `transactionId` whose product is in
+the registered (incl. legacy) IDs and POST it straight to verify-receipt. Make both
+paths race and settle once; server is idempotent by originalTransactionId so a
+duplicate verify between the two paths is safe. Access `localReceipts` defensively
+(shape varies by plugin version) and degrade to null. The shared helper is
+`findOwnedAppleTransactionId(store, productIds)`.

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { apiRequest } from '@/lib/api';
+import { findOwnedAppleTransactionId } from '@/lib/appleReceipt';
 
 declare const CdvPurchase: {
   store: unknown;
@@ -75,6 +76,12 @@ export function _setGlobalListenersAttached(v: boolean) { _globalListenersAttach
 const _processedTransactionIds = new Set<string>();
 export function _isTransactionProcessed(id: string): boolean { return _processedTransactionIds.has(id); }
 export function _markTransactionProcessed(id: string): void { _processedTransactionIds.add(id); }
+
+// ─── verify-receipt 동시 호출 가드 (거래ID 단위) ──────────────────────────
+// approved 이벤트 경로와 영수증 스캔 경로가 같은 거래ID 를 동시에 검증하려 할 때
+// 중복 서버 호출을 줄인다. (서버는 originalTransactionId 기반 멱등이라 중복돼도 안전하지만
+// 불필요한 호출을 피한다.)
+const _verifyInFlight = new Set<string>();
 
 export function useAppleIAP() {
   const [pluginLoaded, setPluginLoaded] = useState(false);
@@ -396,10 +403,58 @@ export function useAppleIAP() {
     }
   }, [purchasing, ensureReady]);
 
+  // 서버 verify-receipt 호출 (503/네트워크 오류 시 backoff 재시도).
+  // approved 이벤트 경로와 영수증 스캔 경로가 공유한다.
+  const verifyReceiptWithRetry = useCallback(async (transactionId: string): Promise<boolean> => {
+    if (_isTransactionProcessed(transactionId)) return true;
+    // 다른 경로가 같은 거래를 검증 중이면 결과를 기다린다 (중복 호출 최소화)
+    if (_verifyInFlight.has(transactionId)) {
+      for (let i = 0; i < 30; i++) {
+        await sleep(300);
+        if (_isTransactionProcessed(transactionId)) return true;
+        if (!_verifyInFlight.has(transactionId)) break;
+      }
+      return _isTransactionProcessed(transactionId);
+    }
+    _verifyInFlight.add(transactionId);
+    try {
+      const VERIFY_RETRY_DELAYS_MS = [1500, 3000, 5000];
+      for (let attempt = 0; attempt <= VERIFY_RETRY_DELAYS_MS.length; attempt++) {
+        if (!mountedRef.current) return false;
+        try {
+          const data = await apiRequest<{ success?: boolean; data?: { success?: boolean } }>(
+            '/payments/apple/verify-receipt',
+            { method: 'POST', body: JSON.stringify({ transactionId }) }
+          );
+          if (data?.success) {
+            _markTransactionProcessed(transactionId);
+            return true;
+          }
+        } catch (err) {
+          const anyErr = err as { code?: string; status?: number };
+          const retryable =
+            anyErr?.code === 'APPLE_PERSIST_FAILED_RETRY' ||
+            anyErr?.status === 503 ||
+            anyErr?.status === 502 ||
+            anyErr?.status === undefined; // 네트워크 오류
+          if (!retryable) return false;
+        }
+        if (attempt < VERIFY_RETRY_DELAYS_MS.length) {
+          await sleep(VERIFY_RETRY_DELAYS_MS[attempt]);
+        }
+      }
+      return false;
+    } finally {
+      _verifyInFlight.delete(transactionId);
+    }
+  }, []);
+
   // Apple App Store 가이드라인 3.1.1 준수:
   // 이전에 구매한 구독을 복원하기 위해 StoreKit restorePurchases 를 호출한다.
-  // - 복원할 구독이 있으면 approved 콜백 → verify-receipt → /payment/success 로 자동 이동
-  // - 없으면 'no_purchases' 반환
+  // 두 경로를 병행해 먼저 확정되는 결과를 사용한다:
+  //  1) approved 이벤트 — 아직 finish 되지 않은(신규/미완료) 거래에서 발화
+  //  2) 영수증 스캔 — 이미 완료처리(acknowledged)된 기존 자동갱신 구독은 approved 가
+  //     재발화하지 않으므로, localReceipts 에서 거래ID 를 직접 읽어 서버에 검증한다.
   const restore = useCallback(async (): Promise<'restored' | 'no_purchases' | 'failed'> => {
     setError(null);
     if (restoring || purchasing || verifyingRef.current) return 'failed';
@@ -410,44 +465,48 @@ export function useAppleIAP() {
       const store = storeRef.current;
       if (!store) return 'failed';
 
-      // 이벤트 기반 deferred: approved → verify 성공/실패 시점에 resolve
-      // 일정 시간 안에 approved 가 발화되지 않으면 'no_purchases' 로 간주
-      const verifyOutcome = await new Promise<'restored' | 'verify_failed' | 'timeout'>((resolve) => {
+      const result = await new Promise<'restored' | 'no_purchases' | 'failed'>((resolve) => {
         let settled = false;
-        restoreVerifyDeferredRef.current = {
-          resolve: (v) => {
-            if (settled) return;
-            settled = true;
-            resolve(v);
-          },
+        const settle = (v: 'restored' | 'no_purchases' | 'failed') => {
+          if (settled) return;
+          settled = true;
+          restoreVerifyDeferredRef.current = null;
+          resolve(v);
         };
-        // restorePurchases 호출 자체가 실패할 수 있다
+
+        // 경로 1: approved 이벤트 (기존 동작 유지)
+        restoreVerifyDeferredRef.current = {
+          resolve: (v) => settle(v === 'restored' ? 'restored' : 'failed'),
+        };
+
+        // restorePurchases 트리거 (실패해도 스캔/타임아웃이 결론을 낸다)
         store.restorePurchases().catch((e: unknown) => {
           console.error('[IAP] restorePurchases failed:', e);
-          if (!settled) {
-            settled = true;
-            restoreVerifyDeferredRef.current = null;
-            resolve('verify_failed');
-          }
         });
-        // 안전망 타임아웃: approved 가 발화 안 되면 복원할 항목이 없는 것으로 간주
-        // (iOS StoreKit 은 복원 항목이 없으면 콜백 발화 없이 침묵)
-        setTimeout(() => {
-          if (!settled) {
-            settled = true;
-            restoreVerifyDeferredRef.current = null;
-            resolve('timeout');
+
+        // 경로 2: 영수증 스캔 (approved 가 안 떠도 소유 구독을 찾아낸다)
+        (async () => {
+          const deadline = Date.now() + 8000;
+          while (Date.now() < deadline && !settled) {
+            const txId = findOwnedAppleTransactionId(store, APPLE_PRODUCT_IDS);
+            if (txId) {
+              console.log('[IAP] restore: owned transaction found in receipts:', txId);
+              const verified = await verifyReceiptWithRetry(txId);
+              settle(verified ? 'restored' : 'failed');
+              return;
+            }
+            await sleep(700);
           }
-        }, 8000);
+          // 두 경로 모두 8초 안에 거래를 못 찾음 → 복원할 항목 없음
+          settle('no_purchases');
+        })();
       });
 
-      if (verifyOutcome === 'restored') return 'restored';
-      if (verifyOutcome === 'verify_failed') return 'failed';
-      return 'no_purchases'; // timeout
+      return result;
     } finally {
       safeSet(setRestoring, false);
     }
-  }, [ensureReady, restoring, purchasing, safeSet]);
+  }, [ensureReady, restoring, purchasing, safeSet, verifyReceiptWithRetry]);
 
   return {
     available: isAppleIAPAvailable() && pluginLoaded,

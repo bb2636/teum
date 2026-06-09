@@ -10,6 +10,7 @@ import {
   _isTransactionProcessed,
   _markTransactionProcessed,
 } from './useAppleIAP';
+import { findOwnedAppleTransactionId } from '@/lib/appleReceipt';
 
 declare const CdvPurchase: {
   store: unknown;
@@ -123,6 +124,58 @@ export function useAppleIAPStartupRecovery() {
           }))
         );
 
+        // ⚠️ 이미 완료처리(acknowledged)된 기존 자동갱신 구독은 restorePurchases() 후에도
+        // approved 가 재발화하지 않는다. 그런 구독을 자동 복구하려면 localReceipts 에서
+        // 거래ID 를 직접 읽어 서버 verify-receipt 로 보내야 한다. (approved 리스너만으로는
+        // "0건" 문제가 해결되지 않는다.)
+        const recoverOwnedFromReceipts = async (): Promise<void> => {
+          const deadline = Date.now() + 6000;
+          while (Date.now() < deadline) {
+            const txId = findOwnedAppleTransactionId(store, APPLE_PRODUCT_IDS);
+            if (txId) {
+              if (_isTransactionProcessed(txId)) return;
+              if (_recovering) return; // approved 경로가 처리 중 → 중복 방지
+              _recovering = true;
+              try {
+                console.log('[IAP recovery] owned transaction found in receipts, verifying:', txId);
+                const RETRY_DELAYS_MS = [1500, 3000, 5000];
+                let verified = false;
+                for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+                  try {
+                    const data = await apiRequest<{ success?: boolean }>(
+                      '/payments/apple/verify-receipt',
+                      { method: 'POST', body: JSON.stringify({ transactionId: txId }) }
+                    );
+                    if (data?.success) { verified = true; break; }
+                  } catch (err) {
+                    const anyErr = err as { code?: string; status?: number };
+                    const retryable =
+                      anyErr?.code === 'APPLE_PERSIST_FAILED_RETRY' ||
+                      anyErr?.status === 503 ||
+                      anyErr?.status === 502 ||
+                      anyErr?.status === undefined;
+                    if (!retryable) break;
+                  }
+                  if (attempt < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[attempt]);
+                }
+                if (verified) {
+                  _markTransactionProcessed(txId);
+                  await qc.invalidateQueries({ queryKey: ['subscriptions'] });
+                  await qc.invalidateQueries({ queryKey: ['user', 'me'] });
+                  console.log('[IAP recovery] owned subscription recovered from receipts:', txId);
+                  navigateFn('/payment/success', { replace: true });
+                } else {
+                  console.warn('[IAP recovery] receipt-based verify failed for:', txId);
+                }
+              } finally {
+                _recovering = false;
+              }
+              return;
+            }
+            await sleep(700);
+          }
+        };
+
         // 리스너 중복 등록 방지: useAppleIAP 와 공유하는 모듈 레벨 플래그 확인
         if (_globalListenersAttached) {
           console.log('[IAP recovery] listeners already attached by purchase flow, skipping registration');
@@ -134,6 +187,8 @@ export function useAppleIAPStartupRecovery() {
           } catch (e) {
             console.warn('[IAP recovery] restorePurchases failed (suppressed):', e);
           }
+          // approved 가 안 뜨는 기존(acknowledged) 구독은 영수증에서 직접 복구
+          await recoverOwnedFromReceipts();
           console.log('[IAP recovery] store initialized + restorePurchases (listeners re-used from purchase flow)');
           return;
         }
@@ -225,6 +280,8 @@ export function useAppleIAPStartupRecovery() {
         } catch (e) {
           console.warn('[IAP recovery] restorePurchases failed (suppressed):', e);
         }
+        // approved 가 안 뜨는 기존(acknowledged) 구독은 영수증에서 직접 복구
+        await recoverOwnedFromReceipts();
         console.log('[IAP recovery] store initialized + restorePurchases called');
 
       } catch (e) {

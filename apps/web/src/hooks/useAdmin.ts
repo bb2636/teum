@@ -43,7 +43,7 @@ export interface Payment {
   updatedAt: string;
   subscription?: {
     id: string;
-    status: 'active' | 'cancelled' | 'expired' | 'pending';
+    status: 'active' | 'cancelled' | 'expired' | 'pending' | 'refunded';
     planName: string;
     startDate: string;
     endDate?: string | null;

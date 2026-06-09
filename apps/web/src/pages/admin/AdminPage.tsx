@@ -871,7 +871,7 @@ export function AdminPage() {
                         const paymentDate = payment.paidAt || payment.createdAt;
                         
                         // 상태 결정 로직
-                        let status: '결제완료' | '취소됨' | '만료됨' = '만료됨';
+                        let status: '결제완료' | '취소됨' | '만료됨' | '환불됨' = '만료됨';
                         let statusClass = 'bg-gray-100 text-gray-600';
                         
                         if (payment.status === 'completed' && payment.subscription) {
@@ -879,7 +879,10 @@ export function AdminPage() {
                           const now = new Date();
                           const endDate = subscription.endDate ? new Date(subscription.endDate) : null;
                           
-                          if (subscription.status === 'cancelled') {
+                          if (subscription.status === 'refunded') {
+                            status = '환불됨';
+                            statusClass = 'bg-orange-100 text-orange-800';
+                          } else if (subscription.status === 'cancelled') {
                             status = '취소됨';
                             statusClass = 'bg-red-100 text-red-800';
                           } else if (subscription.status === 'active' && (!endDate || endDate >= now)) {

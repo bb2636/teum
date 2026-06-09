@@ -281,10 +281,44 @@ export class UserController {
           subscription: subscription || null,
         };
       });
-      
+
+      // 결제(payments) 레코드가 없는 구독도 관리자 「구독 상세 내역」에 보이도록
+      // 구독 기반 합성 이력을 추가한다.
+      // (예: 관리자가 상태를 수동 보정했거나, 결제행 없이 구독행만 생성된 경우)
+      // pending 구독은 아직 확정된 이력이 아니므로 제외한다.
+      const paidSubscriptionIds = new Set(
+        payments.map((p) => p.subscriptionId).filter((id): id is string => !!id)
+      );
+      const subscriptionOnlyEntries = subscriptions
+        .filter((sub) => !paidSubscriptionIds.has(sub.id) && sub.status !== 'pending')
+        .map((sub) => ({
+          id: `subscription-${sub.id}`,
+          userId: sub.userId,
+          subscriptionId: sub.id,
+          // 프론트 상태 라벨은 payment.status='completed' + subscription.status 로 결정되므로
+          // 합성 결제 상태는 'completed' 로 두고 실제 라벨은 구독 상태가 결정한다.
+          status: 'completed' as const,
+          amount: sub.amount,
+          currency: sub.currency,
+          paymentMethod: sub.appleProductId ? 'apple' : sub.paypalSubscriptionId ? 'paypal' : null,
+          transactionId: null,
+          paidAt: sub.startDate,
+          createdAt: sub.createdAt,
+          updatedAt: sub.updatedAt,
+          subscription: sub,
+          derivedFromSubscription: true as const,
+        }));
+
+      // 결제일(paidAt 우선, 없으면 createdAt) 기준 최신순 정렬
+      const combined = [...paymentsWithSubscriptions, ...subscriptionOnlyEntries].sort((a, b) => {
+        const at = new Date(a.paidAt ?? a.createdAt).getTime();
+        const bt = new Date(b.paidAt ?? b.createdAt).getTime();
+        return bt - at;
+      });
+
       res.json({
         success: true,
-        data: { payments: paymentsWithSubscriptions },
+        data: { payments: combined },
       });
     } catch (error) {
       next(error);

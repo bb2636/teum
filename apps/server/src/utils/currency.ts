@@ -1,6 +1,14 @@
 import { logger } from '../config/logger';
 
-const BASE_PRICE_USD = 3.99;
+const BASE_PRICE_USD = (() => {
+  const raw = process.env.SUBSCRIPTION_PRICE_USD;
+  const parsed = raw ? Number(raw) : NaN;
+  if (raw && Number.isFinite(parsed) && parsed > 0) {
+    logger.info({ price: parsed }, 'Using SUBSCRIPTION_PRICE_USD override');
+    return parsed;
+  }
+  return 3.99;
+})();
 
 let cachedRate: { rate: number; fetchedAt: number } | null = null;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;

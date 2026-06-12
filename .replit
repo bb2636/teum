@@ -54,6 +54,7 @@ build = ["sh", "-c", "pnpm build && pnpm --filter @teum/server db:baseline && pn
 [userenv]
 
 [userenv.shared]
+SUBSCRIPTION_PRICE_USD = "0.99"
 
 [userenv.production]
 FRONTEND_URL = "https://teum--iteraon.replit.app"

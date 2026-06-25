@@ -12,7 +12,7 @@ import { StorageImage } from '@/components/StorageImage';
 import { useT } from '@/hooks/useTranslation';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { getFirstLine } from '@/lib/utils';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, getApiBaseUrl } from '@/lib/api';
 
 export function MusicCreatePage() {
   const navigate = useNavigate();
@@ -200,7 +200,7 @@ export function MusicCreatePage() {
   const handleDownload = async () => {
     if (!completedJobId) return;
     try {
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const apiBase = getApiBaseUrl();
       const response = await fetch(`${apiBase}/music/jobs/${completedJobId}`, {
         credentials: 'include',
       });

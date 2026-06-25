@@ -1,6 +1,4 @@
-import { apiRequest } from './api';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+import { apiRequest, getApiBaseUrl } from './api';
 
 export async function downloadMusicFile(
   jobId: string,
@@ -60,9 +58,10 @@ async function getDownloadUrl(jobId: string, filename: string): Promise<string |
     });
     const token = (tokenData as { data?: { token?: string }; token?: string })?.data?.token || (tokenData as { token?: string })?.token;
     if (token) {
-      const base = API_BASE_URL.startsWith('http')
-        ? API_BASE_URL
-        : `${window.location.origin}${API_BASE_URL.startsWith('/') ? API_BASE_URL : `/${API_BASE_URL}`}`;
+      const apiBase = getApiBaseUrl();
+      const base = apiBase.startsWith('http')
+        ? apiBase
+        : `${window.location.origin}${apiBase.startsWith('/') ? apiBase : `/${apiBase}`}`;
       return `${base.replace(/\/$/, '')}/music/download/${token}/${encodeURIComponent(filename)}`;
     }
   } catch {}

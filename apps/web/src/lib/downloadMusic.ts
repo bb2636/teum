@@ -171,7 +171,7 @@ async function handleNativeDownload(url: string, filename: string, platform: str
 
     if (platform === 'ios') {
       try {
-        const tempPath = `temp_${Date.now()}_${filename}`;
+        const tempPath = `downloads/${Date.now()}/${filename}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
